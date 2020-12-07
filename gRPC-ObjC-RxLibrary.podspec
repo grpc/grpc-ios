@@ -4,7 +4,7 @@
 # regenerated from the template by running
 # `tools/buildgen/generate_projects.sh`.
 
-# Copyright 2020 gRPC authors.
+# Copyright 2015 gRPC authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 
 
 Pod::Spec.new do |s|
-  s.name     = 'gRPC-iOS-RxLibrary-test'
+  s.name     = 'gRPC-ObjC-RxLibrary'
   version = '0.0.1'
   s.version  = version
   s.summary  = 'Reactive Extensions library for iOS/OSX.'
