@@ -21,7 +21,7 @@
 
 Pod::Spec.new do |s|
   s.name     = 'gRPC-ObjC-ProtoRPC'
-  version = '0.0.1'
+  version = '0.0.1-dev'
   s.version  = version
   s.summary  = 'RPC library for Protocol Buffers, based on gRPC'
   s.homepage = 'https://grpc.io'
@@ -53,7 +53,7 @@ Pod::Spec.new do |s|
   s.subspec 'Main' do |ss|
     ss.header_mappings_dir = "src/ProtoRPC"
     ss.dependency "#{s.name}/Legacy-Header", version
-    ss.dependency 'gRPC/Interface', version
+    ss.dependency 'gRPC-ObjC/Interface', version
     ss.dependency 'Protobuf', '~> 3.0'
 
     ss.source_files = "src/ProtoRPC/ProtoMethod.{h,m}",
@@ -65,8 +65,8 @@ Pod::Spec.new do |s|
     ss.header_mappings_dir = "src/ProtoRPC"
     ss.dependency "#{s.name}/Main", version
     ss.dependency "#{s.name}/Legacy-Header", version
-    ss.dependency 'gRPC/GRPCCore', version
-    ss.dependency 'gRPC-RxLibrary', version
+    ss.dependency 'gRPC-ObjC/GRPCCore', version
+    ss.dependency 'gRPC-ObjC-RxLibrary', version
     ss.dependency 'Protobuf', '~> 3.0'
 
     ss.source_files = "src/ProtoRPC/ProtoRPCLegacy.m",
