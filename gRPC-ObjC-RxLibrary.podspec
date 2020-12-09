@@ -49,7 +49,7 @@ Pod::Spec.new do |s|
     ss.header_mappings_dir = "#{src_dir}"
     ss.source_files = "#{src_dir}/*.h"
     ss.public_header_files = "#{src_dir}/*.h"
-  endßßß
+  end
 
   s.subspec 'Implementation' do |ss|
     ss.header_mappings_dir = "#{src_dir}"
