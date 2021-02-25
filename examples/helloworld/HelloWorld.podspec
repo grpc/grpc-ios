@@ -5,13 +5,13 @@ Pod::Spec.new do |s|
   s.authors  = { 'gRPC contributors' => 'grpc-io@googlegroups.com' }
   s.homepage = "https://grpc.io/"
   s.summary = "HelloWorld example"
-  s.source = { :git => 'https://github.com/grpc/grpc-ios.git' }
+  s.source = { :git => 'https://github.com/grpc/grpc.git' }
 
-  s.ios.deployment_target = "7.1"
-  s.osx.deployment_target = "10.9"
+  s.ios.deployment_target = "9.0"
+  s.osx.deployment_target = "10.10"
 
   # Base directory where the .proto files are.
-  src = "../protos"
+  src = "../../protos"
 
   # Run protoc with the Objective-C and gRPC plugins to generate protocol messages and gRPC clients.
   s.dependency "!ProtoCompiler-gRPCPlugin", "~> 1.0"
