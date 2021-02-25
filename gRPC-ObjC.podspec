@@ -20,8 +20,8 @@
 
 Pod::Spec.new do |s|
   s.name     = 'gRPC-ObjC'
-  version = '0.0.1-dev'
-  grpc_version = '1.34.0'
+  version = '0.0.3-dev'
+  grpc_version = '1.36.0'
   s.version  = version
   s.summary  = 'gRPC client library for iOS/OSX'
   s.homepage = 'https://grpc.io'
