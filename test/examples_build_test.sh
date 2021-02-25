@@ -19,3 +19,4 @@ set -ex
 
 SCHEME=HelloWorld EXAMPLE_PATH=examples/helloworld ./build_one_example.sh
 SCHEME=RouteGuideClient EXAMPLE_PATH=examples/route_guide ./build_one_example.sh
+SCHEME=AuthSample EXAMPLE_PATH=examples/auth_sample ./build_one_example.sh
