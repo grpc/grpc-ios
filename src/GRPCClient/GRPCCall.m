@@ -38,7 +38,6 @@
 
 @implementation GRPCResponseDispatcher {
   id<GRPCResponseHandler> _responseHandler;
-  dispatch_queue_t _dispatchQueue;
 }
 
 - (instancetype)initWithResponseHandler:(id<GRPCResponseHandler>)responseHandler {
