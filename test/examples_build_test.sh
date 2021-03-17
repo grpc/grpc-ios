@@ -17,6 +17,8 @@
 
 set -ex
 
-SCHEME=HelloWorld EXAMPLE_PATH=examples/helloworld ./build_one_example.sh
-SCHEME=RouteGuideClient EXAMPLE_PATH=examples/route_guide ./build_one_example.sh
+TEST_PATH=$(cd "$(dirname $0)" > /dev/null ; pwd)
+
+SCHEME=HelloWorld EXAMPLE_PATH=examples/helloworld $TEST_PATH/build_one_example.sh
+SCHEME=RouteGuideClient EXAMPLE_PATH=examples/route_guide $TEST_PATH/build_one_example.sh
 SCHEME=AuthSample EXAMPLE_PATH=examples/auth_sample $TEST_PATH/build_one_example.sh
