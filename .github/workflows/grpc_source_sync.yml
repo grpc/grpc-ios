@@ -1,0 +1,9 @@
+name: gRPC Native Source Shallow Sync Workflow
+on: [push]
+jobs:
+  gRPC-Native-Source-Shallow-Sync:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run shallow source sync
+        run: scripts/sync_grpc_src_shallow.sh
