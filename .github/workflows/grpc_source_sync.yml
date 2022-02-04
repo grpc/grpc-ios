@@ -1,9 +1,28 @@
 name: gRPC Native Source Shallow Sync Workflow
-on: [push]
+on:
+  schedule:
+      - cron: '0 0 * * *' # Once per day at midnight
+  repository_dispatch:
+      types: [grpc-source-sync]
 jobs:
   gRPC-Native-Source-Shallow-Sync:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Run shallow source sync
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
+      - name: Shallow Source Sync
         run: scripts/sync_grpc_src_shallow.sh
+
+      - run: |
+          echo "grpc_src_revision=$(cat native_src/REVISION.txt)" >> $GITHUB_ENV
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          title: "[bot] gRPC native source shallow sync"
+          commit-message: Native source sync at revision @${{ env.grpc_src_revision }}
+          body: |
+            Native source sync at revision @${{ env.grpc_src_revision }}
+          delete-branch	: true
+          reviewers: dennycd
