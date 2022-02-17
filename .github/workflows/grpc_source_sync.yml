@@ -8,16 +8,20 @@ jobs:
   gRPC-Native-Source-Shallow-Sync:
     runs-on: macos-latest
     steps:
-      - name: Checkout Repo
+      - name: Checkout repo
         uses: actions/checkout@v2
 
-      - name: Shallow Source Sync
+      - name: Install git-achive-all
+        run: brew install git-archive-all
+
+      - name: Shallow source source
         run: scripts/sync_grpc_src_shallow.sh
 
-      - run: |
+      - name: Collect revision hash
+        run: |
           echo "grpc_src_revision=$(cat native_src/REVISION.txt)" >> $GITHUB_ENV
 
-      - name: Create Pull Request
+      - name: Create or update pull request
         uses: peter-evans/create-pull-request@v3
         with:
           title: "[bot] gRPC native source shallow sync"
@@ -25,4 +29,9 @@ jobs:
           body: |
             Native source sync at revision @${{ env.grpc_src_revision }}
           delete-branch	: true
-          reviewers: dennycd
+          labels: |
+            kind/bot
+            area/automation
+          reviewers: |
+            dennycd
+            sampajano
