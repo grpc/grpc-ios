@@ -21,8 +21,11 @@
 #include <memory>
 
 #include <benchmark/benchmark.h>
+
 #include <grpcpp/impl/grpc_library.h>
 #include <grpcpp/support/byte_buffer.h>
+
+#include "test/core/util/test_config.h"
 #include "test/cpp/microbenchmarks/helpers.h"
 #include "test/cpp/util/test_config.h"
 
@@ -122,9 +125,11 @@ void RunTheBenchmarksNamespaced() { RunSpecifiedBenchmarks(); }
 }  // namespace benchmark
 
 int main(int argc, char** argv) {
+  grpc::testing::TestEnvironment env(argc, argv);
   LibraryInitializer libInit;
   ::benchmark::Initialize(&argc, argv);
   ::grpc::testing::InitTest(&argc, &argv, false);
+
   benchmark::RunTheBenchmarksNamespaced();
   return 0;
 }

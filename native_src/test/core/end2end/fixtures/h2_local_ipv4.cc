@@ -27,24 +27,23 @@
 #include "test/core/util/test_config.h"
 
 static grpc_end2end_test_fixture chttp2_create_fixture_fullstack_ipv4(
-    grpc_channel_args* /*client_args*/, grpc_channel_args* /*server_args*/) {
+    const grpc_channel_args* /*client_args*/,
+    const grpc_channel_args* /*server_args*/) {
   grpc_end2end_test_fixture f =
       grpc_end2end_local_chttp2_create_fixture_fullstack();
   int port = grpc_pick_unused_port_or_die();
-  grpc_core::JoinHostPort(
-      &static_cast<grpc_end2end_local_fullstack_fixture_data*>(f.fixture_data)
-           ->localaddr,
-      "127.0.0.1", port);
+  static_cast<grpc_end2end_local_fullstack_fixture_data*>(f.fixture_data)
+      ->localaddr = grpc_core::JoinHostPort("127.0.0.1", port);
   return f;
 }
 
-static void chttp2_init_client_fullstack_ipv4(grpc_end2end_test_fixture* f,
-                                              grpc_channel_args* client_args) {
+static void chttp2_init_client_fullstack_ipv4(
+    grpc_end2end_test_fixture* f, const grpc_channel_args* client_args) {
   grpc_end2end_local_chttp2_init_client_fullstack(f, client_args, LOCAL_TCP);
 }
 
-static void chttp2_init_server_fullstack_ipv4(grpc_end2end_test_fixture* f,
-                                              grpc_channel_args* client_args) {
+static void chttp2_init_server_fullstack_ipv4(
+    grpc_end2end_test_fixture* f, const grpc_channel_args* client_args) {
   grpc_end2end_local_chttp2_init_server_fullstack(f, client_args, LOCAL_TCP);
 }
 

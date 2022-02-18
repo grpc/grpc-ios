@@ -21,6 +21,8 @@
 
 #include <grpc/support/time.h>
 
+#include "test/core/util/build.h"
+
 extern int64_t g_fixture_slowdown_factor;
 extern int64_t g_poller_slowdown_factor;
 
@@ -40,6 +42,10 @@ gpr_timespec grpc_timeout_milliseconds_to_deadline(int64_t time_ms);
 // Prefer TestEnvironment below.
 void grpc_test_init(int argc, char** argv);
 
+// Wait until gRPC is fully shut down.
+// Returns if grpc is shutdown
+bool grpc_wait_until_shutdown(int64_t time_s);
+
 namespace grpc {
 namespace testing {
 
@@ -49,6 +55,15 @@ class TestEnvironment {
  public:
   TestEnvironment(int argc, char** argv);
   ~TestEnvironment();
+};
+
+// A TestGrpcScope makes sure that
+// - when it's created, gRPC will be initialized
+// - when it's destroyed, gRPC will shutdown and it waits until shutdown
+class TestGrpcScope {
+ public:
+  TestGrpcScope();
+  ~TestGrpcScope();
 };
 
 }  // namespace testing

@@ -7,13 +7,39 @@ Google APIs and help you to utilize them more efficiently. You can also
 use these definitions with open source tools to generate client
 libraries, documentation, and other artifacts.
 
-API client libraries can be built directly from files in this repo using
-[Artman](https://github.com/googleapis/artman). The latest generation status can
-be tracked [here](https://circleci.com/gh/googleapis/googleapis) which currently
-has status [![CircleCI](https://circleci.com/gh/googleapis/googleapis.svg?style=svg)](https://circleci.com/gh/googleapis/googleapis).
+## Building
+### Bazel
 
-For more details on all Google APIs and developer tools, see the [Google
-Developers](https://developers.google.com/products/) site.
+The recommended way to build the API client libraries is through
+[Bazel](https://bazel.build/) >= 2.0.0.
+
+First, [install bazel](https://docs.bazel.build/versions/master/install.html).
+
+To build all libraries:
+
+```
+bazel build //...
+```
+
+To test all libraries:
+
+```
+bazel test //...
+```
+
+To build one library in all languages:
+
+```
+bazel build //google/example/library/v1/...
+```
+
+To build the Java package for one library:
+
+```
+bazel build //google/example/library/v1:google-cloud-library-v1-java
+```
+
+Bazel packages exist in all the libraries for Java, Go, Python, Ruby, Node.js, PHP and C#.
 
 ## Overview
 
@@ -73,7 +99,7 @@ change to the API.
 To generate gRPC source code for Google APIs in this repository, you
 first need to install both Protocol Buffers and gRPC on your local
 machine, then you can run `make LANGUAGE=xxx all` to generate the
-source code. You need to integrated the generated source code into
+source code. You need to integrate the generated source code into
 your application build system.
 
 **NOTE:** The Makefile is only intended to generate source code for the

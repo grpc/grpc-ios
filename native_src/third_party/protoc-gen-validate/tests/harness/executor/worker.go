@@ -3,47 +3,43 @@ package main
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	harness "github.com/envoyproxy/protoc-gen-validate/tests/harness/go"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
-func Work(wg *sync.WaitGroup, in <-chan TestCase, out chan<- TestResult, goFlag bool, gogoFlag bool, ccFlag bool, javaFlag bool, pythonFlag bool) {
+func Work(wg *sync.WaitGroup, in <-chan TestCase, out chan<- TestResult, harnesses []Harness) {
 	for tc := range in {
-		ok, skip := execTestCase(tc, goFlag, gogoFlag, ccFlag, javaFlag, pythonFlag)
-		out <- TestResult{ok, skip}
+		execTestCase(tc, harnesses, out)
 	}
 	wg.Done()
 }
 
-func execTestCase(tc TestCase, goFlag bool, gogoFlag bool, ccFlag bool, javaFlag bool, pythonFlag bool) (ok, skip bool) {
-	any, err := ptypes.MarshalAny(tc.Message)
+func execTestCase(tc TestCase, harnesses []Harness, out chan<- TestResult) {
+	any, err := anypb.New(tc.Message)
 	if err != nil {
 		log.Printf("unable to convert test case %q to Any - %v", tc.Name, err)
-		return false, false
+		out <- TestResult{false, false}
+		return
 	}
 
 	b, err := proto.Marshal(&harness.TestCase{Message: any})
 	if err != nil {
 		log.Printf("unable to marshal test case %q - %v", tc.Name, err)
-		return false, false
+		out <- TestResult{false, false}
+		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-
-	harnesses := Harnesses(goFlag, gogoFlag, ccFlag, javaFlag, pythonFlag)
 
 	wg := new(sync.WaitGroup)
 	wg.Add(len(harnesses))
-
-	errs := make(chan error, len(harnesses))
-	skips := make(chan string, len(harnesses))
 
 	for _, h := range harnesses {
 		h := h
@@ -52,38 +48,54 @@ func execTestCase(tc TestCase, goFlag bool, gogoFlag bool, ccFlag bool, javaFlag
 
 			res, err := h.Exec(ctx, bytes.NewReader(b))
 			if err != nil {
-				errs <- err
+				log.Printf("[%s] (%s harness) executor error: %s", tc.Name, h.Name, err.Error())
+				out <- TestResult{false, false}
 				return
 			}
 
 			if res.Error {
-				errs <- fmt.Errorf("%s: internal harness error: %s", h.Name, res.Reason)
-			} else if res.Valid != tc.Valid {
-				if res.AllowFailure {
-					skips <- fmt.Sprintf("%s: ignoring test failure: %s", h.Name, res.Reason)
-				} else if tc.Valid {
-					errs <- fmt.Errorf("%s: expected valid, got: %s", h.Name, res.Reason)
-				} else {
-					errs <- fmt.Errorf("%s: expected invalid, but got valid", h.Name)
-				}
+				log.Printf("[%s] (%s harness) internal harness error: %s", tc.Name, h.Name, res.Reasons)
+				out <- TestResult{false, false}
+				return
 			}
+
+			// Backwards compatibility for languages with no multi-error
+			// feature: check results of validation in "fail fast" mode only
+			if !res.CheckMultipleErrors {
+				tcValid := tc.Failures == 0
+				if res.Valid != tcValid {
+					if res.AllowFailure {
+						log.Printf("[%s] (%s harness) ignoring test failure: %v", tc.Name, h.Name, res.Reasons)
+						out <- TestResult{false, true}
+					} else if tcValid {
+						log.Printf("[%s] (%s harness) expected valid, got invalid: %v", tc.Name, h.Name, res.Reasons)
+						out <- TestResult{false, false}
+					} else {
+						log.Printf("[%s] (%s harness) expected invalid, got valid: %v", tc.Name, h.Name, res.Reasons)
+						out <- TestResult{false, false}
+					}
+				} else {
+					out <- TestResult{true, false}
+				}
+				return
+			}
+
+			// Check results of validation in "extensive" mode
+			if len(res.Reasons) != tc.Failures {
+				if res.AllowFailure {
+					log.Printf("[%s] (%s harness) ignoring bad number of failures: %v", tc.Name, h.Name, res.Reasons)
+					out <- TestResult{false, true}
+				} else {
+					log.Printf("[%s] (%s harness) expected %d failures, got %d:\n %v", tc.Name, h.Name, tc.Failures, len(res.Reasons), strings.Join(res.Reasons, "\n "))
+					out <- TestResult{false, false}
+				}
+				return
+			}
+
+			out <- TestResult{true, false}
 		}()
 	}
 
 	wg.Wait()
-	close(errs)
-	close(skips)
-
-	ok = true
-
-	for err := range errs {
-		log.Printf("[%s] %v", tc.Name, err)
-		ok = false
-	}
-	for out := range skips {
-		log.Printf("[%s] %v", tc.Name, out)
-		skip = true
-	}
-
 	return
 }

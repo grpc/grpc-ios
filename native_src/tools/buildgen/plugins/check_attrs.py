@@ -38,6 +38,7 @@ VALID_ATTRIBUTE_KEYS_MAP = {
         'uses': anything(),
     },
     'lib': {
+        'asm_src': anything(),
         'baselib': anything(),
         'boringssl': one_of((True,)),
         'build_system': anything(),
@@ -94,7 +95,7 @@ VALID_ATTRIBUTE_KEYS_MAP = {
 def check_attributes(entity, kind, errors):
     attributes = VALID_ATTRIBUTE_KEYS_MAP[kind]
     name = entity.get('name', anything())
-    for key, value in entity.items():
+    for key, value in list(entity.items()):
         if key == 'name':
             continue
         validator = attributes.get(key)

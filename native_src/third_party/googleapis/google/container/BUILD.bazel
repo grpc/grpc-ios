@@ -1,1 +1,1 @@
-exports_files(["container_v1.yaml"])
+exports_files(glob(["*.yaml"]))

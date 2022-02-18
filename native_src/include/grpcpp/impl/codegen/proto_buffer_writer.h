@@ -19,6 +19,8 @@
 #ifndef GRPCPP_IMPL_CODEGEN_PROTO_BUFFER_WRITER_H
 #define GRPCPP_IMPL_CODEGEN_PROTO_BUFFER_WRITER_H
 
+// IWYU pragma: private, include <grpcpp/support/proto_buffer_writer.h>
+
 #include <type_traits>
 
 #include <grpc/impl/codegen/grpc_types.h>
@@ -65,12 +67,12 @@ class ProtoBufferWriter : public ::grpc::protobuf::io::ZeroCopyOutputStream {
     GPR_CODEGEN_ASSERT(!byte_buffer->Valid());
     /// Create an empty raw byte buffer and look at its underlying slice buffer
     grpc_byte_buffer* bp =
-        g_core_codegen_interface->grpc_raw_byte_buffer_create(NULL, 0);
+        g_core_codegen_interface->grpc_raw_byte_buffer_create(nullptr, 0);
     byte_buffer->set_buffer(bp);
     slice_buffer_ = &bp->data.raw.slice_buffer;
   }
 
-  ~ProtoBufferWriter() {
+  ~ProtoBufferWriter() override {
     if (have_backup_) {
       g_core_codegen_interface->grpc_slice_unref(backup_slice_);
     }
@@ -107,7 +109,7 @@ class ProtoBufferWriter : public ::grpc::protobuf::io::ZeroCopyOutputStream {
     *data = GRPC_SLICE_START_PTR(slice_);
     // On win x64, int is only 32bit
     GPR_CODEGEN_ASSERT(GRPC_SLICE_LENGTH(slice_) <= INT_MAX);
-    byte_count_ += * size = (int)GRPC_SLICE_LENGTH(slice_);
+    byte_count_ += * size = static_cast<int>(GRPC_SLICE_LENGTH(slice_));
     g_core_codegen_interface->grpc_slice_buffer_add(slice_buffer_, slice_);
     return true;
   }
@@ -116,13 +118,20 @@ class ProtoBufferWriter : public ::grpc::protobuf::io::ZeroCopyOutputStream {
   /// (only used in the last buffer). \a count must be less than or equal too
   /// the last buffer returned from next.
   void BackUp(int count) override {
+    // count == 0 is invoked by ZeroCopyOutputStream users indicating that any
+    // potential buffer obtained through a previous call to Next() is final.
+    // ZeroCopyOutputStream implementations such as streaming output can use
+    // these calls to flush any temporary buffer and flush the output. The logic
+    // below is not robust against count == 0 invocations, so directly return.
+    if (count == 0) return;
+
     /// 1. Remove the partially-used last slice from the slice buffer
     /// 2. Split it into the needed (if any) and unneeded part
     /// 3. Add the needed part back to the slice buffer
     /// 4. Mark that we still have the remaining part (for later use/unref)
     GPR_CODEGEN_ASSERT(count <= static_cast<int>(GRPC_SLICE_LENGTH(slice_)));
     g_core_codegen_interface->grpc_slice_buffer_pop(slice_buffer_);
-    if ((size_t)count == GRPC_SLICE_LENGTH(slice_)) {
+    if (static_cast<size_t>(count) == GRPC_SLICE_LENGTH(slice_)) {
       backup_slice_ = slice_;
     } else {
       backup_slice_ = g_core_codegen_interface->grpc_slice_split_tail(
@@ -133,7 +142,7 @@ class ProtoBufferWriter : public ::grpc::protobuf::io::ZeroCopyOutputStream {
     // on a following Next() call, a reference will be returned to this slice
     // via GRPC_SLICE_START_PTR, which will not be an address held by
     // slice_buffer_.
-    have_backup_ = backup_slice_.refcount != NULL;
+    have_backup_ = backup_slice_.refcount != nullptr;
     byte_count_ -= count;
   }
 

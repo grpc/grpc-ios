@@ -19,16 +19,21 @@
 #ifndef SRC_COMPILER_CONFIG_H
 #define SRC_COMPILER_CONFIG_H
 
+#include <string>
+
 #include "src/compiler/config_protobuf.h"
 
-#ifndef GRPC_CUSTOM_STRING
-#include <string>
-#define GRPC_CUSTOM_STRING std::string
+#ifdef GRPC_CUSTOM_STRING
+#warning GRPC_CUSTOM_STRING is no longer supported. Please use std::string.
 #endif
 
 namespace grpc {
 
-typedef GRPC_CUSTOM_STRING string;
+// Using grpc::string and grpc::to_string is discouraged in favor of
+// std::string and std::to_string. This is only for legacy code using
+// them explictly.
+using std::string;     // deprecated
+using std::to_string;  // deprecated
 
 namespace protobuf {
 

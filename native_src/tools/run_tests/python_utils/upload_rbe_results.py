@@ -15,10 +15,13 @@
 """Uploads RBE results to BigQuery"""
 
 import argparse
-import os
 import json
+import os
+import ssl
 import sys
-import urllib2
+import urllib.error
+import urllib.parse
+import urllib.request
 import uuid
 
 gcp_utils_dir = os.path.abspath(
@@ -28,8 +31,8 @@ import big_query_utils
 
 _DATASET_ID = 'jenkins_test_results'
 _DESCRIPTION = 'Test results from master RBE builds on Kokoro'
-# 90 days in milliseconds
-_EXPIRATION_MS = 90 * 24 * 60 * 60 * 1000
+# 365 days in milliseconds
+_EXPIRATION_MS = 365 * 24 * 60 * 60 * 1000
 _PARTITION_TYPE = 'DAY'
 _PROJECT_ID = 'grpc-testing'
 _RESULTS_SCHEMA = [
@@ -37,6 +40,7 @@ _RESULTS_SCHEMA = [
     ('build_id', 'INTEGER', 'Build ID of Kokoro job'),
     ('build_url', 'STRING', 'URL of Kokoro build'),
     ('test_target', 'STRING', 'Bazel target path'),
+    ('test_class_name', 'STRING', 'Name of test class'),
     ('test_case', 'STRING', 'Name of test case'),
     ('result', 'STRING', 'Test or build result'),
     ('timestamp', 'TIMESTAMP', 'Timestamp of test run'),
@@ -119,12 +123,21 @@ def _get_resultstore_data(api_key, invocation_id):
     # that limit, the 'nextPageToken' field is included in the request to get
     # subsequent data, so keep requesting until 'nextPageToken' field is omitted.
     while True:
-        req = urllib2.Request(
+        req = urllib.request.Request(
             url=
             'https://resultstore.googleapis.com/v2/invocations/%s/targets/-/configuredTargets/-/actions?key=%s&pageToken=%s&fields=next_page_token,actions.id,actions.status_attributes,actions.timing,actions.test_action'
             % (invocation_id, api_key, page_token),
             headers={'Content-Type': 'application/json'})
-        results = json.loads(urllib2.urlopen(req).read())
+        ctx_dict = {}
+        if os.getenv("PYTHONHTTPSVERIFY") == "0":
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            ctx_dict = {"context": ctx}
+        raw_resp = urllib.request.urlopen(req, **ctx_dict).read()
+        decoded_resp = raw_resp if isinstance(
+            raw_resp, str) else raw_resp.decode('utf-8', 'ignore')
+        results = json.loads(decoded_resp)
         all_actions.extend(results['actions'])
         if 'nextPageToken' not in results:
             break
@@ -134,14 +147,42 @@ def _get_resultstore_data(api_key, invocation_id):
 
 if __name__ == "__main__":
     # Arguments are necessary if running in a non-Kokoro environment.
-    argp = argparse.ArgumentParser(description='Upload RBE results.')
-    argp.add_argument('--api_key', default='', type=str)
-    argp.add_argument('--invocation_id', default='', type=str)
+    argp = argparse.ArgumentParser(
+        description=
+        'Fetches results for given RBE invocation and uploads them to BigQuery table.'
+    )
+    argp.add_argument('--api_key',
+                      default='',
+                      type=str,
+                      help='The API key to read from ResultStore API')
+    argp.add_argument('--invocation_id',
+                      default='',
+                      type=str,
+                      help='UUID of bazel invocation to fetch.')
+    argp.add_argument('--bq_dump_file',
+                      default=None,
+                      type=str,
+                      help='Dump JSON data to file just before uploading')
+    argp.add_argument('--resultstore_dump_file',
+                      default=None,
+                      type=str,
+                      help='Dump JSON data as received from ResultStore API')
+    argp.add_argument('--skip_upload',
+                      default=False,
+                      action='store_const',
+                      const=True,
+                      help='Skip uploading to bigquery')
     args = argp.parse_args()
 
     api_key = args.api_key or _get_api_key()
     invocation_id = args.invocation_id or _get_invocation_id()
     resultstore_actions = _get_resultstore_data(api_key, invocation_id)
+
+    if args.resultstore_dump_file:
+        with open(args.resultstore_dump_file, 'w') as f:
+            json.dump(resultstore_actions, f, indent=4, sort_keys=True)
+        print(
+            ('Dumped resultstore data to file %s' % args.resultstore_dump_file))
 
     # google.devtools.resultstore.v2.Action schema:
     # https://github.com/googleapis/googleapis/blob/master/google/devtools/resultstore/v2/action.proto
@@ -189,8 +230,9 @@ if __name__ == "__main__":
         elif 'tests' not in action['testAction']['testSuite']:
             continue
         else:
-            test_cases = action['testAction']['testSuite']['tests'][0][
-                'testSuite']['tests']
+            test_cases = []
+            for tests_item in action['testAction']['testSuite']['tests']:
+                test_cases += tests_item['testSuite']['tests']
         for test_case in test_cases:
             if any(s in test_case['testCase'] for s in ['errors', 'failures']):
                 result = 'FAILED'
@@ -213,6 +255,8 @@ if __name__ == "__main__":
                             % invocation_id,
                         'test_target':
                             action['id']['targetId'],
+                        'test_class_name':
+                            test_case['testCase'].get('className', ''),
                         'test_case':
                             test_case['testCase']['caseName'],
                         'result':
@@ -224,8 +268,8 @@ if __name__ == "__main__":
                     }
                 })
             except Exception as e:
-                print('Failed to parse test result. Error: %s' % str(e))
-                print(json.dumps(test_case, indent=4))
+                print(('Failed to parse test result. Error: %s' % str(e)))
+                print((json.dumps(test_case, indent=4)))
                 bq_rows.append({
                     'insertId': str(uuid.uuid4()),
                     'json': {
@@ -238,6 +282,8 @@ if __name__ == "__main__":
                             % invocation_id,
                         'test_target':
                             action['id']['targetId'],
+                        'test_class_name':
+                            'N/A',
                         'test_case':
                             'N/A',
                         'result':
@@ -247,6 +293,15 @@ if __name__ == "__main__":
                     }
                 })
 
-    # BigQuery sometimes fails with large uploads, so batch 1,000 rows at a time.
-    for i in range((len(bq_rows) / 1000) + 1):
-        _upload_results_to_bq(bq_rows[i * 1000:(i + 1) * 1000])
+    if args.bq_dump_file:
+        with open(args.bq_dump_file, 'w') as f:
+            json.dump(bq_rows, f, indent=4, sort_keys=True)
+        print(('Dumped BQ data to file %s' % args.bq_dump_file))
+
+    if not args.skip_upload:
+        # BigQuery sometimes fails with large uploads, so batch 1,000 rows at a time.
+        MAX_ROWS = 1000
+        for i in range(0, len(bq_rows), MAX_ROWS):
+            _upload_results_to_bq(bq_rows[i:i + MAX_ROWS])
+    else:
+        print('Skipped upload to bigquery.')

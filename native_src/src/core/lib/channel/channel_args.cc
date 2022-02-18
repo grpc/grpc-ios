@@ -18,17 +18,22 @@
 
 #include <grpc/support/port_platform.h>
 
+#include "src/core/lib/channel/channel_args.h"
+
 #include <limits.h>
 #include <string.h>
 
-#include <grpc/grpc.h>
+#include <vector>
+
+#include "absl/strings/match.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
+
 #include <grpc/impl/codegen/grpc_types.h>
-#include <grpc/impl/codegen/log.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/string_util.h>
 
-#include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/gpr/string.h"
 #include "src/core/lib/gpr/useful.h"
 
@@ -140,7 +145,7 @@ grpc_channel_args* grpc_channel_args_union(const grpc_channel_args* a,
 }
 
 static int cmp_arg(const grpc_arg* a, const grpc_arg* b) {
-  int c = GPR_ICMP(a->type, b->type);
+  int c = grpc_core::QsortCompare(a->type, b->type);
   if (c != 0) return c;
   c = strcmp(a->key, b->key);
   if (c != 0) return c;
@@ -148,11 +153,12 @@ static int cmp_arg(const grpc_arg* a, const grpc_arg* b) {
     case GRPC_ARG_STRING:
       return strcmp(a->value.string, b->value.string);
     case GRPC_ARG_INTEGER:
-      return GPR_ICMP(a->value.integer, b->value.integer);
+      return grpc_core::QsortCompare(a->value.integer, b->value.integer);
     case GRPC_ARG_POINTER:
-      c = GPR_ICMP(a->value.pointer.p, b->value.pointer.p);
+      c = grpc_core::QsortCompare(a->value.pointer.p, b->value.pointer.p);
       if (c != 0) {
-        c = GPR_ICMP(a->value.pointer.vtable, b->value.pointer.vtable);
+        c = grpc_core::QsortCompare(a->value.pointer.vtable,
+                                    b->value.pointer.vtable);
         if (c == 0) {
           c = a->value.pointer.vtable->cmp(a->value.pointer.p,
                                            b->value.pointer.p);
@@ -169,24 +175,25 @@ static int cmp_key_stable(const void* ap, const void* bp) {
   const grpc_arg* const* a = static_cast<const grpc_arg* const*>(ap);
   const grpc_arg* const* b = static_cast<const grpc_arg* const*>(bp);
   int c = strcmp((*a)->key, (*b)->key);
-  if (c == 0) c = GPR_ICMP(*a, *b);
+  if (c == 0) c = grpc_core::QsortCompare(*a, *b);
   return c;
 }
 
-grpc_channel_args* grpc_channel_args_normalize(const grpc_channel_args* a) {
+grpc_channel_args* grpc_channel_args_normalize(const grpc_channel_args* src) {
   grpc_arg** args =
-      static_cast<grpc_arg**>(gpr_malloc(sizeof(grpc_arg*) * a->num_args));
-  for (size_t i = 0; i < a->num_args; i++) {
-    args[i] = &a->args[i];
+      static_cast<grpc_arg**>(gpr_malloc(sizeof(grpc_arg*) * src->num_args));
+  for (size_t i = 0; i < src->num_args; i++) {
+    args[i] = &src->args[i];
   }
-  if (a->num_args > 1)
-    qsort(args, a->num_args, sizeof(grpc_arg*), cmp_key_stable);
+  if (src->num_args > 1) {
+    qsort(args, src->num_args, sizeof(grpc_arg*), cmp_key_stable);
+  }
 
   grpc_channel_args* b =
       static_cast<grpc_channel_args*>(gpr_malloc(sizeof(grpc_channel_args)));
-  b->num_args = a->num_args;
+  b->num_args = src->num_args;
   b->args = static_cast<grpc_arg*>(gpr_malloc(sizeof(grpc_arg) * b->num_args));
-  for (size_t i = 0; i < a->num_args; i++) {
+  for (size_t i = 0; i < src->num_args; i++) {
     b->args[i] = copy_arg(args[i]);
   }
 
@@ -218,7 +225,7 @@ int grpc_channel_args_compare(const grpc_channel_args* a,
                               const grpc_channel_args* b) {
   if (a == nullptr && b == nullptr) return 0;
   if (a == nullptr || b == nullptr) return a == nullptr ? -1 : 1;
-  int c = GPR_ICMP(a->num_args, b->num_args);
+  int c = grpc_core::QsortCompare(a->num_args, b->num_args);
   if (c != 0) return c;
   for (size_t i = 0; i < a->num_args; i++) {
     c = cmp_arg(&a->args[i], &b->args[i]);
@@ -336,33 +343,46 @@ grpc_arg grpc_channel_arg_pointer_create(
   return arg;
 }
 
-char* grpc_channel_args_string(const grpc_channel_args* args) {
-  if (args == nullptr) return nullptr;
-  gpr_strvec v;
-  gpr_strvec_init(&v);
+std::string grpc_channel_args_string(const grpc_channel_args* args) {
+  if (args == nullptr) return "";
+  std::vector<std::string> arg_strings;
   for (size_t i = 0; i < args->num_args; ++i) {
     const grpc_arg& arg = args->args[i];
-    char* s;
+    std::string arg_string;
     switch (arg.type) {
       case GRPC_ARG_INTEGER:
-        gpr_asprintf(&s, "%s=%d", arg.key, arg.value.integer);
+        arg_string = absl::StrFormat("%s=%d", arg.key, arg.value.integer);
         break;
       case GRPC_ARG_STRING:
-        gpr_asprintf(&s, "%s=%s", arg.key, arg.value.string);
+        arg_string = absl::StrFormat("%s=%s", arg.key, arg.value.string);
         break;
       case GRPC_ARG_POINTER:
-        gpr_asprintf(&s, "%s=%p", arg.key, arg.value.pointer.p);
+        arg_string = absl::StrFormat("%s=%p", arg.key, arg.value.pointer.p);
         break;
       default:
-        gpr_asprintf(&s, "arg with unknown type");
+        arg_string = "arg with unknown type";
     }
-    gpr_strvec_add(&v, s);
+    arg_strings.push_back(arg_string);
   }
-  char* result =
-      gpr_strjoin_sep(const_cast<const char**>(v.strs), v.count, ", ", nullptr);
-  gpr_strvec_destroy(&v);
-  return result;
+  return absl::StrJoin(arg_strings, ", ");
 }
+
+namespace grpc_core {
+const grpc_channel_args* RemoveGrpcInternalArgs(const grpc_channel_args* src) {
+  if (src == nullptr) return nullptr;
+  // Create result.
+  grpc_channel_args* dst =
+      static_cast<grpc_channel_args*>(gpr_malloc(sizeof(grpc_channel_args)));
+  dst->args =
+      static_cast<grpc_arg*>(gpr_malloc(sizeof(grpc_arg) * src->num_args));
+  dst->num_args = 0;
+  for (size_t i = 0; i < src->num_args; ++i) {
+    if (absl::StartsWith(src->args[i].key, "grpc.internal.")) continue;
+    dst->args[dst->num_args++] = copy_arg(&src->args[i]);
+  }
+  return dst;
+}
+}  // namespace grpc_core
 
 namespace {
 grpc_channel_args_client_channel_creation_mutator g_mutator = nullptr;

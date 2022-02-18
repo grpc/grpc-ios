@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Houses grpc_bad_ssl_tests.
+"""
+
 load("//bazel:grpc_build_system.bzl", "grpc_cc_binary", "grpc_cc_library", "grpc_cc_test")
 
 def test_options():
@@ -21,7 +25,10 @@ def test_options():
 # maps test names to options
 BAD_SSL_TESTS = ["cert", "alpn"]
 
+# buildifier: disable=unnamed-macro
 def grpc_bad_ssl_tests():
+    """Instantiates gRPC bad SSL tests."""
+
     grpc_cc_library(
         name = "bad_ssl_test_server",
         srcs = ["server_common.cc"],
@@ -29,7 +36,6 @@ def grpc_bad_ssl_tests():
         deps = [
             "//test/core/util:grpc_test_util",
             "//:grpc",
-            "//test/core/end2end:ssl_test_data",
         ],
     )
     for t in BAD_SSL_TESTS:
@@ -45,6 +51,9 @@ def grpc_bad_ssl_tests():
                 ":bad_ssl_%s_server" % t,
                 "//src/core/tsi/test_creds:badserver.key",
                 "//src/core/tsi/test_creds:badserver.pem",
+                "//src/core/tsi/test_creds:ca.pem",
+                "//src/core/tsi/test_creds:server1.key",
+                "//src/core/tsi/test_creds:server1.pem",
             ],
             deps = [
                 "//test/core/util:grpc_test_util",

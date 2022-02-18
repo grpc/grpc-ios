@@ -1,6 +1,6 @@
 # API versioning guidelines
 
-The Envoy project (and in the future [UDPA](https://github.com/cncf/udpa)) takes API stability and
+The Envoy project and [xDS working group](https://github.com/cncf/xds) take API stability and
 versioning seriously. Providing stable APIs is a necessary step in ensuring API adoption and success
 of the ecosystem. Below we articulate the API versioning guidelines that aim to deliver this
 stability.
@@ -21,12 +21,12 @@ https://github.com/envoyproxy/envoy/issues/8416.
 
 In everyday discussion and GitHub labels, we refer to the `v2`, `v3`, `vN`, `...` APIs. This has a
 specific technical meaning. Any given message in the Envoy API, e.g. the `Bootstrap` at
-`envoy.config.bootstrap.v3.Boostrap`, will transitively reference a number of packages in the Envoy
+`envoy.config.bootstrap.v3.Bootstrap`, will transitively reference a number of packages in the Envoy
 API. These may be at `vN`, `v(N-1)`, etc. The Envoy API is technically a DAG of versioned package
 namespaces. When we talk about the `vN xDS API`, we really refer to the `N` of the root
 configuration resources (e.g. bootstrap, xDS resources such as `Cluster`). The
-v3 API bootstrap configuration is `envoy.config.bootstrap.v3.Boostrap`, even
-though it might might transitively reference `envoy.service.trace.v2`.
+v3 API bootstrap configuration is `envoy.config.bootstrap.v3.Bootstrap`, even
+though it might transitively reference `envoy.service.trace.v2`.
 
 # Backwards compatibility
 
@@ -67,8 +67,15 @@ experience a backward compatible break on a change. Specifically:
     may be granted for scenarios in which these stricter conditions model behavior already implied
     structurally or by documentation.
 
-The exception to the above policy is for API versions tagged `vNalpha`. Within an alpha major
-version, arbitrary breaking changes are allowed.
+An exception to the above policy exists for:
+* Changes made within 14 days of the introduction of a new API field or message, provided the new field
+or message has not been included in an Envoy release.
+* API versions tagged `vNalpha`. Within an alpha major version, arbitrary breaking changes are allowed.
+* Any field, message or enum with a `[#not-implemented-hide:..` comment.
+* Any proto with a `(udpa.annotations.file_status).work_in_progress`,
+  `(xds.annotations.v3.file_status).work_in_progress`
+  `(xds.annotations.v3.message_status).work_in_progress`, or
+  `(xds.annotations.v3.field_status).work_in_progress` option annotation.
 
 Note that changes to default values for wrapped types, e.g. `google.protobuf.UInt32Value` are not
 governed by the above policy. Any management server requiring stability across Envoy API or
@@ -76,34 +83,57 @@ implementations within a major version should set explicit values for these fiel
 
 # API lifecycle
 
-The API lifecycle follows a calendar clock. At the end of Q4 each year, a major API version
-increment may occur for any Envoy API package, in concert with the quarterly Envoy release.
+A new major version is a significant event in the xDS API ecosystem, inevitably requiring support
+from clients (Envoy, gRPC) and a large number of control planes, ranging from simple in-house custom
+management servers to xDS-as-a-service offerings run by vendors. The [xDS API
+shepherds](https://github.com/orgs/envoyproxy/teams/api-shepherds) will make the decision to add a
+new major version subject to the following constraints:
+* There exists sufficient technical debt in the xDS APIs in the existing supported major version
+  to justify the cost burden for xDS client/server implementations.
+* At least one year has elapsed since the last major version was cut.
+* Consultation with the Envoy community (via Envoy community call, `#xds` channel on Slack), as
+  well as gRPC OSS community (via reaching out to language maintainers) is made. This is not a veto
+  process; the API shepherds retain the right to move forward with a new major API version after
+  weighing this input with the first two considerations above.
 
+Following the release of a new major version, the API lifecycle follows a deprecation clock.
 Envoy will support at most three major versions of any API package at all times:
 * The current stable major version, e.g. v3.
 * The previous stable major version, e.g. v2. This is needed to ensure that we provide at least 1
   year for a supported major version to sunset. By supporting two stable major versions
   simultaneously, this makes it easier to coordinate control plane and Envoy
-  rollouts as well. This previous stable major version will be supported for 1
-  year after the introduction of the new current stable major version.
+  rollouts as well. This previous stable major version will be supported for exactly 1
+  year after the introduction of the new current stable major version, after which it will be
+  removed from the Envoy implementation.
 * Optionally, the next experimental alpha major version, e.g. v4alpha. This is a release candidate
   for the next stable major version. This is only generated when the current stable major version
   requires a breaking change at the next cycle, e.g. a deprecation or field rename. This release
   candidate is mechanically generated via the
-  [protoxform](https://github.com/envoyproxy/envoy/tree/master/tools/protoxform) tool from the
+  [protoxform](https://github.com/envoyproxy/envoy/tree/main/tools/protoxform) tool from the
   current stable major version, making use of annotations such as `deprecated = true`. This is not a
   human editable artifact.
 
-An example of how this might play out is that at the end of September in 2020, we will freeze
-`envoy.config.bootstrap.v4alpha` and this package will become the current stable major version
+An example of how this might play out is that at the end of December in 2020, if a v4 major version
+is justified, we might freeze
+`envoy.config.bootstrap.v4alpha` and this package would then become the current stable major version
 `envoy.config.bootstrap.v4`. The `envoy.config.bootstrap.v3` package will become the previous stable
 major version and support for `envoy.config.bootstrap.v2` will be dropped from the Envoy
 implementation. Note that some transitively referenced package, e.g.
 `envoy.config.filter.network.foo.v2` may remain at version 2 during this release, if no changes were
-made to the referenced package.
+made to the referenced package. If no major version is justified at this point, the decision to cut
+v4 might occur at some point in 2021 or beyond, however v2 support will still be removed at the end
+of 2020.
 
-The implication of this API lifecycle and clock is that any deprecated feature in the Envoy API will retain
-implementation support for 1-2 years (1.5 years on average).
+The implication of this API lifecycle and clock is that any deprecated feature in the Envoy API will
+retain implementation support for at least 1-2 years.
+
+We are currently working on a strategy to introduce minor versions
+(https://github.com/envoyproxy/envoy/issues/8416). This will bump the xDS API minor version on every
+deprecation and field introduction/modification. This will provide an opportunity for the control
+plane to condition on client and major/minor API version support. Currently under discussion, but
+not finalized will be the sunsetting of Envoy client support for deprecated features after a year
+of support within a major version. Please post to https://github.com/envoyproxy/envoy/issues/8416
+any thoughts around this.
 
 # New API features
 
@@ -135,7 +165,7 @@ methods, depending on whether the change is mechanical or manual.
 ## Mechanical breaking changes
 
 Field deprecations, renames, etc. are mechanical changes that are supported by the
-[protoxform](https://github.com/envoyproxy/envoy/tree/master/tools/protoxform) tool. These are
+[protoxform](https://github.com/envoyproxy/envoy/tree/main/tools/protoxform) tool. These are
 guided by [annotations](STYLE.md#api-annotations).
 
 ## Manual breaking changes
@@ -152,10 +182,27 @@ candidate for this class of change. The following steps are required:
 3. The old message/enum/field/enum value should be annotated as deprecated.
 4. At the next major version, `protoxform` will remove the deprecated version automatically.
 
-This approach ensures that API major version releases are predictable and mechanical, and has the
-bulk of the Envoy code and test changes owned by feature developers, rather than the API owners.
-There will be no major `vN` initiative to address technical debt beyond that enabled by the above
-process.
+This make-before-break approach ensures that API major version releases are predictable and
+mechanical, and has the bulk of the Envoy code and test changes owned by feature developers, rather
+than the API owners. There will be no major `vN` initiative to address technical debt beyond that
+enabled by the above process.
+
+# Client features
+
+Not all clients will support all fields and features in a given major API version. In general, it is
+preferable to use Protobuf semantics to support this, for example:
+* Ignoring a field's contents is sufficient to indicate that the support is missing in a client.
+* Setting both deprecated and the new method for expressing a field if support for a range of
+  clients is desired (where this does not involve huge overhead or gymnastics).
+
+This approach does not always work, for example:
+* A route matcher conjunct condition should not be ignored just because the client is missing the
+  ability to implement the match; this might result in route policy bypass.
+* A client may expect the server to provide a response in a certain format or encoding, for example
+  a JSON encoded `Struct`-in-`Any` representation of opaque extension configuration.
+
+For this purpose, we have [client
+features](https://www.envoyproxy.io/docs/envoy/latest/api/client_features).
 
 # One Definition Rule (ODR)
 

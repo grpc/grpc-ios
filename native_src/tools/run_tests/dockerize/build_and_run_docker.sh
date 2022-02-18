@@ -16,28 +16,23 @@
 # Builds docker image and runs a command under it.
 # You should never need to call this script on your own.
 
+# shellcheck disable=SC2103
+
 set -ex
 
 cd "$(dirname "$0")/../../.."
 git_root=$(pwd)
-cd - # shellcheck disable=SC2103
+cd -
 
 # Inputs
 # DOCKERFILE_DIR - Directory in which Dockerfile file is located.
 # DOCKER_RUN_SCRIPT - Script to run under docker (relative to grpc repo root)
 # OUTPUT_DIR - Directory that will be copied from inside docker after finishing.
 # DOCKERHUB_ORGANIZATION - If set, pull a prebuilt image from given dockerhub org.
-# DOCKER_BASE_IMAGE - If set, pull the latest base image.
 # $@ - Extra args to pass to docker run
 
 # Use image name based on Dockerfile location checksum
-DOCKER_IMAGE_NAME=$(basename "$DOCKERFILE_DIR")_$(sha1sum "$DOCKERFILE_DIR/Dockerfile" | cut -f1 -d\ )
-
-# Pull the base image to force an update
-if [ "$DOCKER_BASE_IMAGE" != "" ]
-then
-  time docker pull "$DOCKER_BASE_IMAGE"
-fi
+DOCKER_IMAGE_NAME=$(basename "$DOCKERFILE_DIR"):$(sha1sum "$DOCKERFILE_DIR/Dockerfile" | cut -f1 -d\ )
 
 if [ "$DOCKERHUB_ORGANIZATION" != "" ]
 then
@@ -46,6 +41,13 @@ then
 else
   # Make sure docker image has been built. Should be instantaneous if so.
   docker build -t "$DOCKER_IMAGE_NAME" "$DOCKERFILE_DIR"
+fi
+
+if [[ -t 0 ]]; then
+  DOCKER_TTY_ARGS="-it"
+else
+  # The input device on kokoro is not a TTY, so -it does not work.
+  DOCKER_TTY_ARGS=
 fi
 
 # Choose random name for docker container
@@ -66,6 +68,7 @@ docker run \
   -v "$git_root:/var/local/jenkins/grpc:ro" \
   -w /var/local/git/grpc \
   --name="$CONTAINER_NAME" \
+  $DOCKER_TTY_ARGS \
   $EXTRA_DOCKER_ARGS \
   "$DOCKER_IMAGE_NAME" \
   /bin/bash -l "/var/local/jenkins/grpc/$DOCKER_RUN_SCRIPT" || FAILED="true"

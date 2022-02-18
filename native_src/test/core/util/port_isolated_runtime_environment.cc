@@ -20,10 +20,12 @@
  * runs in a separate container) the framework takes a round-robin pick of a
  * port within certain range. There is no need to recycle ports.
  */
+#include <stdlib.h>
+
 #include <grpc/support/atm.h>
 #include <grpc/support/log.h>
 #include <grpc/support/time.h>
-#include <stdlib.h>
+
 #include "src/core/lib/iomgr/port.h"
 #include "test/core/util/test_config.h"
 #if defined(GRPC_PORT_ISOLATED_RUNTIME)
@@ -43,12 +45,25 @@ static int get_random_port_offset() {
 static int s_initial_offset = get_random_port_offset();
 static gpr_atm s_pick_counter = 0;
 
-int grpc_pick_unused_port_or_die(void) {
+static int grpc_pick_unused_port_or_die_impl(void) {
   int orig_counter_val =
       static_cast<int>(gpr_atm_full_fetch_add(&s_pick_counter, 1));
   GPR_ASSERT(orig_counter_val < (MAX_PORT - MIN_PORT + 1));
   return MIN_PORT +
          (s_initial_offset + orig_counter_val) % (MAX_PORT - MIN_PORT + 1);
+}
+
+int grpc_pick_unused_port_or_die(void) {
+  while (true) {
+    int port = grpc_pick_unused_port_or_die_impl();
+    // 5985 cannot be bound on Windows RBE and results in
+    // WSA_ERROR 10013: "An attempt was made to access a socket in a way
+    // forbidden by its access permissions."
+    if (port == 5985) {
+      continue;
+    }
+    return port;
+  }
 }
 
 void grpc_recycle_unused_port(int port) { (void)port; }

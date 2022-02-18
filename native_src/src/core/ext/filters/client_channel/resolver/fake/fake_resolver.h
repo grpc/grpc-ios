@@ -19,10 +19,11 @@
 
 #include <grpc/support/port_platform.h>
 
-#include "src/core/ext/filters/client_channel/resolver.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/gprpp/ref_counted.h"
+#include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/iomgr/error.h"
+#include "src/core/lib/resolver/resolver.h"
 
 #define GRPC_ARG_FAKE_RESOLVER_RESPONSE_GENERATOR \
   "grpc.fake_resolver.response_generator"
@@ -42,8 +43,10 @@ class FakeResolver;
 class FakeResolverResponseGenerator
     : public RefCounted<FakeResolverResponseGenerator> {
  public:
+  static const grpc_arg_pointer_vtable kChannelArgPointerVtable;
+
   FakeResolverResponseGenerator();
-  ~FakeResolverResponseGenerator();
+  ~FakeResolverResponseGenerator() override;
 
   // Instructs the fake resolver associated with the response generator
   // instance to trigger a new resolution with the specified result. If the
@@ -69,6 +72,7 @@ class FakeResolverResponseGenerator
   void SetFailureOnReresolution();
 
   // Returns a channel arg containing \a generator.
+  // TODO(roth): When we have time, make this a non-static method.
   static grpc_arg MakeChannelArg(FakeResolverResponseGenerator* generator);
 
   // Returns the response generator in \a args, or null if not found.
@@ -80,18 +84,13 @@ class FakeResolverResponseGenerator
   // Set the corresponding FakeResolver to this generator.
   void SetFakeResolver(RefCountedPtr<FakeResolver> resolver);
 
-  static void SetResponseLocked(void* arg, grpc_error* error);
-  static void SetReresolutionResponseLocked(void* arg, grpc_error* error);
-  static void SetFailureLocked(void* arg, grpc_error* error);
-
   // Mutex protecting the members below.
   Mutex mu_;
-  RefCountedPtr<FakeResolver> resolver_;
-  Resolver::Result result_;
-  bool has_result_ = false;
+  RefCountedPtr<FakeResolver> resolver_ ABSL_GUARDED_BY(mu_);
+  Resolver::Result result_ ABSL_GUARDED_BY(mu_);
+  bool has_result_ ABSL_GUARDED_BY(mu_) = false;
 };
 
 }  // namespace grpc_core
 
-#endif /* GRPC_CORE_EXT_FILTERS_CLIENT_CHANNEL_RESOLVER_FAKE_FAKE_RESOLVER_H \
-        */
+#endif  // GRPC_CORE_EXT_FILTERS_CLIENT_CHANNEL_RESOLVER_FAKE_FAKE_RESOLVER_H

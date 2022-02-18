@@ -19,13 +19,14 @@
 #ifndef TEST_QPS_SERVER_H
 #define TEST_QPS_SERVER_H
 
+#include <vector>
+
 #include <grpc/support/cpu.h>
 #include <grpc/support/log.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/resource_quota.h>
 #include <grpcpp/security/server_credentials.h>
 #include <grpcpp/server_builder.h>
-#include <vector>
 
 #include "src/cpp/util/core_stats.h"
 #include "src/proto/grpc/testing/control.pb.h"
@@ -97,7 +98,7 @@ class Server {
   static std::shared_ptr<ServerCredentials> CreateServerCredentials(
       const ServerConfig& config) {
     if (config.has_security_params()) {
-      grpc::string type;
+      std::string type;
       if (config.security_params().cred_type().empty()) {
         type = kTlsCredentialsType;
       } else {

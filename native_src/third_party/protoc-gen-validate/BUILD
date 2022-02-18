@@ -1,26 +1,28 @@
 load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
-gazelle(
-    name = "gazelle",
-    external = "vendored",
-)
+# gazelle:prefix github.com/envoyproxy/protoc-gen-validate
+# gazelle:exclude tests
+# gazelle:exclude example-workspace
+# gazelle:exclude validate/validate.h
+# gazelle:go_naming_convention import_alias
+gazelle(name = "gazelle")
 
 go_binary(
     name = "protoc-gen-validate",
-    embed = [":go_default_library"],
+    embed = [":protoc-gen-validate_lib"],
     importpath = "github.com/envoyproxy/protoc-gen-validate",
     visibility = ["//visibility:public"],
 )
 
 go_library(
-    name = "go_default_library",
+    name = "protoc-gen-validate_lib",
     srcs = ["main.go"],
     importpath = "github.com/envoyproxy/protoc-gen-validate",
     visibility = ["//visibility:private"],
     deps = [
-        "//module:go_default_library",
-        "//vendor/github.com/lyft/protoc-gen-star:go_default_library",
-        "//vendor/github.com/lyft/protoc-gen-star/lang/go:go_default_library",
+        "//module",
+        "@com_github_lyft_protoc_gen_star//:protoc-gen-star",
+        "@com_github_lyft_protoc_gen_star//lang/go",
     ],
 )

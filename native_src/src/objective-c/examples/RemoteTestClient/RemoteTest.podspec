@@ -7,8 +7,8 @@ Pod::Spec.new do |s|
   s.summary = 'RemoteTest example'
   s.source = { :git => 'https://github.com/grpc/grpc.git' }
 
-  s.ios.deployment_target = '7.1'
-  s.osx.deployment_target = '10.9'
+  s.ios.deployment_target = '9.0'
+  s.osx.deployment_target = '10.10'
   s.tvos.deployment_target = '10.0'
   s.watchos.deployment_target = '4.0'
 
@@ -70,5 +70,5 @@ Pod::Spec.new do |s|
     # This is needed by all pods that depend on gRPC-RxLibrary:
     'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES' => 'YES',
   }
-  
+
 end

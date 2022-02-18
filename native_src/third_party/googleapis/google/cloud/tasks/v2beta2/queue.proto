@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,21 +16,27 @@ syntax = "proto3";
 
 package google.cloud.tasks.v2beta2;
 
-import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
 import "google/cloud/tasks/v2beta2/target.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
 
 option go_package = "google.golang.org/genproto/googleapis/cloud/tasks/v2beta2;tasks";
 option java_multiple_files = true;
 option java_outer_classname = "QueueProto";
 option java_package = "com.google.cloud.tasks.v2beta2";
 
-
 // A queue is a container of related tasks. Queues are configured to manage
 // how those tasks are dispatched. Configurable properties include rate limits,
 // retry options, target types, and others.
 message Queue {
+  option (google.api.resource) = {
+    type: "cloudtasks.googleapis.com/Queue"
+    pattern: "projects/{project}/locations/{location}/queues/{queue}"
+  };
+
   // State of the queue.
   enum State {
     // Unspecified state.
@@ -56,9 +62,11 @@ message Queue {
     // The queue is disabled.
     //
     // A queue becomes `DISABLED` when
-    // [queue.yaml](https://cloud.google.com/appengine/docs/python/config/queueref) or
-    // [queue.xml](https://cloud.google.com/appengine/docs/standard/java/config/queueref) is uploaded
-    // which does not contain the queue. You cannot directly disable a queue.
+    // [queue.yaml](https://cloud.google.com/appengine/docs/python/config/queueref)
+    // or
+    // [queue.xml](https://cloud.google.com/appengine/docs/standard/java/config/queueref)
+    // is uploaded which does not contain the queue. You cannot directly disable
+    // a queue.
     //
     // When a queue is disabled, tasks can still be added to a queue
     // but the tasks are not dispatched and
@@ -81,7 +89,8 @@ message Queue {
   // * `PROJECT_ID` can contain letters ([A-Za-z]), numbers ([0-9]),
   //    hyphens (-), colons (:), or periods (.).
   //    For more information, see
-  //    [Identifying projects](https://cloud.google.com/resource-manager/docs/creating-managing-projects#identifying_projects)
+  //    [Identifying
+  //    projects](https://cloud.google.com/resource-manager/docs/creating-managing-projects#identifying_projects)
   // * `LOCATION_ID` is the canonical ID for the queue's location.
   //    The list of available locations can be obtained by calling
   //    [ListLocations][google.cloud.location.Locations.ListLocations].
@@ -134,12 +143,13 @@ message Queue {
   // * For tasks created using the App Engine SDK: the queue-level retry
   //   settings apply to all tasks in the queue which do not have retry settings
   //   explicitly set on the task and were created by the App Engine SDK. See
-  //   [App Engine documentation](https://cloud.google.com/appengine/docs/standard/python/taskqueue/push/retrying-tasks).
+  //   [App Engine
+  //   documentation](https://cloud.google.com/appengine/docs/standard/python/taskqueue/push/retrying-tasks).
   RetryConfig retry_config = 6;
 
   // Output only. The state of the queue.
   //
-  // `state` can only be changed by called
+  // `state` can only be changed by calling
   // [PauseQueue][google.cloud.tasks.v2beta2.CloudTasks.PauseQueue],
   // [ResumeQueue][google.cloud.tasks.v2beta2.CloudTasks.ResumeQueue], or uploading
   // [queue.yaml/xml](https://cloud.google.com/appengine/docs/python/config/queueref).
@@ -152,11 +162,43 @@ message Queue {
   // were purged.
   //
   // A queue can be purged using [PurgeQueue][google.cloud.tasks.v2beta2.CloudTasks.PurgeQueue], the
-  // [App Engine Task Queue SDK, or the Cloud Console](https://cloud.google.com/appengine/docs/standard/python/taskqueue/push/deleting-tasks-and-queues#purging_all_tasks_from_a_queue).
+  // [App Engine Task Queue SDK, or the Cloud
+  // Console](https://cloud.google.com/appengine/docs/standard/python/taskqueue/push/deleting-tasks-and-queues#purging_all_tasks_from_a_queue).
   //
   // Purge time will be truncated to the nearest microsecond. Purge
   // time will be unset if the queue has never been purged.
   google.protobuf.Timestamp purge_time = 8;
+
+  // The maximum amount of time that a task will be retained in
+  // this queue.
+  //
+  // Queues created by Cloud Tasks have a default `task_ttl` of 31 days.
+  // After a task has lived for `task_ttl`, the task will be deleted
+  // regardless of whether it was dispatched or not.
+  //
+  // The `task_ttl` for queues created via queue.yaml/xml is equal to the
+  // maximum duration because there is a
+  // [storage quota](https://cloud.google.com/appengine/quotas#Task_Queue) for
+  // these queues. To view the maximum valid duration, see the documentation for
+  // [Duration][google.protobuf.Duration].
+  google.protobuf.Duration task_ttl = 9;
+
+  // The task tombstone time to live (TTL).
+  //
+  // After a task is deleted or completed, the task's tombstone is
+  // retained for the length of time specified by `tombstone_ttl`.
+  // The tombstone is used by task de-duplication; another task with the same
+  // name can't be created until the tombstone has expired. For more information
+  // about task de-duplication, see the documentation for
+  // [CreateTaskRequest][google.cloud.tasks.v2beta2.CreateTaskRequest.task].
+  //
+  // Queues created by Cloud Tasks have a default `tombstone_ttl` of 1 hour.
+  google.protobuf.Duration tombstone_ttl = 10;
+
+  // Output only. The realtime, informational statistics for a queue. In order
+  // to receive the statistics the caller should include this field in the
+  // FieldMask.
+  QueueStats stats = 16 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // Rate limits.
@@ -180,10 +222,11 @@ message RateLimits {
   //
   //
   // This field has the same meaning as
-  // [rate in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#rate).
+  // [rate in
+  // queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#rate).
   double max_tasks_dispatched_per_second = 1;
 
-  // Output only. The max burst size.
+  // The max burst size.
   //
   // Max burst size limits how fast tasks in queue are processed when
   // many tasks are in the queue and the rate is high. This field
@@ -198,23 +241,23 @@ message RateLimits {
   // token is removed from the bucket. Tasks will be dispatched until
   // the queue's bucket runs out of tokens. The bucket will be
   // continuously refilled with new tokens based on
-  // [max_tasks_dispatched_per_second][google.cloud.tasks.v2beta2.RateLimits.max_tasks_dispatched_per_second].
+  // [max_dispatches_per_second][RateLimits.max_dispatches_per_second].
   //
-  // Cloud Tasks will pick the value of `max_burst_size` based on the
-  // value of
-  // [max_tasks_dispatched_per_second][google.cloud.tasks.v2beta2.RateLimits.max_tasks_dispatched_per_second].
+  // The default value of `max_burst_size` is picked by Cloud Tasks
+  // based on the value of
+  // [max_dispatches_per_second][RateLimits.max_dispatches_per_second].
+  //
+  // The maximum value of `max_burst_size` is 500.
   //
   // For App Engine queues that were created or updated using
   // `queue.yaml/xml`, `max_burst_size` is equal to
   // [bucket_size](https://cloud.google.com/appengine/docs/standard/python/config/queueref#bucket_size).
-  // Since `max_burst_size` is output only, if
-  // [UpdateQueue][google.cloud.tasks.v2beta2.CloudTasks.UpdateQueue] is called on a queue
-  // created by `queue.yaml/xml`, `max_burst_size` will be reset based
-  // on the value of
-  // [max_tasks_dispatched_per_second][google.cloud.tasks.v2beta2.RateLimits.max_tasks_dispatched_per_second],
-  // regardless of whether
-  // [max_tasks_dispatched_per_second][google.cloud.tasks.v2beta2.RateLimits.max_tasks_dispatched_per_second]
-  // is updated.
+  // If
+  // [UpdateQueue][google.cloud.tasks.v2beta2.CloudTasks.UpdateQueue] is called on a queue without
+  // explicitly setting a value for `max_burst_size`,
+  // `max_burst_size` value will get updated if
+  // [UpdateQueue][google.cloud.tasks.v2beta2.CloudTasks.UpdateQueue] is updating
+  // [max_dispatches_per_second][RateLimits.max_dispatches_per_second].
   //
   int32 max_burst_size = 2;
 
@@ -235,7 +278,8 @@ message RateLimits {
   //
   //
   // This field has the same meaning as
-  // [max_concurrent_requests in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#max_concurrent_requests).
+  // [max_concurrent_requests in
+  // queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#max_concurrent_requests).
   int32 max_concurrent_tasks = 3;
 }
 
@@ -251,7 +295,8 @@ message RetryConfig {
   //
   //
   // This field has the same meaning as
-  // [task_retry_limit in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters).
+  // [task_retry_limit in
+  // queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters).
   oneof num_attempts {
     // The maximum number of attempts for a task.
     //
@@ -282,7 +327,8 @@ message RetryConfig {
   // `max_retry_duration` will be truncated to the nearest second.
   //
   // This field has the same meaning as
-  // [task_age_limit in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters).
+  // [task_age_limit in
+  // queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters).
   google.protobuf.Duration max_retry_duration = 3;
 
   // A task will be [scheduled][google.cloud.tasks.v2beta2.Task.schedule_time] for retry between
@@ -300,7 +346,8 @@ message RetryConfig {
   // `min_backoff` will be truncated to the nearest second.
   //
   // This field has the same meaning as
-  // [min_backoff_seconds in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters).
+  // [min_backoff_seconds in
+  // queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters).
   google.protobuf.Duration min_backoff = 4;
 
   // A task will be [scheduled][google.cloud.tasks.v2beta2.Task.schedule_time] for retry between
@@ -318,7 +365,8 @@ message RetryConfig {
   // `max_backoff` will be truncated to the nearest second.
   //
   // This field has the same meaning as
-  // [max_backoff_seconds in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters).
+  // [max_backoff_seconds in
+  // queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters).
   google.protobuf.Duration max_backoff = 5;
 
   // The time between retries will double `max_doublings` times.
@@ -326,7 +374,7 @@ message RetryConfig {
   // A task's retry interval starts at
   // [min_backoff][google.cloud.tasks.v2beta2.RetryConfig.min_backoff], then doubles
   // `max_doublings` times, then increases linearly, and finally
-  // retries retries at intervals of
+  // retries at intervals of
   // [max_backoff][google.cloud.tasks.v2beta2.RetryConfig.max_backoff] up to
   // [max_attempts][google.cloud.tasks.v2beta2.RetryConfig.max_attempts] times.
   //
@@ -347,6 +395,35 @@ message RetryConfig {
   //
   //
   // This field has the same meaning as
-  // [max_doublings in queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters).
+  // [max_doublings in
+  // queue.yaml/xml](https://cloud.google.com/appengine/docs/standard/python/config/queueref#retry_parameters).
   int32 max_doublings = 6;
+}
+
+// Statistics for a queue.
+message QueueStats {
+  // Output only. An estimation of the number of tasks in the queue, that is, the tasks in
+  // the queue that haven't been executed, the tasks in the queue which the
+  // queue has dispatched but has not yet received a reply for, and the failed
+  // tasks that the queue is retrying.
+  int64 tasks_count = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Output only. An estimation of the nearest time in the future where a task in the queue
+  // is scheduled to be executed.
+  google.protobuf.Timestamp oldest_estimated_arrival_time = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Output only. The number of tasks that the queue has dispatched and received a reply for
+  // during the last minute. This variable counts both successful and
+  // non-successful executions.
+  int64 executed_last_minute_count = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Output only. The number of requests that the queue has dispatched but has not received
+  // a reply for yet.
+  int64 concurrent_dispatches_count = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Output only. The current maximum number of tasks per second executed by the queue.
+  // The maximum value of this variable is controlled by the RateLimits of the
+  // Queue. However, this value could be less to avoid overloading the endpoints
+  // tasks in the queue are targeting.
+  double effective_execution_rate = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
 }

@@ -9,6 +9,39 @@ This section describes how to add gRPC as a dependency to your C++ project.
 In the C++ world, there's no universally accepted standard for managing project dependencies.
 Therefore, gRPC supports several major build systems, which should satisfy most users.
 
+## Supported Platforms
+
+* Officially Supported: These platforms are officially supported. We test our
+  code on these platform and have automated continuous integration tests for
+  them.
+
+* Best Effort: We do not have continous integration tests for these, but we are
+  fairly confident that gRPC C++ would work on them. We will make our best
+  effort to support them, and we welcome patches for such platforms, but we
+  might need to declare bankruptcy on some issues.
+
+* Community Supported: These platforms are supported by contributions from the
+  open source community, there is no official support for them. Breakages on
+  these platforms may go unnoticed, and the community is responsible for all
+  maintenance. Unmaintained code for these platforms may be deleted.
+
+| Operating System | Architectures | Versions | Support Level |
+|------------------|---------------|----------|---------------|
+| Linux - Debian, Ubuntu, CentOS | x86, x64      | clang 4+, GCC 4.9+     | Officially Supported |
+| Windows 10+                    | x86, x64      | Visual Studio 2015+    | Officially Supported |
+| MacOS                          | x86, x64      | XCode 7.2+             | Officially Supported |
+| Linux - Others                 | x86, x64      | clang 4+, GCC 4.9+     | Best Effort          |
+| Linux                          | ARM           |                        | Best Effort          |
+| iOS                            |               |                        | Best Effort          |
+| Android                        |               |                        | Best Effort          |
+| Asylo                          |               |                        | Best Effort          |
+| FreeBSD                        |               |                        | Community Supported  |
+| OpenBSD                        |               |                        | Community Supported  |
+| AIX                            |               |                        | Community Supported  |
+| Solaris                        |               |                        | Community Supported  |
+| NaCL                           |               |                        | Community Supported  |
+| Fuchsia                        |               |                        | Community Supported  |
+
 ## Bazel
 
 Bazel is the primary build system used by the core gRPC development team. Bazel
@@ -25,10 +58,10 @@ To add gRPC as a dependency in bazel:
       ],
       strip_prefix = "grpc-YOUR_GRPC_COMMIT_SHA",
   )
-
   load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
-
   grpc_deps()
+  load("@com_github_grpc_grpc//bazel:grpc_extra_deps.bzl", "grpc_extra_deps")
+  grpc_extra_deps()
   ```
 
 ## CMake
@@ -70,17 +103,25 @@ also sets up an `add_subdirectory()` rule for you. This causes gRPC to be
 built as part of your project.
 
 ```cmake
+cmake_minimum_required(VERSION 3.15)
+project(my_project)
+
 include(FetchContent)
 FetchContent_Declare(
   gRPC
   GIT_REPOSITORY https://github.com/grpc/grpc
-  GIT_TAG        v1.25.0
+  GIT_TAG        RELEASE_TAG_HERE  # e.g v1.28.0
 )
+set(FETCHCONTENT_QUIET OFF)
 FetchContent_MakeAvailable(gRPC)
 
 add_executable(my_exe my_exe.cc)
 target_link_libraries(my_exe grpc++)
 ```
+
+Note that you need to
+[install the prerequisites](../../BUILDING.md#pre-requisites)
+before building gRPC.
 
 ### git submodule
 If you cannot use FetchContent, another approach is to add the gRPC source tree
@@ -114,6 +155,13 @@ first install gRPC C++ using CMake, and have your non-CMake project rely on the
 `pkgconfig` files which are provided by gRPC installation.
 [Example](../../test/distrib/cpp/run_distrib_test_cmake_pkgconfig.sh)
 
+**Note for CentOS 7 users**
+
+CentOS-7 ships with `pkg-config` 0.27.1, which has a
+[bug](https://bugs.freedesktop.org/show_bug.cgi?id=54716) that can make
+invocations take extremely long to complete. If you plan to use `pkg-config`,
+you'll want to upgrade it to something newer.
+
 ## make (deprecated)
 
 The default choice for building on UNIX based systems used to be `make`, but we are no longer recommending it.
@@ -139,11 +187,16 @@ gRPC is available using the [vcpkg](https://github.com/Microsoft/vcpkg) dependen
 # install vcpkg package manager on your system using the official instructions
 git clone https://github.com/Microsoft/vcpkg.git
 cd vcpkg
+
+# Bootstrap on Linux:
 ./bootstrap-vcpkg.sh
+# Bootstrap on Windows instead:
+# ./bootstrap-vcpkg.bat
+
 ./vcpkg integrate install
 
 # install gRPC using vcpkg package manager
-vcpkg install grpc
+./vcpkg install grpc
 ```
 
 The gRPC port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
@@ -157,12 +210,12 @@ You can find out how to build and run our simplest gRPC C++ example in our
 For more detailed documentation on using gRPC in C++ , see our main
 documentation site at [grpc.io](https://grpc.io), specifically:
 
-* [Overview](https://grpc.io/docs/): An introduction to gRPC with a simple
+* [Overview](https://grpc.io/docs): An introduction to gRPC with a simple
   Hello World example in all our supported languages, including C++.
-* [gRPC Basics - C++](https://grpc.io/docs/tutorials/basic/c.html):
+* [gRPC Basics - C++](https://grpc.io/docs/languages/cpp/basics):
   A tutorial that steps you through creating a simple gRPC C++ example
   application.
-* [Asynchronous Basics - C++](https://grpc.io/docs/tutorials/async/helloasync-cpp.html):
+* [Asynchronous Basics - C++](https://grpc.io/docs/languages/cpp/async):
   A tutorial that shows you how to use gRPC C++'s asynchronous/non-blocking
   APIs.
 

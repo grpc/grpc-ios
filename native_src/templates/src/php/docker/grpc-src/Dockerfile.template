@@ -16,7 +16,7 @@
 
   FROM php:${settings.php_version.php_current_version()}-${settings.php_version.php_debian_version()}
 
-  RUN apt-get -qq update && apt-get -qq install -y ${'\\'}
+  RUN apt-get -qq update && apt-get -qq -y upgrade && apt-get -qq install -y ${'\\'}
     autoconf automake git libtool pkg-config ${'\\'}
     valgrind wget zlib1g-dev
 
@@ -31,13 +31,13 @@
 
   COPY . .
 
-  RUN make && make install
+  RUN make shared_c static_c
 
 
   WORKDIR /github/grpc/src/php/ext/grpc
 
   RUN phpize && ${'\\'}
-    ./configure --enable-tests && ${'\\'}
+    GRPC_LIB_SUBDIR=libs/opt ./configure --enable-grpc=/github/grpc --enable-tests && ${'\\'}
     make && ${'\\'}
     make install
 

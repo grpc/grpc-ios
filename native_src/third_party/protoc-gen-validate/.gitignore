@@ -1,10 +1,16 @@
 bazel-*
-
+**/.DS_Store
 !vendor/*
 
-/gogofast
-/gogofast.exe
+/bin
 /protoc-gen-validate
+
+/python/LICENSE
+/python/validate.proto
+/python/dist/
+*.egg-info/
+__pycache__/
+*.py[cod]
 
 /tests/harness/cases/go
 /tests/harness/cases/gogo
@@ -34,3 +40,4 @@ bazel-*
 .classpath
 .settings
 .idea/
+.ijwb/

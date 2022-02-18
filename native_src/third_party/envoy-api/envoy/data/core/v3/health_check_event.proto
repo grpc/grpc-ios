@@ -6,13 +6,14 @@ import "envoy/config/core/v3/address.proto";
 
 import "google/protobuf/timestamp.proto";
 
+import "udpa/annotations/status.proto";
 import "udpa/annotations/versioning.proto";
-
 import "validate/validate.proto";
 
 option java_package = "io.envoyproxy.envoy.data.core.v3";
 option java_outer_classname = "HealthCheckEventProto";
 option java_multiple_files = true;
+option (udpa.annotations.file_status).package_version_status = ACTIVE;
 
 // [#protodoc-title: Health check logging events]
 // :ref:`Health check logging <arch_overview_health_check_logging>`.
@@ -21,6 +22,7 @@ enum HealthCheckFailureType {
   ACTIVE = 0;
   PASSIVE = 1;
   NETWORK = 2;
+  NETWORK_TIMEOUT = 3;
 }
 
 enum HealthCheckerType {
@@ -39,7 +41,7 @@ message HealthCheckEvent {
 
   config.core.v3.Address host = 2;
 
-  string cluster_name = 3 [(validate.rules).string = {min_bytes: 1}];
+  string cluster_name = 3 [(validate.rules).string = {min_len: 1}];
 
   oneof event {
     option (validate.required) = true;
@@ -77,7 +79,7 @@ message HealthCheckAddHealthy {
       "envoy.data.core.v2alpha.HealthCheckAddHealthy";
 
   // Whether this addition is the result of the first ever health check on a host, in which case
-  // the configured :ref:`healthy threshold <envoy_api_field_config.core.v3.HealthCheck.healthy_threshold>`
+  // the configured :ref:`healthy threshold <envoy_v3_api_field_config.core.v3.HealthCheck.healthy_threshold>`
   // is bypassed and the host is immediately added.
   bool first_check = 1;
 }

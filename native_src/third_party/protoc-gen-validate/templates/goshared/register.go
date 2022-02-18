@@ -2,15 +2,15 @@ package goshared
 
 import (
 	"fmt"
-	"github.com/iancoleman/strcase"
 	"reflect"
 	"strings"
 	"text/template"
 
+	"github.com/iancoleman/strcase"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/envoyproxy/protoc-gen-validate/templates/shared"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/lyft/protoc-gen-star"
 	"github.com/lyft/protoc-gen-star/lang/go"
 )
@@ -31,6 +31,7 @@ func Register(tpl *template.Template, params pgs.Parameters) {
 		"errIdx":        fns.errIdx,
 		"errIdxCause":   fns.errIdxCause,
 		"errname":       fns.errName,
+		"multierrname":  fns.multiErrName,
 		"inKey":         fns.inKey,
 		"inType":        fns.inType,
 		"isBytes":       fns.isBytes,
@@ -100,6 +101,10 @@ func (fns goSharedFuncs) accessor(ctx shared.RuleContext) string {
 
 func (fns goSharedFuncs) errName(m pgs.Message) pgs.Name {
 	return fns.Name(m) + "ValidationError"
+}
+
+func (fns goSharedFuncs) multiErrName(m pgs.Message) pgs.Name {
+	return fns.Name(m) + "MultiError"
 }
 
 func (fns goSharedFuncs) errIdxCause(ctx shared.RuleContext, idx, cause string, reason ...interface{}) string {
@@ -210,10 +215,16 @@ func (fns goSharedFuncs) inType(f pgs.Field, x interface{}) string {
 		return "string"
 	case pgs.MessageT:
 		switch x.(type) {
-		case []*duration.Duration:
+		case []*durationpb.Duration:
 			return "time.Duration"
 		default:
 			return pgsgo.TypeName(fmt.Sprintf("%T", x)).Element().String()
+		}
+	case pgs.EnumT:
+		if f.Type().IsRepeated() {
+			return strings.TrimLeft(fns.Type(f).String(), "[]")
+		} else {
+			return fns.Type(f).String()
 		}
 	default:
 		return fns.Type(f).String()
@@ -226,8 +237,8 @@ func (fns goSharedFuncs) inKey(f pgs.Field, x interface{}) string {
 		return fns.byteStr(x.([]byte))
 	case pgs.MessageT:
 		switch x := x.(type) {
-		case *duration.Duration:
-			dur, _ := ptypes.Duration(x)
+		case *durationpb.Duration:
+			dur := x.AsDuration()
 			return fns.lit(int64(dur))
 		default:
 			return fns.lit(x)
@@ -237,40 +248,40 @@ func (fns goSharedFuncs) inKey(f pgs.Field, x interface{}) string {
 	}
 }
 
-func (fns goSharedFuncs) durLit(dur *duration.Duration) string {
+func (fns goSharedFuncs) durLit(dur *durationpb.Duration) string {
 	return fmt.Sprintf(
 		"time.Duration(%d * time.Second + %d * time.Nanosecond)",
 		dur.GetSeconds(), dur.GetNanos())
 }
 
-func (fns goSharedFuncs) durStr(dur *duration.Duration) string {
-	d, _ := ptypes.Duration(dur)
+func (fns goSharedFuncs) durStr(dur *durationpb.Duration) string {
+	d := dur.AsDuration()
 	return d.String()
 }
 
-func (fns goSharedFuncs) durGt(a, b *duration.Duration) bool {
-	ad, _ := ptypes.Duration(a)
-	bd, _ := ptypes.Duration(b)
+func (fns goSharedFuncs) durGt(a, b *durationpb.Duration) bool {
+	ad := a.AsDuration()
+	bd := b.AsDuration()
 
 	return ad > bd
 }
 
-func (fns goSharedFuncs) tsLit(ts *timestamp.Timestamp) string {
+func (fns goSharedFuncs) tsLit(ts *timestamppb.Timestamp) string {
 	return fmt.Sprintf(
 		"time.Unix(%d, %d)",
 		ts.GetSeconds(), ts.GetNanos(),
 	)
 }
 
-func (fns goSharedFuncs) tsGt(a, b *timestamp.Timestamp) bool {
-	at, _ := ptypes.Timestamp(a)
-	bt, _ := ptypes.Timestamp(b)
+func (fns goSharedFuncs) tsGt(a, b *timestamppb.Timestamp) bool {
+	at := a.AsTime()
+	bt := b.AsTime()
 
 	return bt.Before(at)
 }
 
-func (fns goSharedFuncs) tsStr(ts *timestamp.Timestamp) string {
-	t, _ := ptypes.Timestamp(ts)
+func (fns goSharedFuncs) tsStr(ts *timestamppb.Timestamp) string {
+	t := ts.AsTime()
 	return t.String()
 }
 

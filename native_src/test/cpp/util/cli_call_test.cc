@@ -18,6 +18,8 @@
 
 #include "test/cpp/util/cli_call.h"
 
+#include <gtest/gtest.h>
+
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
@@ -25,7 +27,6 @@
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
-#include <gtest/gtest.h>
 
 #include "src/proto/grpc/testing/echo.grpc.pb.h"
 #include "test/core/util/port.h"
@@ -100,17 +101,17 @@ TEST_F(CliCallTest, SimpleRpc) {
   EXPECT_EQ(response.message(), request.message());
   EXPECT_TRUE(s.ok());
 
-  const grpc::string kMethod("/grpc.testing.EchoTestService/Echo");
-  grpc::string request_bin, response_bin, expected_response_bin;
+  const std::string kMethod("/grpc.testing.EchoTestService/Echo");
+  std::string request_bin, response_bin, expected_response_bin;
   EXPECT_TRUE(request.SerializeToString(&request_bin));
   EXPECT_TRUE(response.SerializeToString(&expected_response_bin));
-  std::multimap<grpc::string, grpc::string> client_metadata;
+  std::multimap<std::string, std::string> client_metadata;
   std::multimap<grpc::string_ref, grpc::string_ref> server_initial_metadata,
       server_trailing_metadata;
-  client_metadata.insert(std::pair<grpc::string, grpc::string>("key1", "val1"));
-  Status s2 = CliCall::Call(channel_, kMethod, request_bin, &response_bin,
-                            client_metadata, &server_initial_metadata,
-                            &server_trailing_metadata);
+  client_metadata.insert(std::pair<std::string, std::string>("key1", "val1"));
+  CliCall call(channel_, kMethod, client_metadata);
+  Status s2 = call.Call(request_bin, &response_bin, &server_initial_metadata,
+                        &server_trailing_metadata);
   EXPECT_TRUE(s2.ok());
 
   EXPECT_EQ(expected_response_bin, response_bin);

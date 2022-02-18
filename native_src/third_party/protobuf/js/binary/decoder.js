@@ -40,6 +40,7 @@
  * intact, you _must_ read them using one of the Hash64 methods, which return
  * an 8-character string.
  *
+ * @suppress {missingRequire} TODO(b/152540451): this shouldn't be needed
  * @author aappleby@google.com (Austin Appleby)
  */
 
@@ -748,7 +749,7 @@ jspb.BinaryDecoder.prototype.readInt32 = function() {
 /**
  * Reads a raw signed 64-bit integer from the binary stream. Note that since
  * Javascript represents all numbers as double-precision floats, there will be
- * precision lost if the absolute vlaue of the integer is larger than 2^53.
+ * precision lost if the absolute value of the integer is larger than 2^53.
  *
  * @return {number} The signed 64-bit integer read from the binary stream.
  *     Precision will be lost if the integer exceeds 2^53.

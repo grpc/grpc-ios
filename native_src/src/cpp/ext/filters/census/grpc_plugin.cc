@@ -20,16 +20,52 @@
 
 #include "src/cpp/ext/filters/census/grpc_plugin.h"
 
-#include <grpcpp/server_context.h>
-
 #include "opencensus/tags/tag_key.h"
 #include "opencensus/trace/span.h"
+
+#include <grpcpp/server_context.h>
+
 #include "src/cpp/ext/filters/census/channel_filter.h"
 #include "src/cpp/ext/filters/census/client_filter.h"
 #include "src/cpp/ext/filters/census/measures.h"
 #include "src/cpp/ext/filters/census/server_filter.h"
 
 namespace grpc {
+
+void RegisterOpenCensusPlugin() {
+  RegisterChannelFilter<CensusChannelData, CensusClientCallData>(
+      "opencensus_client", GRPC_CLIENT_CHANNEL, INT_MAX /* priority */,
+      nullptr /* condition function */);
+  RegisterChannelFilter<CensusChannelData, CensusServerCallData>(
+      "opencensus_server", GRPC_SERVER_CHANNEL, INT_MAX /* priority */,
+      nullptr /* condition function */);
+
+  // Access measures to ensure they are initialized. Otherwise, creating a view
+  // before the first RPC would cause an error.
+  RpcClientSentBytesPerRpc();
+  RpcClientReceivedBytesPerRpc();
+  RpcClientRoundtripLatency();
+  RpcClientServerLatency();
+  RpcClientSentMessagesPerRpc();
+  RpcClientReceivedMessagesPerRpc();
+  RpcClientRetriesPerCall();
+  RpcClientTransparentRetriesPerCall();
+  RpcClientRetryDelayPerCall();
+
+  RpcServerSentBytesPerRpc();
+  RpcServerReceivedBytesPerRpc();
+  RpcServerServerLatency();
+  RpcServerSentMessagesPerRpc();
+  RpcServerReceivedMessagesPerRpc();
+}
+
+::opencensus::trace::Span GetSpanFromServerContext(
+    grpc::ServerContext* context) {
+  if (context == nullptr) return opencensus::trace::Span::BlankSpan();
+
+  return reinterpret_cast<const grpc::CensusContext*>(context->census_context())
+      ->Span();
+}
 
 // These measure definitions should be kept in sync across opencensus
 // implementations--see
@@ -80,6 +116,16 @@ ABSL_CONST_INIT const absl::string_view kRpcClientRoundtripLatencyMeasureName =
 ABSL_CONST_INIT const absl::string_view kRpcClientServerLatencyMeasureName =
     "grpc.io/client/server_latency";
 
+ABSL_CONST_INIT const absl::string_view kRpcClientRetriesPerCallMeasureName =
+    "grpc.io/client/retries_per_call";
+
+ABSL_CONST_INIT const absl::string_view
+    kRpcClientTransparentRetriesPerCallMeasureName =
+        "grpc.io/client/transparent_retries_per_call";
+
+ABSL_CONST_INIT const absl::string_view kRpcClientRetryDelayPerCallMeasureName =
+    "grpc.io/client/retry_delay_per_call";
+
 // Server
 ABSL_CONST_INIT const absl::string_view
     kRpcServerSentMessagesPerRpcMeasureName =
@@ -99,38 +145,3 @@ ABSL_CONST_INIT const absl::string_view
 ABSL_CONST_INIT const absl::string_view kRpcServerServerLatencyMeasureName =
     "grpc.io/server/server_latency";
 }  // namespace grpc
-namespace grpc_impl {
-
-void RegisterOpenCensusPlugin() {
-  grpc::RegisterChannelFilter<grpc::CensusChannelData,
-                              grpc::CensusClientCallData>(
-      "opencensus_client", GRPC_CLIENT_CHANNEL, INT_MAX /* priority */,
-      nullptr /* condition function */);
-  grpc::RegisterChannelFilter<grpc::CensusChannelData,
-                              grpc::CensusServerCallData>(
-      "opencensus_server", GRPC_SERVER_CHANNEL, INT_MAX /* priority */,
-      nullptr /* condition function */);
-
-  // Access measures to ensure they are initialized. Otherwise, creating a view
-  // before the first RPC would cause an error.
-  grpc::RpcClientSentBytesPerRpc();
-  grpc::RpcClientReceivedBytesPerRpc();
-  grpc::RpcClientRoundtripLatency();
-  grpc::RpcClientServerLatency();
-  grpc::RpcClientSentMessagesPerRpc();
-  grpc::RpcClientReceivedMessagesPerRpc();
-
-  grpc::RpcServerSentBytesPerRpc();
-  grpc::RpcServerReceivedBytesPerRpc();
-  grpc::RpcServerServerLatency();
-  grpc::RpcServerSentMessagesPerRpc();
-  grpc::RpcServerReceivedMessagesPerRpc();
-}
-
-::opencensus::trace::Span GetSpanFromServerContext(
-    grpc::ServerContext* context) {
-  return reinterpret_cast<const grpc::CensusContext*>(context->census_context())
-      ->Span();
-}
-
-}  // namespace grpc_impl

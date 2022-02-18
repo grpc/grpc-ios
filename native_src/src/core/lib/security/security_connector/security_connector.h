@@ -30,10 +30,14 @@
 #include "src/core/lib/iomgr/endpoint.h"
 #include "src/core/lib/iomgr/pollset.h"
 #include "src/core/lib/iomgr/tcp_server.h"
-#include "src/core/tsi/ssl_transport_security.h"
 #include "src/core/tsi/transport_security_interface.h"
 
 extern grpc_core::DebugOnlyTraceFlag grpc_trace_security_connector_refcount;
+
+/* --- URL schemes. --- */
+
+#define GRPC_SSL_URL_SCHEME "https"
+#define GRPC_FAKE_SECURITY_URL_SCHEME "http+fake_security"
 
 typedef enum { GRPC_SECURITY_OK = 0, GRPC_SECURITY_ERROR } grpc_security_status;
 
@@ -42,23 +46,30 @@ typedef enum { GRPC_SECURITY_OK = 0, GRPC_SECURITY_ERROR } grpc_security_status;
     A security connector object represents away to configure the underlying
     transport security mechanism and check the resulting trusted peer.  */
 
-#define GRPC_ARG_SECURITY_CONNECTOR "grpc.security_connector"
+#define GRPC_ARG_SECURITY_CONNECTOR "grpc.internal.security_connector"
 
 class grpc_security_connector
     : public grpc_core::RefCounted<grpc_security_connector> {
  public:
   explicit grpc_security_connector(const char* url_scheme)
       : grpc_core::RefCounted<grpc_security_connector>(
-            &grpc_trace_security_connector_refcount),
+            GRPC_TRACE_FLAG_ENABLED(grpc_trace_security_connector_refcount)
+                ? "security_connector_refcount"
+                : nullptr),
         url_scheme_(url_scheme) {}
-  virtual ~grpc_security_connector() = default;
+  ~grpc_security_connector() override = default;
 
-  /* Check the peer. Callee takes ownership of the peer object.
-     When done, sets *auth_context and invokes on_peer_checked. */
+  // Checks the peer. Callee takes ownership of the peer object.
+  // When done, sets *auth_context and invokes on_peer_checked.
   virtual void check_peer(
       tsi_peer peer, grpc_endpoint* ep,
       grpc_core::RefCountedPtr<grpc_auth_context>* auth_context,
       grpc_closure* on_peer_checked) = 0;
+
+  // Cancels the pending check_peer() request associated with on_peer_checked.
+  // If there is no such request pending, this is a no-op.
+  virtual void cancel_check_peer(grpc_closure* on_peer_checked,
+                                 grpc_error_handle error) = 0;
 
   /* Compares two security connectors. */
   virtual int cmp(const grpc_security_connector* other) const = 0;
@@ -98,15 +109,15 @@ class grpc_channel_security_connector : public grpc_security_connector {
   /// Returns true if completed synchronously, in which case \a error will
   /// be set to indicate the result.  Otherwise, \a on_call_host_checked
   /// will be invoked when complete.
-  virtual bool check_call_host(grpc_core::StringView host,
+  virtual bool check_call_host(absl::string_view host,
                                grpc_auth_context* auth_context,
                                grpc_closure* on_call_host_checked,
-                               grpc_error** error) = 0;
+                               grpc_error_handle* error) = 0;
   /// Cancels a pending asynchronous call to
   /// grpc_channel_security_connector_check_call_host() with
   /// \a on_call_host_checked as its callback.
   virtual void cancel_check_call_host(grpc_closure* on_call_host_checked,
-                                      grpc_error* error) = 0;
+                                      grpc_error_handle error) = 0;
   /// Registers handshakers with \a handshake_mgr.
   virtual void add_handshakers(const grpc_channel_args* args,
                                grpc_pollset_set* interested_parties,
@@ -151,7 +162,7 @@ class grpc_server_security_connector : public grpc_security_connector {
   grpc_server_security_connector(
       const char* url_scheme,
       grpc_core::RefCountedPtr<grpc_server_credentials> server_creds);
-  ~grpc_server_security_connector() override = default;
+  ~grpc_server_security_connector() override;
 
   virtual void add_handshakers(const grpc_channel_args* args,
                                grpc_pollset_set* interested_parties,

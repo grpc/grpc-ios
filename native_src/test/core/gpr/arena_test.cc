@@ -16,10 +16,13 @@
  *
  */
 
-#include "src/core/lib/gprpp/arena.h"
+#include "src/core/lib/resource_quota/arena.h"
 
 #include <inttypes.h>
 #include <string.h>
+
+#include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
@@ -29,30 +32,30 @@
 #include "src/core/lib/gpr/string.h"
 #include "src/core/lib/gpr/useful.h"
 #include "src/core/lib/gprpp/thd.h"
+#include "src/core/lib/resource_quota/resource_quota.h"
 #include "test/core/util/test_config.h"
 
 using grpc_core::Arena;
 
-static void test_noop(void) { Arena::Create(1)->Destroy(); }
+static auto* g_memory_allocator = new grpc_core::MemoryAllocator(
+    grpc_core::ResourceQuota::Default()->memory_quota()->CreateMemoryAllocator(
+        "test"));
+
+static void test_noop(void) { Arena::Create(1, g_memory_allocator)->Destroy(); }
 
 static void test(const char* name, size_t init_size, const size_t* allocs,
                  size_t nallocs) {
-  gpr_strvec v;
-  char* s;
-  gpr_strvec_init(&v);
-  gpr_asprintf(&s, "test '%s': %" PRIdPTR " <- {", name, init_size);
-  gpr_strvec_add(&v, s);
+  std::vector<std::string> parts;
+  parts.push_back(
+      absl::StrFormat("test '%s': %" PRIdPTR " <- {", name, init_size));
   for (size_t i = 0; i < nallocs; i++) {
-    gpr_asprintf(&s, "%" PRIdPTR ",", allocs[i]);
-    gpr_strvec_add(&v, s);
+    parts.push_back(absl::StrFormat("%" PRIdPTR ",", allocs[i]));
   }
-  gpr_strvec_add(&v, gpr_strdup("}"));
-  s = gpr_strvec_flatten(&v, nullptr);
-  gpr_strvec_destroy(&v);
-  gpr_log(GPR_INFO, "%s", s);
-  gpr_free(s);
+  parts.push_back("}");
+  std::string s = absl::StrJoin(parts, "");
+  gpr_log(GPR_INFO, "%s", s.c_str());
 
-  Arena* a = Arena::Create(init_size);
+  Arena* a = Arena::Create(init_size, g_memory_allocator);
   void** ps = static_cast<void**>(gpr_zalloc(sizeof(*ps) * nallocs));
   for (size_t i = 0; i < nallocs; i++) {
     ps[i] = a->Alloc(allocs[i]);
@@ -98,7 +101,7 @@ static void concurrent_test(void) {
 
   concurrent_test_args args;
   gpr_event_init(&args.ev_start);
-  args.arena = Arena::Create(1024);
+  args.arena = Arena::Create(1024, g_memory_allocator);
 
   grpc_core::Thread thds[CONCURRENT_TEST_THREADS];
 
@@ -108,7 +111,7 @@ static void concurrent_test(void) {
     thds[i].Start();
   }
 
-  gpr_event_set(&args.ev_start, (void*)1);
+  gpr_event_set(&args.ev_start, reinterpret_cast<void*>(1));
 
   for (auto& th : thds) {
     th.Join();

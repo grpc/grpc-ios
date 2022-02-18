@@ -30,7 +30,7 @@ struct WorkItem {
   int index;
   bool done;
 
-  WorkItem(int i) : index(i) { done = false; }
+  explicit WorkItem(int i) : index(i) { done = false; }
 };
 
 // Thread to "produce" items and put items into queue
@@ -51,7 +51,7 @@ class ProducerThread {
       GPR_ASSERT(items_[i]->done);
       delete items_[i];
     }
-    gpr_free(items_);
+    delete[] items_;
   }
 
   void Start() { thd_.Start(); }
@@ -59,8 +59,7 @@ class ProducerThread {
 
  private:
   void Run() {
-    items_ =
-        static_cast<WorkItem**>(gpr_zalloc(num_items_ * sizeof(WorkItem*)));
+    items_ = new WorkItem*[num_items_];
     for (int i = 0; i < num_items_; ++i) {
       items_[i] = new WorkItem(start_index_ + i);
       queue_->Put(items_[i]);
@@ -77,7 +76,7 @@ class ProducerThread {
 // Thread to pull out items from queue
 class ConsumerThread {
  public:
-  ConsumerThread(grpc_core::InfLenFIFOQueue* queue) : queue_(queue) {
+  explicit ConsumerThread(grpc_core::InfLenFIFOQueue* queue) : queue_(queue) {
     thd_ = grpc_core::Thread(
         "mpmcq_test_consumer_thd",
         [](void* th) { static_cast<ConsumerThread*>(th)->Run(); }, this);
@@ -93,7 +92,7 @@ class ConsumerThread {
     int count = 0;
 
     WorkItem* item;
-    while ((item = static_cast<WorkItem*>(queue_->Get())) != nullptr) {
+    while ((item = static_cast<WorkItem*>(queue_->Get(nullptr))) != nullptr) {
       count++;
       GPR_ASSERT(!item->done);
       item->done = true;
@@ -113,7 +112,7 @@ static void test_FIFO(void) {
   }
   GPR_ASSERT(large_queue.count() == TEST_NUM_ITEMS);
   for (int i = 0; i < TEST_NUM_ITEMS; ++i) {
-    WorkItem* item = static_cast<WorkItem*>(large_queue.Get());
+    WorkItem* item = static_cast<WorkItem*>(large_queue.Get(nullptr));
     GPR_ASSERT(i == item->index);
     delete item;
   }
@@ -130,12 +129,12 @@ static void test_space_efficiency(void) {
   // Queue should not have been expanded at this time.
   GPR_ASSERT(queue.num_nodes() == queue.init_num_nodes());
   for (int i = 0; i < queue.init_num_nodes(); ++i) {
-    WorkItem* item = static_cast<WorkItem*>(queue.Get());
+    WorkItem* item = static_cast<WorkItem*>(queue.Get(nullptr));
     queue.Put(item);
   }
   GPR_ASSERT(queue.num_nodes() == queue.init_num_nodes());
   for (int i = 0; i < queue.init_num_nodes(); ++i) {
-    WorkItem* item = static_cast<WorkItem*>(queue.Get());
+    WorkItem* item = static_cast<WorkItem*>(queue.Get(nullptr));
     delete item;
   }
   // Queue never shrinks even it is empty.
@@ -149,7 +148,7 @@ static void test_space_efficiency(void) {
   // Queue should have been expanded once.
   GPR_ASSERT(queue.num_nodes() == queue.init_num_nodes() * 2);
   for (int i = 0; i < queue.init_num_nodes(); ++i) {
-    WorkItem* item = static_cast<WorkItem*>(queue.Get());
+    WorkItem* item = static_cast<WorkItem*>(queue.Get(nullptr));
     delete item;
   }
   GPR_ASSERT(queue.count() == queue.init_num_nodes());
@@ -162,7 +161,7 @@ static void test_space_efficiency(void) {
   // Queue should have been expanded twice.
   GPR_ASSERT(queue.num_nodes() == queue.init_num_nodes() * 4);
   for (int i = 0; i < queue.init_num_nodes() * 2 + 1; ++i) {
-    WorkItem* item = static_cast<WorkItem*>(queue.Get());
+    WorkItem* item = static_cast<WorkItem*>(queue.Get(nullptr));
     delete item;
   }
   GPR_ASSERT(queue.count() == 0);
@@ -175,10 +174,8 @@ static void test_many_thread(void) {
   const int num_producer_threads = 10;
   const int num_consumer_threads = 20;
   grpc_core::InfLenFIFOQueue queue;
-  ProducerThread** producer_threads = static_cast<ProducerThread**>(
-      gpr_zalloc(num_producer_threads * sizeof(ProducerThread*)));
-  ConsumerThread** consumer_threads = static_cast<ConsumerThread**>(
-      gpr_zalloc(num_consumer_threads * sizeof(ConsumerThread*)));
+  ProducerThread** producer_threads = new ProducerThread*[num_producer_threads];
+  ConsumerThread** consumer_threads = new ConsumerThread*[num_consumer_threads];
 
   gpr_log(GPR_DEBUG, "Fork ProducerThreads...");
   for (int i = 0; i < num_producer_threads; ++i) {
@@ -211,11 +208,11 @@ static void test_many_thread(void) {
     // Destructor of ProducerThread will do the check of WorkItems
     delete producer_threads[i];
   }
-  gpr_free(producer_threads);
+  delete[] producer_threads;
   for (int i = 0; i < num_consumer_threads; ++i) {
     delete consumer_threads[i];
   }
-  gpr_free(consumer_threads);
+  delete[] consumer_threads;
   gpr_log(GPR_DEBUG, "Done.");
 }
 

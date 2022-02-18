@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 # Copyright 2015 gRPC authors.
 #
@@ -19,9 +19,9 @@
    Write a set of strings containing a hpack encoded http2 frame that
    represents said headers."""
 
+import argparse
 import json
 import sys
-import argparse
 
 
 def append_never_indexed(payload_line, n, count, key, value):
@@ -73,8 +73,10 @@ args = argp.parse_args()
 vals = []
 for line in sys.stdin:
     line = line.strip()
-    if line == '': continue
-    if line[0] == '#': continue
+    if line == '':
+        continue
+    if line[0] == '#':
+        continue
     key_tail, value = line[1:].split(':')
     key = (line[0] + key_tail).strip()
     value = value.strip()
@@ -139,7 +141,7 @@ if args.hex:
     all_bytes = []
     for line in payload_bytes:
         all_bytes.extend(line)
-    print '{%s}' % ', '.join('0x%02x' % c for c in all_bytes)
+    print(('{%s}' % ', '.join('0x%02x' % c for c in all_bytes)))
 else:
     for line in payload_bytes:
-        print esc_c(line)
+        print((esc_c(line)))

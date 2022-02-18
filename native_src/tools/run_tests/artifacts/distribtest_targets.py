@@ -37,7 +37,7 @@ def create_docker_jobspec(name,
         environ['RELATIVE_COPY_PATH'] = copy_rel_path
 
     docker_args = []
-    for k, v in environ.items():
+    for k, v in list(environ.items()):
         docker_args += ['-e', '%s=%s' % (k, v)]
     docker_env = {
         'DOCKERFILE_DIR': dockerfile_dir,
@@ -81,13 +81,19 @@ def create_jobspec(name,
 class CSharpDistribTest(object):
     """Tests C# NuGet package"""
 
-    def __init__(self, platform, arch, docker_suffix=None,
-                 use_dotnet_cli=False):
+    def __init__(self,
+                 platform,
+                 arch,
+                 docker_suffix=None,
+                 use_dotnet_cli=False,
+                 presubmit=False):
         self.name = 'csharp_%s_%s' % (platform, arch)
         self.platform = platform
         self.arch = arch
         self.docker_suffix = docker_suffix
         self.labels = ['distribtest', 'csharp', platform, arch]
+        if presubmit:
+            self.labels.append('presubmit')
         self.script_suffix = ''
         if docker_suffix:
             self.name += '_%s' % docker_suffix
@@ -102,7 +108,8 @@ class CSharpDistribTest(object):
     def pre_build_jobspecs(self):
         return []
 
-    def build_jobspec(self):
+    def build_jobspec(self, inner_jobs=None):
+        del inner_jobs  # arg unused as there is little opportunity for parallelizing whats inside the distribtests
         if self.platform == 'linux':
             return create_docker_jobspec(
                 self.name,
@@ -143,7 +150,12 @@ class CSharpDistribTest(object):
 class PythonDistribTest(object):
     """Tests Python package"""
 
-    def __init__(self, platform, arch, docker_suffix, source=False):
+    def __init__(self,
+                 platform,
+                 arch,
+                 docker_suffix,
+                 source=False,
+                 presubmit=False):
         self.source = source
         if source:
             self.name = 'python_dev_%s_%s_%s' % (platform, arch, docker_suffix)
@@ -153,11 +165,15 @@ class PythonDistribTest(object):
         self.arch = arch
         self.docker_suffix = docker_suffix
         self.labels = ['distribtest', 'python', platform, arch, docker_suffix]
+        if presubmit:
+            self.labels.append('presubmit')
 
     def pre_build_jobspecs(self):
         return []
 
-    def build_jobspec(self):
+    def build_jobspec(self, inner_jobs=None):
+        # TODO(jtattermusch): honor inner_jobs arg for this task.
+        del inner_jobs
         if not self.platform == 'linux':
             raise Exception("Not supported yet.")
 
@@ -183,19 +199,33 @@ class PythonDistribTest(object):
 class RubyDistribTest(object):
     """Tests Ruby package"""
 
-    def __init__(self, platform, arch, docker_suffix, ruby_version=None):
-        self.name = 'ruby_%s_%s_%s_version_%s' % (platform, arch, docker_suffix,
-                                                  ruby_version or 'unspecified')
+    def __init__(self,
+                 platform,
+                 arch,
+                 docker_suffix,
+                 ruby_version=None,
+                 source=False,
+                 presubmit=False):
+        self.package_type = 'binary'
+        if source:
+            self.package_type = 'source'
+        self.name = 'ruby_%s_%s_%s_version_%s_package_type_%s' % (
+            platform, arch, docker_suffix, ruby_version or
+            'unspecified', self.package_type)
         self.platform = platform
         self.arch = arch
         self.docker_suffix = docker_suffix
         self.ruby_version = ruby_version
         self.labels = ['distribtest', 'ruby', platform, arch, docker_suffix]
+        if presubmit:
+            self.labels.append('presubmit')
 
     def pre_build_jobspecs(self):
         return []
 
-    def build_jobspec(self):
+    def build_jobspec(self, inner_jobs=None):
+        # TODO(jtattermusch): honor inner_jobs arg for this task.
+        del inner_jobs
         arch_to_gem_arch = {
             'x64': 'x86_64',
             'x86': 'x86',
@@ -210,32 +240,38 @@ class RubyDistribTest(object):
         return create_docker_jobspec(
             self.name,
             dockerfile_name,
-            'test/distrib/ruby/run_distrib_test.sh %s %s' %
-            (arch_to_gem_arch[self.arch], self.platform),
+            'test/distrib/ruby/run_distrib_test.sh %s %s %s' %
+            (arch_to_gem_arch[self.arch], self.platform, self.package_type),
             copy_rel_path='test/distrib')
 
     def __str__(self):
         return self.name
 
 
-class PHPDistribTest(object):
-    """Tests PHP package"""
+class PHP7DistribTest(object):
+    """Tests PHP7 package"""
 
-    def __init__(self, platform, arch, docker_suffix=None):
-        self.name = 'php_%s_%s_%s' % (platform, arch, docker_suffix)
+    def __init__(self, platform, arch, docker_suffix=None, presubmit=False):
+        self.name = 'php7_%s_%s_%s' % (platform, arch, docker_suffix)
         self.platform = platform
         self.arch = arch
         self.docker_suffix = docker_suffix
-        self.labels = ['distribtest', 'php', platform, arch, docker_suffix]
+        self.labels = ['distribtest', 'php', 'php7', platform, arch]
+        if presubmit:
+            self.labels.append('presubmit')
+        if docker_suffix:
+            self.labels.append(docker_suffix)
 
     def pre_build_jobspecs(self):
         return []
 
-    def build_jobspec(self):
+    def build_jobspec(self, inner_jobs=None):
+        # TODO(jtattermusch): honor inner_jobs arg for this task.
+        del inner_jobs
         if self.platform == 'linux':
             return create_docker_jobspec(
                 self.name,
-                'tools/dockerfile/distribtest/php_%s_%s' %
+                'tools/dockerfile/distribtest/php7_%s_%s' %
                 (self.docker_suffix, self.arch),
                 'test/distrib/php/run_distrib_test.sh',
                 copy_rel_path='test/distrib')
@@ -243,6 +279,7 @@ class PHPDistribTest(object):
             return create_jobspec(
                 self.name, ['test/distrib/php/run_distrib_test_macos.sh'],
                 environ={'EXTERNAL_GIT_ROOT': '../../../..'},
+                timeout_seconds=15 * 60,
                 use_workspace=True)
         else:
             raise Exception("Not supported yet.")
@@ -254,7 +291,12 @@ class PHPDistribTest(object):
 class CppDistribTest(object):
     """Tests Cpp make install by building examples."""
 
-    def __init__(self, platform, arch, docker_suffix=None, testcase=None):
+    def __init__(self,
+                 platform,
+                 arch,
+                 docker_suffix=None,
+                 testcase=None,
+                 presubmit=False):
         if platform == 'linux':
             self.name = 'cpp_%s_%s_%s_%s' % (platform, arch, docker_suffix,
                                              testcase)
@@ -265,13 +307,23 @@ class CppDistribTest(object):
         self.docker_suffix = docker_suffix
         self.testcase = testcase
         self.labels = [
-            'distribtest', 'cpp', platform, arch, docker_suffix, testcase
+            'distribtest',
+            'cpp',
+            platform,
+            arch,
+            testcase,
         ]
+        if presubmit:
+            self.labels.append('presubmit')
+        if docker_suffix:
+            self.labels.append(docker_suffix)
 
     def pre_build_jobspecs(self):
         return []
 
-    def build_jobspec(self):
+    def build_jobspec(self, inner_jobs=None):
+        # TODO(jtattermusch): honor inner_jobs arg for this task.
+        del inner_jobs
         if self.platform == 'linux':
             return create_docker_jobspec(
                 self.name,
@@ -296,57 +348,119 @@ class CppDistribTest(object):
 def targets():
     """Gets list of supported targets"""
     return [
-        CppDistribTest('linux', 'x64', 'jessie', 'routeguide'),
-        CppDistribTest('linux', 'x64', 'jessie', 'cmake_as_submodule'),
-        CppDistribTest('linux', 'x64', 'stretch', 'cmake'),
-        CppDistribTest('linux', 'x64', 'stretch', 'cmake_as_externalproject'),
-        CppDistribTest('linux', 'x64', 'stretch', 'cmake_fetchcontent'),
-        CppDistribTest('linux', 'x64', 'stretch', 'cmake_module_install'),
-        CppDistribTest('linux', 'x64', 'stretch',
-                       'cmake_module_install_pkgconfig'),
-        CppDistribTest('linux', 'x64', 'stretch', 'cmake_pkgconfig'),
-        CppDistribTest('linux', 'x64', 'stretch', 'raspberry_pi'),
-        CppDistribTest('windows', 'x86', testcase='cmake'),
-        CppDistribTest('windows', 'x86', testcase='cmake_as_externalproject'),
-        CSharpDistribTest('linux', 'x64', 'jessie'),
-        CSharpDistribTest('linux', 'x86', 'jessie'),
+        # C++
+        CppDistribTest('linux',
+                       'x64',
+                       'jessie',
+                       'cmake_as_submodule',
+                       presubmit=True),
+        CppDistribTest('linux', 'x64', 'stretch', 'cmake', presubmit=True),
+        CppDistribTest('linux',
+                       'x64',
+                       'stretch',
+                       'cmake_as_externalproject',
+                       presubmit=True),
+        CppDistribTest('linux',
+                       'x64',
+                       'stretch',
+                       'cmake_fetchcontent',
+                       presubmit=True),
+        CppDistribTest('linux',
+                       'x64',
+                       'stretch',
+                       'cmake_module_install',
+                       presubmit=True),
+        CppDistribTest('linux',
+                       'x64',
+                       'stretch',
+                       'cmake_module_install_pkgconfig',
+                       presubmit=True),
+        CppDistribTest('linux',
+                       'x64',
+                       'stretch',
+                       'cmake_pkgconfig',
+                       presubmit=True),
+        CppDistribTest('linux',
+                       'x64',
+                       'stretch_aarch64_cross',
+                       'cmake_aarch64_cross',
+                       presubmit=True),
+        CppDistribTest('windows', 'x86', testcase='cmake', presubmit=True),
+        CppDistribTest('windows',
+                       'x86',
+                       testcase='cmake_as_externalproject',
+                       presubmit=True),
+        # C#
+        CSharpDistribTest('linux', 'x64', 'jessie', presubmit=True),
         CSharpDistribTest('linux', 'x64', 'stretch'),
-        CSharpDistribTest('linux', 'x64', 'stretch', use_dotnet_cli=True),
+        CSharpDistribTest('linux',
+                          'x64',
+                          'stretch',
+                          use_dotnet_cli=True,
+                          presubmit=True),
         CSharpDistribTest('linux', 'x64', 'centos7'),
         CSharpDistribTest('linux', 'x64', 'ubuntu1604'),
         CSharpDistribTest('linux', 'x64', 'ubuntu1604', use_dotnet_cli=True),
-        CSharpDistribTest('linux', 'x64', 'alpine', use_dotnet_cli=True),
-        CSharpDistribTest('macos', 'x86'),
-        CSharpDistribTest('windows', 'x86'),
-        CSharpDistribTest('windows', 'x64'),
-        PythonDistribTest('linux', 'x64', 'jessie'),
-        PythonDistribTest('linux', 'x86', 'jessie'),
-        PythonDistribTest('linux', 'x64', 'centos6'),
+        CSharpDistribTest('linux',
+                          'x64',
+                          'alpine',
+                          use_dotnet_cli=True,
+                          presubmit=True),
+        CSharpDistribTest('linux',
+                          'x64',
+                          'dotnet31',
+                          use_dotnet_cli=True,
+                          presubmit=True),
+        CSharpDistribTest('linux',
+                          'x64',
+                          'dotnet5',
+                          use_dotnet_cli=True,
+                          presubmit=True),
+        CSharpDistribTest('macos', 'x64', presubmit=True),
+        CSharpDistribTest('windows', 'x86', presubmit=True),
+        CSharpDistribTest('windows', 'x64', presubmit=True),
+        # Python
+        PythonDistribTest('linux', 'x64', 'buster', presubmit=True),
+        PythonDistribTest('linux', 'x86', 'buster', presubmit=True),
         PythonDistribTest('linux', 'x64', 'centos7'),
-        PythonDistribTest('linux', 'x64', 'fedora23'),
+        PythonDistribTest('linux', 'x64', 'fedora34'),
         PythonDistribTest('linux', 'x64', 'opensuse'),
         PythonDistribTest('linux', 'x64', 'arch'),
-        PythonDistribTest('linux', 'x64', 'ubuntu1404'),
-        PythonDistribTest('linux', 'x64', 'ubuntu1604'),
-        PythonDistribTest('linux', 'x64', 'alpine3.7', source=True),
-        PythonDistribTest('linux', 'x64', 'jessie', source=True),
-        PythonDistribTest('linux', 'x86', 'jessie', source=True),
+        PythonDistribTest('linux', 'x64', 'ubuntu1804'),
+        PythonDistribTest('linux', 'aarch64', 'python38_buster',
+                          presubmit=True),
+        PythonDistribTest('linux',
+                          'x64',
+                          'alpine3.7',
+                          source=True,
+                          presubmit=True),
+        PythonDistribTest('linux', 'x64', 'buster', source=True,
+                          presubmit=True),
+        PythonDistribTest('linux', 'x86', 'buster', source=True,
+                          presubmit=True),
         PythonDistribTest('linux', 'x64', 'centos7', source=True),
-        PythonDistribTest('linux', 'x64', 'fedora23', source=True),
+        PythonDistribTest('linux', 'x64', 'fedora34', source=True),
         PythonDistribTest('linux', 'x64', 'arch', source=True),
-        PythonDistribTest('linux', 'x64', 'ubuntu1404', source=True),
-        PythonDistribTest('linux', 'x64', 'ubuntu1604', source=True),
-        RubyDistribTest('linux', 'x64', 'jessie', ruby_version='ruby_2_3'),
-        RubyDistribTest('linux', 'x64', 'jessie', ruby_version='ruby_2_4'),
-        RubyDistribTest('linux', 'x64', 'jessie', ruby_version='ruby_2_5'),
-        RubyDistribTest('linux', 'x64', 'jessie', ruby_version='ruby_2_6'),
-        RubyDistribTest('linux', 'x64', 'jessie', ruby_version='ruby_2_7'),
-        RubyDistribTest('linux', 'x64', 'centos6'),
+        PythonDistribTest('linux', 'x64', 'ubuntu1804', source=True),
+        # Ruby
+        RubyDistribTest('linux', 'x64', 'stretch', ruby_version='ruby_2_5'),
+        RubyDistribTest('linux', 'x64', 'stretch', ruby_version='ruby_2_6'),
+        RubyDistribTest('linux',
+                        'x64',
+                        'stretch',
+                        ruby_version='ruby_2_7',
+                        presubmit=True),
+        # TODO(apolcyn): add a ruby 3.0 test once protobuf adds support
+        RubyDistribTest('linux',
+                        'x64',
+                        'stretch',
+                        ruby_version='ruby_2_5',
+                        source=True,
+                        presubmit=True),
         RubyDistribTest('linux', 'x64', 'centos7'),
-        RubyDistribTest('linux', 'x64', 'fedora23'),
-        RubyDistribTest('linux', 'x64', 'opensuse'),
-        RubyDistribTest('linux', 'x64', 'ubuntu1404'),
         RubyDistribTest('linux', 'x64', 'ubuntu1604'),
-        PHPDistribTest('linux', 'x64', 'jessie'),
-        PHPDistribTest('macos', 'x64'),
+        RubyDistribTest('linux', 'x64', 'ubuntu1804', presubmit=True),
+        # PHP7
+        PHP7DistribTest('linux', 'x64', 'stretch', presubmit=True),
+        PHP7DistribTest('macos', 'x64', presubmit=True),
     ]

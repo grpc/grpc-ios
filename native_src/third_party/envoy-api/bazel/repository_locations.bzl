@@ -1,66 +1,133 @@
-BAZEL_SKYLIB_RELEASE = "0.9.0"
-BAZEL_SKYLIB_SHA256 = "1dde365491125a3db70731e25658dfdd3bc5dbdfd11b840b3e987ecf043c7ca0"
-
-OPENCENSUS_PROTO_GIT_SHA = "be218fb6bd674af7519b1850cdf8410d8cbd48e8"  # Dec 20, 2019
-OPENCENSUS_PROTO_SHA256 = "e3bbdc94375e86c0edfb2fc5851507e08a3f26ee725ffff7c5c0e73264bdfcde"
-
-PGV_GIT_SHA = "61843aea0c3ca81fe7a558caf75fa36789a6d16e"  # Feb 14, 2020
-PGV_SHA256 = "0cdadf1bf786fcd05944831bd23bfcdb15c7c8940405c476696c9560fb039e26"
-
-GOOGLEAPIS_GIT_SHA = "82944da21578a53b74e547774cf62ed31a05b841"  # Dec 2, 2019
-GOOGLEAPIS_SHA = "a45019af4d3290f02eaeb1ce10990166978c807cb33a9692141a076ba46d1405"
-
-PROMETHEUS_GIT_SHA = "99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c"  # Nov 17, 2017
-PROMETHEUS_SHA = "783bdaf8ee0464b35ec0c8704871e1e72afa0005c3f3587f65d9d6694bf3911b"
-
-UDPA_GIT_SHA = "db4b343e48c1264bb4d9ff491b059300701dc7c7"  # Jan 24, 2020
-UDPA_SHA256 = "800624f44592a24898f133e39ae7fbb7a6c4b85bdddd448185fb7e277f097a56"
-
-ZIPKINAPI_RELEASE = "0.2.2"  # Aug 23, 2019
-ZIPKINAPI_SHA256 = "688c4fe170821dd589f36ec45aaadc03a618a40283bc1f97da8fa11686fc816b"
-
-RULES_PROTO_GIT_SHA = "2c0468366367d7ed97a1f702f9cd7155ab3f73c5"  # Nov 19, 2019
-RULES_PROTO_SHA256 = "73ebe9d15ba42401c785f9d0aeebccd73bd80bf6b8ac78f74996d31f2c0ad7a6"
-
-REPOSITORY_LOCATIONS = dict(
+# This should match the schema defined in external_deps.bzl.
+REPOSITORY_LOCATIONS_SPEC = dict(
     bazel_skylib = dict(
-        sha256 = BAZEL_SKYLIB_SHA256,
-        urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/" + BAZEL_SKYLIB_RELEASE + "/bazel_skylib-" + BAZEL_SKYLIB_RELEASE + ".tar.gz"],
+        project_name = "bazel-skylib",
+        project_desc = "Common useful functions and rules for Bazel",
+        project_url = "https://github.com/bazelbuild/bazel-skylib",
+        version = "1.1.1",
+        sha256 = "c6966ec828da198c5d9adbaa94c05e3a1c7f21bd012a0b29ba8ddbccb2c93b0d",
+        release_date = "2021-09-27",
+        urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/{version}/bazel-skylib-{version}.tar.gz"],
+        use_category = ["api"],
     ),
     com_envoyproxy_protoc_gen_validate = dict(
-        sha256 = PGV_SHA256,
-        strip_prefix = "protoc-gen-validate-" + PGV_GIT_SHA,
-        urls = ["https://github.com/envoyproxy/protoc-gen-validate/archive/" + PGV_GIT_SHA + ".tar.gz"],
+        project_name = "protoc-gen-validate (PGV)",
+        project_desc = "protoc plugin to generate polyglot message validators",
+        project_url = "https://github.com/envoyproxy/protoc-gen-validate",
+        version = "0.6.1",
+        sha256 = "c695fc5a2e5a1b52904cd8a58ce7a1c3a80f7f50719496fd606e551685c01101",
+        release_date = "2021-04-26",
+        strip_prefix = "protoc-gen-validate-{version}",
+        urls = ["https://github.com/envoyproxy/protoc-gen-validate/archive/v{version}.tar.gz"],
+        use_category = ["api"],
+        implied_untracked_deps = [
+            "com_github_iancoleman_strcase",
+            "com_github_lyft_protoc_gen_star",
+            "com_github_spf13_afero",
+            "org_golang_google_genproto",
+            "org_golang_x_text",
+        ],
     ),
-    com_google_googleapis = dict(
-        # TODO(dio): Consider writing a Skylark macro for importing Google API proto.
-        sha256 = GOOGLEAPIS_SHA,
-        strip_prefix = "googleapis-" + GOOGLEAPIS_GIT_SHA,
-        urls = ["https://github.com/googleapis/googleapis/archive/" + GOOGLEAPIS_GIT_SHA + ".tar.gz"],
+    com_github_bazelbuild_buildtools = dict(
+        project_name = "Bazel build tools",
+        project_desc = "Developer tools for working with Google's bazel buildtool.",
+        project_url = "https://github.com/bazelbuild/buildtools",
+        version = "4.2.2",
+        sha256 = "ae34c344514e08c23e90da0e2d6cb700fcd28e80c02e23e4d5715dddcb42f7b3",
+        release_date = "2021-10-07",
+        strip_prefix = "buildtools-{version}",
+        urls = ["https://github.com/bazelbuild/buildtools/archive/{version}.tar.gz"],
+        use_category = ["api"],
     ),
     com_github_cncf_udpa = dict(
-        sha256 = UDPA_SHA256,
-        strip_prefix = "udpa-" + UDPA_GIT_SHA,
-        urls = ["https://github.com/cncf/udpa/archive/" + UDPA_GIT_SHA + ".tar.gz"],
-    ),
-    prometheus_metrics_model = dict(
-        sha256 = PROMETHEUS_SHA,
-        strip_prefix = "client_model-" + PROMETHEUS_GIT_SHA,
-        urls = ["https://github.com/prometheus/client_model/archive/" + PROMETHEUS_GIT_SHA + ".tar.gz"],
-    ),
-    opencensus_proto = dict(
-        sha256 = OPENCENSUS_PROTO_SHA256,
-        strip_prefix = "opencensus-proto-" + OPENCENSUS_PROTO_GIT_SHA + "/src",
-        urls = ["https://github.com/census-instrumentation/opencensus-proto/archive/" + OPENCENSUS_PROTO_GIT_SHA + ".tar.gz"],
-    ),
-    rules_proto = dict(
-        sha256 = RULES_PROTO_SHA256,
-        strip_prefix = "rules_proto-" + RULES_PROTO_GIT_SHA + "",
-        urls = ["https://github.com/bazelbuild/rules_proto/archive/" + RULES_PROTO_GIT_SHA + ".tar.gz"],
+        project_name = "xDS API",
+        project_desc = "xDS API Working Group (xDS-WG)",
+        project_url = "https://github.com/cncf/xds",
+        # During the UDPA -> xDS migration, we aren't working with releases.
+        version = "cb28da3451f158a947dfc45090fe92b07b243bc1",
+        sha256 = "5bc8365613fe2f8ce6cc33959b7667b13b7fe56cb9d16ba740c06e1a7c4242fc",
+        release_date = "2021-10-11",
+        strip_prefix = "xds-{version}",
+        urls = ["https://github.com/cncf/xds/archive/{version}.tar.gz"],
+        use_category = ["api"],
     ),
     com_github_openzipkin_zipkinapi = dict(
-        sha256 = ZIPKINAPI_SHA256,
-        strip_prefix = "zipkin-api-" + ZIPKINAPI_RELEASE,
-        urls = ["https://github.com/openzipkin/zipkin-api/archive/" + ZIPKINAPI_RELEASE + ".tar.gz"],
+        project_name = "Zipkin API",
+        project_desc = "Zipkin's language independent model and HTTP Api Definitions",
+        project_url = "https://github.com/openzipkin/zipkin-api",
+        version = "1.0.0",
+        sha256 = "6c8ee2014cf0746ba452e5f2c01f038df60e85eb2d910b226f9aa27ddc0e44cf",
+        release_date = "2020-11-22",
+        strip_prefix = "zipkin-api-{version}",
+        urls = ["https://github.com/openzipkin/zipkin-api/archive/{version}.tar.gz"],
+        use_category = ["api"],
+    ),
+    com_google_googleapis = dict(
+        # TODO(dio): Consider writing a Starlark macro for importing Google API proto.
+        project_name = "Google APIs",
+        project_desc = "Public interface definitions of Google APIs",
+        project_url = "https://github.com/googleapis/googleapis",
+        version = "82944da21578a53b74e547774cf62ed31a05b841",
+        sha256 = "a45019af4d3290f02eaeb1ce10990166978c807cb33a9692141a076ba46d1405",
+        release_date = "2019-12-02",
+        strip_prefix = "googleapis-{version}",
+        urls = ["https://github.com/googleapis/googleapis/archive/{version}.tar.gz"],
+        use_category = ["api"],
+    ),
+    opencensus_proto = dict(
+        project_name = "OpenCensus Proto",
+        project_desc = "Language Independent Interface Types For OpenCensus",
+        project_url = "https://github.com/census-instrumentation/opencensus-proto",
+        version = "0.3.0",
+        sha256 = "b7e13f0b4259e80c3070b583c2f39e53153085a6918718b1c710caf7037572b0",
+        release_date = "2020-07-21",
+        strip_prefix = "opencensus-proto-{version}/src",
+        urls = ["https://github.com/census-instrumentation/opencensus-proto/archive/v{version}.tar.gz"],
+        use_category = ["api"],
+    ),
+    prometheus_metrics_model = dict(
+        project_name = "Prometheus client model",
+        project_desc = "Data model artifacts for Prometheus",
+        project_url = "https://github.com/prometheus/client_model",
+        version = "147c58e9608a4f9628b53b6cc863325ca746f63a",
+        sha256 = "f7da30879dcdfae367fa65af1969945c3148cfbfc462b30b7d36f17134675047",
+        release_date = "2021-06-07",
+        strip_prefix = "client_model-{version}",
+        urls = ["https://github.com/prometheus/client_model/archive/{version}.tar.gz"],
+        use_category = ["api"],
+    ),
+    rules_proto = dict(
+        project_name = "Protobuf Rules for Bazel",
+        project_desc = "Protocol buffer rules for Bazel",
+        project_url = "https://github.com/bazelbuild/rules_proto",
+        version = "4.0.0",
+        sha256 = "66bfdf8782796239d3875d37e7de19b1d94301e8972b3cbd2446b332429b4df1",
+        release_date = "2021-09-15",
+        strip_prefix = "rules_proto-{version}",
+        urls = ["https://github.com/bazelbuild/rules_proto/archive/refs/tags/{version}.tar.gz"],
+        use_category = ["api"],
+    ),
+    opentelemetry_proto = dict(
+        project_name = "OpenTelemetry Proto",
+        project_desc = "Language Independent Interface Types For OpenTelemetry",
+        project_url = "https://github.com/open-telemetry/opentelemetry-proto",
+        version = "0.11.0",
+        sha256 = "985367f8905e91018e636cbf0d83ab3f834b665c4f5899a27d10cae9657710e2",
+        release_date = "2021-10-07",
+        strip_prefix = "opentelemetry-proto-{version}",
+        urls = ["https://github.com/open-telemetry/opentelemetry-proto/archive/v{version}.tar.gz"],
+        use_category = ["api"],
+    ),
+    com_github_bufbuild_buf = dict(
+        project_name = "buf",
+        project_desc = "A new way of working with Protocol Buffers.",  # Used for breaking change detection in API protobufs
+        project_url = "https://buf.build",
+        version = "0.53.0",
+        sha256 = "888bb52d358e34a8d6a57ecff426bed896bdf478ad13c78a70a9e1a9a2d75715",
+        strip_prefix = "buf",
+        urls = ["https://github.com/bufbuild/buf/releases/download/v{version}/buf-Linux-x86_64.tar.gz"],
+        release_date = "2021-08-25",
+        use_category = ["api"],
+        tags = ["manual"],
     ),
 )

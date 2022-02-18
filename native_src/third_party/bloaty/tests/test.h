@@ -15,20 +15,27 @@
 #ifndef BLOATY_TESTS_TEST_H_
 #define BLOATY_TESTS_TEST_H_
 
-#include "bloaty.h"
-
 #include <fstream>
 #include <memory>
 #include <string>
 #include <unordered_set>
 #include <tuple>
 #include <vector>
-#include "gtest/gtest.h"
+#include "absl/strings/numbers.h"
+#include "absl/strings/str_split.h"
 #include "gmock/gmock.h"
+#include "google/protobuf/text_format.h"
+#include "gtest/gtest.h"
 
 #include "strarr.h"
+#include "bloaty.h"
+#include "bloaty.pb.h"
 
-bool GetFileSize(const std::string& filename, uint64_t* size) {
+#if defined(_MSC_VER)
+#define PATH_MAX  4096
+#endif
+
+inline bool GetFileSize(const std::string& filename, uint64_t* size) {
   FILE* file = fopen(filename.c_str(), "rb");
   if (!file) {
     std::cerr << "Couldn't get file size for: " << filename << "\n";
@@ -40,7 +47,7 @@ bool GetFileSize(const std::string& filename, uint64_t* size) {
   return true;
 }
 
-std::string GetTestDirectory() {
+inline std::string GetTestDirectory() {
   char pathbuf[PATH_MAX];
   if (!getcwd(pathbuf, sizeof(pathbuf))) {
     return "";
@@ -48,6 +55,12 @@ std::string GetTestDirectory() {
   std::string path(pathbuf);
   size_t pos = path.rfind('/');
   return path.substr(pos + 1);
+}
+
+inline std::string DebugString(const google::protobuf::Message& message) {
+  std::string ret;
+  google::protobuf::TextFormat::PrintToString(message, &ret);
+  return ret;
 }
 
 #define NONE_STRING "[None]"
@@ -58,7 +71,8 @@ std::string GetTestDirectory() {
 
 class BloatyTest : public ::testing::Test {
  protected:
-  void CheckConsistencyForRow(const bloaty::RollupRow& row, bool is_toplevel) {
+  void CheckConsistencyForRow(const bloaty::RollupRow& row, bool is_toplevel,
+                             bool diff_mode, int* count) {
     // If any children exist, they should sum up to this row's values.
     // Also none of the children should have the same name.
     std::unordered_set<std::string> names;
@@ -69,15 +83,18 @@ class BloatyTest : public ::testing::Test {
       for (const auto& child : row.sorted_children) {
         vmtotal += child.vmsize;
         filetotal += child.filesize;
-        CheckConsistencyForRow(child, false);
+        CheckConsistencyForRow(child, false, diff_mode, count);
         ASSERT_TRUE(names.insert(child.name).second);
         ASSERT_FALSE(child.vmsize == 0 && child.filesize == 0);
       }
 
-      if (!row.diff_mode) {
+      if (!diff_mode) {
         ASSERT_EQ(vmtotal, row.vmsize);
         ASSERT_EQ(filetotal, row.filesize);
       }
+    } else {
+      // Count leaf rows.
+      *count += 1;
     }
 
     if (!is_toplevel && row.sorted_children.size() == 1) {
@@ -85,8 +102,57 @@ class BloatyTest : public ::testing::Test {
     }
   }
 
-  void CheckConsistency() {
-    CheckConsistencyForRow(*top_row_, true);
+  void CheckCSVConsistency(int row_count) {
+    std::ostringstream stream;
+    bloaty::OutputOptions options;
+    options.output_format = bloaty::OutputFormat::kCSV;
+    output_->Print(options, &stream);
+    std::string csv_output = stream.str();
+
+    std::vector<std::string> rows = absl::StrSplit(csv_output, '\n');
+    // Output ends with a final '\n', trim this.
+    ASSERT_EQ("", rows[rows.size() - 1]);
+    rows.pop_back();
+
+    ASSERT_GT(rows.size(), 0);  // There should be a header row.
+
+    ASSERT_EQ(rows.size() - 1, row_count);
+    bool first = true;
+    for (const auto& row : rows) {
+      std::vector<std::string> cols = absl::StrSplit(row, ',');
+      if (first) {
+        // header row should be: header1,header2,...,vmsize,filesize
+        std::vector<std::string> expected_headers(output_->source_names());
+        expected_headers.push_back("vmsize");
+        expected_headers.push_back("filesize");
+        ASSERT_EQ(cols, expected_headers);
+        first = false;
+      } else {
+        // Final two columns should parse as integer.
+        int out;
+        ASSERT_EQ(output_->source_names().size() + 2, cols.size());
+        ASSERT_TRUE(absl::SimpleAtoi(cols[cols.size() - 1], &out));
+        ASSERT_TRUE(absl::SimpleAtoi(cols[cols.size() - 2], &out));
+      }
+    }
+  }
+
+  void CheckConsistency(const bloaty::Options& options) {
+    ASSERT_EQ(options.base_filename_size() > 0, output_->diff_mode());
+
+    if (!output_->diff_mode()) {
+      size_t total_input_size = 0;
+      for (const auto& filename : options.filename()) {
+        uint64_t size;
+        ASSERT_TRUE(GetFileSize(filename, &size));
+        total_input_size += size;
+      }
+      ASSERT_EQ(top_row_->filesize, total_input_size);
+    }
+
+    int rows = 0;
+    CheckConsistencyForRow(*top_row_, true, output_->diff_mode(), &rows);
+    CheckCSVConsistency(rows);
     ASSERT_EQ("TOTAL", top_row_->name);
   }
 
@@ -98,24 +164,48 @@ class BloatyTest : public ::testing::Test {
     return ret;
   }
 
-  bool TryRunBloaty(const std::vector<std::string>& strings) {
-    std::cerr << "Running bloaty: " << JoinStrings(strings) << "\n";
+  bool TryRunBloatyWithOptions(const bloaty::Options& options,
+                               const bloaty::OutputOptions& output_options) {
     output_.reset(new bloaty::RollupOutput);
     top_row_ = &output_->toplevel_row();
+    std::string error;
     bloaty::MmapInputFileFactory factory;
-    if (bloaty::BloatyMain(strings.size(), StrArr(strings).get(), factory,
-                           output_.get())) {
-      CheckConsistency();
-      output_->Print(&std::cerr);
+    if (bloaty::BloatyMain(options, factory, output_.get(), &error)) {
+      CheckConsistency(options);
+      output_->Print(output_options, &std::cerr);
       return true;
     } else {
-      std::cerr << "Bloaty returned error." << "\n";
+      std::cerr << "Bloaty returned error:" << error << "\n";
       return false;
     }
   }
 
+  bool TryRunBloaty(const std::vector<std::string>& strings) {
+    bloaty::Options options;
+    bloaty::OutputOptions output_options;
+    std::string error;
+    StrArr str_arr(strings);
+    int argc = strings.size();
+    char** argv = str_arr.get();
+    bool ok = bloaty::ParseOptions(false, &argc, &argv, &options,
+                                   &output_options, &error);
+    if (!ok) {
+      std::cerr << "Error parsing options: " << error;
+      return false;
+    }
+
+    return TryRunBloatyWithOptions(options, output_options);
+  }
+
   void RunBloaty(const std::vector<std::string>& strings) {
+    std::cerr << "Running bloaty: " << JoinStrings(strings) << "\n";
     ASSERT_TRUE(TryRunBloaty(strings));
+  }
+
+  void RunBloatyWithOptions(const bloaty::Options& options,
+                            const bloaty::OutputOptions& output_options) {
+    std::cerr << "Running bloaty, options: " << DebugString(options) << "\n";
+    ASSERT_TRUE(TryRunBloatyWithOptions(options, output_options));
   }
 
   void AssertBloatyFails(const std::vector<std::string>& strings,
@@ -158,17 +248,21 @@ class BloatyTest : public ::testing::Test {
       if (expected_vm == kUnknown) {
         // Always pass.
       } else if (expected_vm > 0) {
-        EXPECT_EQ(expected_vm, child.vmsize);
+        EXPECT_GE(child.vmsize, expected_vm);
+        // Allow some overhead.
+        EXPECT_LE(child.vmsize, (expected_vm * 1.1) + 100);
       } else {
         ASSERT_TRUE(false);
       }
 
-      if (expected_file == kUnknown) {
-        // Always pass.
-      } else if (expected_file == kSameAsVM) {
-        EXPECT_EQ(child.vmsize, child.filesize);
-      } else {
-        EXPECT_EQ(expected_file, child.filesize);
+      if (expected_file == kSameAsVM) {
+        expected_file = child.vmsize;
+      }
+
+      if (expected_file != kUnknown) {
+        EXPECT_GE(child.filesize, expected_file);
+        // Allow some overhead.
+        EXPECT_LE(child.filesize, (expected_file * 1.2) + 180);
       }
 
       if (++i == children.size()) {

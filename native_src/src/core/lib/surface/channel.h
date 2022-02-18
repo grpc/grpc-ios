@@ -21,24 +21,32 @@
 
 #include <grpc/support/port_platform.h>
 
+#include <map>
+
 #include "src/core/lib/channel/channel_stack.h"
 #include "src/core/lib/channel/channel_stack_builder.h"
 #include "src/core/lib/channel/channelz.h"
+#include "src/core/lib/gprpp/manual_constructor.h"
+#include "src/core/lib/resource_quota/memory_quota.h"
 #include "src/core/lib/surface/channel_stack_type.h"
 
+/// Creates a grpc_channel.
 grpc_channel* grpc_channel_create(const char* target,
                                   const grpc_channel_args* args,
                                   grpc_channel_stack_type channel_stack_type,
                                   grpc_transport* optional_transport,
-                                  grpc_resource_user* resource_user = nullptr);
+                                  grpc_error_handle* error);
 
 /** The same as grpc_channel_destroy, but doesn't create an ExecCtx, and so
  * is safe to use from within core. */
 void grpc_channel_destroy_internal(grpc_channel* channel);
 
+/// Creates a grpc_channel with a builder. See the description of
+/// \a grpc_channel_create for variable definitions.
 grpc_channel* grpc_channel_create_with_builder(
     grpc_channel_stack_builder* builder,
-    grpc_channel_stack_type channel_stack_type);
+    grpc_channel_stack_type channel_stack_type,
+    grpc_error_handle* error = nullptr);
 
 /** Create a call given a grpc_channel, in order to call \a method.
     Progress is tied to activity on \a pollset_set. The returned call object is
@@ -62,20 +70,48 @@ grpc_core::channelz::ChannelNode* grpc_channel_get_channelz_node(
 size_t grpc_channel_get_call_size_estimate(grpc_channel* channel);
 void grpc_channel_update_call_size_estimate(grpc_channel* channel, size_t size);
 
-struct registered_call;
+namespace grpc_core {
+
+struct RegisteredCall {
+  Slice path;
+  absl::optional<Slice> authority;
+
+  explicit RegisteredCall(const char* method_arg, const char* host_arg);
+  RegisteredCall(const RegisteredCall& other);
+  RegisteredCall& operator=(const RegisteredCall&) = delete;
+
+  ~RegisteredCall();
+};
+
+struct CallRegistrationTable {
+  Mutex mu;
+  // The map key should be owned strings rather than unowned char*'s to
+  // guarantee that it outlives calls on the core channel (which may outlast the
+  // C++ or other wrapped language Channel that registered these calls).
+  std::map<std::pair<std::string, std::string>, RegisteredCall> map
+      ABSL_GUARDED_BY(mu);
+  int method_registration_attempts ABSL_GUARDED_BY(mu) = 0;
+};
+
+}  // namespace grpc_core
+
 struct grpc_channel {
   int is_client;
   grpc_compression_options compression_options;
 
   gpr_atm call_size_estimate;
-  grpc_resource_user* resource_user;
 
-  gpr_mu registered_call_mu;
-  registered_call* registered_calls;
-
+  // TODO(vjpai): Once the grpc_channel is allocated via new rather than malloc,
+  //              expand the members of the CallRegistrationTable directly into
+  //              the grpc_channel. For now it is kept separate so that all the
+  //              manual constructing can be done with a single call rather than
+  //              a separate manual construction for each field.
+  grpc_core::ManualConstructor<grpc_core::CallRegistrationTable>
+      registration_table;
   grpc_core::RefCountedPtr<grpc_core::channelz::ChannelNode> channelz_node;
+  grpc_core::ManualConstructor<grpc_core::MemoryAllocator> allocator;
 
-  char* target;
+  grpc_core::ManualConstructor<std::string> target;
 };
 #define CHANNEL_STACK_FROM_CHANNEL(c) ((grpc_channel_stack*)((c) + 1))
 
@@ -120,8 +156,13 @@ inline void grpc_channel_internal_unref(grpc_channel* channel) {
   grpc_channel_internal_unref(channel)
 #endif
 
-/** Return the channel's compression options. */
+// Return the channel's compression options.
 grpc_compression_options grpc_channel_compression_options(
     const grpc_channel* channel);
+
+// Ping the channels peer (load balanced channels will select one sub-channel to
+// ping); if the channel is not connected, posts a failed.
+void grpc_channel_ping(grpc_channel* channel, grpc_completion_queue* cq,
+                       void* tag, void* reserved);
 
 #endif /* GRPC_CORE_LIB_SURFACE_CHANNEL_H */

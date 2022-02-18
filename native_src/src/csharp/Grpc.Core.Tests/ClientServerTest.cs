@@ -65,6 +65,8 @@ namespace Grpc.Core.Tests
             Assert.AreEqual("ABC", Calls.BlockingUnaryCall(helper.CreateUnaryCall(), "ABC"));
 
             Assert.AreEqual("ABC", await Calls.AsyncUnaryCall(helper.CreateUnaryCall(), "ABC"));
+
+            Assert.AreEqual("ABC", await Calls.AsyncUnaryCall(helper.CreateUnaryCall(), "ABC").ConfigureAwait(false));
         }
 
         [Test]
@@ -140,6 +142,26 @@ namespace Grpc.Core.Tests
         }
 
         [Test]
+        public void UnaryCall_StatusDebugErrorStringNotTransmittedFromServer()
+        {
+            helper.UnaryHandler = new UnaryServerMethod<string, string>((request, context) =>
+            {
+                context.Status = new Status(StatusCode.Unauthenticated, "", new CoreErrorDetailException("this DebugErrorString value should not be transmitted to the client"));
+                return Task.FromResult("");
+            });
+
+            var ex = Assert.Throws<RpcException>(() => Calls.BlockingUnaryCall(helper.CreateUnaryCall(), "abc"));
+            Assert.AreEqual(StatusCode.Unauthenticated, ex.Status.StatusCode);
+            StringAssert.Contains("Error received from peer", ex.Status.DebugException.Message, "Is \"Error received from peer\" still a valid substring to search for in the client-generated error message from C-core?");
+            Assert.AreEqual(0, ex.Trailers.Count);
+
+            var ex2 = Assert.ThrowsAsync<RpcException>(async () => await Calls.AsyncUnaryCall(helper.CreateUnaryCall(), "abc"));
+            Assert.AreEqual(StatusCode.Unauthenticated, ex2.Status.StatusCode);
+            StringAssert.Contains("Error received from peer", ex2.Status.DebugException.Message, "Is \"Error received from peer\" still a valid substring to search for in the client-generated error message from C-core?");
+            Assert.AreEqual(0, ex2.Trailers.Count);
+        }
+
+        [Test]
         public void UnaryCall_ServerHandlerSetsStatusAndTrailers()
         {
             helper.UnaryHandler = new UnaryServerMethod<string, string>((request, context) =>
@@ -177,12 +199,21 @@ namespace Grpc.Core.Tests
                 return result;
             });
 
-            var call = Calls.AsyncClientStreamingCall(helper.CreateClientStreamingCall());
-            await call.RequestStream.WriteAllAsync(new string[] { "A", "B", "C" });
-            Assert.AreEqual("ABC", await call.ResponseAsync);
+            {
+                var call = Calls.AsyncClientStreamingCall(helper.CreateClientStreamingCall());
+                await call.RequestStream.WriteAllAsync(new string[] { "A", "B", "C" });
+                Assert.AreEqual("ABC", await call);
+                Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
+                Assert.IsNotNull(call.GetTrailers());
+            }
 
-            Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
-            Assert.IsNotNull(call.GetTrailers());
+            {
+                var call = Calls.AsyncClientStreamingCall(helper.CreateClientStreamingCall());
+                await call.RequestStream.WriteAllAsync(new string[] { "A", "B", "C" });
+                Assert.AreEqual("ABC", await call.ConfigureAwait(false));
+                Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
+                Assert.IsNotNull(call.GetTrailers());
+            }
         }
 
         [Test]

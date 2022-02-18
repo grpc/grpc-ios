@@ -10,11 +10,11 @@ namespace {
 
 class TestReporter : public benchmark::ConsoleReporter {
  public:
-  virtual bool ReportContext(const Context& context) {
+  virtual bool ReportContext(const Context& context) BENCHMARK_OVERRIDE {
     return ConsoleReporter::ReportContext(context);
   };
 
-  virtual void ReportRuns(const std::vector<Run>& report) {
+  virtual void ReportRuns(const std::vector<Run>& report) BENCHMARK_OVERRIDE {
     all_runs_.insert(all_runs_.end(), begin(report), end(report));
     ConsoleReporter::ReportRuns(report);
   }
@@ -33,14 +33,14 @@ struct TestCase {
   typedef benchmark::BenchmarkReporter::Run Run;
 
   void CheckRun(Run const& run) const {
-    CHECK(name == run.benchmark_name())
+    BM_CHECK(name == run.benchmark_name())
         << "expected " << name << " got " << run.benchmark_name();
-    CHECK(error_occurred == run.error_occurred);
-    CHECK(error_message == run.error_message);
+    BM_CHECK(error_occurred == run.error_occurred);
+    BM_CHECK(error_message == run.error_message);
     if (error_occurred) {
-      // CHECK(run.iterations == 0);
+      // BM_CHECK(run.iterations == 0);
     } else {
-      CHECK(run.iterations != 0);
+      BM_CHECK(run.iterations != 0);
     }
   }
 };
@@ -60,6 +60,12 @@ int AddCases(const char* base_name, std::initializer_list<TestCase> const& v) {
 #define ADD_CASES(...) int CONCAT(dummy, __LINE__) = AddCases(__VA_ARGS__)
 
 }  // end namespace
+
+void BM_error_no_running(benchmark::State& state) {
+  state.SkipWithError("error message");
+}
+BENCHMARK(BM_error_no_running);
+ADD_CASES("BM_error_no_running", {{"", true, "error message"}});
 
 void BM_error_before_running(benchmark::State& state) {
   state.SkipWithError("error message");
@@ -91,7 +97,7 @@ ADD_CASES("BM_error_before_running_range_for", {{"", true, "error message"}});
 void BM_error_during_running(benchmark::State& state) {
   int first_iter = true;
   while (state.KeepRunning()) {
-    if (state.range(0) == 1 && state.thread_index <= (state.threads / 2)) {
+    if (state.range(0) == 1 && state.thread_index() <= (state.threads() / 2)) {
       assert(first_iter);
       first_iter = false;
       state.SkipWithError("error message");
@@ -136,7 +142,7 @@ void BM_error_after_running(benchmark::State& state) {
   for (auto _ : state) {
     benchmark::DoNotOptimize(state.iterations());
   }
-  if (state.thread_index <= (state.threads / 2))
+  if (state.thread_index() <= (state.threads() / 2))
     state.SkipWithError("error message");
 }
 BENCHMARK(BM_error_after_running)->ThreadRange(1, 8);
@@ -148,7 +154,7 @@ ADD_CASES("BM_error_after_running", {{"/threads:1", true, "error message"},
 void BM_error_while_paused(benchmark::State& state) {
   bool first_iter = true;
   while (state.KeepRunning()) {
-    if (state.range(0) == 1 && state.thread_index <= (state.threads / 2)) {
+    if (state.range(0) == 1 && state.thread_index() <= (state.threads() / 2)) {
       assert(first_iter);
       first_iter = false;
       state.PauseTiming();

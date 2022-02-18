@@ -34,7 +34,7 @@ BdpEstimator::BdpEstimator(const char* name)
       accumulator_(0),
       estimate_(65536),
       ping_start_time_(gpr_time_0(GPR_CLOCK_MONOTONIC)),
-      inter_ping_delay_(100.0),  // start at 100ms
+      inter_ping_delay_(100),  // start at 100ms
       stable_estimate_count_(0),
       bw_est_(0),
       name_(name) {}
@@ -55,7 +55,7 @@ grpc_millis BdpEstimator::CompletePing() {
   }
   GPR_ASSERT(ping_state_ == PingState::STARTED);
   if (accumulator_ > 2 * estimate_ / 3 && bw > bw_est_) {
-    estimate_ = GPR_MAX(accumulator_, estimate_ * 2);
+    estimate_ = std::max(accumulator_, estimate_ * 2);
     bw_est_ = bw;
     if (GRPC_TRACE_FLAG_ENABLED(grpc_bdp_estimator_trace)) {
       gpr_log(GPR_INFO, "bdp[%s]: estimate increased to %" PRId64, name_,
@@ -81,7 +81,7 @@ grpc_millis BdpEstimator::CompletePing() {
   }
   ping_state_ = PingState::UNSCHEDULED;
   accumulator_ = 0;
-  return grpc_core::ExecCtx::Get()->Now() + inter_ping_delay_;
+  return ExecCtx::Get()->Now() + inter_ping_delay_;
 }
 
 }  // namespace grpc_core

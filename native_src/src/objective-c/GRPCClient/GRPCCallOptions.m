@@ -25,8 +25,9 @@ static NSString *const kDefaultServerAuthority = nil;
 static const NSTimeInterval kDefaultTimeout = 0;
 static const BOOL kDefaultFlowControlEnabled = NO;
 static NSArray<id<GRPCInterceptorFactory>> *const kDefaultInterceptorFactories = nil;
-static NSDictionary *const kDefaultInitialMetadata = nil;
+static GRPCMetadataDictionary *const kDefaultInitialMetadata = nil;
 static NSString *const kDefaultUserAgentPrefix = nil;
+static NSString *const kDefaultUserAgentSuffix = nil;
 static const NSUInteger kDefaultResponseSizeLimit = 0;
 static const GRPCCompressionAlgorithm kDefaultCompressionAlgorithm = GRPCCompressNone;
 static const BOOL kDefaultRetryEnabled = YES;
@@ -35,7 +36,7 @@ static const NSTimeInterval kDefaultKeepaliveTimeout = 0;
 static const NSTimeInterval kDefaultConnectMinTimeout = 0;
 static const NSTimeInterval kDefaultConnectInitialBackoff = 0;
 static const NSTimeInterval kDefaultConnectMaxBackoff = 0;
-static NSDictionary *const kDefaultAdditionalChannelArgs = nil;
+static GRPCMetadataDictionary *const kDefaultAdditionalChannelArgs = nil;
 static NSString *const kDefaultPEMRootCertificates = nil;
 static NSString *const kDefaultPEMPrivateKey = nil;
 static NSString *const kDefaultPEMCertificateChain = nil;
@@ -67,8 +68,9 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
   NSArray<id<GRPCInterceptorFactory>> *_interceptorFactories;
   NSString *_oauth2AccessToken;
   id<GRPCAuthorizationProtocol> _authTokenProvider;
-  NSDictionary *_initialMetadata;
+  GRPCMetadataDictionary *_initialMetadata;
   NSString *_userAgentPrefix;
+  NSString *_userAgentSuffix;
   NSUInteger _responseSizeLimit;
   GRPCCompressionAlgorithm _compressionAlgorithm;
   BOOL _retryEnabled;
@@ -77,7 +79,7 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
   NSTimeInterval _connectMinTimeout;
   NSTimeInterval _connectInitialBackoff;
   NSTimeInterval _connectMaxBackoff;
-  NSDictionary *_additionalChannelArgs;
+  GRPCMetadataDictionary *_additionalChannelArgs;
   NSString *_PEMRootCertificates;
   NSString *_PEMPrivateKey;
   NSString *_PEMCertificateChain;
@@ -97,6 +99,7 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
 @synthesize authTokenProvider = _authTokenProvider;
 @synthesize initialMetadata = _initialMetadata;
 @synthesize userAgentPrefix = _userAgentPrefix;
+@synthesize userAgentSuffix = _userAgentSuffix;
 @synthesize responseSizeLimit = _responseSizeLimit;
 @synthesize compressionAlgorithm = _compressionAlgorithm;
 @synthesize retryEnabled = _retryEnabled;
@@ -125,6 +128,7 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
                      authTokenProvider:kDefaultAuthTokenProvider
                        initialMetadata:kDefaultInitialMetadata
                        userAgentPrefix:kDefaultUserAgentPrefix
+                       userAgentSuffix:kDefaultUserAgentSuffix
                      responseSizeLimit:kDefaultResponseSizeLimit
                   compressionAlgorithm:kDefaultCompressionAlgorithm
                           retryEnabled:kDefaultRetryEnabled
@@ -151,8 +155,9 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
                    interceptorFactories:(NSArray<id<GRPCInterceptorFactory>> *)interceptorFactories
                       oauth2AccessToken:(NSString *)oauth2AccessToken
                       authTokenProvider:(id<GRPCAuthorizationProtocol>)authTokenProvider
-                        initialMetadata:(NSDictionary *)initialMetadata
+                        initialMetadata:(GRPCMetadataDictionary *)initialMetadata
                         userAgentPrefix:(NSString *)userAgentPrefix
+                        userAgentSuffix:(NSString *)userAgentSuffix
                       responseSizeLimit:(NSUInteger)responseSizeLimit
                    compressionAlgorithm:(GRPCCompressionAlgorithm)compressionAlgorithm
                            retryEnabled:(BOOL)retryEnabled
@@ -161,7 +166,7 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
                       connectMinTimeout:(NSTimeInterval)connectMinTimeout
                   connectInitialBackoff:(NSTimeInterval)connectInitialBackoff
                       connectMaxBackoff:(NSTimeInterval)connectMaxBackoff
-                  additionalChannelArgs:(NSDictionary *)additionalChannelArgs
+                  additionalChannelArgs:(GRPCMetadataDictionary *)additionalChannelArgs
                     PEMRootCertificates:(NSString *)PEMRootCertificates
                           PEMPrivateKey:(NSString *)PEMPrivateKey
                     PEMCertificateChain:(NSString *)PEMCertificateChain
@@ -178,11 +183,12 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
     _interceptorFactories = interceptorFactories;
     _oauth2AccessToken = [oauth2AccessToken copy];
     _authTokenProvider = authTokenProvider;
-    _initialMetadata =
-        initialMetadata == nil
-            ? nil
-            : [[NSDictionary alloc] initWithDictionary:initialMetadata copyItems:YES];
+    _initialMetadata = initialMetadata == nil
+                           ? nil
+                           : [[NSDictionary alloc] initWithDictionary:initialMetadata
+                                                            copyItems:YES];
     _userAgentPrefix = [userAgentPrefix copy];
+    _userAgentSuffix = [userAgentSuffix copy];
     _responseSizeLimit = responseSizeLimit;
     _compressionAlgorithm = compressionAlgorithm;
     _retryEnabled = retryEnabled;
@@ -191,10 +197,10 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
     _connectMinTimeout = connectMinTimeout < 0 ? 0 : connectMinTimeout;
     _connectInitialBackoff = connectInitialBackoff < 0 ? 0 : connectInitialBackoff;
     _connectMaxBackoff = connectMaxBackoff < 0 ? 0 : connectMaxBackoff;
-    _additionalChannelArgs =
-        additionalChannelArgs == nil
-            ? nil
-            : [[NSDictionary alloc] initWithDictionary:additionalChannelArgs copyItems:YES];
+    _additionalChannelArgs = additionalChannelArgs == nil
+                                 ? nil
+                                 : [[NSDictionary alloc] initWithDictionary:additionalChannelArgs
+                                                                  copyItems:YES];
     _PEMRootCertificates = [PEMRootCertificates copy];
     _PEMPrivateKey = [PEMPrivateKey copy];
     _PEMCertificateChain = [PEMCertificateChain copy];
@@ -218,6 +224,7 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
                                                   authTokenProvider:_authTokenProvider
                                                     initialMetadata:_initialMetadata
                                                     userAgentPrefix:_userAgentPrefix
+                                                    userAgentSuffix:_userAgentSuffix
                                                   responseSizeLimit:_responseSizeLimit
                                                compressionAlgorithm:_compressionAlgorithm
                                                        retryEnabled:_retryEnabled
@@ -250,6 +257,7 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
               initialMetadata:[[NSDictionary alloc] initWithDictionary:_initialMetadata
                                                              copyItems:YES]
               userAgentPrefix:[_userAgentPrefix copy]
+              userAgentSuffix:[_userAgentSuffix copy]
             responseSizeLimit:_responseSizeLimit
          compressionAlgorithm:_compressionAlgorithm
                  retryEnabled:_retryEnabled
@@ -275,6 +283,7 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
 - (BOOL)hasChannelOptionsEqualTo:(GRPCCallOptions *)callOptions {
   if (callOptions == nil) return NO;
   if (!areObjectsEqual(callOptions.userAgentPrefix, _userAgentPrefix)) return NO;
+  if (!areObjectsEqual(callOptions.userAgentSuffix, _userAgentSuffix)) return NO;
   if (!(callOptions.responseSizeLimit == _responseSizeLimit)) return NO;
   if (!(callOptions.compressionAlgorithm == _compressionAlgorithm)) return NO;
   if (!(callOptions.retryEnabled == _retryEnabled)) return NO;
@@ -300,6 +309,7 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
 - (NSUInteger)channelOptionsHash {
   NSUInteger result = 0;
   result ^= _userAgentPrefix.hash;
+  result ^= _userAgentSuffix.hash;
   result ^= _responseSizeLimit;
   result ^= _compressionAlgorithm;
   result ^= _retryEnabled;
@@ -334,6 +344,7 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
 @dynamic authTokenProvider;
 @dynamic initialMetadata;
 @dynamic userAgentPrefix;
+@dynamic userAgentSuffix;
 @dynamic responseSizeLimit;
 @dynamic compressionAlgorithm;
 @dynamic retryEnabled;
@@ -362,6 +373,7 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
                      authTokenProvider:kDefaultAuthTokenProvider
                        initialMetadata:kDefaultInitialMetadata
                        userAgentPrefix:kDefaultUserAgentPrefix
+                       userAgentSuffix:kDefaultUserAgentSuffix
                      responseSizeLimit:kDefaultResponseSizeLimit
                   compressionAlgorithm:kDefaultCompressionAlgorithm
                           retryEnabled:kDefaultRetryEnabled
@@ -392,6 +404,7 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
                                                   authTokenProvider:_authTokenProvider
                                                     initialMetadata:_initialMetadata
                                                     userAgentPrefix:_userAgentPrefix
+                                                    userAgentSuffix:_userAgentSuffix
                                                   responseSizeLimit:_responseSizeLimit
                                                compressionAlgorithm:_compressionAlgorithm
                                                        retryEnabled:_retryEnabled
@@ -423,6 +436,7 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
             authTokenProvider:_authTokenProvider
               initialMetadata:_initialMetadata
               userAgentPrefix:_userAgentPrefix
+              userAgentSuffix:_userAgentSuffix
             responseSizeLimit:_responseSizeLimit
          compressionAlgorithm:_compressionAlgorithm
                  retryEnabled:_retryEnabled
@@ -472,12 +486,16 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
   _authTokenProvider = authTokenProvider;
 }
 
-- (void)setInitialMetadata:(NSDictionary *)initialMetadata {
+- (void)setInitialMetadata:(GRPCMetadataDictionary *)initialMetadata {
   _initialMetadata = [[NSDictionary alloc] initWithDictionary:initialMetadata copyItems:YES];
 }
 
 - (void)setUserAgentPrefix:(NSString *)userAgentPrefix {
   _userAgentPrefix = [userAgentPrefix copy];
+}
+
+- (void)setUserAgentSuffix:(NSString *)userAgentSuffix {
+  _userAgentSuffix = [userAgentSuffix copy];
 }
 
 - (void)setResponseSizeLimit:(NSUInteger)responseSizeLimit {
@@ -532,9 +550,9 @@ static BOOL areObjectsEqual(id obj1, id obj2) {
   }
 }
 
-- (void)setAdditionalChannelArgs:(NSDictionary *)additionalChannelArgs {
-  _additionalChannelArgs =
-      [[NSDictionary alloc] initWithDictionary:additionalChannelArgs copyItems:YES];
+- (void)setAdditionalChannelArgs:(GRPCMetadataDictionary *)additionalChannelArgs {
+  _additionalChannelArgs = [[NSDictionary alloc] initWithDictionary:additionalChannelArgs
+                                                          copyItems:YES];
 }
 
 - (void)setPEMRootCertificates:(NSString *)PEMRootCertificates {

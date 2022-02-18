@@ -32,18 +32,15 @@ typedef struct grpc_channel_stack_builder grpc_channel_stack_builder;
 typedef struct grpc_channel_stack_builder_iterator
     grpc_channel_stack_builder_iterator;
 
-/// Create a new channel stack builder
-grpc_channel_stack_builder* grpc_channel_stack_builder_create(void);
-
-/// Assign a name to the channel stack: \a name must be statically allocated
-void grpc_channel_stack_builder_set_name(grpc_channel_stack_builder* builder,
-                                         const char* name);
+/// Create a new channel stack builder.
+/// \a name must be statically allocated.
+grpc_channel_stack_builder* grpc_channel_stack_builder_create(const char* name);
 
 /// Set the target uri
 void grpc_channel_stack_builder_set_target(grpc_channel_stack_builder* b,
                                            const char* target);
 
-const char* grpc_channel_stack_builder_get_target(
+std::string grpc_channel_stack_builder_get_target(
     grpc_channel_stack_builder* b);
 
 /// Attach \a transport to the builder (does not take ownership)
@@ -52,14 +49,6 @@ void grpc_channel_stack_builder_set_transport(
 
 /// Fetch attached transport
 grpc_transport* grpc_channel_stack_builder_get_transport(
-    grpc_channel_stack_builder* builder);
-
-/// Attach \a resource_user to the builder (does not take ownership)
-void grpc_channel_stack_builder_set_resource_user(
-    grpc_channel_stack_builder* builder, grpc_resource_user* resource_user);
-
-/// Fetch attached resource user
-grpc_resource_user* grpc_channel_stack_builder_get_resource_user(
     grpc_channel_stack_builder* builder);
 
 /// Set channel arguments: copies args
@@ -156,7 +145,7 @@ void grpc_channel_stack_builder_iterator_destroy(
 /// Returns the base pointer of the allocated block
 /// \a initial_refs, \a destroy, \a destroy_arg are as per
 /// grpc_channel_stack_init
-grpc_error* grpc_channel_stack_builder_finish(
+grpc_error_handle grpc_channel_stack_builder_finish(
     grpc_channel_stack_builder* builder, size_t prefix_bytes, int initial_refs,
     grpc_iomgr_cb_func destroy, void* destroy_arg, void** result);
 

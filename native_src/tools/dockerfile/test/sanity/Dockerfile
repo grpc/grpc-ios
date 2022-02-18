@@ -12,90 +12,102 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM debian:stretch
-  
-# Install Git and basic packages.
+FROM debian:bullseye
+
+#=================
+# Basic C core dependencies
+
+# C/C++ dependencies according to https://github.com/grpc/grpc/blob/master/BUILDING.md
 RUN apt-get update && apt-get install -y \
-  autoconf \
-  autotools-dev \
   build-essential \
-  bzip2 \
-  ccache \
-  curl \
-  dnsutils \
+  autoconf \
+  libtool \
+  pkg-config \
+  && apt-get clean
+
+# GCC
+RUN apt-get update && apt-get install -y \
   gcc \
   gcc-multilib \
-  git \
-  golang \
-  gyp \
-  lcov \
+  g++ \
+  g++-multilib  \
+  && apt-get clean
+
+# libc6
+RUN apt-get update && apt-get install -y \
   libc6 \
   libc6-dbg \
   libc6-dev \
-  libgtest-dev \
-  libtool \
+  && apt-get clean
+
+# Tools
+RUN apt-get update && apt-get install -y \
+  bzip2 \
+  curl \
+  dnsutils \
+  git \
+  lcov \
   make \
-  perl \
   strace \
-  python-dev \
-  python-setuptools \
-  python-yaml \
-  telnet \
+  time \
   unzip \
   wget \
-  zip && apt-get clean
+  zip \
+  && apt-get clean
 
-#================
-# Build profiling
-RUN apt-get update && apt-get install -y time && apt-get clean
+#=================
+# C++ dependencies
+RUN apt-get update && apt-get -y install libc++-dev clang && apt-get clean
 
-# Google Cloud platform API libraries
-RUN apt-get update && apt-get install -y python-pip && apt-get clean
-RUN pip install --upgrade google-api-python-client oauth2client
 
-# Install Python 2.7
-RUN apt-get update && apt-get install -y python2.7 python-all-dev
-RUN curl https://bootstrap.pypa.io/get-pip.py | python2.7
+# Install Python 3.7 from source (and installed as a default python3)
+# (Bullseye comes with Python 3.9 which isn't supported by pytype yet)
+RUN apt update && apt install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
+                            libnss3-dev libssl-dev libreadline-dev libffi-dev libbz2-dev
+RUN curl -O https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tar.xz && \
+tar -xf Python-3.7.9.tar.xz && \
+cd Python-3.7.9 && \
+./configure && \
+make -j 4 && \
+make install
+RUN curl https://bootstrap.pypa.io/get-pip.py | python3
 
-# Add Debian 'buster' repository, we will need it for installing newer versions of python
-RUN echo 'deb http://ftp.de.debian.org/debian buster main' >> /etc/apt/sources.list
-RUN echo 'APT::Default-Release "stretch";' | tee -a /etc/apt/apt.conf.d/00local
+# Google Cloud Platform API libraries
+# These are needed for uploading test results to BigQuery (e.g. by tools/run_tests scripts)
+RUN python3 -m pip install --upgrade google-auth==1.23.0 google-api-python-client==1.12.8 oauth2client==4.1.0
+
 
 RUN mkdir /var/local/jenkins
 
 
-#=================
-# C++ dependencies
-RUN apt-get update && apt-get -y install libgflags-dev libgtest-dev libc++-dev clang && apt-get clean
-
 #========================
 # Sanity test dependencies
-RUN apt-get update && apt-get -t buster install -y python3.7 python3-all-dev
-RUN curl https://bootstrap.pypa.io/get-pip.py | python3.7
-# Make Python 3.7 the default Python 3 version
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 1
+
 RUN apt-get update && apt-get install -y \
       autoconf \
       automake \
       libtool \
       curl \
       shellcheck
-RUN python2 -m pip install simplejson mako virtualenv==16.7.9 lxml
-RUN python3 -m pip install simplejson mako virtualenv==16.7.9 lxml
 
-RUN apt-get update && apt-get -y install wget xz-utils
-RUN wget http://releases.llvm.org/5.0.0/clang+llvm-5.0.0-linux-x86_64-ubuntu14.04.tar.xz
-RUN tar xf clang+llvm-5.0.0-linux-x86_64-ubuntu14.04.tar.xz
-RUN ln -s /clang+llvm-5.0.0-linux-x86_64-ubuntu14.04/bin/clang-format /usr/local/bin/clang-format
-ENV CLANG_FORMAT=clang-format
-RUN ln -s /clang+llvm-5.0.0-linux-x86_64-ubuntu14.04/bin/clang-tidy /usr/local/bin/clang-tidy
-ENV CLANG_TIDY=clang-tidy
+# otherwise clang-tidy will report missing <gtest/gtest.h> header
+RUN apt-get update && apt-get install -y libgtest-dev && apt-get clean
+
+RUN python3 -m pip install simplejson mako virtualenv==16.7.9 lxml six
+
+# Upgrade Python's YAML library
+RUN python3 -m pip install --upgrade --ignore-installed PyYAML==5.4.1 --user
+
+# Install clang, clang-format, and clang-tidy
+RUN apt-get update && apt-get install -y clang clang-format-11 clang-tidy-11 jq
+ENV CLANG_FORMAT=clang-format-11
+ENV CLANG_TIDY=clang-tidy-11
 
 #========================
 # Bazel installation
 
 # Must be in sync with tools/bazel
-ENV BAZEL_VERSION 1.0.0
+ENV BAZEL_VERSION 4.2.1
 
 # The correct bazel version is already preinstalled, no need to use //tools/bazel wrapper.
 ENV DISABLE_BAZEL_WRAPPER 1

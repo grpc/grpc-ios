@@ -16,21 +16,23 @@
  *
  */
 
-#include "test/core/end2end/end2end_tests.h"
-
 #include <stdio.h>
 #include <string.h>
+
+#include <string>
 
 #include <grpc/byte_buffer.h>
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/time.h>
+
 #include "src/core/lib/debug/stats.h"
 #include "src/core/lib/gpr/string.h"
 #include "test/core/end2end/cq_verifier.h"
+#include "test/core/end2end/end2end_tests.h"
 
-static void* tag(intptr_t t) { return (void*)t; }
+static void* tag(intptr_t t) { return reinterpret_cast<void*>(t); }
 
 static grpc_end2end_test_fixture begin_test(grpc_end2end_test_config config,
                                             const char* test_name,
@@ -217,16 +219,15 @@ static void simple_request_body(grpc_end2end_test_config config,
   // not likely to change much. Some parts of the error, like time created,
   // obviously are not checked.
   GPR_ASSERT(nullptr != strstr(error_string, "xyz"));
-  GPR_ASSERT(nullptr != strstr(error_string, "description"));
   GPR_ASSERT(nullptr != strstr(error_string, "Error received from peer"));
   GPR_ASSERT(nullptr != strstr(error_string, "grpc_message"));
   GPR_ASSERT(nullptr != strstr(error_string, "grpc_status"));
   GPR_ASSERT(0 == grpc_slice_str_cmp(call_details.method, "/foo"));
   GPR_ASSERT(0 == call_details.flags);
-  GPR_ASSERT(was_cancelled == 1);
+  GPR_ASSERT(was_cancelled == 0);
 
   grpc_slice_unref(details);
-  gpr_free((void*)error_string);
+  gpr_free(const_cast<char*>(error_string));
   grpc_metadata_array_destroy(&initial_metadata_recv);
   grpc_metadata_array_destroy(&trailing_metadata_recv);
   grpc_metadata_array_destroy(&request_metadata_recv);
@@ -245,9 +246,7 @@ static void simple_request_body(grpc_end2end_test_config config,
 
   grpc_stats_collect(after);
 
-  char* stats = grpc_stats_data_as_json(after);
-  gpr_log(GPR_DEBUG, "%s", stats);
-  gpr_free(stats);
+  gpr_log(GPR_DEBUG, "%s", grpc_stats_data_as_json(after).c_str());
 
   GPR_ASSERT(after->counters[GRPC_STATS_COUNTER_CLIENT_CALLS_CREATED] -
                  before->counters[GRPC_STATS_COUNTER_CLIENT_CALLS_CREATED] ==

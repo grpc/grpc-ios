@@ -16,11 +16,13 @@
 # This script is invoked by run_tests.py to accommodate "test under docker"
 # scenario. You should never need to call this script on your own.
 
+# shellcheck disable=SC2103
+
 set -ex
 
 cd "$(dirname "$0")/../../.."
 git_root=$(pwd)
-cd - # shellcheck disable=SC2103
+cd -
 
 # Inputs
 # DOCKERFILE_DIR - Directory in which Dockerfile file is located.
@@ -28,7 +30,7 @@ cd - # shellcheck disable=SC2103
 # DOCKERHUB_ORGANIZATION - If set, pull a prebuilt image from given dockerhub org.
 
 # Use image name based on Dockerfile location checksum
-DOCKER_IMAGE_NAME=$(basename "$DOCKERFILE_DIR")_$(sha1sum "$DOCKERFILE_DIR/Dockerfile" | cut -f1 -d\ )
+DOCKER_IMAGE_NAME=$(basename "$DOCKERFILE_DIR"):$(sha1sum "$DOCKERFILE_DIR/Dockerfile" | cut -f1 -d\ )
 
 if [ "$DOCKERHUB_ORGANIZATION" != "" ]
 then
@@ -39,6 +41,13 @@ else
   docker build -t "$DOCKER_IMAGE_NAME" "$DOCKERFILE_DIR"
 fi
 
+if [[ -t 0 ]]; then
+  DOCKER_TTY_ARGS="-it"
+else
+  # The input device on kokoro is not a TTY, so -it does not work.
+  DOCKER_TTY_ARGS=
+fi
+
 # Choose random name for docker container
 CONTAINER_NAME="run_tests_$(uuidgen)"
 
@@ -47,7 +56,7 @@ docker_instance_git_root=/var/local/jenkins/grpc
 
 # Run tests inside docker
 DOCKER_EXIT_CODE=0
-# TODO: silence complaint about $TTY_FLAG expansion in some other way
+# TODO: silence complaint about $DOCKER_TTY_ARGS expansion in some other way
 # shellcheck disable=SC2086,SC2154
 docker run \
   --cap-add SYS_PTRACE \
@@ -64,8 +73,7 @@ docker run \
   -e "KOKORO_BUILD_NUMBER=$KOKORO_BUILD_NUMBER" \
   -e "KOKORO_BUILD_URL=$KOKORO_BUILD_URL" \
   -e "KOKORO_JOB_NAME=$KOKORO_JOB_NAME" \
-  -i \
-  $TTY_FLAG \
+  $DOCKER_TTY_ARGS \
   --sysctl net.ipv6.conf.all.disable_ipv6=0 \
   -v ~/.config/gcloud:/root/.config/gcloud \
   -v "$git_root:$docker_instance_git_root" \
@@ -79,7 +87,13 @@ docker run \
 # run_tests.py runs 
 TEMP_REPORTS_ZIP=$(mktemp)
 docker cp "$CONTAINER_NAME:/var/local/git/grpc/reports.zip" "${TEMP_REPORTS_ZIP}" || true
-unzip -o "${TEMP_REPORTS_ZIP}" -d "$git_root" || true
+if [ "${GRPC_TEST_REPORT_BASE_DIR}" != "" ]
+then
+  REPORTS_DEST_DIR="${GRPC_TEST_REPORT_BASE_DIR}"
+else
+  REPORTS_DEST_DIR="${git_root}"
+fi
+unzip -o "${TEMP_REPORTS_ZIP}" -d "${REPORTS_DEST_DIR}" || true
 rm -f "${TEMP_REPORTS_ZIP}"
 
 # remove the container, possibly killing it first

@@ -5,14 +5,15 @@ package envoy.service.tap.v3;
 import "envoy/config/core/v3/base.proto";
 import "envoy/data/tap/v3/wrapper.proto";
 
+import "udpa/annotations/status.proto";
 import "udpa/annotations/versioning.proto";
-
 import "validate/validate.proto";
 
 option java_package = "io.envoyproxy.envoy.service.tap.v3";
 option java_outer_classname = "TapProto";
 option java_multiple_files = true;
 option java_generic_services = true;
+option (udpa.annotations.file_status).package_version_status = ACTIVE;
 
 // [#protodoc-title: Tap Sink Service]
 
@@ -40,7 +41,7 @@ message StreamTapsRequest {
     config.core.v3.Node node = 1 [(validate.rules).message = {required: true}];
 
     // The opaque identifier that was set in the :ref:`output config
-    // <envoy_api_field_config.tap.v3.StreamingGrpcSink.tap_id>`.
+    // <envoy_v3_api_field_config.tap.v3.StreamingGrpcSink.tap_id>`.
     string tap_id = 2;
   }
 

@@ -31,7 +31,7 @@
 #include "test/core/util/port.h"
 #include "test/core/util/test_config.h"
 
-static void* tag(intptr_t i) { return (void*)i; }
+static void* tag(intptr_t t) { return reinterpret_cast<void*>(t); }
 
 struct test_state {
   int is_client;
@@ -77,13 +77,13 @@ static void prepare_test(int is_client) {
   } else {
     g_state.server = grpc_server_create(nullptr, nullptr);
     grpc_server_register_completion_queue(g_state.server, g_state.cq, nullptr);
-    grpc_core::UniquePtr<char> server_hostport;
-    grpc_core::JoinHostPort(&server_hostport, "0.0.0.0", port);
-    grpc_server_add_insecure_http2_port(g_state.server, server_hostport.get());
+    std::string server_hostport = grpc_core::JoinHostPort("0.0.0.0", port);
+    grpc_server_add_insecure_http2_port(g_state.server,
+                                        server_hostport.c_str());
     grpc_server_start(g_state.server);
-    grpc_core::JoinHostPort(&server_hostport, "localhost", port);
+    server_hostport = grpc_core::JoinHostPort("localhost", port);
     g_state.chan =
-        grpc_insecure_channel_create(server_hostport.get(), nullptr, nullptr);
+        grpc_insecure_channel_create(server_hostport.c_str(), nullptr, nullptr);
     grpc_slice host = grpc_slice_from_static_string("bar");
     g_state.call = grpc_channel_create_call(
         g_state.chan, nullptr, GRPC_PROPAGATE_DEFAULTS, g_state.cq,
@@ -136,8 +136,8 @@ static void cleanup_test() {
   grpc_completion_queue_shutdown(g_state.cq);
   while (grpc_completion_queue_next(g_state.cq,
                                     gpr_inf_future(GPR_CLOCK_REALTIME), nullptr)
-             .type != GRPC_QUEUE_SHUTDOWN)
-    ;
+             .type != GRPC_QUEUE_SHUTDOWN) {
+  }
   grpc_completion_queue_destroy(g_state.cq);
 }
 
@@ -607,6 +607,31 @@ static void test_invalid_initial_metadata_reserved_key() {
   cleanup_test();
 }
 
+static void test_multiple_ops_in_a_single_batch() {
+  gpr_log(GPR_INFO, "test_multiple_ops_in_a_single_batch");
+
+  grpc_op* op;
+  prepare_test(1);
+
+  for (auto which :
+       {GRPC_OP_SEND_INITIAL_METADATA, GRPC_OP_RECV_INITIAL_METADATA,
+        GRPC_OP_SEND_MESSAGE, GRPC_OP_RECV_MESSAGE,
+        GRPC_OP_RECV_STATUS_ON_CLIENT, GRPC_OP_RECV_CLOSE_ON_SERVER,
+        GRPC_OP_SEND_STATUS_FROM_SERVER, GRPC_OP_RECV_CLOSE_ON_SERVER}) {
+    op = g_state.ops;
+    op->op = which;
+    op++;
+    op->op = which;
+    op++;
+    GPR_ASSERT(GRPC_CALL_ERROR_TOO_MANY_OPERATIONS ==
+               grpc_call_start_batch(g_state.call, g_state.ops,
+                                     (size_t)(op - g_state.ops), tag(1),
+                                     nullptr));
+  }
+
+  cleanup_test();
+}
+
 int main(int argc, char** argv) {
   grpc::testing::TestEnvironment env(argc, argv);
   grpc_init();
@@ -630,6 +655,7 @@ int main(int argc, char** argv) {
   test_send_server_status_twice();
   test_recv_close_on_server_with_invalid_flags();
   test_recv_close_on_server_twice();
+  test_multiple_ops_in_a_single_batch();
   grpc_shutdown();
 
   return 0;

@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-licenses(["notice"])  # Apache v2
+load("//bazel:grpc_build_system.bzl", "grpc_cc_binary", "grpc_cc_library", "grpc_cc_test", "grpc_package", "grpc_sh_test")
 
-load("//bazel:grpc_build_system.bzl", "grpc_cc_binary", "grpc_cc_library", "grpc_cc_test", "grpc_package")
+licenses(["notice"])
 
 grpc_package(
     name = "test/cpp/interop",
@@ -30,7 +30,7 @@ grpc_cc_library(
         "server_helper.h",
     ],
     external_deps = [
-        "gflags",
+        "absl/flags:flag",
     ],
     language = "C++",
     deps = [
@@ -42,6 +42,9 @@ grpc_cc_binary(
     name = "grpclb_fallback_test",
     srcs = [
         "grpclb_fallback_test.cc",
+    ],
+    external_deps = [
+        "absl/flags:flag",
     ],
     language = "C++",
     tags = ["no_windows"],
@@ -59,6 +62,9 @@ grpc_cc_binary(
     name = "interop_server",
     srcs = [
         "interop_server_bootstrap.cc",
+    ],
+    external_deps = [
+        "absl/flags:flag",
     ],
     language = "C++",
     deps = [
@@ -92,6 +98,9 @@ grpc_cc_library(
         "client_helper.h",
         "interop_client.h",
     ],
+    external_deps = [
+        "absl/flags:flag",
+    ],
     language = "C++",
     deps = [
         "//src/proto/grpc/testing:empty_proto",
@@ -107,6 +116,9 @@ grpc_cc_library(
     name = "interop_client_main",
     srcs = [
         "client.cc",
+    ],
+    external_deps = [
+        "absl/flags:flag",
     ],
     language = "C++",
     deps = [
@@ -127,7 +139,7 @@ grpc_cc_binary(
     name = "metrics_client",
     srcs = ["metrics_client.cc"],
     external_deps = [
-        "gflags",
+        "absl/flags:flag",
     ],
     language = "C++",
     deps = [
@@ -142,6 +154,9 @@ grpc_cc_binary(
     srcs = [
         "reconnect_interop_client.cc",
     ],
+    external_deps = [
+        "absl/flags:flag",
+    ],
     deps = [
         ":client_helper_lib",
         "//:grpc++",
@@ -153,6 +168,9 @@ grpc_cc_binary(
     name = "reconnect_interop_server",
     srcs = [
         "reconnect_interop_server.cc",
+    ],
+    external_deps = [
+        "absl/flags:flag",
     ],
     language = "C++",
     deps = [
@@ -168,6 +186,9 @@ grpc_cc_binary(
         "stress_interop_client.cc",
         "stress_interop_client.h",
         "stress_test.cc",
+    ],
+    external_deps = [
+        "absl/flags:flag",
     ],
     deps = [
         ":client_helper_lib",
@@ -185,7 +206,7 @@ grpc_cc_test(
         ":interop_server",
     ],
     external_deps = [
-        "gflags",
+        "absl/flags:flag",
     ],
     tags = ["no_windows"],
     deps = [
@@ -198,13 +219,29 @@ grpc_cc_test(
     ],
 )
 
+grpc_sh_test(
+    name = "interop_test_with_metadata_log",
+    srcs = [
+        "interop_test_with_metadata_log.sh",
+    ],
+    data = [
+        ":interop_test",
+    ],
+    tags = ["no_windows"],
+)
+
 grpc_cc_binary(
     name = "xds_interop_client",
     srcs = [
         "xds_interop_client.cc",
     ],
+    external_deps = [
+        "absl/flags:flag",
+    ],
     deps = [
         "//:grpc++",
+        "//:grpc++_reflection",
+        "//:grpcpp_admin",
         "//src/proto/grpc/testing:empty_proto",
         "//src/proto/grpc/testing:messages_proto",
         "//src/proto/grpc/testing:test_proto",
@@ -215,15 +252,22 @@ grpc_cc_binary(
 
 grpc_cc_binary(
     name = "xds_interop_server",
+    testonly = True,
     srcs = [
         "xds_interop_server.cc",
     ],
+    external_deps = [
+        "absl/flags:flag",
+    ],
     deps = [
         "//:grpc++",
+        "//:grpc++_reflection",
+        "//:grpcpp_admin",
         "//src/proto/grpc/testing:empty_proto",
         "//src/proto/grpc/testing:messages_proto",
         "//src/proto/grpc/testing:test_proto",
         "//test/core/util:grpc_test_util",
+        "//test/cpp/end2end:test_health_check_service_impl",
         "//test/cpp/util:test_config",
     ],
 )
@@ -233,6 +277,9 @@ grpc_cc_binary(
     srcs = [
         "http2_client.cc",
         "http2_client.h",
+    ],
+    external_deps = [
+        "absl/flags:flag",
     ],
     deps = [
         "//:grpc++",

@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@ syntax = "proto3";
 package google.cloud.tasks.v2beta2;
 
 import "google/api/annotations.proto";
+import "google/api/client.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
 import "google/cloud/tasks/v2beta2/queue.proto";
 import "google/cloud/tasks/v2beta2/task.proto";
 import "google/iam/v1/iam_policy.proto";
@@ -25,7 +28,6 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
-import "google/rpc/code.proto";
 
 option go_package = "google.golang.org/genproto/googleapis/cloud/tasks/v2beta2;tasks";
 option java_multiple_files = true;
@@ -33,10 +35,12 @@ option java_outer_classname = "CloudTasksProto";
 option java_package = "com.google.cloud.tasks.v2beta2";
 option objc_class_prefix = "TASKS";
 
-
 // Cloud Tasks allows developers to manage the execution of background
 // work in their applications.
 service CloudTasks {
+  option (google.api.default_host) = "cloudtasks.googleapis.com";
+  option (google.api.oauth_scopes) = "https://www.googleapis.com/auth/cloud-platform";
+
   // Lists queues.
   //
   // Queues are returned in lexicographical order.
@@ -44,6 +48,7 @@ service CloudTasks {
     option (google.api.http) = {
       get: "/v2beta2/{parent=projects/*/locations/*}/queues"
     };
+    option (google.api.method_signature) = "parent";
   }
 
   // Gets a queue.
@@ -51,6 +56,7 @@ service CloudTasks {
     option (google.api.http) = {
       get: "/v2beta2/{name=projects/*/locations/*/queues/*}"
     };
+    option (google.api.method_signature) = "name";
   }
 
   // Creates a queue.
@@ -62,13 +68,15 @@ service CloudTasks {
   // WARNING: Using this method may have unintended side effects if you are
   // using an App Engine `queue.yaml` or `queue.xml` file to manage your queues.
   // Read
-  // [Overview of Queue Management and queue.yaml](https://cloud.google.com/tasks/docs/queue-yaml)
-  // before using this method.
+  // [Overview of Queue Management and
+  // queue.yaml](https://cloud.google.com/tasks/docs/queue-yaml) before using
+  // this method.
   rpc CreateQueue(CreateQueueRequest) returns (Queue) {
     option (google.api.http) = {
       post: "/v2beta2/{parent=projects/*/locations/*}/queues"
       body: "queue"
     };
+    option (google.api.method_signature) = "parent,queue";
   }
 
   // Updates a queue.
@@ -83,13 +91,15 @@ service CloudTasks {
   // WARNING: Using this method may have unintended side effects if you are
   // using an App Engine `queue.yaml` or `queue.xml` file to manage your queues.
   // Read
-  // [Overview of Queue Management and queue.yaml](https://cloud.google.com/tasks/docs/queue-yaml)
-  // before using this method.
+  // [Overview of Queue Management and
+  // queue.yaml](https://cloud.google.com/tasks/docs/queue-yaml) before using
+  // this method.
   rpc UpdateQueue(UpdateQueueRequest) returns (Queue) {
     option (google.api.http) = {
       patch: "/v2beta2/{queue.name=projects/*/locations/*/queues/*}"
       body: "queue"
     };
+    option (google.api.method_signature) = "queue,update_mask";
   }
 
   // Deletes a queue.
@@ -102,12 +112,14 @@ service CloudTasks {
   // WARNING: Using this method may have unintended side effects if you are
   // using an App Engine `queue.yaml` or `queue.xml` file to manage your queues.
   // Read
-  // [Overview of Queue Management and queue.yaml](https://cloud.google.com/tasks/docs/queue-yaml)
-  // before using this method.
+  // [Overview of Queue Management and
+  // queue.yaml](https://cloud.google.com/tasks/docs/queue-yaml) before using
+  // this method.
   rpc DeleteQueue(DeleteQueueRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/v2beta2/{name=projects/*/locations/*/queues/*}"
     };
+    option (google.api.method_signature) = "name";
   }
 
   // Purges a queue by deleting all of its tasks.
@@ -121,6 +133,7 @@ service CloudTasks {
       post: "/v2beta2/{name=projects/*/locations/*/queues/*}:purge"
       body: "*"
     };
+    option (google.api.method_signature) = "name";
   }
 
   // Pauses the queue.
@@ -135,6 +148,7 @@ service CloudTasks {
       post: "/v2beta2/{name=projects/*/locations/*/queues/*}:pause"
       body: "*"
     };
+    option (google.api.method_signature) = "name";
   }
 
   // Resume a queue.
@@ -148,12 +162,14 @@ service CloudTasks {
   // WARNING: Resuming many high-QPS queues at the same time can
   // lead to target overloading. If you are resuming high-QPS
   // queues, follow the 500/50/5 pattern described in
-  // [Managing Cloud Tasks Scaling Risks](https://cloud.google.com/tasks/docs/manage-cloud-task-scaling).
+  // [Managing Cloud Tasks Scaling
+  // Risks](https://cloud.google.com/tasks/docs/manage-cloud-task-scaling).
   rpc ResumeQueue(ResumeQueueRequest) returns (Queue) {
     option (google.api.http) = {
       post: "/v2beta2/{name=projects/*/locations/*/queues/*}:resume"
       body: "*"
     };
+    option (google.api.method_signature) = "name";
   }
 
   // Gets the access control policy for a [Queue][google.cloud.tasks.v2beta2.Queue].
@@ -170,6 +186,7 @@ service CloudTasks {
       post: "/v2beta2/{resource=projects/*/locations/*/queues/*}:getIamPolicy"
       body: "*"
     };
+    option (google.api.method_signature) = "resource";
   }
 
   // Sets the access control policy for a [Queue][google.cloud.tasks.v2beta2.Queue]. Replaces any existing
@@ -188,6 +205,7 @@ service CloudTasks {
       post: "/v2beta2/{resource=projects/*/locations/*/queues/*}:setIamPolicy"
       body: "*"
     };
+    option (google.api.method_signature) = "resource,policy";
   }
 
   // Returns permissions that a caller has on a [Queue][google.cloud.tasks.v2beta2.Queue].
@@ -202,6 +220,7 @@ service CloudTasks {
       post: "/v2beta2/{resource=projects/*/locations/*/queues/*}:testIamPermissions"
       body: "*"
     };
+    option (google.api.method_signature) = "resource,permissions";
   }
 
   // Lists the tasks in a queue.
@@ -217,6 +236,7 @@ service CloudTasks {
     option (google.api.http) = {
       get: "/v2beta2/{parent=projects/*/locations/*/queues/*}/tasks"
     };
+    option (google.api.method_signature) = "parent";
   }
 
   // Gets a task.
@@ -224,6 +244,7 @@ service CloudTasks {
     option (google.api.http) = {
       get: "/v2beta2/{name=projects/*/locations/*/queues/*/tasks/*}"
     };
+    option (google.api.method_signature) = "name";
   }
 
   // Creates a task and adds it to a queue.
@@ -238,6 +259,7 @@ service CloudTasks {
       post: "/v2beta2/{parent=projects/*/locations/*/queues/*}/tasks"
       body: "*"
     };
+    option (google.api.method_signature) = "parent,task";
   }
 
   // Deletes a task.
@@ -249,6 +271,7 @@ service CloudTasks {
     option (google.api.http) = {
       delete: "/v2beta2/{name=projects/*/locations/*/queues/*/tasks/*}"
     };
+    option (google.api.method_signature) = "name";
   }
 
   // Leases tasks from a pull queue for
@@ -278,6 +301,7 @@ service CloudTasks {
       post: "/v2beta2/{parent=projects/*/locations/*/queues/*}/tasks:lease"
       body: "*"
     };
+    option (google.api.method_signature) = "parent,lease_duration";
   }
 
   // Acknowledges a pull task.
@@ -298,6 +322,7 @@ service CloudTasks {
       post: "/v2beta2/{name=projects/*/locations/*/queues/*/tasks/*}:acknowledge"
       body: "*"
     };
+    option (google.api.method_signature) = "name,schedule_time";
   }
 
   // Renew the current lease of a pull task.
@@ -310,6 +335,7 @@ service CloudTasks {
       post: "/v2beta2/{name=projects/*/locations/*/queues/*/tasks/*}:renewLease"
       body: "*"
     };
+    option (google.api.method_signature) = "name,schedule_time,lease_duration";
   }
 
   // Cancel a pull task's lease.
@@ -323,6 +349,7 @@ service CloudTasks {
       post: "/v2beta2/{name=projects/*/locations/*/queues/*/tasks/*}:cancelLease"
       body: "*"
     };
+    option (google.api.method_signature) = "name,schedule_time";
   }
 
   // Forces a task to run now.
@@ -357,22 +384,27 @@ service CloudTasks {
       post: "/v2beta2/{name=projects/*/locations/*/queues/*/tasks/*}:run"
       body: "*"
     };
+    option (google.api.method_signature) = "name";
   }
 }
 
 // Request message for [ListQueues][google.cloud.tasks.v2beta2.CloudTasks.ListQueues].
 message ListQueuesRequest {
-  // Required.
-  //
-  // The location name.
+  // Required. The location name.
   // For example: `projects/PROJECT_ID/locations/LOCATION_ID`
-  string parent = 1;
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      child_type: "cloudtasks.googleapis.com/Queue"
+    }
+  ];
 
   // `filter` can be used to specify a subset of queues. Any [Queue][google.cloud.tasks.v2beta2.Queue]
   // field can be used as a filter and several operators as supported.
   // For example: `<=, <, >=, >, !=, =, :`. The filter syntax is the same as
   // described in
-  // [Stackdriver's Advanced Logs Filters](https://cloud.google.com/logging/docs/view/advanced_filters).
+  // [Stackdriver's Advanced Logs
+  // Filters](https://cloud.google.com/logging/docs/view/advanced_filters).
   //
   // Sample filter "app_engine_http_target: *".
   //
@@ -398,6 +430,12 @@ message ListQueuesRequest {
   // method. It is an error to switch the value of the
   // [filter][google.cloud.tasks.v2beta2.ListQueuesRequest.filter] while iterating through pages.
   string page_token = 4;
+
+  // Optional. Read mask is used for a more granular control over what the API returns.
+  // If the mask is not present all fields will be returned except
+  // [Queue.stats]. [Queue.stats] will be returned only if it was  explicitly
+  // specified in the mask.
+  google.protobuf.FieldMask read_mask = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // Response message for [ListQueues][google.cloud.tasks.v2beta2.CloudTasks.ListQueues].
@@ -419,45 +457,53 @@ message ListQueuesResponse {
 
 // Request message for [GetQueue][google.cloud.tasks.v2beta2.CloudTasks.GetQueue].
 message GetQueueRequest {
-  // Required.
-  //
-  // The resource name of the queue. For example:
+  // Required. The resource name of the queue. For example:
   // `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID`
-  string name = 1;
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      type: "cloudtasks.googleapis.com/Queue"
+    }
+  ];
+
+  // Optional. Read mask is used for a more granular control over what the API returns.
+  // If the mask is not present all fields will be returned except
+  // [Queue.stats]. [Queue.stats] will be returned only if it was  explicitly
+  // specified in the mask.
+  google.protobuf.FieldMask read_mask = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // Request message for [CreateQueue][google.cloud.tasks.v2beta2.CloudTasks.CreateQueue].
 message CreateQueueRequest {
-  // Required.
-  //
-  // The location name in which the queue will be created.
+  // Required. The location name in which the queue will be created.
   // For example: `projects/PROJECT_ID/locations/LOCATION_ID`
   //
   // The list of allowed locations can be obtained by calling Cloud
   // Tasks' implementation of
   // [ListLocations][google.cloud.location.Locations.ListLocations].
-  string parent = 1;
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      child_type: "cloudtasks.googleapis.com/Queue"
+    }
+  ];
 
-  // Required.
-  //
-  // The queue to create.
+  // Required. The queue to create.
   //
   // [Queue's name][google.cloud.tasks.v2beta2.Queue.name] cannot be the same as an existing queue.
-  Queue queue = 2;
+  Queue queue = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 // Request message for [UpdateQueue][google.cloud.tasks.v2beta2.CloudTasks.UpdateQueue].
 message UpdateQueueRequest {
-  // Required.
-  //
-  // The queue to create or update.
+  // Required. The queue to create or update.
   //
   // The queue's [name][google.cloud.tasks.v2beta2.Queue.name] must be specified.
   //
   // Output only fields cannot be modified using UpdateQueue.
   // Any value specified for an output only field will be ignored.
   // The queue's [name][google.cloud.tasks.v2beta2.Queue.name] cannot be changed.
-  Queue queue = 1;
+  Queue queue = 1 [(google.api.field_behavior) = REQUIRED];
 
   // A mask used to specify which fields of the queue are being updated.
   //
@@ -467,47 +513,62 @@ message UpdateQueueRequest {
 
 // Request message for [DeleteQueue][google.cloud.tasks.v2beta2.CloudTasks.DeleteQueue].
 message DeleteQueueRequest {
-  // Required.
-  //
-  // The queue name. For example:
+  // Required. The queue name. For example:
   // `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID`
-  string name = 1;
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      type: "cloudtasks.googleapis.com/Queue"
+    }
+  ];
 }
 
 // Request message for [PurgeQueue][google.cloud.tasks.v2beta2.CloudTasks.PurgeQueue].
 message PurgeQueueRequest {
-  // Required.
-  //
-  // The queue name. For example:
+  // Required. The queue name. For example:
   // `projects/PROJECT_ID/location/LOCATION_ID/queues/QUEUE_ID`
-  string name = 1;
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      type: "cloudtasks.googleapis.com/Queue"
+    }
+  ];
 }
 
 // Request message for [PauseQueue][google.cloud.tasks.v2beta2.CloudTasks.PauseQueue].
 message PauseQueueRequest {
-  // Required.
-  //
-  // The queue name. For example:
+  // Required. The queue name. For example:
   // `projects/PROJECT_ID/location/LOCATION_ID/queues/QUEUE_ID`
-  string name = 1;
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      type: "cloudtasks.googleapis.com/Queue"
+    }
+  ];
 }
 
 // Request message for [ResumeQueue][google.cloud.tasks.v2beta2.CloudTasks.ResumeQueue].
 message ResumeQueueRequest {
-  // Required.
-  //
-  // The queue name. For example:
+  // Required. The queue name. For example:
   // `projects/PROJECT_ID/location/LOCATION_ID/queues/QUEUE_ID`
-  string name = 1;
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      type: "cloudtasks.googleapis.com/Queue"
+    }
+  ];
 }
 
 // Request message for listing tasks using [ListTasks][google.cloud.tasks.v2beta2.CloudTasks.ListTasks].
 message ListTasksRequest {
-  // Required.
-  //
-  // The queue name. For example:
+  // Required. The queue name. For example:
   // `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID`
-  string parent = 1;
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      child_type: "cloudtasks.googleapis.com/Task"
+    }
+  ];
 
   // The response_view specifies which subset of the [Task][google.cloud.tasks.v2beta2.Task] will be
   // returned.
@@ -523,13 +584,14 @@ message ListTasksRequest {
   // permission on the [Task][google.cloud.tasks.v2beta2.Task] resource.
   Task.View response_view = 2;
 
-  // Requested page size. Fewer tasks than requested might be returned.
+  // Maximum page size.
   //
-  // The maximum page size is 1000. If unspecified, the page size will
-  // be the maximum. Fewer tasks than requested might be returned,
-  // even if more tasks exist; use
-  // [next_page_token][google.cloud.tasks.v2beta2.ListTasksResponse.next_page_token] in the
-  // response to determine if more tasks exist.
+  // Fewer tasks than requested might be returned, even if more tasks exist; use
+  // [next_page_token][google.cloud.tasks.v2beta2.ListTasksResponse.next_page_token] in the response to
+  // determine if more tasks exist.
+  //
+  // The maximum page size is 1000. If unspecified, the page size will be the
+  // maximum.
   int32 page_size = 4;
 
   // A token identifying the page of results to return.
@@ -561,11 +623,14 @@ message ListTasksResponse {
 
 // Request message for getting a task using [GetTask][google.cloud.tasks.v2beta2.CloudTasks.GetTask].
 message GetTaskRequest {
-  // Required.
-  //
-  // The task name. For example:
+  // Required. The task name. For example:
   // `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID/tasks/TASK_ID`
-  string name = 1;
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      type: "cloudtasks.googleapis.com/Task"
+    }
+  ];
 
   // The response_view specifies which subset of the [Task][google.cloud.tasks.v2beta2.Task] will be
   // returned.
@@ -584,17 +649,18 @@ message GetTaskRequest {
 
 // Request message for [CreateTask][google.cloud.tasks.v2beta2.CloudTasks.CreateTask].
 message CreateTaskRequest {
-  // Required.
-  //
-  // The queue name. For example:
+  // Required. The queue name. For example:
   // `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID`
   //
   // The queue must already exist.
-  string parent = 1;
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      child_type: "cloudtasks.googleapis.com/Task"
+    }
+  ];
 
-  // Required.
-  //
-  // The task to add.
+  // Required. The task to add.
   //
   // Task names have the following format:
   // `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID/tasks/TASK_ID`.
@@ -627,7 +693,7 @@ message CreateTaskRequest {
   // task commands. The infrastructure relies on an approximately
   // uniform distribution of task ids to store and serve tasks
   // efficiently.
-  Task task = 2;
+  Task task = 2 [(google.api.field_behavior) = REQUIRED];
 
   // The response_view specifies which subset of the [Task][google.cloud.tasks.v2beta2.Task] will be
   // returned.
@@ -647,20 +713,26 @@ message CreateTaskRequest {
 // Request message for deleting a task using
 // [DeleteTask][google.cloud.tasks.v2beta2.CloudTasks.DeleteTask].
 message DeleteTaskRequest {
-  // Required.
-  //
-  // The task name. For example:
+  // Required. The task name. For example:
   // `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID/tasks/TASK_ID`
-  string name = 1;
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      type: "cloudtasks.googleapis.com/Task"
+    }
+  ];
 }
 
 // Request message for leasing tasks using [LeaseTasks][google.cloud.tasks.v2beta2.CloudTasks.LeaseTasks].
 message LeaseTasksRequest {
-  // Required.
-  //
-  // The queue name. For example:
+  // Required. The queue name. For example:
   // `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID`
-  string parent = 1;
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      child_type: "cloudtasks.googleapis.com/Task"
+    }
+  ];
 
   // The maximum number of tasks to lease.
   //
@@ -668,8 +740,21 @@ message LeaseTasksRequest {
   // `max_tasks` as possible.
   //
   // The largest that `max_tasks` can be is 1000.
+  //
+  // The maximum total size of a [lease tasks response][google.cloud.tasks.v2beta2.LeaseTasksResponse] is
+  // 32 MB. If the sum of all task sizes requested reaches this limit,
+  // fewer tasks than requested are returned.
   int32 max_tasks = 2;
 
+  // Required. The duration of the lease.
+  //
+  // Each task returned in the [response][google.cloud.tasks.v2beta2.LeaseTasksResponse] will
+  // have its [schedule_time][google.cloud.tasks.v2beta2.Task.schedule_time] set to the current
+  // time plus the `lease_duration`. The task is leased until its
+  // [schedule_time][google.cloud.tasks.v2beta2.Task.schedule_time]; thus, the task will not be
+  // returned to another [LeaseTasks][google.cloud.tasks.v2beta2.CloudTasks.LeaseTasks] call
+  // before its [schedule_time][google.cloud.tasks.v2beta2.Task.schedule_time].
+  //
   //
   // After the worker has successfully finished the work associated
   // with the task, the worker must call via
@@ -680,7 +765,7 @@ message LeaseTasksRequest {
   //
   // The maximum lease duration is 1 week.
   // `lease_duration` will be truncated to the nearest second.
-  google.protobuf.Duration lease_duration = 3;
+  google.protobuf.Duration lease_duration = 3 [(google.api.field_behavior) = REQUIRED];
 
   // The response_view specifies which subset of the [Task][google.cloud.tasks.v2beta2.Task] will be
   // returned.
@@ -737,48 +822,48 @@ message LeaseTasksResponse {
 // Request message for acknowledging a task using
 // [AcknowledgeTask][google.cloud.tasks.v2beta2.CloudTasks.AcknowledgeTask].
 message AcknowledgeTaskRequest {
-  // Required.
-  //
-  // The task name. For example:
+  // Required. The task name. For example:
   // `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID/tasks/TASK_ID`
-  string name = 1;
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      type: "cloudtasks.googleapis.com/Task"
+    }
+  ];
 
-  // Required.
-  //
-  // The task's current schedule time, available in the
+  // Required. The task's current schedule time, available in the
   // [schedule_time][google.cloud.tasks.v2beta2.Task.schedule_time] returned by
   // [LeaseTasks][google.cloud.tasks.v2beta2.CloudTasks.LeaseTasks] response or
   // [RenewLease][google.cloud.tasks.v2beta2.CloudTasks.RenewLease] response. This restriction is
   // to ensure that your worker currently holds the lease.
-  google.protobuf.Timestamp schedule_time = 2;
+  google.protobuf.Timestamp schedule_time = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 // Request message for renewing a lease using
 // [RenewLease][google.cloud.tasks.v2beta2.CloudTasks.RenewLease].
 message RenewLeaseRequest {
-  // Required.
-  //
-  // The task name. For example:
+  // Required. The task name. For example:
   // `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID/tasks/TASK_ID`
-  string name = 1;
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      type: "cloudtasks.googleapis.com/Task"
+    }
+  ];
 
-  // Required.
-  //
-  // The task's current schedule time, available in the
+  // Required. The task's current schedule time, available in the
   // [schedule_time][google.cloud.tasks.v2beta2.Task.schedule_time] returned by
   // [LeaseTasks][google.cloud.tasks.v2beta2.CloudTasks.LeaseTasks] response or
   // [RenewLease][google.cloud.tasks.v2beta2.CloudTasks.RenewLease] response. This restriction is
   // to ensure that your worker currently holds the lease.
-  google.protobuf.Timestamp schedule_time = 2;
+  google.protobuf.Timestamp schedule_time = 2 [(google.api.field_behavior) = REQUIRED];
 
-  // Required.
-  //
-  // The desired new lease duration, starting from now.
+  // Required. The desired new lease duration, starting from now.
   //
   //
   // The maximum lease duration is 1 week.
   // `lease_duration` will be truncated to the nearest second.
-  google.protobuf.Duration lease_duration = 3;
+  google.protobuf.Duration lease_duration = 3 [(google.api.field_behavior) = REQUIRED];
 
   // The response_view specifies which subset of the [Task][google.cloud.tasks.v2beta2.Task] will be
   // returned.
@@ -798,20 +883,21 @@ message RenewLeaseRequest {
 // Request message for canceling a lease using
 // [CancelLease][google.cloud.tasks.v2beta2.CloudTasks.CancelLease].
 message CancelLeaseRequest {
-  // Required.
-  //
-  // The task name. For example:
+  // Required. The task name. For example:
   // `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID/tasks/TASK_ID`
-  string name = 1;
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      type: "cloudtasks.googleapis.com/Task"
+    }
+  ];
 
-  // Required.
-  //
-  // The task's current schedule time, available in the
+  // Required. The task's current schedule time, available in the
   // [schedule_time][google.cloud.tasks.v2beta2.Task.schedule_time] returned by
   // [LeaseTasks][google.cloud.tasks.v2beta2.CloudTasks.LeaseTasks] response or
   // [RenewLease][google.cloud.tasks.v2beta2.CloudTasks.RenewLease] response. This restriction is
   // to ensure that your worker currently holds the lease.
-  google.protobuf.Timestamp schedule_time = 2;
+  google.protobuf.Timestamp schedule_time = 2 [(google.api.field_behavior) = REQUIRED];
 
   // The response_view specifies which subset of the [Task][google.cloud.tasks.v2beta2.Task] will be
   // returned.
@@ -831,11 +917,14 @@ message CancelLeaseRequest {
 // Request message for forcing a task to run now using
 // [RunTask][google.cloud.tasks.v2beta2.CloudTasks.RunTask].
 message RunTaskRequest {
-  // Required.
-  //
-  // The task name. For example:
+  // Required. The task name. For example:
   // `projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID/tasks/TASK_ID`
-  string name = 1;
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {
+      type: "cloudtasks.googleapis.com/Task"
+    }
+  ];
 
   // The response_view specifies which subset of the [Task][google.cloud.tasks.v2beta2.Task] will be
   // returned.

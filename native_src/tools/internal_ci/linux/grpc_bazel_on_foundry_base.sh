@@ -34,7 +34,6 @@ tools/bazel \
   test \
   --invocation_id="${BAZEL_INVOCATION_ID}" \
   --workspace_status_command=tools/remote_build/workspace_status_kokoro.sh \
-  --google_credentials="${KOKORO_GFILE_DIR}/GrpcTesting-d0eeee2db331.json" \
   $@ \
   -- //test/... || FAILED="true"
 
@@ -42,7 +41,7 @@ if [ "$UPLOAD_TEST_RESULTS" != "" ]
 then
   # Sleep to let ResultStore finish writing results before querying
   sleep 60
-  python ./tools/run_tests/python_utils/upload_rbe_results.py
+  python3 ./tools/run_tests/python_utils/upload_rbe_results.py
 fi
 
 if [ "$FAILED" != "" ]

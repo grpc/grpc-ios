@@ -21,6 +21,8 @@
 
 #include <grpc/support/port_platform.h>
 
+#include <string>
+
 #include "src/core/lib/channel/channel_stack.h"
 #include "src/cpp/common/channel_filter.h"
 
@@ -28,8 +30,8 @@ namespace grpc {
 
 class ServerLoadReportingChannelData : public ChannelData {
  public:
-  grpc_error* Init(grpc_channel_element* elem,
-                   grpc_channel_element_args* args) override;
+  grpc_error_handle Init(grpc_channel_element* elem,
+                         grpc_channel_element_args* args) override;
 
   // Getters.
   const char* peer_identity() { return peer_identity_; }
@@ -43,8 +45,8 @@ class ServerLoadReportingChannelData : public ChannelData {
 
 class ServerLoadReportingCallData : public CallData {
  public:
-  grpc_error* Init(grpc_call_element* elem,
-                   const grpc_call_element_args* args) override;
+  grpc_error_handle Init(grpc_call_element* elem,
+                         const grpc_call_element_args* args) override;
 
   void Destroy(grpc_call_element* elem, const grpc_call_final_info* final_info,
                grpc_closure* then_call_closure) override;
@@ -54,9 +56,8 @@ class ServerLoadReportingCallData : public CallData {
 
  private:
   // From the peer_string_ in calld, extracts the client IP string (owned by
-  // caller), e.g., "01020a0b". Upon failure, set the output pointer to null and
-  // size to zero.
-  void GetCensusSafeClientIpString(char** client_ip_string, size_t* size);
+  // caller), e.g., "01020a0b". Upon failure, returns empty string.
+  std::string GetCensusSafeClientIpString();
 
   // Concatenates the client IP address and the load reporting token, then
   // stores the result into the call data.
@@ -67,16 +68,7 @@ class ServerLoadReportingCallData : public CallData {
   static const char* GetStatusTagForStatus(grpc_status_code status);
 
   // Records the call start.
-  static void RecvInitialMetadataReady(void* arg, grpc_error* err);
-
-  // From the initial metadata, extracts the service_method_, target_host_, and
-  // client_ip_and_lr_token_.
-  static grpc_filtered_mdelem RecvInitialMetadataFilter(void* user_data,
-                                                        grpc_mdelem md);
-
-  // Records the other call metrics.
-  static grpc_filtered_mdelem SendTrailingMetadataFilter(void* user_data,
-                                                         grpc_mdelem md);
+  static void RecvInitialMetadataReady(void* arg, grpc_error_handle err);
 
   // The peer string (a member of the recv_initial_metadata op). Note that
   // gpr_atm itself is a pointer type here, making "peer_string_" effectively a
@@ -105,8 +97,7 @@ class ServerLoadReportingCallData : public CallData {
   // different from the actual backend in the case of, for example,
   // load-balanced targets. We store a copy of the metadata slice in order to
   // lowercase it. */
-  char* target_host_;
-  size_t target_host_len_;
+  std::string target_host_;
 
   // The client IP address (including a length prefix) and the load reporting
   // token.

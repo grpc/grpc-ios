@@ -41,14 +41,14 @@ public final class StringValidation {
     public static void minLength(final String field, final String value, final int expected) throws ValidationException {
         final int actual = value.codePointCount(0, value.length());
         if (actual < expected) {
-            throw new ValidationException(field, enquote(value), "length must be " + expected + " but got: " + actual);
+            throw new ValidationException(field, enquote(value), "length must be at least " + expected + " but got: " + actual);
         }
     }
 
     public static void maxLength(final String field, final String value, final int expected) throws ValidationException {
         final int actual = value.codePointCount(0, value.length());
         if (actual > expected) {
-            throw new ValidationException(field, enquote(value), "length must be " + expected + " but got: " + actual);
+            throw new ValidationException(field, enquote(value), "length must be at most " + expected + " but got: " + actual);
         }
     }
 
@@ -66,7 +66,7 @@ public final class StringValidation {
 
     public static void maxBytes(String field, String value, int expected) throws ValidationException {
         if (value.getBytes(StandardCharsets.UTF_8).length > expected) {
-            throw new ValidationException(field, enquote(value), "bytes length must be at maximum " + expected);
+            throw new ValidationException(field, enquote(value), "bytes length must be at most " + expected);
         }
     }
 
@@ -102,7 +102,7 @@ public final class StringValidation {
     }
 
     public static void email(final String field, String value) throws ValidationException {
-        if (value.charAt(value.length() - 1) == '>') {
+        if (!value.isEmpty() && value.charAt(value.length() - 1) == '>') {
             final char[] chars = value.toCharArray();
             final StringBuilder sb = new StringBuilder();
             boolean insideQuotes = false;

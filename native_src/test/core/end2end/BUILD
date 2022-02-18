@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//bazel:grpc_build_system.bzl", "grpc_cc_binary", "grpc_cc_library", "grpc_cc_test", "grpc_package")
+load("//bazel:grpc_build_system.bzl", "grpc_cc_library", "grpc_cc_test", "grpc_package")
+load(":generate_tests.bzl", "grpc_end2end_nosec_tests", "grpc_end2end_tests")
 
-licenses(["notice"])  # Apache v2
+licenses(["notice"])
 
 grpc_package(name = "test/core/end2end")
-
-load(":generate_tests.bzl", "grpc_end2end_nosec_tests", "grpc_end2end_tests")
 
 grpc_cc_library(
     name = "cq_verifier",
@@ -190,6 +189,13 @@ grpc_end2end_nosec_tests()
 grpc_cc_test(
     name = "h2_ssl_session_reuse_test",
     srcs = ["h2_ssl_session_reuse_test.cc"],
+    data = [
+        "//src/core/tsi/test_creds:ca.pem",
+        "//src/core/tsi/test_creds:client.key",
+        "//src/core/tsi/test_creds:client.pem",
+        "//src/core/tsi/test_creds:server1.key",
+        "//src/core/tsi/test_creds:server1.pem",
+    ],
     external_deps = [
         "gtest",
     ],

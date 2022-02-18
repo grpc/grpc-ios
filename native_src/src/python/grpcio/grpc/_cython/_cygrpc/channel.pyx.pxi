@@ -256,6 +256,8 @@ cdef void _call(
         on_success(started_tags)
     else:
       raise ValueError('Cannot invoke RPC: %s' % channel_state.closed_reason)
+
+
 cdef void _process_integrated_call_tag(
     _ChannelState state, _BatchOperationTag tag) except *:
   cdef _CallState call_state = state.integrated_call_states.pop(tag)
@@ -423,7 +425,7 @@ cdef _close(Channel channel, grpc_status_code code, object details,
       _destroy_c_completion_queue(state.c_connectivity_completion_queue)
       grpc_channel_destroy(state.c_channel)
       state.c_channel = NULL
-      grpc_shutdown_blocking()
+      grpc_shutdown()
       state.condition.notify_all()
     else:
       # Another call to close already completed in the past or is currently

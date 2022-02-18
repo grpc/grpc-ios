@@ -16,12 +16,8 @@ syntax = "proto3";
 
 package grafeas.v1beta1;
 
-option go_package = "google.golang.org/genproto/googleapis/devtools/containeranalysis/v1beta1/grafeas;grafeas";
-option java_multiple_files = true;
-option java_package = "io.grafeas.v1beta1";
-option objc_class_prefix = "GRA";
-
 import "google/api/annotations.proto";
+import "google/api/client.proto";
 import "google/devtools/containeranalysis/v1beta1/attestation/attestation.proto";
 import "google/devtools/containeranalysis/v1beta1/build/build.proto";
 import "google/devtools/containeranalysis/v1beta1/common/common.proto";
@@ -34,6 +30,11 @@ import "google/devtools/containeranalysis/v1beta1/vulnerability/vulnerability.pr
 import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
+
+option go_package = "google.golang.org/genproto/googleapis/devtools/containeranalysis/v1beta1/grafeas;grafeas";
+option java_multiple_files = true;
+option java_package = "io.grafeas.v1beta1";
+option objc_class_prefix = "GRA";
 
 // [Grafeas](grafeas.io) API.
 //
@@ -50,12 +51,15 @@ import "google/protobuf/timestamp.proto";
 // there would be one note for the vulnerability and an occurrence for each
 // image with the vulnerability referring to that note.
 service GrafeasV1Beta1 {
+  option (google.api.default_host) = "containeranalysis.googleapis.com";
+  option (google.api.oauth_scopes) = "https://www.googleapis.com/auth/cloud-platform";
+
   // Gets the specified occurrence.
   rpc GetOccurrence(GetOccurrenceRequest) returns (Occurrence) {
     option (google.api.http) = {
       get: "/v1beta1/{name=projects/*/occurrences/*}"
     };
-  };
+  }
 
   // Lists occurrences for the specified project.
   rpc ListOccurrences(ListOccurrencesRequest)
@@ -63,7 +67,7 @@ service GrafeasV1Beta1 {
     option (google.api.http) = {
       get: "/v1beta1/{parent=projects/*}/occurrences"
     };
-  };
+  }
 
   // Deletes the specified occurrence. For example, use this method to delete an
   // occurrence when the occurrence is no longer applicable for the given
@@ -73,7 +77,7 @@ service GrafeasV1Beta1 {
     option (google.api.http) = {
       delete: "/v1beta1/{name=projects/*/occurrences/*}"
     };
-  };
+  }
 
   // Creates a new occurrence.
   rpc CreateOccurrence(CreateOccurrenceRequest) returns (Occurrence) {
@@ -81,7 +85,7 @@ service GrafeasV1Beta1 {
       post: "/v1beta1/{parent=projects/*}/occurrences"
       body: "occurrence"
     };
-  };
+  }
 
   // Creates new occurrences in batch.
   rpc BatchCreateOccurrences(BatchCreateOccurrencesRequest)
@@ -90,7 +94,7 @@ service GrafeasV1Beta1 {
       post: "/v1beta1/{parent=projects/*}/occurrences:batchCreate"
       body: "*"
     };
-  };
+  }
 
   // Updates the specified occurrence.
   rpc UpdateOccurrence(UpdateOccurrenceRequest) returns (Occurrence) {
@@ -98,7 +102,7 @@ service GrafeasV1Beta1 {
       patch: "/v1beta1/{name=projects/*/occurrences/*}"
       body: "occurrence"
     };
-  };
+  }
 
   // Gets the note attached to the specified occurrence. Consumer projects can
   // use this method to get a note that belongs to a provider project.
@@ -106,28 +110,28 @@ service GrafeasV1Beta1 {
     option (google.api.http) = {
       get: "/v1beta1/{name=projects/*/occurrences/*}/notes"
     };
-  };
+  }
 
   // Gets the specified note.
   rpc GetNote(GetNoteRequest) returns (Note) {
     option (google.api.http) = {
       get: "/v1beta1/{name=projects/*/notes/*}"
     };
-  };
+  }
 
   // Lists notes for the specified project.
   rpc ListNotes(ListNotesRequest) returns (ListNotesResponse) {
     option (google.api.http) = {
       get: "/v1beta1/{parent=projects/*}/notes"
     };
-  };
+  }
 
   // Deletes the specified note.
   rpc DeleteNote(DeleteNoteRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/v1beta1/{name=projects/*/notes/*}"
     };
-  };
+  }
 
   // Creates a new note.
   rpc CreateNote(CreateNoteRequest) returns (Note) {
@@ -135,7 +139,7 @@ service GrafeasV1Beta1 {
       post: "/v1beta1/{parent=projects/*}/notes"
       body: "note"
     };
-  };
+  }
 
   // Creates new notes in batch.
   rpc BatchCreateNotes(BatchCreateNotesRequest)
@@ -144,7 +148,7 @@ service GrafeasV1Beta1 {
       post: "/v1beta1/{parent=projects/*}/notes:batchCreate"
       body: "*"
     };
-  };
+  }
 
   // Updates the specified note.
   rpc UpdateNote(UpdateNoteRequest) returns (Note) {
@@ -152,7 +156,7 @@ service GrafeasV1Beta1 {
       patch: "/v1beta1/{name=projects/*/notes/*}"
       body: "note"
     };
-  };
+  }
 
   // Lists occurrences referencing the specified note. Provider projects can use
   // this method to get all occurrences across consumer projects referencing the
@@ -162,7 +166,7 @@ service GrafeasV1Beta1 {
     option (google.api.http) = {
       get: "/v1beta1/{name=projects/*/notes/*}/occurrences"
     };
-  };
+  }
 
   // Gets a summary of the number and severity of occurrences.
   rpc GetVulnerabilityOccurrencesSummary(
@@ -171,8 +175,8 @@ service GrafeasV1Beta1 {
     option (google.api.http) = {
       get: "/v1beta1/{parent=projects/*}/occurrences:vulnerabilitySummary"
     };
-  };
-};
+  }
+}
 
 // An instance of an analysis type that has been found on a resource.
 message Occurrence {
@@ -184,8 +188,8 @@ message Occurrence {
   Resource resource = 2;
 
   // Required. Immutable. The analysis note associated with this occurrence, in
-  // the form of `projects[PROVIDER_ID]/notes/[NOTE_ID]`. This field can be used
-  // as a filter in list requests.
+  // the form of `projects/[PROVIDER_ID]/notes/[NOTE_ID]`. This field can be
+  // used as a filter in list requests.
   string note_name = 3;
 
   // Output only. This explicitly denotes which of the occurrence details are
@@ -229,7 +233,7 @@ message Resource {
   // The name of the resource. For example, the name of a Docker image -
   // "Debian".
   string name = 1;
-  // The unique URI of the resource. For example,
+  // Required. The unique URI of the resource. For example,
   // `https://gcr.io/project/image@sha256:foo` for a Docker image.
   string uri = 2;
   // The hash of the resource content. For example, the Docker digest.
@@ -487,7 +491,7 @@ message VulnerabilityOccurrencesSummary {
   // A listing by resource of the number of fixable and total vulnerabilities.
   repeated FixableTotalByDigest counts = 1;
 
-  // Per resource and severity counts of fixable and total vulnerabilites.
+  // Per resource and severity counts of fixable and total vulnerabilities.
   message FixableTotalByDigest {
     // The affected resource.
     Resource resource = 1;

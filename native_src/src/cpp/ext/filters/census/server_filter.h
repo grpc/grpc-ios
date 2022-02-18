@@ -24,7 +24,9 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "include/grpc/grpc_security.h"
+
+#include <grpc/grpc_security.h>
+
 #include "src/cpp/ext/filters/census/channel_filter.h"
 #include "src/cpp/ext/filters/census/context.h"
 
@@ -48,14 +50,12 @@ class CensusServerCallData : public CallData {
         recv_message_(nullptr),
         recv_message_count_(0),
         sent_message_count_(0) {
-    memset(&census_bin_, 0, sizeof(grpc_linked_mdelem));
-    memset(&path_, 0, sizeof(grpc_slice));
     memset(&on_done_recv_initial_metadata_, 0, sizeof(grpc_closure));
     memset(&on_done_recv_message_, 0, sizeof(grpc_closure));
   }
 
-  grpc_error* Init(grpc_call_element* elem,
-                   const grpc_call_element_args* args) override;
+  grpc_error_handle Init(grpc_call_element* elem,
+                         const grpc_call_element_args* args) override;
 
   void Destroy(grpc_call_element* elem, const grpc_call_final_info* final_info,
                grpc_closure* then_call_closure) override;
@@ -63,22 +63,21 @@ class CensusServerCallData : public CallData {
   void StartTransportStreamOpBatch(grpc_call_element* elem,
                                    TransportStreamOpBatch* op) override;
 
-  static void OnDoneRecvInitialMetadataCb(void* user_data, grpc_error* error);
+  static void OnDoneRecvInitialMetadataCb(void* user_data,
+                                          grpc_error_handle error);
 
-  static void OnDoneRecvMessageCb(void* user_data, grpc_error* error);
+  static void OnDoneRecvMessageCb(void* user_data, grpc_error_handle error);
 
  private:
   CensusContext context_;
   // server method
   absl::string_view method_;
   std::string qualified_method_;
-  grpc_slice path_;
+  grpc_core::Slice path_;
   // Pointer to the grpc_call element
   grpc_call* gc_;
   // Authorization context for the call.
   grpc_auth_context* auth_context_;
-  // Metadata element for census stats.
-  grpc_linked_mdelem census_bin_;
   // recv callback
   grpc_metadata_batch* recv_initial_metadata_;
   grpc_closure* initial_on_done_recv_initial_metadata_;

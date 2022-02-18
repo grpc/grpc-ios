@@ -46,10 +46,10 @@ NSInteger kMaxClientBatch = 6;
 static NSString *const kAuthorizationHeader = @"authorization";
 static NSString *const kBearerPrefix = @"Bearer ";
 
-@interface GRPCCall ()<GRXWriteable>
+@interface GRPCCall () <GRXWriteable>
 // Make them read-write.
-@property(atomic, strong) NSDictionary *responseHeaders;
-@property(atomic, strong) NSDictionary *responseTrailers;
+@property(atomic, copy) NSDictionary *responseHeaders;
+@property(atomic, copy) NSDictionary *responseTrailers;
 
 - (void)receiveNextMessages:(NSUInteger)numberOfMessages;
 
@@ -271,10 +271,14 @@ static NSString *const kBearerPrefix = @"Bearer ";
 }
 
 - (void)dealloc {
-  __block GRPCWrappedCall *wrappedCall = _wrappedCall;
-  dispatch_async(_callQueue, ^{
-    wrappedCall = nil;
-  });
+  if (_callQueue) {
+    __block GRPCWrappedCall *wrappedCall = _wrappedCall;
+    dispatch_async(_callQueue, ^{
+      wrappedCall = nil;
+    });
+  } else {
+    _wrappedCall = nil;
+  }
 }
 
 #pragma mark Read messages
@@ -429,8 +433,8 @@ static NSString *const kBearerPrefix = @"Bearer ";
       }
     }
   };
-  GRPCOpSendMessage *op =
-      [[GRPCOpSendMessage alloc] initWithMessage:message handler:resumingHandler];
+  GRPCOpSendMessage *op = [[GRPCOpSendMessage alloc] initWithMessage:message
+                                                             handler:resumingHandler];
   if (!_unaryCall) {
     [_wrappedCall startBatchWithOperations:@[ op ] errorHandler:errorHandler];
   } else {
@@ -501,22 +505,23 @@ static NSString *const kBearerPrefix = @"Bearer ";
 
 - (void)invokeCall {
   __weak GRPCCall *weakSelf = self;
-  [self invokeCallWithHeadersHandler:^(NSDictionary *headers) {
-    // Response headers received.
-    __strong GRPCCall *strongSelf = weakSelf;
-    if (strongSelf) {
-      @synchronized(strongSelf) {
-        // it is ok to set nil because headers are only received once
-        strongSelf.responseHeaders = nil;
-        // copy the header so that the GRPCOpRecvMetadata object may be dealloc'ed
-        NSDictionary *copiedHeaders =
-            [[NSDictionary alloc] initWithDictionary:headers copyItems:YES];
-        strongSelf.responseHeaders = copiedHeaders;
-        strongSelf->_pendingCoreRead = NO;
-        [strongSelf maybeStartNextRead];
+  [self
+      invokeCallWithHeadersHandler:^(NSDictionary *headers) {
+        // Response headers received.
+        __strong GRPCCall *strongSelf = weakSelf;
+        if (strongSelf) {
+          @synchronized(strongSelf) {
+            // it is ok to set nil because headers are only received once
+            strongSelf.responseHeaders = nil;
+            // copy the header so that the GRPCOpRecvMetadata object may be dealloc'ed
+            NSDictionary *copiedHeaders = [[NSDictionary alloc] initWithDictionary:headers
+                                                                         copyItems:YES];
+            strongSelf.responseHeaders = copiedHeaders;
+            strongSelf->_pendingCoreRead = NO;
+            [strongSelf maybeStartNextRead];
+          }
+        }
       }
-    }
-  }
       completionHandler:^(NSError *error, NSDictionary *trailers) {
         __strong GRPCCall *strongSelf = weakSelf;
         if (strongSelf) {
@@ -548,11 +553,11 @@ static NSString *const kBearerPrefix = @"Bearer ";
       return;
     }
 
-    _responseWriteable =
-        [[GRXConcurrentWriteable alloc] initWithWriteable:writeable dispatchQueue:_responseQueue];
+    _responseWriteable = [[GRXConcurrentWriteable alloc] initWithWriteable:writeable
+                                                             dispatchQueue:_responseQueue];
 
-    GRPCPooledChannel *channel =
-        [[GRPCChannelPool sharedInstance] channelWithHost:_host callOptions:_callOptions];
+    GRPCPooledChannel *channel = [[GRPCChannelPool sharedInstance] channelWithHost:_host
+                                                                       callOptions:_callOptions];
     _wrappedCall = [channel wrappedCallWithPath:_path
                                 completionQueue:[GRPCCompletionQueue completionQueue]
                                     callOptions:_callOptions];

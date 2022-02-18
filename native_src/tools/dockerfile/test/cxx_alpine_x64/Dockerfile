@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine:3.5
+FROM alpine:3.11
 
 # Install Git and basic packages.
 RUN apk update && apk add \
@@ -30,29 +30,28 @@ RUN apk update && apk add \
   make \
   perl \
   strace \
-  python-dev \
-  py-pip \
-  py-yaml \
+  python3 \
+  py3-pip \
   unzip \
   wget \
   zip
 
-# Install Python packages from PyPI
-RUN pip install --upgrade pip==19.3.1
-RUN pip install virtualenv
-RUN pip install futures==2.2.0 enum34==1.0.4 protobuf==3.5.0.post1 six==1.10.0 twisted==17.5.0
+# use pinned version of pip to avoid sudden breakages
+RUN python3 -m pip install --upgrade pip==19.3.1
 
-# Google Cloud platform API libraries
-RUN pip install --upgrade google-api-python-client
+# TODO(jtattermusch): currently six is needed for tools/run_tests scripts
+# but since our python2 usage is deprecated, we should get rid of it.
+RUN python3 -m pip install six==1.16.0
 
-# Install gflags
-RUN git clone https://github.com/gflags/gflags.git && cd gflags && git checkout v2.2.0
-RUN cd gflags && cmake . && make && make install
-RUN ln -s /usr/local/include/gflags /usr/include/gflags
+# Google Cloud Platform API libraries
+# These are needed for uploading test results to BigQuery (e.g. by tools/run_tests scripts)
+RUN python3 -m pip install --upgrade google-auth==1.24.0 google-api-python-client==1.12.8 oauth2client==4.1.0
+
+RUN python3 -m pip install --upgrade --ignore-installed PyYAML==5.4.1 --user
 
 
 RUN mkdir /var/local/jenkins
 
-
+  
 # Define the default command.
 CMD ["bash"]

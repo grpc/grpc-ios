@@ -16,17 +16,18 @@
  *
  */
 
-#include <grpc/impl/codegen/port_platform.h>
+#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/channel_trace.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/string_util.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "src/core/lib/channel/status_util.h"
 #include "src/core/lib/gpr/string.h"
@@ -45,8 +46,8 @@ ChannelTrace::TraceEvent::TraceEvent(Severity severity, const grpc_slice& data,
                                      RefCountedPtr<BaseNode> referenced_entity)
     : severity_(severity),
       data_(data),
-      timestamp_(grpc_millis_to_timespec(grpc_core::ExecCtx::Get()->Now(),
-                                         GPR_CLOCK_REALTIME)),
+      timestamp_(
+          grpc_millis_to_timespec(ExecCtx::Get()->Now(), GPR_CLOCK_REALTIME)),
       next_(nullptr),
       referenced_entity_(std::move(referenced_entity)),
       memory_usage_(sizeof(TraceEvent) + grpc_slice_memory_usage(data)) {}
@@ -54,8 +55,8 @@ ChannelTrace::TraceEvent::TraceEvent(Severity severity, const grpc_slice& data,
 ChannelTrace::TraceEvent::TraceEvent(Severity severity, const grpc_slice& data)
     : severity_(severity),
       data_(data),
-      timestamp_(grpc_millis_to_timespec(grpc_core::ExecCtx::Get()->Now(),
-                                         GPR_CLOCK_REALTIME)),
+      timestamp_(
+          grpc_millis_to_timespec(ExecCtx::Get()->Now(), GPR_CLOCK_REALTIME)),
       next_(nullptr),
       memory_usage_(sizeof(TraceEvent) + grpc_slice_memory_usage(data)) {}
 
@@ -67,16 +68,18 @@ ChannelTrace::ChannelTrace(size_t max_event_memory)
       max_event_memory_(max_event_memory),
       head_trace_(nullptr),
       tail_trace_(nullptr) {
-  if (max_event_memory_ == 0)
+  if (max_event_memory_ == 0) {
     return;  // tracing is disabled if max_event_memory_ == 0
+  }
   gpr_mu_init(&tracer_mu_);
-  time_created_ = grpc_millis_to_timespec(grpc_core::ExecCtx::Get()->Now(),
-                                          GPR_CLOCK_REALTIME);
+  time_created_ =
+      grpc_millis_to_timespec(ExecCtx::Get()->Now(), GPR_CLOCK_REALTIME);
 }
 
 ChannelTrace::~ChannelTrace() {
-  if (max_event_memory_ == 0)
+  if (max_event_memory_ == 0) {
     return;  // tracing is disabled if max_event_memory_ == 0
+  }
   TraceEvent* it = head_trace_;
   while (it != nullptr) {
     TraceEvent* to_free = it;
@@ -146,14 +149,12 @@ const char* severity_string(ChannelTrace::Severity severity) {
 
 Json ChannelTrace::TraceEvent::RenderTraceEvent() const {
   char* description = grpc_slice_to_c_string(data_);
-  char* ts_str = gpr_format_timespec(timestamp_);
   Json::Object object = {
       {"description", description},
       {"severity", severity_string(severity_)},
-      {"timestamp", ts_str},
+      {"timestamp", gpr_format_timespec(timestamp_)},
   };
   gpr_free(description);
-  gpr_free(ts_str);
   if (referenced_entity_ != nullptr) {
     const bool is_channel =
         (referenced_entity_->type() == BaseNode::EntityType::kTopLevelChannel ||
@@ -171,11 +172,9 @@ Json ChannelTrace::RenderJson() const {
   if (max_event_memory_ == 0) {
     return Json();  // JSON null
   }
-  char* ts_str = gpr_format_timespec(time_created_);
   Json::Object object = {
-      {"creationTimestamp", ts_str},
+      {"creationTimestamp", gpr_format_timespec(time_created_)},
   };
-  gpr_free(ts_str);
   if (num_events_logged_ > 0) {
     object["numEventsLogged"] = std::to_string(num_events_logged_);
   }

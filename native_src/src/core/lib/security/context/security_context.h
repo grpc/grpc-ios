@@ -21,10 +21,10 @@
 
 #include <grpc/support/port_platform.h>
 
-#include "src/core/lib/gprpp/arena.h"
 #include "src/core/lib/gprpp/ref_counted.h"
 #include "src/core/lib/gprpp/ref_counted_ptr.h"
 #include "src/core/lib/iomgr/pollset.h"
+#include "src/core/lib/resource_quota/arena.h"
 #include "src/core/lib/security/credentials/credentials.h"
 
 extern grpc_core::DebugOnlyTraceFlag grpc_trace_auth_context_refcount;
@@ -54,7 +54,9 @@ struct grpc_auth_context
       grpc_core::RefCountedPtr<grpc_auth_context> chained)
       : grpc_core::RefCounted<grpc_auth_context,
                               grpc_core::NonPolymorphicRefCount>(
-            &grpc_trace_auth_context_refcount),
+            GRPC_TRACE_FLAG_ENABLED(grpc_trace_auth_context_refcount)
+                ? "auth_context_refcount"
+                : nullptr),
         chained_(std::move(chained)) {
     if (chained_ != nullptr) {
       peer_identity_property_name_ = chained_->peer_identity_property_name_;

@@ -192,10 +192,10 @@ Data types
 
     ::
 
-    typedef struct uv_env_item_s {
-        char* name;
-        char* value;
-    } uv_env_item_t;
+        typedef struct uv_env_item_s {
+            char* name;
+            char* value;
+        } uv_env_item_t;
 
 .. c:type:: uv_random_t
 
@@ -244,6 +244,15 @@ API
 .. c:function:: char** uv_setup_args(int argc, char** argv)
 
     Store the program arguments. Required for getting / setting the process title.
+    Libuv may take ownership of the memory that `argv` points to. This function
+    should be called exactly once, at program start-up.
+
+    Example:
+
+    ::
+
+        argv = uv_setup_args(argc, argv);  /* May return a copy of argv. */
+
 
 .. c:function:: int uv_get_process_title(char* buffer, size_t size)
 
@@ -314,7 +323,7 @@ API
 
 .. c:function:: void uv_loadavg(double avg[3])
 
-    Gets the load average. See: `<http://en.wikipedia.org/wiki/Load_(computing)>`_
+    Gets the load average. See: `<https://en.wikipedia.org/wiki/Load_(computing)>`_
 
     .. note::
         Returns [0,0,0] on Windows (i.e., it's not implemented).
@@ -640,13 +649,23 @@ API
         On Windows, setting `PRIORITY_HIGHEST` will only work for elevated user,
         for others it will be silently reduced to `PRIORITY_HIGH`.
 
+    .. note::
+        On IBM i PASE, the highest process priority is -10. The constant
+        `UV_PRIORITY_HIGHEST` is -10, `UV_PRIORITY_HIGH` is -7, 
+        `UV_PRIORITY_ABOVE_NORMAL` is -4, `UV_PRIORITY_NORMAL` is 0,
+        `UV_PRIORITY_BELOW_NORMAL` is 15 and `UV_PRIORITY_LOW` is 39.
+
+    .. note::
+        On IBM i PASE, you are not allowed to change your priority unless you
+        have the *JOBCTL special authority (even to lower it).
+
     .. versionadded:: 1.23.0
 
 .. c:function:: int uv_os_uname(uv_utsname_t* buffer)
 
     Retrieves system information in `buffer`. The populated data includes the
     operating system name, release, version, and machine. On non-Windows
-    systems, `uv_os_uname()` is a thin wrapper around :man:`uname(3)`. Returns
+    systems, `uv_os_uname()` is a thin wrapper around :man:`uname(2)`. Returns
     zero on success, and a non-zero error value otherwise.
 
     .. versionadded:: 1.25.0
@@ -687,7 +706,7 @@ API
     - Other UNIX: `/dev/urandom` after reading from `/dev/random` once.
 
     :returns: 0 on success, or an error code < 0 on failure. The contents of
-    `buf` is undefined after an error.
+        `buf` is undefined after an error.
 
     .. note::
         When using the synchronous version, both `loop` and `req` parameters

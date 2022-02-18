@@ -21,20 +21,21 @@
 
 #include <grpc/support/port_platform.h>
 
-#include "src/core/lib/channel/channel_stack.h"
-#include "src/core/lib/channel/context.h"
-#include "src/core/lib/gprpp/arena.h"
-#include "src/core/lib/surface/api_trace.h"
-
 #include <grpc/grpc.h>
 #include <grpc/impl/codegen/compression_types.h>
+
+#include "src/core/lib/channel/channel_stack.h"
+#include "src/core/lib/channel/context.h"
+#include "src/core/lib/resource_quota/arena.h"
+#include "src/core/lib/surface/api_trace.h"
+#include "src/core/lib/surface/server.h"
 
 typedef void (*grpc_ioreq_completion_func)(grpc_call* call, int success,
                                            void* user_data);
 
 typedef struct grpc_call_create_args {
   grpc_channel* channel;
-  grpc_server* server;
+  grpc_core::Server* server;
 
   grpc_call* parent;
   uint32_t propagation_mask;
@@ -45,8 +46,8 @@ typedef struct grpc_call_create_args {
 
   const void* server_transport_data;
 
-  grpc_mdelem* add_initial_metadata;
-  size_t add_initial_metadata_count;
+  absl::optional<grpc_core::Slice> path;
+  absl::optional<grpc_core::Slice> authority;
 
   grpc_millis send_deadline;
 } grpc_call_create_args;
@@ -54,8 +55,8 @@ typedef struct grpc_call_create_args {
 /* Create a new call based on \a args.
    Regardless of success or failure, always returns a valid new call into *call
    */
-grpc_error* grpc_call_create(const grpc_call_create_args* args,
-                             grpc_call** call);
+grpc_error_handle grpc_call_create(grpc_call_create_args* args,
+                                   grpc_call** call);
 
 void grpc_call_set_completion_queue(grpc_call* call, grpc_completion_queue* cq);
 
@@ -118,6 +119,11 @@ size_t grpc_call_get_initial_size_estimate();
  * level in the context of \a call. */
 grpc_compression_algorithm grpc_call_compression_for_level(
     grpc_call* call, grpc_compression_level level);
+
+/* Did this client call receive a trailers-only response */
+/* TODO(markdroth): This is currently available only to the C++ API.
+                    Move to surface API if requested by other languages. */
+bool grpc_call_is_trailers_only(const grpc_call* call);
 
 extern grpc_core::TraceFlag grpc_call_error_trace;
 extern grpc_core::TraceFlag grpc_compression_trace;

@@ -16,24 +16,24 @@ licenses(["notice"])  # Apache v2
 
 package(default_visibility = ["//visibility:public"])
 
-load("@bazel_toolchains//rules/exec_properties:exec_properties.bzl", "create_exec_properties_dict")
+load("@bazel_toolchains//rules/exec_properties:exec_properties.bzl", "create_rbe_exec_properties_dict")
 
 alias(
     name = "rbe_windows",
-    actual = ":rbe_windows_1803",
+    actual = ":rbe_windows_2019",
 )
 
 # RBE Windows
 platform(
-    name = "rbe_windows_1803",
+    name = "rbe_windows_2019",
     constraint_values = [
         "@bazel_tools//platforms:x86_64",
         "@bazel_tools//platforms:windows",
-        "@bazel_tools//tools/cpp:msvc",
     ],
-    exec_properties = create_exec_properties_dict(
-        container_image = "docker://gcr.io/grpc-testing/rbe_windows_toolchain@sha256:75728e7d6d804090f71095e5fec627b18cfa1f47adc52096c209f2a687e06b2e",
-        gce_machine_type = "n1-highmem-2",
+    exec_properties = create_rbe_exec_properties_dict(
+        # See rbe_win2019/Dockerfile for image details
+        container_image = "docker://gcr.io/grpc-testing/rbe_windows2019_withdbg_toolchain@sha256:7b04ee7e29f942adbf4f70edd2ec4ba20a3e7237e1b54f5cae4b239c6ca41105",
         os_family = "Windows",
+        labels = {"os": "windows_2019", "machine_size": "small"},
     ),
 )

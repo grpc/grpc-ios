@@ -23,7 +23,7 @@
 
 #include <grpc/impl/codegen/grpc_types.h>
 
-#include "src/core/ext/filters/client_channel/server_address.h"
+#include "src/core/lib/resolver/server_address.h"
 
 namespace grpc_core {
 
@@ -33,8 +33,7 @@ namespace grpc_core {
 /// Takes ownership of \a args.
 ///
 /// Caller takes ownership of the returned args.
-grpc_channel_args* ModifyGrpclbBalancerChannelArgs(
-    const ServerAddressList& addresses, grpc_channel_args* args);
+grpc_channel_args* ModifyGrpclbBalancerChannelArgs(grpc_channel_args* args);
 
 grpc_channel* CreateGrpclbBalancerChannel(const char* target_uri,
                                           const grpc_channel_args& args);

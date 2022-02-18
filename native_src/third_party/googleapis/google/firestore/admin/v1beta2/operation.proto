@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,14 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 
 syntax = "proto3";
 
 package google.firestore.admin.v1beta2;
 
-import "google/api/annotations.proto";
 import "google/firestore/admin/v1beta2/index.proto";
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
 
 option csharp_namespace = "Google.Cloud.Firestore.Admin.V1Beta2";
 option go_package = "google.golang.org/genproto/googleapis/firestore/admin/v1beta2;admin";
@@ -27,6 +28,29 @@ option java_outer_classname = "OperationProto";
 option java_package = "com.google.firestore.admin.v1beta2";
 option objc_class_prefix = "GCFS";
 
+// Metadata for [google.longrunning.Operation][google.longrunning.Operation] results from
+// [FirestoreAdmin.CreateIndex][google.firestore.admin.v1beta2.FirestoreAdmin.CreateIndex].
+message IndexOperationMetadata {
+  // The time this operation started.
+  google.protobuf.Timestamp start_time = 1;
+
+  // The time this operation completed. Will be unset if operation still in
+  // progress.
+  google.protobuf.Timestamp end_time = 2;
+
+  // The index resource that this operation is acting on. For example:
+  // `projects/{project_id}/databases/{database_id}/collectionGroups/{collection_id}/indexes/{index_id}`
+  string index = 3;
+
+  // The state of the operation.
+  OperationState state = 4;
+
+  // The progress, in documents, of this operation.
+  Progress progress_documents = 5;
+
+  // The progress, in bytes, of this operation.
+  Progress progress_bytes = 6;
+}
 
 // Metadata for [google.longrunning.Operation][google.longrunning.Operation] results from
 // [FirestoreAdmin.UpdateField][google.firestore.admin.v1beta2.FirestoreAdmin.UpdateField].
@@ -77,15 +101,64 @@ message FieldOperationMetadata {
   Progress bytes_progress = 7;
 }
 
-// Describes the progress of the operation.
-// Unit of work is generic and must be interpreted based on where [Progress][google.firestore.admin.v1beta2.Progress]
-// is used.
-message Progress {
-  // The amount of work estimated.
-  int64 estimated_work = 1;
+// Metadata for [google.longrunning.Operation][google.longrunning.Operation] results from
+// [FirestoreAdmin.ExportDocuments][google.firestore.admin.v1beta2.FirestoreAdmin.ExportDocuments].
+message ExportDocumentsMetadata {
+  // The time this operation started.
+  google.protobuf.Timestamp start_time = 1;
 
-  // The amount of work completed.
-  int64 completed_work = 2;
+  // The time this operation completed. Will be unset if operation still in
+  // progress.
+  google.protobuf.Timestamp end_time = 2;
+
+  // The state of the export operation.
+  OperationState operation_state = 3;
+
+  // The progress, in documents, of this operation.
+  Progress progress_documents = 4;
+
+  // The progress, in bytes, of this operation.
+  Progress progress_bytes = 5;
+
+  // Which collection ids are being exported.
+  repeated string collection_ids = 6;
+
+  // Where the entities are being exported to.
+  string output_uri_prefix = 7;
+}
+
+// Metadata for [google.longrunning.Operation][google.longrunning.Operation] results from
+// [FirestoreAdmin.ImportDocuments][google.firestore.admin.v1beta2.FirestoreAdmin.ImportDocuments].
+message ImportDocumentsMetadata {
+  // The time this operation started.
+  google.protobuf.Timestamp start_time = 1;
+
+  // The time this operation completed. Will be unset if operation still in
+  // progress.
+  google.protobuf.Timestamp end_time = 2;
+
+  // The state of the import operation.
+  OperationState operation_state = 3;
+
+  // The progress, in documents, of this operation.
+  Progress progress_documents = 4;
+
+  // The progress, in bytes, of this operation.
+  Progress progress_bytes = 5;
+
+  // Which collection ids are being imported.
+  repeated string collection_ids = 6;
+
+  // The location of the documents being imported.
+  string input_uri_prefix = 7;
+}
+
+// Returned in the [google.longrunning.Operation][google.longrunning.Operation] response field.
+message ExportDocumentsResponse {
+  // Location of the output files. This can be used to begin an import
+  // into Cloud Firestore (this project or another project) after the operation
+  // completes successfully.
+  string output_uri_prefix = 1;
 }
 
 // Describes the state of the operation.
@@ -115,4 +188,15 @@ enum OperationState {
   // Request has finished being cancelled after user called
   // google.longrunning.Operations.CancelOperation.
   CANCELLED = 7;
+}
+
+// Describes the progress of the operation.
+// Unit of work is generic and must be interpreted based on where [Progress][google.firestore.admin.v1beta2.Progress]
+// is used.
+message Progress {
+  // The amount of work estimated.
+  int64 estimated_work = 1;
+
+  // The amount of work completed.
+  int64 completed_work = 2;
 }

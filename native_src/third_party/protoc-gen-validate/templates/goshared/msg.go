@@ -1,16 +1,33 @@
 package goshared
 
 const msgTpl = `
+{{ if not (ignored .) -}}
 {{ if disabled . -}}
 	{{ cmt "Validate is disabled for " (msgTyp .) ". This method will always return nil." }}
 {{- else -}}
-	{{ cmt "Validate checks the field values on " (msgTyp .) " with the rules defined in the proto definition for this message. If any rules are violated, an error is returned." }}
+	{{ cmt "Validate checks the field values on " (msgTyp .) " with the rules defined in the proto definition for this message. If any rules are violated, the first error encountered is returned, or nil if there are no violations." }}
 {{- end -}}
 func (m {{ (msgTyp .).Pointer }}) Validate() error {
+	return m.validate(false)
+}
+
+{{ if disabled . -}}
+	{{ cmt "ValidateAll is disabled for " (msgTyp .) ". This method will always return nil." }}
+{{- else -}}
+	{{ cmt "ValidateAll checks the field values on " (msgTyp .) " with the rules defined in the proto definition for this message. If any rules are violated, the result is a list of violation errors wrapped in " (multierrname .) ", or nil if none found." }}
+{{- end -}}
+func (m {{ (msgTyp .).Pointer }}) ValidateAll() error {
+	return m.validate(true)
+}
+
+{{/* Unexported function to handle validation. If the need arises to add more exported functions, please consider the functional option approach outlined in protoc-gen-validate#47. */}}
+func (m {{ (msgTyp .).Pointer }}) validate(all bool) error {
 	{{ if disabled . -}}
 		return nil
 	{{ else -}}
 		if m == nil { return nil }
+
+		var errors []error
 
 		{{ range .NonOneOfFields }}
 			{{ render (context .) }}
@@ -24,14 +41,19 @@ func (m {{ (msgTyp .).Pointer }}) Validate() error {
 				{{ end }}
 				{{ if required . }}
 					default:
-						return {{ errname .Message }}{
+						err := {{ errname .Message }}{
 							field: "{{ name . }}",
 							reason: "value is required",
 						}
+						if !all { return err }
+						errors = append(errors, err)
 				{{ end }}
 			}
 		{{ end }}
 
+		if len(errors) > 0 {
+			return {{ multierrname . }}(errors)
+		}
 		return nil
 	{{ end -}}
 }
@@ -41,6 +63,21 @@ func (m {{ (msgTyp .).Pointer }}) Validate() error {
 {{ if needs . "email" }}{{ template "email" . }}{{ end }}
 
 {{ if needs . "uuid" }}{{ template "uuid" . }}{{ end }}
+
+{{ cmt (multierrname .) " is an error wrapping multiple validation errors returned by " (msgTyp .) ".ValidateAll() if the designated constraints aren't met." -}}
+type {{ multierrname . }} []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m {{ multierrname . }}) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m {{ multierrname . }}) AllErrors() []error { return m }
 
 {{ cmt (errname .) " is the validation error returned by " (msgTyp .) ".Validate if the designated constraints aren't met." -}}
 type {{ errname . }} struct {
@@ -130,12 +167,26 @@ var _ interface{
 			{{- end }}
 		}
 	{{ end }}{{ end }}
+	{{ if has .Rules.Items.GetEnum "In" }} {{ if .Rules.Items.GetEnum.In }}
+		var {{ lookup .Field "InLookup" }} = map[{{ inType .Field .Rules.Items.GetEnum.In }}]struct{}{
+			{{- range .Rules.Items.GetEnum.In }}
+				{{ inKey $f . }}: {},
+			{{- end }}
+		}
+	{{ end }}{{ end }}
 	{{ end }}{{ end }}
 
 	{{ if has .Rules "Items"}}{{ if .Rules.Items }}
 	{{ if has .Rules.Items.GetString_ "NotIn" }} {{ if .Rules.Items.GetString_.NotIn }}
 		var {{ lookup .Field "NotInLookup" }} = map[string]struct{}{
 			{{- range .Rules.Items.GetString_.NotIn }}
+				{{ inKey $f . }}: {},
+			{{- end }}
+		}
+	{{ end }}{{ end }}
+	{{ if has .Rules.Items.GetEnum "NotIn" }} {{ if .Rules.Items.GetEnum.NotIn }}
+		var {{ lookup .Field "NotInLookup" }} = map[{{ inType .Field .Rules.Items.GetEnum.NotIn }}]struct{}{
+			{{- range .Rules.Items.GetEnum.NotIn }}
 				{{ inKey $f . }}: {},
 			{{- end }}
 		}
@@ -155,4 +206,5 @@ var _ interface{
 	{{ end }}{{ end }}
 
 {{ end }}{{ end }}
+{{- end -}}
 `

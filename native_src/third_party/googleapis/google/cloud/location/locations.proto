@@ -1,4 +1,4 @@
-// Copyright 2018 Google Inc.
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package google.cloud.location;
 
 import "google/api/annotations.proto";
 import "google/protobuf/any.proto";
+import "google/api/client.proto";
 
 option cc_enable_arenas = true;
 option go_package = "google.golang.org/genproto/googleapis/cloud/location;location";
@@ -25,22 +26,30 @@ option java_multiple_files = true;
 option java_outer_classname = "LocationsProto";
 option java_package = "com.google.cloud.location";
 
-
 // An abstract interface that provides location-related information for
 // a service. Service-specific metadata is provided through the
 // [Location.metadata][google.cloud.location.Location.metadata] field.
 service Locations {
+  option (google.api.default_host) = "cloud.googleapis.com";
+  option (google.api.oauth_scopes) = "https://www.googleapis.com/auth/cloud-platform";
+
   // Lists information about the supported locations for this service.
   rpc ListLocations(ListLocationsRequest) returns (ListLocationsResponse) {
     option (google.api.http) = {
-      get: "/v1/{name=projects/*}/locations"
+      get: "/v1/{name=locations}"
+      additional_bindings {
+        get: "/v1/{name=projects/*}/locations"
+      }
     };
   }
 
   // Gets information about a location.
   rpc GetLocation(GetLocationRequest) returns (Location) {
     option (google.api.http) = {
-      get: "/v1/{name=projects/*/locations/*}"
+      get: "/v1/{name=locations/*}"
+      additional_bindings {
+        get: "/v1/{name=projects/*/locations/*}"
+      }
     };
   }
 }

@@ -14,12 +14,14 @@
 
 import asyncio
 import datetime
-import logging
 
 import grpc
 from grpc.experimental import aio
 
-from src.proto.grpc.testing import empty_pb2, messages_pb2, test_pb2_grpc
+from src.proto.grpc.testing import empty_pb2
+from src.proto.grpc.testing import messages_pb2
+from src.proto.grpc.testing import test_pb2_grpc
+from tests.unit import resources
 from tests_aio.unit import _constants
 
 _INITIAL_METADATA_KEY = "x-grpc-test-echo-initial"
@@ -47,7 +49,7 @@ async def _maybe_echo_status(request: messages_pb2.SimpleRequest,
                                      request.response_status.message)
 
 
-class _TestServiceServicer(test_pb2_grpc.TestServiceServicer):
+class TestServiceServicer(test_pb2_grpc.TestServiceServicer):
 
     async def UnaryCall(self, request, context):
         await _maybe_echo_metadata(context)
@@ -67,10 +69,13 @@ class _TestServiceServicer(test_pb2_grpc.TestServiceServicer):
                 await asyncio.sleep(
                     datetime.timedelta(microseconds=response_parameters.
                                        interval_us).total_seconds())
-            yield messages_pb2.StreamingOutputCallResponse(
-                payload=messages_pb2.Payload(type=request.response_type,
-                                             body=b'\x00' *
-                                             response_parameters.size))
+            if response_parameters.size != 0:
+                yield messages_pb2.StreamingOutputCallResponse(
+                    payload=messages_pb2.Payload(type=request.response_type,
+                                                 body=b'\x00' *
+                                                 response_parameters.size))
+            else:
+                yield messages_pb2.StreamingOutputCallResponse()
 
     # Next methods are extra ones that are registred programatically
     # when the sever is instantiated. They are not being provided by
@@ -96,13 +101,16 @@ class _TestServiceServicer(test_pb2_grpc.TestServiceServicer):
                     await asyncio.sleep(
                         datetime.timedelta(microseconds=response_parameters.
                                            interval_us).total_seconds())
-                yield messages_pb2.StreamingOutputCallResponse(
-                    payload=messages_pb2.Payload(type=request.payload.type,
-                                                 body=b'\x00' *
-                                                 response_parameters.size))
+                if response_parameters.size != 0:
+                    yield messages_pb2.StreamingOutputCallResponse(
+                        payload=messages_pb2.Payload(type=request.payload.type,
+                                                     body=b'\x00' *
+                                                     response_parameters.size))
+                else:
+                    yield messages_pb2.StreamingOutputCallResponse()
 
 
-def _create_extra_generic_handler(servicer: _TestServiceServicer):
+def _create_extra_generic_handler(servicer: TestServiceServicer):
     # Add programatically extra methods not provided by the proto file
     # that are used during the tests
     rpc_method_handlers = {
@@ -117,17 +125,22 @@ def _create_extra_generic_handler(servicer: _TestServiceServicer):
                                                 rpc_method_handlers)
 
 
-async def start_test_server(port=0, secure=False, server_credentials=None):
-    server = aio.server(options=(('grpc.so_reuseport', 0),))
-    servicer = _TestServiceServicer()
+async def start_test_server(port=0,
+                            secure=False,
+                            server_credentials=None,
+                            interceptors=None):
+    server = aio.server(options=(('grpc.so_reuseport', 0),),
+                        interceptors=interceptors)
+    servicer = TestServiceServicer()
     test_pb2_grpc.add_TestServiceServicer_to_server(servicer, server)
 
     server.add_generic_rpc_handlers((_create_extra_generic_handler(servicer),))
 
     if secure:
         if server_credentials is None:
-            server_credentials = grpc.local_server_credentials(
-                grpc.LocalConnectionType.LOCAL_TCP)
+            server_credentials = grpc.ssl_server_credentials([
+                (resources.private_key(), resources.certificate_chain())
+            ])
         port = server.add_secure_port('[::]:%d' % port, server_credentials)
     else:
         port = server.add_insecure_port('[::]:%d' % port)

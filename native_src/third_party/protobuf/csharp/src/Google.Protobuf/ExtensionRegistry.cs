@@ -42,6 +42,19 @@ namespace Google.Protobuf
     /// </summary>
     public sealed class ExtensionRegistry : ICollection<Extension>, IDeepCloneable<ExtensionRegistry>
     {
+        internal sealed class ExtensionComparer : IEqualityComparer<Extension>
+        {
+            public bool Equals(Extension a, Extension b)
+            {
+                return new ObjectIntPair<Type>(a.TargetType, a.FieldNumber).Equals(new ObjectIntPair<Type>(b.TargetType, b.FieldNumber));
+            }
+            public int GetHashCode(Extension a)
+            {
+                return new ObjectIntPair<Type>(a.TargetType, a.FieldNumber).GetHashCode();
+            }
+
+            internal static ExtensionComparer Instance = new ExtensionComparer();
+        }
         private IDictionary<ObjectIntPair<Type>, Extension> extensions;
 
         /// <summary>
@@ -67,9 +80,9 @@ namespace Google.Protobuf
         /// </summary>
         bool ICollection<Extension>.IsReadOnly => false;
 
-        internal bool ContainsInputField(CodedInputStream stream, Type target, out Extension extension)
+        internal bool ContainsInputField(uint lastTag, Type target, out Extension extension)
         {
-            return extensions.TryGetValue(new ObjectIntPair<Type>(target, WireFormat.GetTagFieldNumber(stream.LastTag)), out extension);
+            return extensions.TryGetValue(new ObjectIntPair<Type>(target, WireFormat.GetTagFieldNumber(lastTag)), out extension);
         }
 
         /// <summary>
@@ -83,7 +96,7 @@ namespace Google.Protobuf
         }
 
         /// <summary>
-        /// Adds the specified extensions to the reigstry
+        /// Adds the specified extensions to the registry
         /// </summary>
         public void AddRange(IEnumerable<Extension> extensions)
         {

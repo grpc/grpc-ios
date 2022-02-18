@@ -1,6 +1,13 @@
+load("@io_bazel_rules_go//proto:compiler.bzl", "go_proto_compiler")
+load("//:utils.bzl", "json_data")
+load(":repository_locations.bzl", "REPOSITORY_LOCATIONS_SPEC")
+
 licenses(["notice"])  # Apache 2
 
-load("@io_bazel_rules_go//proto:compiler.bzl", "go_proto_compiler")
+exports_files([
+    "repository_locations.bzl",
+    "repository_locations_utils.bzl",
+])
 
 go_proto_compiler(
     name = "pgv_plugin_go",
@@ -9,4 +16,9 @@ go_proto_compiler(
     suffix = ".pb.validate.go",
     valid_archive = False,
     visibility = ["//visibility:public"],
+)
+
+json_data(
+    name = "repository_locations",
+    data = REPOSITORY_LOCATIONS_SPEC,
 )

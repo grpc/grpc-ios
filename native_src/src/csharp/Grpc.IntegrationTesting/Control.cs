@@ -34,7 +34,7 @@ namespace Grpc.Testing {
             "U2VjdXJpdHlQYXJhbXMSEwoLdXNlX3Rlc3RfY2EYASABKAgSHAoUc2VydmVy",
             "X2hvc3Rfb3ZlcnJpZGUYAiABKAkSEQoJY3JlZF90eXBlGAMgASgJIk0KCkNo",
             "YW5uZWxBcmcSDAoEbmFtZRgBIAEoCRITCglzdHJfdmFsdWUYAiABKAlIABIT",
-            "CglpbnRfdmFsdWUYAyABKAVIAEIHCgV2YWx1ZSKiBQoMQ2xpZW50Q29uZmln",
+            "CglpbnRfdmFsdWUYAyABKAVIAEIHCgV2YWx1ZSK8BQoMQ2xpZW50Q29uZmln",
             "EhYKDnNlcnZlcl90YXJnZXRzGAEgAygJEi0KC2NsaWVudF90eXBlGAIgASgO",
             "MhguZ3JwYy50ZXN0aW5nLkNsaWVudFR5cGUSNQoPc2VjdXJpdHlfcGFyYW1z",
             "GAMgASgLMhwuZ3JwYy50ZXN0aW5nLlNlY3VyaXR5UGFyYW1zEiQKHG91dHN0",
@@ -49,60 +49,61 @@ namespace Grpc.Testing {
             "cmdzGBAgAygLMhguZ3JwYy50ZXN0aW5nLkNoYW5uZWxBcmcSFgoOdGhyZWFk",
             "c19wZXJfY3EYESABKAUSGwoTbWVzc2FnZXNfcGVyX3N0cmVhbRgSIAEoBRIY",
             "ChB1c2VfY29hbGVzY2VfYXBpGBMgASgIEjEKKW1lZGlhbl9sYXRlbmN5X2Nv",
-            "bGxlY3Rpb25faW50ZXJ2YWxfbWlsbGlzGBQgASgFIjgKDENsaWVudFN0YXR1",
-            "cxIoCgVzdGF0cxgBIAEoCzIZLmdycGMudGVzdGluZy5DbGllbnRTdGF0cyIV",
-            "CgRNYXJrEg0KBXJlc2V0GAEgASgIImgKCkNsaWVudEFyZ3MSKwoFc2V0dXAY",
-            "ASABKAsyGi5ncnBjLnRlc3RpbmcuQ2xpZW50Q29uZmlnSAASIgoEbWFyaxgC",
-            "IAEoCzISLmdycGMudGVzdGluZy5NYXJrSABCCQoHYXJndHlwZSL9AgoMU2Vy",
-            "dmVyQ29uZmlnEi0KC3NlcnZlcl90eXBlGAEgASgOMhguZ3JwYy50ZXN0aW5n",
-            "LlNlcnZlclR5cGUSNQoPc2VjdXJpdHlfcGFyYW1zGAIgASgLMhwuZ3JwYy50",
-            "ZXN0aW5nLlNlY3VyaXR5UGFyYW1zEgwKBHBvcnQYBCABKAUSHAoUYXN5bmNf",
-            "c2VydmVyX3RocmVhZHMYByABKAUSEgoKY29yZV9saW1pdBgIIAEoBRIzCg5w",
-            "YXlsb2FkX2NvbmZpZxgJIAEoCzIbLmdycGMudGVzdGluZy5QYXlsb2FkQ29u",
-            "ZmlnEhEKCWNvcmVfbGlzdBgKIAMoBRIYChBvdGhlcl9zZXJ2ZXJfYXBpGAsg",
-            "ASgJEhYKDnRocmVhZHNfcGVyX2NxGAwgASgFEhwKE3Jlc291cmNlX3F1b3Rh",
-            "X3NpemUY6QcgASgFEi8KDGNoYW5uZWxfYXJncxjqByADKAsyGC5ncnBjLnRl",
-            "c3RpbmcuQ2hhbm5lbEFyZyJoCgpTZXJ2ZXJBcmdzEisKBXNldHVwGAEgASgL",
-            "MhouZ3JwYy50ZXN0aW5nLlNlcnZlckNvbmZpZ0gAEiIKBG1hcmsYAiABKAsy",
-            "Ei5ncnBjLnRlc3RpbmcuTWFya0gAQgkKB2FyZ3R5cGUiVQoMU2VydmVyU3Rh",
-            "dHVzEigKBXN0YXRzGAEgASgLMhkuZ3JwYy50ZXN0aW5nLlNlcnZlclN0YXRz",
-            "EgwKBHBvcnQYAiABKAUSDQoFY29yZXMYAyABKAUiDQoLQ29yZVJlcXVlc3Qi",
-            "HQoMQ29yZVJlc3BvbnNlEg0KBWNvcmVzGAEgASgFIgYKBFZvaWQi/QEKCFNj",
-            "ZW5hcmlvEgwKBG5hbWUYASABKAkSMQoNY2xpZW50X2NvbmZpZxgCIAEoCzIa",
-            "LmdycGMudGVzdGluZy5DbGllbnRDb25maWcSEwoLbnVtX2NsaWVudHMYAyAB",
-            "KAUSMQoNc2VydmVyX2NvbmZpZxgEIAEoCzIaLmdycGMudGVzdGluZy5TZXJ2",
-            "ZXJDb25maWcSEwoLbnVtX3NlcnZlcnMYBSABKAUSFgoOd2FybXVwX3NlY29u",
-            "ZHMYBiABKAUSGQoRYmVuY2htYXJrX3NlY29uZHMYByABKAUSIAoYc3Bhd25f",
-            "bG9jYWxfd29ya2VyX2NvdW50GAggASgFIjYKCVNjZW5hcmlvcxIpCglzY2Vu",
-            "YXJpb3MYASADKAsyFi5ncnBjLnRlc3RpbmcuU2NlbmFyaW8ihAQKFVNjZW5h",
-            "cmlvUmVzdWx0U3VtbWFyeRILCgNxcHMYASABKAESGwoTcXBzX3Blcl9zZXJ2",
-            "ZXJfY29yZRgCIAEoARIaChJzZXJ2ZXJfc3lzdGVtX3RpbWUYAyABKAESGAoQ",
-            "c2VydmVyX3VzZXJfdGltZRgEIAEoARIaChJjbGllbnRfc3lzdGVtX3RpbWUY",
-            "BSABKAESGAoQY2xpZW50X3VzZXJfdGltZRgGIAEoARISCgpsYXRlbmN5XzUw",
-            "GAcgASgBEhIKCmxhdGVuY3lfOTAYCCABKAESEgoKbGF0ZW5jeV85NRgJIAEo",
-            "ARISCgpsYXRlbmN5Xzk5GAogASgBEhMKC2xhdGVuY3lfOTk5GAsgASgBEhgK",
-            "EHNlcnZlcl9jcHVfdXNhZ2UYDCABKAESJgoec3VjY2Vzc2Z1bF9yZXF1ZXN0",
-            "c19wZXJfc2Vjb25kGA0gASgBEiIKGmZhaWxlZF9yZXF1ZXN0c19wZXJfc2Vj",
-            "b25kGA4gASgBEiAKGGNsaWVudF9wb2xsc19wZXJfcmVxdWVzdBgPIAEoARIg",
-            "ChhzZXJ2ZXJfcG9sbHNfcGVyX3JlcXVlc3QYECABKAESIgoac2VydmVyX3F1",
-            "ZXJpZXNfcGVyX2NwdV9zZWMYESABKAESIgoaY2xpZW50X3F1ZXJpZXNfcGVy",
-            "X2NwdV9zZWMYEiABKAEigwMKDlNjZW5hcmlvUmVzdWx0EigKCHNjZW5hcmlv",
-            "GAEgASgLMhYuZ3JwYy50ZXN0aW5nLlNjZW5hcmlvEi4KCWxhdGVuY2llcxgC",
-            "IAEoCzIbLmdycGMudGVzdGluZy5IaXN0b2dyYW1EYXRhEi8KDGNsaWVudF9z",
-            "dGF0cxgDIAMoCzIZLmdycGMudGVzdGluZy5DbGllbnRTdGF0cxIvCgxzZXJ2",
-            "ZXJfc3RhdHMYBCADKAsyGS5ncnBjLnRlc3RpbmcuU2VydmVyU3RhdHMSFAoM",
-            "c2VydmVyX2NvcmVzGAUgAygFEjQKB3N1bW1hcnkYBiABKAsyIy5ncnBjLnRl",
-            "c3RpbmcuU2NlbmFyaW9SZXN1bHRTdW1tYXJ5EhYKDmNsaWVudF9zdWNjZXNz",
-            "GAcgAygIEhYKDnNlcnZlcl9zdWNjZXNzGAggAygIEjkKD3JlcXVlc3RfcmVz",
-            "dWx0cxgJIAMoCzIgLmdycGMudGVzdGluZy5SZXF1ZXN0UmVzdWx0Q291bnQq",
-            "VgoKQ2xpZW50VHlwZRIPCgtTWU5DX0NMSUVOVBAAEhAKDEFTWU5DX0NMSUVO",
-            "VBABEhAKDE9USEVSX0NMSUVOVBACEhMKD0NBTExCQUNLX0NMSUVOVBADKnAK",
-            "ClNlcnZlclR5cGUSDwoLU1lOQ19TRVJWRVIQABIQCgxBU1lOQ19TRVJWRVIQ",
-            "ARIYChRBU1lOQ19HRU5FUklDX1NFUlZFUhACEhAKDE9USEVSX1NFUlZFUhAD",
-            "EhMKD0NBTExCQUNLX1NFUlZFUhAEKnIKB1JwY1R5cGUSCQoFVU5BUlkQABIN",
-            "CglTVFJFQU1JTkcQARIZChVTVFJFQU1JTkdfRlJPTV9DTElFTlQQAhIZChVT",
-            "VFJFQU1JTkdfRlJPTV9TRVJWRVIQAxIXChNTVFJFQU1JTkdfQk9USF9XQVlT",
-            "EARiBnByb3RvMw=="));
+            "bGxlY3Rpb25faW50ZXJ2YWxfbWlsbGlzGBQgASgFEhgKEGNsaWVudF9wcm9j",
+            "ZXNzZXMYFSABKAUiOAoMQ2xpZW50U3RhdHVzEigKBXN0YXRzGAEgASgLMhku",
+            "Z3JwYy50ZXN0aW5nLkNsaWVudFN0YXRzIhUKBE1hcmsSDQoFcmVzZXQYASAB",
+            "KAgiaAoKQ2xpZW50QXJncxIrCgVzZXR1cBgBIAEoCzIaLmdycGMudGVzdGlu",
+            "Zy5DbGllbnRDb25maWdIABIiCgRtYXJrGAIgASgLMhIuZ3JwYy50ZXN0aW5n",
+            "Lk1hcmtIAEIJCgdhcmd0eXBlIpcDCgxTZXJ2ZXJDb25maWcSLQoLc2VydmVy",
+            "X3R5cGUYASABKA4yGC5ncnBjLnRlc3RpbmcuU2VydmVyVHlwZRI1Cg9zZWN1",
+            "cml0eV9wYXJhbXMYAiABKAsyHC5ncnBjLnRlc3RpbmcuU2VjdXJpdHlQYXJh",
+            "bXMSDAoEcG9ydBgEIAEoBRIcChRhc3luY19zZXJ2ZXJfdGhyZWFkcxgHIAEo",
+            "BRISCgpjb3JlX2xpbWl0GAggASgFEjMKDnBheWxvYWRfY29uZmlnGAkgASgL",
+            "MhsuZ3JwYy50ZXN0aW5nLlBheWxvYWRDb25maWcSEQoJY29yZV9saXN0GAog",
+            "AygFEhgKEG90aGVyX3NlcnZlcl9hcGkYCyABKAkSFgoOdGhyZWFkc19wZXJf",
+            "Y3EYDCABKAUSHAoTcmVzb3VyY2VfcXVvdGFfc2l6ZRjpByABKAUSLwoMY2hh",
+            "bm5lbF9hcmdzGOoHIAMoCzIYLmdycGMudGVzdGluZy5DaGFubmVsQXJnEhgK",
+            "EHNlcnZlcl9wcm9jZXNzZXMYFSABKAUiaAoKU2VydmVyQXJncxIrCgVzZXR1",
+            "cBgBIAEoCzIaLmdycGMudGVzdGluZy5TZXJ2ZXJDb25maWdIABIiCgRtYXJr",
+            "GAIgASgLMhIuZ3JwYy50ZXN0aW5nLk1hcmtIAEIJCgdhcmd0eXBlIlUKDFNl",
+            "cnZlclN0YXR1cxIoCgVzdGF0cxgBIAEoCzIZLmdycGMudGVzdGluZy5TZXJ2",
+            "ZXJTdGF0cxIMCgRwb3J0GAIgASgFEg0KBWNvcmVzGAMgASgFIg0KC0NvcmVS",
+            "ZXF1ZXN0Ih0KDENvcmVSZXNwb25zZRINCgVjb3JlcxgBIAEoBSIGCgRWb2lk",
+            "Iv0BCghTY2VuYXJpbxIMCgRuYW1lGAEgASgJEjEKDWNsaWVudF9jb25maWcY",
+            "AiABKAsyGi5ncnBjLnRlc3RpbmcuQ2xpZW50Q29uZmlnEhMKC251bV9jbGll",
+            "bnRzGAMgASgFEjEKDXNlcnZlcl9jb25maWcYBCABKAsyGi5ncnBjLnRlc3Rp",
+            "bmcuU2VydmVyQ29uZmlnEhMKC251bV9zZXJ2ZXJzGAUgASgFEhYKDndhcm11",
+            "cF9zZWNvbmRzGAYgASgFEhkKEWJlbmNobWFya19zZWNvbmRzGAcgASgFEiAK",
+            "GHNwYXduX2xvY2FsX3dvcmtlcl9jb3VudBgIIAEoBSI2CglTY2VuYXJpb3MS",
+            "KQoJc2NlbmFyaW9zGAEgAygLMhYuZ3JwYy50ZXN0aW5nLlNjZW5hcmlvIoQE",
+            "ChVTY2VuYXJpb1Jlc3VsdFN1bW1hcnkSCwoDcXBzGAEgASgBEhsKE3Fwc19w",
+            "ZXJfc2VydmVyX2NvcmUYAiABKAESGgoSc2VydmVyX3N5c3RlbV90aW1lGAMg",
+            "ASgBEhgKEHNlcnZlcl91c2VyX3RpbWUYBCABKAESGgoSY2xpZW50X3N5c3Rl",
+            "bV90aW1lGAUgASgBEhgKEGNsaWVudF91c2VyX3RpbWUYBiABKAESEgoKbGF0",
+            "ZW5jeV81MBgHIAEoARISCgpsYXRlbmN5XzkwGAggASgBEhIKCmxhdGVuY3lf",
+            "OTUYCSABKAESEgoKbGF0ZW5jeV85ORgKIAEoARITCgtsYXRlbmN5Xzk5ORgL",
+            "IAEoARIYChBzZXJ2ZXJfY3B1X3VzYWdlGAwgASgBEiYKHnN1Y2Nlc3NmdWxf",
+            "cmVxdWVzdHNfcGVyX3NlY29uZBgNIAEoARIiChpmYWlsZWRfcmVxdWVzdHNf",
+            "cGVyX3NlY29uZBgOIAEoARIgChhjbGllbnRfcG9sbHNfcGVyX3JlcXVlc3QY",
+            "DyABKAESIAoYc2VydmVyX3BvbGxzX3Blcl9yZXF1ZXN0GBAgASgBEiIKGnNl",
+            "cnZlcl9xdWVyaWVzX3Blcl9jcHVfc2VjGBEgASgBEiIKGmNsaWVudF9xdWVy",
+            "aWVzX3Blcl9jcHVfc2VjGBIgASgBIoMDCg5TY2VuYXJpb1Jlc3VsdBIoCghz",
+            "Y2VuYXJpbxgBIAEoCzIWLmdycGMudGVzdGluZy5TY2VuYXJpbxIuCglsYXRl",
+            "bmNpZXMYAiABKAsyGy5ncnBjLnRlc3RpbmcuSGlzdG9ncmFtRGF0YRIvCgxj",
+            "bGllbnRfc3RhdHMYAyADKAsyGS5ncnBjLnRlc3RpbmcuQ2xpZW50U3RhdHMS",
+            "LwoMc2VydmVyX3N0YXRzGAQgAygLMhkuZ3JwYy50ZXN0aW5nLlNlcnZlclN0",
+            "YXRzEhQKDHNlcnZlcl9jb3JlcxgFIAMoBRI0CgdzdW1tYXJ5GAYgASgLMiMu",
+            "Z3JwYy50ZXN0aW5nLlNjZW5hcmlvUmVzdWx0U3VtbWFyeRIWCg5jbGllbnRf",
+            "c3VjY2VzcxgHIAMoCBIWCg5zZXJ2ZXJfc3VjY2VzcxgIIAMoCBI5Cg9yZXF1",
+            "ZXN0X3Jlc3VsdHMYCSADKAsyIC5ncnBjLnRlc3RpbmcuUmVxdWVzdFJlc3Vs",
+            "dENvdW50KlYKCkNsaWVudFR5cGUSDwoLU1lOQ19DTElFTlQQABIQCgxBU1lO",
+            "Q19DTElFTlQQARIQCgxPVEhFUl9DTElFTlQQAhITCg9DQUxMQkFDS19DTElF",
+            "TlQQAypwCgpTZXJ2ZXJUeXBlEg8KC1NZTkNfU0VSVkVSEAASEAoMQVNZTkNf",
+            "U0VSVkVSEAESGAoUQVNZTkNfR0VORVJJQ19TRVJWRVIQAhIQCgxPVEhFUl9T",
+            "RVJWRVIQAxITCg9DQUxMQkFDS19TRVJWRVIQBCpyCgdScGNUeXBlEgkKBVVO",
+            "QVJZEAASDQoJU1RSRUFNSU5HEAESGQoVU1RSRUFNSU5HX0ZST01fQ0xJRU5U",
+            "EAISGQoVU1RSRUFNSU5HX0ZST01fU0VSVkVSEAMSFwoTU1RSRUFNSU5HX0JP",
+            "VEhfV0FZUxAEYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Grpc.Testing.PayloadsReflection.Descriptor, global::Grpc.Testing.StatsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::Grpc.Testing.ClientType), typeof(global::Grpc.Testing.ServerType), typeof(global::Grpc.Testing.RpcType), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -111,11 +112,11 @@ namespace Grpc.Testing {
             new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.LoadParams), global::Grpc.Testing.LoadParams.Parser, new[]{ "ClosedLoop", "Poisson" }, new[]{ "Load" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.SecurityParams), global::Grpc.Testing.SecurityParams.Parser, new[]{ "UseTestCa", "ServerHostOverride", "CredType" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.ChannelArg), global::Grpc.Testing.ChannelArg.Parser, new[]{ "Name", "StrValue", "IntValue" }, new[]{ "Value" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.ClientConfig), global::Grpc.Testing.ClientConfig.Parser, new[]{ "ServerTargets", "ClientType", "SecurityParams", "OutstandingRpcsPerChannel", "ClientChannels", "AsyncClientThreads", "RpcType", "LoadParams", "PayloadConfig", "HistogramParams", "CoreList", "CoreLimit", "OtherClientApi", "ChannelArgs", "ThreadsPerCq", "MessagesPerStream", "UseCoalesceApi", "MedianLatencyCollectionIntervalMillis" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.ClientConfig), global::Grpc.Testing.ClientConfig.Parser, new[]{ "ServerTargets", "ClientType", "SecurityParams", "OutstandingRpcsPerChannel", "ClientChannels", "AsyncClientThreads", "RpcType", "LoadParams", "PayloadConfig", "HistogramParams", "CoreList", "CoreLimit", "OtherClientApi", "ChannelArgs", "ThreadsPerCq", "MessagesPerStream", "UseCoalesceApi", "MedianLatencyCollectionIntervalMillis", "ClientProcesses" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.ClientStatus), global::Grpc.Testing.ClientStatus.Parser, new[]{ "Stats" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.Mark), global::Grpc.Testing.Mark.Parser, new[]{ "Reset" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.ClientArgs), global::Grpc.Testing.ClientArgs.Parser, new[]{ "Setup", "Mark" }, new[]{ "Argtype" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.ServerConfig), global::Grpc.Testing.ServerConfig.Parser, new[]{ "ServerType", "SecurityParams", "Port", "AsyncServerThreads", "CoreLimit", "PayloadConfig", "CoreList", "OtherServerApi", "ThreadsPerCq", "ResourceQuotaSize", "ChannelArgs" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.ServerConfig), global::Grpc.Testing.ServerConfig.Parser, new[]{ "ServerType", "SecurityParams", "Port", "AsyncServerThreads", "CoreLimit", "PayloadConfig", "CoreList", "OtherServerApi", "ThreadsPerCq", "ResourceQuotaSize", "ChannelArgs", "ServerProcesses" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.ServerArgs), global::Grpc.Testing.ServerArgs.Parser, new[]{ "Setup", "Mark" }, new[]{ "Argtype" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.ServerStatus), global::Grpc.Testing.ServerStatus.Parser, new[]{ "Stats", "Port", "Cores" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Grpc.Testing.CoreRequest), global::Grpc.Testing.CoreRequest.Parser, null, null, null, null, null),
@@ -171,23 +172,31 @@ namespace Grpc.Testing {
   /// Parameters of poisson process distribution, which is a good representation
   /// of activity coming in from independent identical stationary sources.
   /// </summary>
-  public sealed partial class PoissonParams : pb::IMessage<PoissonParams> {
+  public sealed partial class PoissonParams : pb::IMessage<PoissonParams>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<PoissonParams> _parser = new pb::MessageParser<PoissonParams>(() => new PoissonParams());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<PoissonParams> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public PoissonParams() {
       OnConstruction();
     }
@@ -195,12 +204,14 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public PoissonParams(PoissonParams other) : this() {
       offeredLoad_ = other.offeredLoad_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public PoissonParams Clone() {
       return new PoissonParams(this);
     }
@@ -212,6 +223,7 @@ namespace Grpc.Testing {
     /// The rate of arrivals (a.k.a. lambda parameter of the exp distribution).
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double OfferedLoad {
       get { return offeredLoad_; }
       set {
@@ -220,11 +232,13 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as PoissonParams);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(PoissonParams other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -237,6 +251,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (OfferedLoad != 0D) hash ^= pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.GetHashCode(OfferedLoad);
@@ -247,12 +262,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (OfferedLoad != 0D) {
         output.WriteRawTag(9);
         output.WriteDouble(OfferedLoad);
@@ -260,9 +280,25 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (OfferedLoad != 0D) {
+        output.WriteRawTag(9);
+        output.WriteDouble(OfferedLoad);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (OfferedLoad != 0D) {
@@ -275,6 +311,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(PoissonParams other) {
       if (other == null) {
         return;
@@ -286,7 +323,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -299,7 +340,27 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 9: {
+            OfferedLoad = input.ReadDouble();
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
@@ -307,23 +368,31 @@ namespace Grpc.Testing {
   /// Once an RPC finishes, immediately start a new one.
   /// No configuration parameters needed.
   /// </summary>
-  public sealed partial class ClosedLoopParams : pb::IMessage<ClosedLoopParams> {
+  public sealed partial class ClosedLoopParams : pb::IMessage<ClosedLoopParams>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<ClosedLoopParams> _parser = new pb::MessageParser<ClosedLoopParams>(() => new ClosedLoopParams());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<ClosedLoopParams> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClosedLoopParams() {
       OnConstruction();
     }
@@ -331,21 +400,25 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClosedLoopParams(ClosedLoopParams other) : this() {
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClosedLoopParams Clone() {
       return new ClosedLoopParams(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as ClosedLoopParams);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(ClosedLoopParams other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -357,6 +430,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (_unknownFields != null) {
@@ -366,18 +440,35 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (_unknownFields != null) {
@@ -387,6 +478,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(ClosedLoopParams other) {
       if (other == null) {
         return;
@@ -395,7 +487,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -404,27 +500,51 @@ namespace Grpc.Testing {
             break;
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+        }
+      }
+    }
+    #endif
 
   }
 
-  public sealed partial class LoadParams : pb::IMessage<LoadParams> {
+  public sealed partial class LoadParams : pb::IMessage<LoadParams>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<LoadParams> _parser = new pb::MessageParser<LoadParams>(() => new LoadParams());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<LoadParams> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[2]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public LoadParams() {
       OnConstruction();
     }
@@ -432,6 +552,7 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public LoadParams(LoadParams other) : this() {
       switch (other.LoadCase) {
         case LoadOneofCase.ClosedLoop:
@@ -446,6 +567,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public LoadParams Clone() {
       return new LoadParams(this);
     }
@@ -453,6 +575,7 @@ namespace Grpc.Testing {
     /// <summary>Field number for the "closed_loop" field.</summary>
     public const int ClosedLoopFieldNumber = 1;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.ClosedLoopParams ClosedLoop {
       get { return loadCase_ == LoadOneofCase.ClosedLoop ? (global::Grpc.Testing.ClosedLoopParams) load_ : null; }
       set {
@@ -464,6 +587,7 @@ namespace Grpc.Testing {
     /// <summary>Field number for the "poisson" field.</summary>
     public const int PoissonFieldNumber = 2;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.PoissonParams Poisson {
       get { return loadCase_ == LoadOneofCase.Poisson ? (global::Grpc.Testing.PoissonParams) load_ : null; }
       set {
@@ -481,22 +605,26 @@ namespace Grpc.Testing {
     }
     private LoadOneofCase loadCase_ = LoadOneofCase.None;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public LoadOneofCase LoadCase {
       get { return loadCase_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void ClearLoad() {
       loadCase_ = LoadOneofCase.None;
       load_ = null;
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as LoadParams);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(LoadParams other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -511,6 +639,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (loadCase_ == LoadOneofCase.ClosedLoop) hash ^= ClosedLoop.GetHashCode();
@@ -523,12 +652,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (loadCase_ == LoadOneofCase.ClosedLoop) {
         output.WriteRawTag(10);
         output.WriteMessage(ClosedLoop);
@@ -540,9 +674,29 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (loadCase_ == LoadOneofCase.ClosedLoop) {
+        output.WriteRawTag(10);
+        output.WriteMessage(ClosedLoop);
+      }
+      if (loadCase_ == LoadOneofCase.Poisson) {
+        output.WriteRawTag(18);
+        output.WriteMessage(Poisson);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (loadCase_ == LoadOneofCase.ClosedLoop) {
@@ -558,6 +712,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(LoadParams other) {
       if (other == null) {
         return;
@@ -581,7 +736,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -608,30 +767,72 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            global::Grpc.Testing.ClosedLoopParams subBuilder = new global::Grpc.Testing.ClosedLoopParams();
+            if (loadCase_ == LoadOneofCase.ClosedLoop) {
+              subBuilder.MergeFrom(ClosedLoop);
+            }
+            input.ReadMessage(subBuilder);
+            ClosedLoop = subBuilder;
+            break;
+          }
+          case 18: {
+            global::Grpc.Testing.PoissonParams subBuilder = new global::Grpc.Testing.PoissonParams();
+            if (loadCase_ == LoadOneofCase.Poisson) {
+              subBuilder.MergeFrom(Poisson);
+            }
+            input.ReadMessage(subBuilder);
+            Poisson = subBuilder;
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
   /// <summary>
   /// presence of SecurityParams implies use of TLS
   /// </summary>
-  public sealed partial class SecurityParams : pb::IMessage<SecurityParams> {
+  public sealed partial class SecurityParams : pb::IMessage<SecurityParams>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<SecurityParams> _parser = new pb::MessageParser<SecurityParams>(() => new SecurityParams());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<SecurityParams> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[3]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public SecurityParams() {
       OnConstruction();
     }
@@ -639,6 +840,7 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public SecurityParams(SecurityParams other) : this() {
       useTestCa_ = other.useTestCa_;
       serverHostOverride_ = other.serverHostOverride_;
@@ -647,6 +849,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public SecurityParams Clone() {
       return new SecurityParams(this);
     }
@@ -655,6 +858,7 @@ namespace Grpc.Testing {
     public const int UseTestCaFieldNumber = 1;
     private bool useTestCa_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool UseTestCa {
       get { return useTestCa_; }
       set {
@@ -666,6 +870,7 @@ namespace Grpc.Testing {
     public const int ServerHostOverrideFieldNumber = 2;
     private string serverHostOverride_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public string ServerHostOverride {
       get { return serverHostOverride_; }
       set {
@@ -677,6 +882,7 @@ namespace Grpc.Testing {
     public const int CredTypeFieldNumber = 3;
     private string credType_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public string CredType {
       get { return credType_; }
       set {
@@ -685,11 +891,13 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as SecurityParams);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(SecurityParams other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -704,6 +912,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (UseTestCa != false) hash ^= UseTestCa.GetHashCode();
@@ -716,12 +925,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (UseTestCa != false) {
         output.WriteRawTag(8);
         output.WriteBool(UseTestCa);
@@ -737,9 +951,33 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (UseTestCa != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(UseTestCa);
+      }
+      if (ServerHostOverride.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(ServerHostOverride);
+      }
+      if (CredType.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(CredType);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (UseTestCa != false) {
@@ -758,6 +996,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(SecurityParams other) {
       if (other == null) {
         return;
@@ -775,7 +1014,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -796,27 +1039,63 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            UseTestCa = input.ReadBool();
+            break;
+          }
+          case 18: {
+            ServerHostOverride = input.ReadString();
+            break;
+          }
+          case 26: {
+            CredType = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
-  public sealed partial class ChannelArg : pb::IMessage<ChannelArg> {
+  public sealed partial class ChannelArg : pb::IMessage<ChannelArg>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<ChannelArg> _parser = new pb::MessageParser<ChannelArg>(() => new ChannelArg());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<ChannelArg> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[4]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ChannelArg() {
       OnConstruction();
     }
@@ -824,6 +1103,7 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ChannelArg(ChannelArg other) : this() {
       name_ = other.name_;
       switch (other.ValueCase) {
@@ -839,6 +1119,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ChannelArg Clone() {
       return new ChannelArg(this);
     }
@@ -847,6 +1128,7 @@ namespace Grpc.Testing {
     public const int NameFieldNumber = 1;
     private string name_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public string Name {
       get { return name_; }
       set {
@@ -857,6 +1139,7 @@ namespace Grpc.Testing {
     /// <summary>Field number for the "str_value" field.</summary>
     public const int StrValueFieldNumber = 2;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public string StrValue {
       get { return valueCase_ == ValueOneofCase.StrValue ? (string) value_ : ""; }
       set {
@@ -868,6 +1151,7 @@ namespace Grpc.Testing {
     /// <summary>Field number for the "int_value" field.</summary>
     public const int IntValueFieldNumber = 3;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int IntValue {
       get { return valueCase_ == ValueOneofCase.IntValue ? (int) value_ : 0; }
       set {
@@ -885,22 +1169,26 @@ namespace Grpc.Testing {
     }
     private ValueOneofCase valueCase_ = ValueOneofCase.None;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ValueOneofCase ValueCase {
       get { return valueCase_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void ClearValue() {
       valueCase_ = ValueOneofCase.None;
       value_ = null;
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as ChannelArg);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(ChannelArg other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -916,6 +1204,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (Name.Length != 0) hash ^= Name.GetHashCode();
@@ -929,12 +1218,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (Name.Length != 0) {
         output.WriteRawTag(10);
         output.WriteString(Name);
@@ -950,9 +1244,33 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Name.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Name);
+      }
+      if (valueCase_ == ValueOneofCase.StrValue) {
+        output.WriteRawTag(18);
+        output.WriteString(StrValue);
+      }
+      if (valueCase_ == ValueOneofCase.IntValue) {
+        output.WriteRawTag(24);
+        output.WriteInt32(IntValue);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (Name.Length != 0) {
@@ -971,6 +1289,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(ChannelArg other) {
       if (other == null) {
         return;
@@ -991,7 +1310,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -1012,27 +1335,63 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            Name = input.ReadString();
+            break;
+          }
+          case 18: {
+            StrValue = input.ReadString();
+            break;
+          }
+          case 24: {
+            IntValue = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
-  public sealed partial class ClientConfig : pb::IMessage<ClientConfig> {
+  public sealed partial class ClientConfig : pb::IMessage<ClientConfig>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<ClientConfig> _parser = new pb::MessageParser<ClientConfig>(() => new ClientConfig());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<ClientConfig> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[5]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClientConfig() {
       OnConstruction();
     }
@@ -1040,6 +1399,7 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClientConfig(ClientConfig other) : this() {
       serverTargets_ = other.serverTargets_.Clone();
       clientType_ = other.clientType_;
@@ -1059,10 +1419,12 @@ namespace Grpc.Testing {
       messagesPerStream_ = other.messagesPerStream_;
       useCoalesceApi_ = other.useCoalesceApi_;
       medianLatencyCollectionIntervalMillis_ = other.medianLatencyCollectionIntervalMillis_;
+      clientProcesses_ = other.clientProcesses_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClientConfig Clone() {
       return new ClientConfig(this);
     }
@@ -1076,6 +1438,7 @@ namespace Grpc.Testing {
     /// List of targets to connect to. At least one target needs to be specified.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<string> ServerTargets {
       get { return serverTargets_; }
     }
@@ -1084,6 +1447,7 @@ namespace Grpc.Testing {
     public const int ClientTypeFieldNumber = 2;
     private global::Grpc.Testing.ClientType clientType_ = global::Grpc.Testing.ClientType.SyncClient;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.ClientType ClientType {
       get { return clientType_; }
       set {
@@ -1095,6 +1459,7 @@ namespace Grpc.Testing {
     public const int SecurityParamsFieldNumber = 3;
     private global::Grpc.Testing.SecurityParams securityParams_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.SecurityParams SecurityParams {
       get { return securityParams_; }
       set {
@@ -1110,6 +1475,7 @@ namespace Grpc.Testing {
     /// For synchronous client, use a separate thread for each outstanding RPC.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int OutstandingRpcsPerChannel {
       get { return outstandingRpcsPerChannel_; }
       set {
@@ -1125,6 +1491,7 @@ namespace Grpc.Testing {
     /// i-th channel will connect to server_target[i % server_targets.size()]
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int ClientChannels {
       get { return clientChannels_; }
       set {
@@ -1139,6 +1506,7 @@ namespace Grpc.Testing {
     /// Only for async client. Number of threads to use to start/manage RPCs.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int AsyncClientThreads {
       get { return asyncClientThreads_; }
       set {
@@ -1150,6 +1518,7 @@ namespace Grpc.Testing {
     public const int RpcTypeFieldNumber = 8;
     private global::Grpc.Testing.RpcType rpcType_ = global::Grpc.Testing.RpcType.Unary;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.RpcType RpcType {
       get { return rpcType_; }
       set {
@@ -1164,6 +1533,7 @@ namespace Grpc.Testing {
     /// The requested load for the entire client (aggregated over all the threads).
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.LoadParams LoadParams {
       get { return loadParams_; }
       set {
@@ -1175,6 +1545,7 @@ namespace Grpc.Testing {
     public const int PayloadConfigFieldNumber = 11;
     private global::Grpc.Testing.PayloadConfig payloadConfig_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.PayloadConfig PayloadConfig {
       get { return payloadConfig_; }
       set {
@@ -1186,6 +1557,7 @@ namespace Grpc.Testing {
     public const int HistogramParamsFieldNumber = 12;
     private global::Grpc.Testing.HistogramParams histogramParams_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.HistogramParams HistogramParams {
       get { return histogramParams_; }
       set {
@@ -1202,6 +1574,7 @@ namespace Grpc.Testing {
     /// Specify the cores we should run the client on, if desired
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<int> CoreList {
       get { return coreList_; }
     }
@@ -1210,6 +1583,7 @@ namespace Grpc.Testing {
     public const int CoreLimitFieldNumber = 14;
     private int coreLimit_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CoreLimit {
       get { return coreLimit_; }
       set {
@@ -1224,6 +1598,7 @@ namespace Grpc.Testing {
     /// If we use an OTHER_CLIENT client_type, this string gives more detail
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public string OtherClientApi {
       get { return otherClientApi_; }
       set {
@@ -1237,6 +1612,7 @@ namespace Grpc.Testing {
         = pb::FieldCodec.ForMessage(130, global::Grpc.Testing.ChannelArg.Parser);
     private readonly pbc::RepeatedField<global::Grpc.Testing.ChannelArg> channelArgs_ = new pbc::RepeatedField<global::Grpc.Testing.ChannelArg>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<global::Grpc.Testing.ChannelArg> ChannelArgs {
       get { return channelArgs_; }
     }
@@ -1248,6 +1624,7 @@ namespace Grpc.Testing {
     /// Number of threads that share each completion queue
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int ThreadsPerCq {
       get { return threadsPerCq_; }
       set {
@@ -1262,6 +1639,7 @@ namespace Grpc.Testing {
     /// Number of messages on a stream before it gets finished/restarted
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int MessagesPerStream {
       get { return messagesPerStream_; }
       set {
@@ -1276,6 +1654,7 @@ namespace Grpc.Testing {
     /// Use coalescing API when possible.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool UseCoalesceApi {
       get { return useCoalesceApi_; }
       set {
@@ -1291,6 +1670,7 @@ namespace Grpc.Testing {
     /// medians in milliseconds.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int MedianLatencyCollectionIntervalMillis {
       get { return medianLatencyCollectionIntervalMillis_; }
       set {
@@ -1298,12 +1678,29 @@ namespace Grpc.Testing {
       }
     }
 
+    /// <summary>Field number for the "client_processes" field.</summary>
+    public const int ClientProcessesFieldNumber = 21;
+    private int clientProcesses_;
+    /// <summary>
+    /// Number of client processes. 0 indicates no restriction.
+    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int ClientProcesses {
+      get { return clientProcesses_; }
+      set {
+        clientProcesses_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as ClientConfig);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(ClientConfig other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -1329,10 +1726,12 @@ namespace Grpc.Testing {
       if (MessagesPerStream != other.MessagesPerStream) return false;
       if (UseCoalesceApi != other.UseCoalesceApi) return false;
       if (MedianLatencyCollectionIntervalMillis != other.MedianLatencyCollectionIntervalMillis) return false;
+      if (ClientProcesses != other.ClientProcesses) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       hash ^= serverTargets_.GetHashCode();
@@ -1353,6 +1752,7 @@ namespace Grpc.Testing {
       if (MessagesPerStream != 0) hash ^= MessagesPerStream.GetHashCode();
       if (UseCoalesceApi != false) hash ^= UseCoalesceApi.GetHashCode();
       if (MedianLatencyCollectionIntervalMillis != 0) hash ^= MedianLatencyCollectionIntervalMillis.GetHashCode();
+      if (ClientProcesses != 0) hash ^= ClientProcesses.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1360,12 +1760,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       serverTargets_.WriteTo(output, _repeated_serverTargets_codec);
       if (ClientType != global::Grpc.Testing.ClientType.SyncClient) {
         output.WriteRawTag(16);
@@ -1429,12 +1834,95 @@ namespace Grpc.Testing {
         output.WriteRawTag(160, 1);
         output.WriteInt32(MedianLatencyCollectionIntervalMillis);
       }
+      if (ClientProcesses != 0) {
+        output.WriteRawTag(168, 1);
+        output.WriteInt32(ClientProcesses);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      serverTargets_.WriteTo(ref output, _repeated_serverTargets_codec);
+      if (ClientType != global::Grpc.Testing.ClientType.SyncClient) {
+        output.WriteRawTag(16);
+        output.WriteEnum((int) ClientType);
+      }
+      if (securityParams_ != null) {
+        output.WriteRawTag(26);
+        output.WriteMessage(SecurityParams);
+      }
+      if (OutstandingRpcsPerChannel != 0) {
+        output.WriteRawTag(32);
+        output.WriteInt32(OutstandingRpcsPerChannel);
+      }
+      if (ClientChannels != 0) {
+        output.WriteRawTag(40);
+        output.WriteInt32(ClientChannels);
+      }
+      if (AsyncClientThreads != 0) {
+        output.WriteRawTag(56);
+        output.WriteInt32(AsyncClientThreads);
+      }
+      if (RpcType != global::Grpc.Testing.RpcType.Unary) {
+        output.WriteRawTag(64);
+        output.WriteEnum((int) RpcType);
+      }
+      if (loadParams_ != null) {
+        output.WriteRawTag(82);
+        output.WriteMessage(LoadParams);
+      }
+      if (payloadConfig_ != null) {
+        output.WriteRawTag(90);
+        output.WriteMessage(PayloadConfig);
+      }
+      if (histogramParams_ != null) {
+        output.WriteRawTag(98);
+        output.WriteMessage(HistogramParams);
+      }
+      coreList_.WriteTo(ref output, _repeated_coreList_codec);
+      if (CoreLimit != 0) {
+        output.WriteRawTag(112);
+        output.WriteInt32(CoreLimit);
+      }
+      if (OtherClientApi.Length != 0) {
+        output.WriteRawTag(122);
+        output.WriteString(OtherClientApi);
+      }
+      channelArgs_.WriteTo(ref output, _repeated_channelArgs_codec);
+      if (ThreadsPerCq != 0) {
+        output.WriteRawTag(136, 1);
+        output.WriteInt32(ThreadsPerCq);
+      }
+      if (MessagesPerStream != 0) {
+        output.WriteRawTag(144, 1);
+        output.WriteInt32(MessagesPerStream);
+      }
+      if (UseCoalesceApi != false) {
+        output.WriteRawTag(152, 1);
+        output.WriteBool(UseCoalesceApi);
+      }
+      if (MedianLatencyCollectionIntervalMillis != 0) {
+        output.WriteRawTag(160, 1);
+        output.WriteInt32(MedianLatencyCollectionIntervalMillis);
+      }
+      if (ClientProcesses != 0) {
+        output.WriteRawTag(168, 1);
+        output.WriteInt32(ClientProcesses);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       size += serverTargets_.CalculateSize(_repeated_serverTargets_codec);
@@ -1485,6 +1973,9 @@ namespace Grpc.Testing {
       if (MedianLatencyCollectionIntervalMillis != 0) {
         size += 2 + pb::CodedOutputStream.ComputeInt32Size(MedianLatencyCollectionIntervalMillis);
       }
+      if (ClientProcesses != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeInt32Size(ClientProcesses);
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -1492,6 +1983,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(ClientConfig other) {
       if (other == null) {
         return;
@@ -1556,11 +2048,18 @@ namespace Grpc.Testing {
       if (other.MedianLatencyCollectionIntervalMillis != 0) {
         MedianLatencyCollectionIntervalMillis = other.MedianLatencyCollectionIntervalMillis;
       }
+      if (other.ClientProcesses != 0) {
+        ClientProcesses = other.ClientProcesses;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -1652,29 +2151,146 @@ namespace Grpc.Testing {
             MedianLatencyCollectionIntervalMillis = input.ReadInt32();
             break;
           }
+          case 168: {
+            ClientProcesses = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            serverTargets_.AddEntriesFrom(ref input, _repeated_serverTargets_codec);
+            break;
+          }
+          case 16: {
+            ClientType = (global::Grpc.Testing.ClientType) input.ReadEnum();
+            break;
+          }
+          case 26: {
+            if (securityParams_ == null) {
+              SecurityParams = new global::Grpc.Testing.SecurityParams();
+            }
+            input.ReadMessage(SecurityParams);
+            break;
+          }
+          case 32: {
+            OutstandingRpcsPerChannel = input.ReadInt32();
+            break;
+          }
+          case 40: {
+            ClientChannels = input.ReadInt32();
+            break;
+          }
+          case 56: {
+            AsyncClientThreads = input.ReadInt32();
+            break;
+          }
+          case 64: {
+            RpcType = (global::Grpc.Testing.RpcType) input.ReadEnum();
+            break;
+          }
+          case 82: {
+            if (loadParams_ == null) {
+              LoadParams = new global::Grpc.Testing.LoadParams();
+            }
+            input.ReadMessage(LoadParams);
+            break;
+          }
+          case 90: {
+            if (payloadConfig_ == null) {
+              PayloadConfig = new global::Grpc.Testing.PayloadConfig();
+            }
+            input.ReadMessage(PayloadConfig);
+            break;
+          }
+          case 98: {
+            if (histogramParams_ == null) {
+              HistogramParams = new global::Grpc.Testing.HistogramParams();
+            }
+            input.ReadMessage(HistogramParams);
+            break;
+          }
+          case 106:
+          case 104: {
+            coreList_.AddEntriesFrom(ref input, _repeated_coreList_codec);
+            break;
+          }
+          case 112: {
+            CoreLimit = input.ReadInt32();
+            break;
+          }
+          case 122: {
+            OtherClientApi = input.ReadString();
+            break;
+          }
+          case 130: {
+            channelArgs_.AddEntriesFrom(ref input, _repeated_channelArgs_codec);
+            break;
+          }
+          case 136: {
+            ThreadsPerCq = input.ReadInt32();
+            break;
+          }
+          case 144: {
+            MessagesPerStream = input.ReadInt32();
+            break;
+          }
+          case 152: {
+            UseCoalesceApi = input.ReadBool();
+            break;
+          }
+          case 160: {
+            MedianLatencyCollectionIntervalMillis = input.ReadInt32();
+            break;
+          }
+          case 168: {
+            ClientProcesses = input.ReadInt32();
+            break;
+          }
         }
       }
     }
+    #endif
 
   }
 
-  public sealed partial class ClientStatus : pb::IMessage<ClientStatus> {
+  public sealed partial class ClientStatus : pb::IMessage<ClientStatus>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<ClientStatus> _parser = new pb::MessageParser<ClientStatus>(() => new ClientStatus());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<ClientStatus> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[6]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClientStatus() {
       OnConstruction();
     }
@@ -1682,12 +2298,14 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClientStatus(ClientStatus other) : this() {
       stats_ = other.stats_ != null ? other.stats_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClientStatus Clone() {
       return new ClientStatus(this);
     }
@@ -1696,6 +2314,7 @@ namespace Grpc.Testing {
     public const int StatsFieldNumber = 1;
     private global::Grpc.Testing.ClientStats stats_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.ClientStats Stats {
       get { return stats_; }
       set {
@@ -1704,11 +2323,13 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as ClientStatus);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(ClientStatus other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -1721,6 +2342,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (stats_ != null) hash ^= Stats.GetHashCode();
@@ -1731,12 +2353,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (stats_ != null) {
         output.WriteRawTag(10);
         output.WriteMessage(Stats);
@@ -1744,9 +2371,25 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (stats_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Stats);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (stats_ != null) {
@@ -1759,6 +2402,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(ClientStatus other) {
       if (other == null) {
         return;
@@ -1773,7 +2417,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -1789,30 +2437,61 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (stats_ == null) {
+              Stats = new global::Grpc.Testing.ClientStats();
+            }
+            input.ReadMessage(Stats);
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
   /// <summary>
   /// Request current stats
   /// </summary>
-  public sealed partial class Mark : pb::IMessage<Mark> {
+  public sealed partial class Mark : pb::IMessage<Mark>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<Mark> _parser = new pb::MessageParser<Mark>(() => new Mark());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<Mark> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[7]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public Mark() {
       OnConstruction();
     }
@@ -1820,12 +2499,14 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public Mark(Mark other) : this() {
       reset_ = other.reset_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public Mark Clone() {
       return new Mark(this);
     }
@@ -1837,6 +2518,7 @@ namespace Grpc.Testing {
     /// if true, the stats will be reset after taking their snapshot.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Reset {
       get { return reset_; }
       set {
@@ -1845,11 +2527,13 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as Mark);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(Mark other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -1862,6 +2546,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (Reset != false) hash ^= Reset.GetHashCode();
@@ -1872,12 +2557,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (Reset != false) {
         output.WriteRawTag(8);
         output.WriteBool(Reset);
@@ -1885,9 +2575,25 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Reset != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(Reset);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (Reset != false) {
@@ -1900,6 +2606,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(Mark other) {
       if (other == null) {
         return;
@@ -1911,7 +2618,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -1924,27 +2635,55 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            Reset = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
-  public sealed partial class ClientArgs : pb::IMessage<ClientArgs> {
+  public sealed partial class ClientArgs : pb::IMessage<ClientArgs>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<ClientArgs> _parser = new pb::MessageParser<ClientArgs>(() => new ClientArgs());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<ClientArgs> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[8]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClientArgs() {
       OnConstruction();
     }
@@ -1952,6 +2691,7 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClientArgs(ClientArgs other) : this() {
       switch (other.ArgtypeCase) {
         case ArgtypeOneofCase.Setup:
@@ -1966,6 +2706,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClientArgs Clone() {
       return new ClientArgs(this);
     }
@@ -1973,6 +2714,7 @@ namespace Grpc.Testing {
     /// <summary>Field number for the "setup" field.</summary>
     public const int SetupFieldNumber = 1;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.ClientConfig Setup {
       get { return argtypeCase_ == ArgtypeOneofCase.Setup ? (global::Grpc.Testing.ClientConfig) argtype_ : null; }
       set {
@@ -1984,6 +2726,7 @@ namespace Grpc.Testing {
     /// <summary>Field number for the "mark" field.</summary>
     public const int MarkFieldNumber = 2;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.Mark Mark {
       get { return argtypeCase_ == ArgtypeOneofCase.Mark ? (global::Grpc.Testing.Mark) argtype_ : null; }
       set {
@@ -2001,22 +2744,26 @@ namespace Grpc.Testing {
     }
     private ArgtypeOneofCase argtypeCase_ = ArgtypeOneofCase.None;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ArgtypeOneofCase ArgtypeCase {
       get { return argtypeCase_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void ClearArgtype() {
       argtypeCase_ = ArgtypeOneofCase.None;
       argtype_ = null;
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as ClientArgs);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(ClientArgs other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -2031,6 +2778,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (argtypeCase_ == ArgtypeOneofCase.Setup) hash ^= Setup.GetHashCode();
@@ -2043,12 +2791,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (argtypeCase_ == ArgtypeOneofCase.Setup) {
         output.WriteRawTag(10);
         output.WriteMessage(Setup);
@@ -2060,9 +2813,29 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (argtypeCase_ == ArgtypeOneofCase.Setup) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Setup);
+      }
+      if (argtypeCase_ == ArgtypeOneofCase.Mark) {
+        output.WriteRawTag(18);
+        output.WriteMessage(Mark);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (argtypeCase_ == ArgtypeOneofCase.Setup) {
@@ -2078,6 +2851,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(ClientArgs other) {
       if (other == null) {
         return;
@@ -2101,7 +2875,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -2128,27 +2906,69 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            global::Grpc.Testing.ClientConfig subBuilder = new global::Grpc.Testing.ClientConfig();
+            if (argtypeCase_ == ArgtypeOneofCase.Setup) {
+              subBuilder.MergeFrom(Setup);
+            }
+            input.ReadMessage(subBuilder);
+            Setup = subBuilder;
+            break;
+          }
+          case 18: {
+            global::Grpc.Testing.Mark subBuilder = new global::Grpc.Testing.Mark();
+            if (argtypeCase_ == ArgtypeOneofCase.Mark) {
+              subBuilder.MergeFrom(Mark);
+            }
+            input.ReadMessage(subBuilder);
+            Mark = subBuilder;
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
-  public sealed partial class ServerConfig : pb::IMessage<ServerConfig> {
+  public sealed partial class ServerConfig : pb::IMessage<ServerConfig>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<ServerConfig> _parser = new pb::MessageParser<ServerConfig>(() => new ServerConfig());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<ServerConfig> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[9]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ServerConfig() {
       OnConstruction();
     }
@@ -2156,6 +2976,7 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ServerConfig(ServerConfig other) : this() {
       serverType_ = other.serverType_;
       securityParams_ = other.securityParams_ != null ? other.securityParams_.Clone() : null;
@@ -2168,10 +2989,12 @@ namespace Grpc.Testing {
       threadsPerCq_ = other.threadsPerCq_;
       resourceQuotaSize_ = other.resourceQuotaSize_;
       channelArgs_ = other.channelArgs_.Clone();
+      serverProcesses_ = other.serverProcesses_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ServerConfig Clone() {
       return new ServerConfig(this);
     }
@@ -2180,6 +3003,7 @@ namespace Grpc.Testing {
     public const int ServerTypeFieldNumber = 1;
     private global::Grpc.Testing.ServerType serverType_ = global::Grpc.Testing.ServerType.SyncServer;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.ServerType ServerType {
       get { return serverType_; }
       set {
@@ -2191,6 +3015,7 @@ namespace Grpc.Testing {
     public const int SecurityParamsFieldNumber = 2;
     private global::Grpc.Testing.SecurityParams securityParams_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.SecurityParams SecurityParams {
       get { return securityParams_; }
       set {
@@ -2205,6 +3030,7 @@ namespace Grpc.Testing {
     /// Port on which to listen. Zero means pick unused port.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int Port {
       get { return port_; }
       set {
@@ -2219,6 +3045,7 @@ namespace Grpc.Testing {
     /// Only for async server. Number of threads used to serve the requests.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int AsyncServerThreads {
       get { return asyncServerThreads_; }
       set {
@@ -2233,6 +3060,7 @@ namespace Grpc.Testing {
     /// Specify the number of cores to limit server to, if desired
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CoreLimit {
       get { return coreLimit_; }
       set {
@@ -2250,6 +3078,7 @@ namespace Grpc.Testing {
     /// 'SimpleRequest' objects in RPC requests.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.PayloadConfig PayloadConfig {
       get { return payloadConfig_; }
       set {
@@ -2266,6 +3095,7 @@ namespace Grpc.Testing {
     /// Specify the cores we should run the server on, if desired
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<int> CoreList {
       get { return coreList_; }
     }
@@ -2277,6 +3107,7 @@ namespace Grpc.Testing {
     /// If we use an OTHER_SERVER client_type, this string gives more detail
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public string OtherServerApi {
       get { return otherServerApi_; }
       set {
@@ -2291,6 +3122,7 @@ namespace Grpc.Testing {
     /// Number of threads that share each completion queue
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int ThreadsPerCq {
       get { return threadsPerCq_; }
       set {
@@ -2305,6 +3137,7 @@ namespace Grpc.Testing {
     /// Buffer pool size (no buffer pool specified if unset)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int ResourceQuotaSize {
       get { return resourceQuotaSize_; }
       set {
@@ -2318,16 +3151,34 @@ namespace Grpc.Testing {
         = pb::FieldCodec.ForMessage(8018, global::Grpc.Testing.ChannelArg.Parser);
     private readonly pbc::RepeatedField<global::Grpc.Testing.ChannelArg> channelArgs_ = new pbc::RepeatedField<global::Grpc.Testing.ChannelArg>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<global::Grpc.Testing.ChannelArg> ChannelArgs {
       get { return channelArgs_; }
     }
 
+    /// <summary>Field number for the "server_processes" field.</summary>
+    public const int ServerProcessesFieldNumber = 21;
+    private int serverProcesses_;
+    /// <summary>
+    /// Number of server processes. 0 indicates no restriction.
+    /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int ServerProcesses {
+      get { return serverProcesses_; }
+      set {
+        serverProcesses_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as ServerConfig);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(ServerConfig other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -2346,10 +3197,12 @@ namespace Grpc.Testing {
       if (ThreadsPerCq != other.ThreadsPerCq) return false;
       if (ResourceQuotaSize != other.ResourceQuotaSize) return false;
       if(!channelArgs_.Equals(other.channelArgs_)) return false;
+      if (ServerProcesses != other.ServerProcesses) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (ServerType != global::Grpc.Testing.ServerType.SyncServer) hash ^= ServerType.GetHashCode();
@@ -2363,6 +3216,7 @@ namespace Grpc.Testing {
       if (ThreadsPerCq != 0) hash ^= ThreadsPerCq.GetHashCode();
       if (ResourceQuotaSize != 0) hash ^= ResourceQuotaSize.GetHashCode();
       hash ^= channelArgs_.GetHashCode();
+      if (ServerProcesses != 0) hash ^= ServerProcesses.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2370,12 +3224,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (ServerType != global::Grpc.Testing.ServerType.SyncServer) {
         output.WriteRawTag(8);
         output.WriteEnum((int) ServerType);
@@ -2409,6 +3268,10 @@ namespace Grpc.Testing {
         output.WriteRawTag(96);
         output.WriteInt32(ThreadsPerCq);
       }
+      if (ServerProcesses != 0) {
+        output.WriteRawTag(168, 1);
+        output.WriteInt32(ServerProcesses);
+      }
       if (ResourceQuotaSize != 0) {
         output.WriteRawTag(200, 62);
         output.WriteInt32(ResourceQuotaSize);
@@ -2417,9 +3280,63 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (ServerType != global::Grpc.Testing.ServerType.SyncServer) {
+        output.WriteRawTag(8);
+        output.WriteEnum((int) ServerType);
+      }
+      if (securityParams_ != null) {
+        output.WriteRawTag(18);
+        output.WriteMessage(SecurityParams);
+      }
+      if (Port != 0) {
+        output.WriteRawTag(32);
+        output.WriteInt32(Port);
+      }
+      if (AsyncServerThreads != 0) {
+        output.WriteRawTag(56);
+        output.WriteInt32(AsyncServerThreads);
+      }
+      if (CoreLimit != 0) {
+        output.WriteRawTag(64);
+        output.WriteInt32(CoreLimit);
+      }
+      if (payloadConfig_ != null) {
+        output.WriteRawTag(74);
+        output.WriteMessage(PayloadConfig);
+      }
+      coreList_.WriteTo(ref output, _repeated_coreList_codec);
+      if (OtherServerApi.Length != 0) {
+        output.WriteRawTag(90);
+        output.WriteString(OtherServerApi);
+      }
+      if (ThreadsPerCq != 0) {
+        output.WriteRawTag(96);
+        output.WriteInt32(ThreadsPerCq);
+      }
+      if (ServerProcesses != 0) {
+        output.WriteRawTag(168, 1);
+        output.WriteInt32(ServerProcesses);
+      }
+      if (ResourceQuotaSize != 0) {
+        output.WriteRawTag(200, 62);
+        output.WriteInt32(ResourceQuotaSize);
+      }
+      channelArgs_.WriteTo(ref output, _repeated_channelArgs_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (ServerType != global::Grpc.Testing.ServerType.SyncServer) {
@@ -2451,6 +3368,9 @@ namespace Grpc.Testing {
         size += 2 + pb::CodedOutputStream.ComputeInt32Size(ResourceQuotaSize);
       }
       size += channelArgs_.CalculateSize(_repeated_channelArgs_codec);
+      if (ServerProcesses != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeInt32Size(ServerProcesses);
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -2458,6 +3378,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(ServerConfig other) {
       if (other == null) {
         return;
@@ -2497,11 +3418,18 @@ namespace Grpc.Testing {
         ResourceQuotaSize = other.ResourceQuotaSize;
       }
       channelArgs_.Add(other.channelArgs_);
+      if (other.ServerProcesses != 0) {
+        ServerProcesses = other.ServerProcesses;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -2551,6 +3479,10 @@ namespace Grpc.Testing {
             ThreadsPerCq = input.ReadInt32();
             break;
           }
+          case 168: {
+            ServerProcesses = input.ReadInt32();
+            break;
+          }
           case 8008: {
             ResourceQuotaSize = input.ReadInt32();
             break;
@@ -2561,27 +3493,106 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            ServerType = (global::Grpc.Testing.ServerType) input.ReadEnum();
+            break;
+          }
+          case 18: {
+            if (securityParams_ == null) {
+              SecurityParams = new global::Grpc.Testing.SecurityParams();
+            }
+            input.ReadMessage(SecurityParams);
+            break;
+          }
+          case 32: {
+            Port = input.ReadInt32();
+            break;
+          }
+          case 56: {
+            AsyncServerThreads = input.ReadInt32();
+            break;
+          }
+          case 64: {
+            CoreLimit = input.ReadInt32();
+            break;
+          }
+          case 74: {
+            if (payloadConfig_ == null) {
+              PayloadConfig = new global::Grpc.Testing.PayloadConfig();
+            }
+            input.ReadMessage(PayloadConfig);
+            break;
+          }
+          case 82:
+          case 80: {
+            coreList_.AddEntriesFrom(ref input, _repeated_coreList_codec);
+            break;
+          }
+          case 90: {
+            OtherServerApi = input.ReadString();
+            break;
+          }
+          case 96: {
+            ThreadsPerCq = input.ReadInt32();
+            break;
+          }
+          case 168: {
+            ServerProcesses = input.ReadInt32();
+            break;
+          }
+          case 8008: {
+            ResourceQuotaSize = input.ReadInt32();
+            break;
+          }
+          case 8018: {
+            channelArgs_.AddEntriesFrom(ref input, _repeated_channelArgs_codec);
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
-  public sealed partial class ServerArgs : pb::IMessage<ServerArgs> {
+  public sealed partial class ServerArgs : pb::IMessage<ServerArgs>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<ServerArgs> _parser = new pb::MessageParser<ServerArgs>(() => new ServerArgs());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<ServerArgs> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[10]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ServerArgs() {
       OnConstruction();
     }
@@ -2589,6 +3600,7 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ServerArgs(ServerArgs other) : this() {
       switch (other.ArgtypeCase) {
         case ArgtypeOneofCase.Setup:
@@ -2603,6 +3615,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ServerArgs Clone() {
       return new ServerArgs(this);
     }
@@ -2610,6 +3623,7 @@ namespace Grpc.Testing {
     /// <summary>Field number for the "setup" field.</summary>
     public const int SetupFieldNumber = 1;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.ServerConfig Setup {
       get { return argtypeCase_ == ArgtypeOneofCase.Setup ? (global::Grpc.Testing.ServerConfig) argtype_ : null; }
       set {
@@ -2621,6 +3635,7 @@ namespace Grpc.Testing {
     /// <summary>Field number for the "mark" field.</summary>
     public const int MarkFieldNumber = 2;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.Mark Mark {
       get { return argtypeCase_ == ArgtypeOneofCase.Mark ? (global::Grpc.Testing.Mark) argtype_ : null; }
       set {
@@ -2638,22 +3653,26 @@ namespace Grpc.Testing {
     }
     private ArgtypeOneofCase argtypeCase_ = ArgtypeOneofCase.None;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ArgtypeOneofCase ArgtypeCase {
       get { return argtypeCase_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void ClearArgtype() {
       argtypeCase_ = ArgtypeOneofCase.None;
       argtype_ = null;
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as ServerArgs);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(ServerArgs other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -2668,6 +3687,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (argtypeCase_ == ArgtypeOneofCase.Setup) hash ^= Setup.GetHashCode();
@@ -2680,12 +3700,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (argtypeCase_ == ArgtypeOneofCase.Setup) {
         output.WriteRawTag(10);
         output.WriteMessage(Setup);
@@ -2697,9 +3722,29 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (argtypeCase_ == ArgtypeOneofCase.Setup) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Setup);
+      }
+      if (argtypeCase_ == ArgtypeOneofCase.Mark) {
+        output.WriteRawTag(18);
+        output.WriteMessage(Mark);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (argtypeCase_ == ArgtypeOneofCase.Setup) {
@@ -2715,6 +3760,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(ServerArgs other) {
       if (other == null) {
         return;
@@ -2738,7 +3784,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -2765,27 +3815,69 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            global::Grpc.Testing.ServerConfig subBuilder = new global::Grpc.Testing.ServerConfig();
+            if (argtypeCase_ == ArgtypeOneofCase.Setup) {
+              subBuilder.MergeFrom(Setup);
+            }
+            input.ReadMessage(subBuilder);
+            Setup = subBuilder;
+            break;
+          }
+          case 18: {
+            global::Grpc.Testing.Mark subBuilder = new global::Grpc.Testing.Mark();
+            if (argtypeCase_ == ArgtypeOneofCase.Mark) {
+              subBuilder.MergeFrom(Mark);
+            }
+            input.ReadMessage(subBuilder);
+            Mark = subBuilder;
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
-  public sealed partial class ServerStatus : pb::IMessage<ServerStatus> {
+  public sealed partial class ServerStatus : pb::IMessage<ServerStatus>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<ServerStatus> _parser = new pb::MessageParser<ServerStatus>(() => new ServerStatus());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<ServerStatus> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[11]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ServerStatus() {
       OnConstruction();
     }
@@ -2793,6 +3885,7 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ServerStatus(ServerStatus other) : this() {
       stats_ = other.stats_ != null ? other.stats_.Clone() : null;
       port_ = other.port_;
@@ -2801,6 +3894,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ServerStatus Clone() {
       return new ServerStatus(this);
     }
@@ -2809,6 +3903,7 @@ namespace Grpc.Testing {
     public const int StatsFieldNumber = 1;
     private global::Grpc.Testing.ServerStats stats_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.ServerStats Stats {
       get { return stats_; }
       set {
@@ -2823,6 +3918,7 @@ namespace Grpc.Testing {
     /// the port bound by the server
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int Port {
       get { return port_; }
       set {
@@ -2837,6 +3933,7 @@ namespace Grpc.Testing {
     /// Number of cores available to the server
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int Cores {
       get { return cores_; }
       set {
@@ -2845,11 +3942,13 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as ServerStatus);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(ServerStatus other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -2864,6 +3963,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (stats_ != null) hash ^= Stats.GetHashCode();
@@ -2876,12 +3976,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (stats_ != null) {
         output.WriteRawTag(10);
         output.WriteMessage(Stats);
@@ -2897,9 +4002,33 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (stats_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Stats);
+      }
+      if (Port != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(Port);
+      }
+      if (Cores != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(Cores);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (stats_ != null) {
@@ -2918,6 +4047,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(ServerStatus other) {
       if (other == null) {
         return;
@@ -2938,7 +4068,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -2962,27 +4096,66 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (stats_ == null) {
+              Stats = new global::Grpc.Testing.ServerStats();
+            }
+            input.ReadMessage(Stats);
+            break;
+          }
+          case 16: {
+            Port = input.ReadInt32();
+            break;
+          }
+          case 24: {
+            Cores = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
-  public sealed partial class CoreRequest : pb::IMessage<CoreRequest> {
+  public sealed partial class CoreRequest : pb::IMessage<CoreRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<CoreRequest> _parser = new pb::MessageParser<CoreRequest>(() => new CoreRequest());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<CoreRequest> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[12]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public CoreRequest() {
       OnConstruction();
     }
@@ -2990,21 +4163,25 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public CoreRequest(CoreRequest other) : this() {
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public CoreRequest Clone() {
       return new CoreRequest(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as CoreRequest);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(CoreRequest other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -3016,6 +4193,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (_unknownFields != null) {
@@ -3025,18 +4203,35 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (_unknownFields != null) {
@@ -3046,6 +4241,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(CoreRequest other) {
       if (other == null) {
         return;
@@ -3054,7 +4250,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -3063,27 +4263,51 @@ namespace Grpc.Testing {
             break;
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+        }
+      }
+    }
+    #endif
 
   }
 
-  public sealed partial class CoreResponse : pb::IMessage<CoreResponse> {
+  public sealed partial class CoreResponse : pb::IMessage<CoreResponse>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<CoreResponse> _parser = new pb::MessageParser<CoreResponse>(() => new CoreResponse());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<CoreResponse> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[13]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public CoreResponse() {
       OnConstruction();
     }
@@ -3091,12 +4315,14 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public CoreResponse(CoreResponse other) : this() {
       cores_ = other.cores_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public CoreResponse Clone() {
       return new CoreResponse(this);
     }
@@ -3108,6 +4334,7 @@ namespace Grpc.Testing {
     /// Number of cores available on the server
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int Cores {
       get { return cores_; }
       set {
@@ -3116,11 +4343,13 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as CoreResponse);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(CoreResponse other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -3133,6 +4362,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (Cores != 0) hash ^= Cores.GetHashCode();
@@ -3143,12 +4373,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (Cores != 0) {
         output.WriteRawTag(8);
         output.WriteInt32(Cores);
@@ -3156,9 +4391,25 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Cores != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(Cores);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (Cores != 0) {
@@ -3171,6 +4422,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(CoreResponse other) {
       if (other == null) {
         return;
@@ -3182,7 +4434,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -3195,27 +4451,55 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            Cores = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
-  public sealed partial class Void : pb::IMessage<Void> {
+  public sealed partial class Void : pb::IMessage<Void>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<Void> _parser = new pb::MessageParser<Void>(() => new Void());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<Void> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[14]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public Void() {
       OnConstruction();
     }
@@ -3223,21 +4507,25 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public Void(Void other) : this() {
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public Void Clone() {
       return new Void(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as Void);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(Void other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -3249,6 +4537,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (_unknownFields != null) {
@@ -3258,18 +4547,35 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (_unknownFields != null) {
@@ -3279,6 +4585,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(Void other) {
       if (other == null) {
         return;
@@ -3287,7 +4594,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -3296,30 +4607,54 @@ namespace Grpc.Testing {
             break;
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+        }
+      }
+    }
+    #endif
 
   }
 
   /// <summary>
   /// A single performance scenario: input to qps_json_driver
   /// </summary>
-  public sealed partial class Scenario : pb::IMessage<Scenario> {
+  public sealed partial class Scenario : pb::IMessage<Scenario>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<Scenario> _parser = new pb::MessageParser<Scenario>(() => new Scenario());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<Scenario> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[15]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public Scenario() {
       OnConstruction();
     }
@@ -3327,6 +4662,7 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public Scenario(Scenario other) : this() {
       name_ = other.name_;
       clientConfig_ = other.clientConfig_ != null ? other.clientConfig_.Clone() : null;
@@ -3340,6 +4676,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public Scenario Clone() {
       return new Scenario(this);
     }
@@ -3351,6 +4688,7 @@ namespace Grpc.Testing {
     /// Human readable name for this scenario
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public string Name {
       get { return name_; }
       set {
@@ -3365,6 +4703,7 @@ namespace Grpc.Testing {
     /// Client configuration
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.ClientConfig ClientConfig {
       get { return clientConfig_; }
       set {
@@ -3379,6 +4718,7 @@ namespace Grpc.Testing {
     /// Number of clients to start for the test
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int NumClients {
       get { return numClients_; }
       set {
@@ -3393,6 +4733,7 @@ namespace Grpc.Testing {
     /// Server configuration
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.ServerConfig ServerConfig {
       get { return serverConfig_; }
       set {
@@ -3407,6 +4748,7 @@ namespace Grpc.Testing {
     /// Number of servers to start for the test
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int NumServers {
       get { return numServers_; }
       set {
@@ -3421,6 +4763,7 @@ namespace Grpc.Testing {
     /// Warmup period, in seconds
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int WarmupSeconds {
       get { return warmupSeconds_; }
       set {
@@ -3435,6 +4778,7 @@ namespace Grpc.Testing {
     /// Benchmark time, in seconds
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int BenchmarkSeconds {
       get { return benchmarkSeconds_; }
       set {
@@ -3449,6 +4793,7 @@ namespace Grpc.Testing {
     /// Number of workers to spawn locally (usually zero)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int SpawnLocalWorkerCount {
       get { return spawnLocalWorkerCount_; }
       set {
@@ -3457,11 +4802,13 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as Scenario);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(Scenario other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -3481,6 +4828,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (Name.Length != 0) hash ^= Name.GetHashCode();
@@ -3498,12 +4846,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (Name.Length != 0) {
         output.WriteRawTag(10);
         output.WriteString(Name);
@@ -3539,9 +4892,53 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Name.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Name);
+      }
+      if (clientConfig_ != null) {
+        output.WriteRawTag(18);
+        output.WriteMessage(ClientConfig);
+      }
+      if (NumClients != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(NumClients);
+      }
+      if (serverConfig_ != null) {
+        output.WriteRawTag(34);
+        output.WriteMessage(ServerConfig);
+      }
+      if (NumServers != 0) {
+        output.WriteRawTag(40);
+        output.WriteInt32(NumServers);
+      }
+      if (WarmupSeconds != 0) {
+        output.WriteRawTag(48);
+        output.WriteInt32(WarmupSeconds);
+      }
+      if (BenchmarkSeconds != 0) {
+        output.WriteRawTag(56);
+        output.WriteInt32(BenchmarkSeconds);
+      }
+      if (SpawnLocalWorkerCount != 0) {
+        output.WriteRawTag(64);
+        output.WriteInt32(SpawnLocalWorkerCount);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (Name.Length != 0) {
@@ -3575,6 +4972,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(Scenario other) {
       if (other == null) {
         return;
@@ -3613,7 +5011,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -3660,30 +5062,92 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            Name = input.ReadString();
+            break;
+          }
+          case 18: {
+            if (clientConfig_ == null) {
+              ClientConfig = new global::Grpc.Testing.ClientConfig();
+            }
+            input.ReadMessage(ClientConfig);
+            break;
+          }
+          case 24: {
+            NumClients = input.ReadInt32();
+            break;
+          }
+          case 34: {
+            if (serverConfig_ == null) {
+              ServerConfig = new global::Grpc.Testing.ServerConfig();
+            }
+            input.ReadMessage(ServerConfig);
+            break;
+          }
+          case 40: {
+            NumServers = input.ReadInt32();
+            break;
+          }
+          case 48: {
+            WarmupSeconds = input.ReadInt32();
+            break;
+          }
+          case 56: {
+            BenchmarkSeconds = input.ReadInt32();
+            break;
+          }
+          case 64: {
+            SpawnLocalWorkerCount = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
   /// <summary>
   /// A set of scenarios to be run with qps_json_driver
   /// </summary>
-  public sealed partial class Scenarios : pb::IMessage<Scenarios> {
+  public sealed partial class Scenarios : pb::IMessage<Scenarios>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<Scenarios> _parser = new pb::MessageParser<Scenarios>(() => new Scenarios());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<Scenarios> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[16]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public Scenarios() {
       OnConstruction();
     }
@@ -3691,12 +5155,14 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public Scenarios(Scenarios other) : this() {
       scenarios_ = other.scenarios_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public Scenarios Clone() {
       return new Scenarios(this);
     }
@@ -3707,16 +5173,19 @@ namespace Grpc.Testing {
         = pb::FieldCodec.ForMessage(10, global::Grpc.Testing.Scenario.Parser);
     private readonly pbc::RepeatedField<global::Grpc.Testing.Scenario> scenarios_ = new pbc::RepeatedField<global::Grpc.Testing.Scenario>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<global::Grpc.Testing.Scenario> Scenarios_ {
       get { return scenarios_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as Scenarios);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(Scenarios other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -3729,6 +5198,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       hash ^= scenarios_.GetHashCode();
@@ -3739,19 +5209,37 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       scenarios_.WriteTo(output, _repeated_scenarios_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      scenarios_.WriteTo(ref output, _repeated_scenarios_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       size += scenarios_.CalculateSize(_repeated_scenarios_codec);
@@ -3762,6 +5250,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(Scenarios other) {
       if (other == null) {
         return;
@@ -3771,7 +5260,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -3784,7 +5277,27 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            scenarios_.AddEntriesFrom(ref input, _repeated_scenarios_codec);
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
@@ -3792,23 +5305,31 @@ namespace Grpc.Testing {
   /// Basic summary that can be computed from ClientStats and ServerStats
   /// once the scenario has finished.
   /// </summary>
-  public sealed partial class ScenarioResultSummary : pb::IMessage<ScenarioResultSummary> {
+  public sealed partial class ScenarioResultSummary : pb::IMessage<ScenarioResultSummary>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<ScenarioResultSummary> _parser = new pb::MessageParser<ScenarioResultSummary>(() => new ScenarioResultSummary());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<ScenarioResultSummary> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[17]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ScenarioResultSummary() {
       OnConstruction();
     }
@@ -3816,6 +5337,7 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ScenarioResultSummary(ScenarioResultSummary other) : this() {
       qps_ = other.qps_;
       qpsPerServerCore_ = other.qpsPerServerCore_;
@@ -3839,6 +5361,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ScenarioResultSummary Clone() {
       return new ScenarioResultSummary(this);
     }
@@ -3852,6 +5375,7 @@ namespace Grpc.Testing {
     /// For streaming benchmarks, an operation is processing of a single ping pong of request and response. 
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double Qps {
       get { return qps_; }
       set {
@@ -3866,6 +5390,7 @@ namespace Grpc.Testing {
     /// QPS per server core.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double QpsPerServerCore {
       get { return qpsPerServerCore_; }
       set {
@@ -3883,6 +5408,7 @@ namespace Grpc.Testing {
     /// Same explanation for the total client cpu load below.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double ServerSystemTime {
       get { return serverSystemTime_; }
       set {
@@ -3897,6 +5423,7 @@ namespace Grpc.Testing {
     /// The total server cpu load based on user time across all server processes, expressed as percentage of a single cpu core. (85 => 85%, 125 => 125%)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double ServerUserTime {
       get { return serverUserTime_; }
       set {
@@ -3911,6 +5438,7 @@ namespace Grpc.Testing {
     /// The total client cpu load based on system time across all client processes, expressed as percentage of a single cpu core. (85 => 85%, 125 => 125%)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double ClientSystemTime {
       get { return clientSystemTime_; }
       set {
@@ -3925,6 +5453,7 @@ namespace Grpc.Testing {
     /// The total client cpu load based on user time across all client processes, expressed as percentage of a single cpu core. (85 => 85%, 125 => 125%)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double ClientUserTime {
       get { return clientUserTime_; }
       set {
@@ -3939,6 +5468,7 @@ namespace Grpc.Testing {
     /// X% latency percentiles (in nanoseconds)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double Latency50 {
       get { return latency50_; }
       set {
@@ -3950,6 +5480,7 @@ namespace Grpc.Testing {
     public const int Latency90FieldNumber = 8;
     private double latency90_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double Latency90 {
       get { return latency90_; }
       set {
@@ -3961,6 +5492,7 @@ namespace Grpc.Testing {
     public const int Latency95FieldNumber = 9;
     private double latency95_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double Latency95 {
       get { return latency95_; }
       set {
@@ -3972,6 +5504,7 @@ namespace Grpc.Testing {
     public const int Latency99FieldNumber = 10;
     private double latency99_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double Latency99 {
       get { return latency99_; }
       set {
@@ -3983,6 +5516,7 @@ namespace Grpc.Testing {
     public const int Latency999FieldNumber = 11;
     private double latency999_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double Latency999 {
       get { return latency999_; }
       set {
@@ -3997,6 +5531,7 @@ namespace Grpc.Testing {
     /// server cpu usage percentage
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double ServerCpuUsage {
       get { return serverCpuUsage_; }
       set {
@@ -4011,6 +5546,7 @@ namespace Grpc.Testing {
     /// Number of requests that succeeded/failed
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double SuccessfulRequestsPerSecond {
       get { return successfulRequestsPerSecond_; }
       set {
@@ -4022,6 +5558,7 @@ namespace Grpc.Testing {
     public const int FailedRequestsPerSecondFieldNumber = 14;
     private double failedRequestsPerSecond_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double FailedRequestsPerSecond {
       get { return failedRequestsPerSecond_; }
       set {
@@ -4036,6 +5573,7 @@ namespace Grpc.Testing {
     /// Number of polls called inside completion queue per request
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double ClientPollsPerRequest {
       get { return clientPollsPerRequest_; }
       set {
@@ -4047,6 +5585,7 @@ namespace Grpc.Testing {
     public const int ServerPollsPerRequestFieldNumber = 16;
     private double serverPollsPerRequest_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double ServerPollsPerRequest {
       get { return serverPollsPerRequest_; }
       set {
@@ -4061,6 +5600,7 @@ namespace Grpc.Testing {
     /// Queries per CPU-sec over all servers or clients
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double ServerQueriesPerCpuSec {
       get { return serverQueriesPerCpuSec_; }
       set {
@@ -4072,6 +5612,7 @@ namespace Grpc.Testing {
     public const int ClientQueriesPerCpuSecFieldNumber = 18;
     private double clientQueriesPerCpuSec_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double ClientQueriesPerCpuSec {
       get { return clientQueriesPerCpuSec_; }
       set {
@@ -4080,11 +5621,13 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as ScenarioResultSummary);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(ScenarioResultSummary other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -4114,6 +5657,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (Qps != 0D) hash ^= pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.GetHashCode(Qps);
@@ -4141,12 +5685,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (Qps != 0D) {
         output.WriteRawTag(9);
         output.WriteDouble(Qps);
@@ -4222,9 +5771,93 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Qps != 0D) {
+        output.WriteRawTag(9);
+        output.WriteDouble(Qps);
+      }
+      if (QpsPerServerCore != 0D) {
+        output.WriteRawTag(17);
+        output.WriteDouble(QpsPerServerCore);
+      }
+      if (ServerSystemTime != 0D) {
+        output.WriteRawTag(25);
+        output.WriteDouble(ServerSystemTime);
+      }
+      if (ServerUserTime != 0D) {
+        output.WriteRawTag(33);
+        output.WriteDouble(ServerUserTime);
+      }
+      if (ClientSystemTime != 0D) {
+        output.WriteRawTag(41);
+        output.WriteDouble(ClientSystemTime);
+      }
+      if (ClientUserTime != 0D) {
+        output.WriteRawTag(49);
+        output.WriteDouble(ClientUserTime);
+      }
+      if (Latency50 != 0D) {
+        output.WriteRawTag(57);
+        output.WriteDouble(Latency50);
+      }
+      if (Latency90 != 0D) {
+        output.WriteRawTag(65);
+        output.WriteDouble(Latency90);
+      }
+      if (Latency95 != 0D) {
+        output.WriteRawTag(73);
+        output.WriteDouble(Latency95);
+      }
+      if (Latency99 != 0D) {
+        output.WriteRawTag(81);
+        output.WriteDouble(Latency99);
+      }
+      if (Latency999 != 0D) {
+        output.WriteRawTag(89);
+        output.WriteDouble(Latency999);
+      }
+      if (ServerCpuUsage != 0D) {
+        output.WriteRawTag(97);
+        output.WriteDouble(ServerCpuUsage);
+      }
+      if (SuccessfulRequestsPerSecond != 0D) {
+        output.WriteRawTag(105);
+        output.WriteDouble(SuccessfulRequestsPerSecond);
+      }
+      if (FailedRequestsPerSecond != 0D) {
+        output.WriteRawTag(113);
+        output.WriteDouble(FailedRequestsPerSecond);
+      }
+      if (ClientPollsPerRequest != 0D) {
+        output.WriteRawTag(121);
+        output.WriteDouble(ClientPollsPerRequest);
+      }
+      if (ServerPollsPerRequest != 0D) {
+        output.WriteRawTag(129, 1);
+        output.WriteDouble(ServerPollsPerRequest);
+      }
+      if (ServerQueriesPerCpuSec != 0D) {
+        output.WriteRawTag(137, 1);
+        output.WriteDouble(ServerQueriesPerCpuSec);
+      }
+      if (ClientQueriesPerCpuSec != 0D) {
+        output.WriteRawTag(145, 1);
+        output.WriteDouble(ClientQueriesPerCpuSec);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (Qps != 0D) {
@@ -4288,6 +5921,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(ScenarioResultSummary other) {
       if (other == null) {
         return;
@@ -4350,7 +5984,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -4431,30 +6069,126 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 9: {
+            Qps = input.ReadDouble();
+            break;
+          }
+          case 17: {
+            QpsPerServerCore = input.ReadDouble();
+            break;
+          }
+          case 25: {
+            ServerSystemTime = input.ReadDouble();
+            break;
+          }
+          case 33: {
+            ServerUserTime = input.ReadDouble();
+            break;
+          }
+          case 41: {
+            ClientSystemTime = input.ReadDouble();
+            break;
+          }
+          case 49: {
+            ClientUserTime = input.ReadDouble();
+            break;
+          }
+          case 57: {
+            Latency50 = input.ReadDouble();
+            break;
+          }
+          case 65: {
+            Latency90 = input.ReadDouble();
+            break;
+          }
+          case 73: {
+            Latency95 = input.ReadDouble();
+            break;
+          }
+          case 81: {
+            Latency99 = input.ReadDouble();
+            break;
+          }
+          case 89: {
+            Latency999 = input.ReadDouble();
+            break;
+          }
+          case 97: {
+            ServerCpuUsage = input.ReadDouble();
+            break;
+          }
+          case 105: {
+            SuccessfulRequestsPerSecond = input.ReadDouble();
+            break;
+          }
+          case 113: {
+            FailedRequestsPerSecond = input.ReadDouble();
+            break;
+          }
+          case 121: {
+            ClientPollsPerRequest = input.ReadDouble();
+            break;
+          }
+          case 129: {
+            ServerPollsPerRequest = input.ReadDouble();
+            break;
+          }
+          case 137: {
+            ServerQueriesPerCpuSec = input.ReadDouble();
+            break;
+          }
+          case 145: {
+            ClientQueriesPerCpuSec = input.ReadDouble();
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 
   /// <summary>
   /// Results of a single benchmark scenario.
   /// </summary>
-  public sealed partial class ScenarioResult : pb::IMessage<ScenarioResult> {
+  public sealed partial class ScenarioResult : pb::IMessage<ScenarioResult>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
     private static readonly pb::MessageParser<ScenarioResult> _parser = new pb::MessageParser<ScenarioResult>(() => new ScenarioResult());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<ScenarioResult> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.ControlReflection.Descriptor.MessageTypes[18]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ScenarioResult() {
       OnConstruction();
     }
@@ -4462,6 +6196,7 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ScenarioResult(ScenarioResult other) : this() {
       scenario_ = other.scenario_ != null ? other.scenario_.Clone() : null;
       latencies_ = other.latencies_ != null ? other.latencies_.Clone() : null;
@@ -4476,6 +6211,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ScenarioResult Clone() {
       return new ScenarioResult(this);
     }
@@ -4487,6 +6223,7 @@ namespace Grpc.Testing {
     /// Inputs used to run the scenario.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.Scenario Scenario {
       get { return scenario_; }
       set {
@@ -4501,6 +6238,7 @@ namespace Grpc.Testing {
     /// Histograms from all clients merged into one histogram.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.HistogramData Latencies {
       get { return latencies_; }
       set {
@@ -4517,6 +6255,7 @@ namespace Grpc.Testing {
     /// Client stats for each client
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<global::Grpc.Testing.ClientStats> ClientStats {
       get { return clientStats_; }
     }
@@ -4530,6 +6269,7 @@ namespace Grpc.Testing {
     /// Server stats for each server
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<global::Grpc.Testing.ServerStats> ServerStats {
       get { return serverStats_; }
     }
@@ -4543,6 +6283,7 @@ namespace Grpc.Testing {
     /// Number of cores available to each server
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<int> ServerCores {
       get { return serverCores_; }
     }
@@ -4554,6 +6295,7 @@ namespace Grpc.Testing {
     /// An after-the-fact computed summary
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.ScenarioResultSummary Summary {
       get { return summary_; }
       set {
@@ -4570,6 +6312,7 @@ namespace Grpc.Testing {
     /// Information on success or failure of each worker
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<bool> ClientSuccess {
       get { return clientSuccess_; }
     }
@@ -4580,6 +6323,7 @@ namespace Grpc.Testing {
         = pb::FieldCodec.ForBool(66);
     private readonly pbc::RepeatedField<bool> serverSuccess_ = new pbc::RepeatedField<bool>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<bool> ServerSuccess {
       get { return serverSuccess_; }
     }
@@ -4593,16 +6337,19 @@ namespace Grpc.Testing {
     /// Number of failed requests (one row per status code seen)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<global::Grpc.Testing.RequestResultCount> RequestResults {
       get { return requestResults_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as ScenarioResult);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(ScenarioResult other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -4623,6 +6370,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (scenario_ != null) hash ^= Scenario.GetHashCode();
@@ -4641,12 +6389,17 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
       if (scenario_ != null) {
         output.WriteRawTag(10);
         output.WriteMessage(Scenario);
@@ -4668,9 +6421,39 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
+    #endif
     }
 
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (scenario_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Scenario);
+      }
+      if (latencies_ != null) {
+        output.WriteRawTag(18);
+        output.WriteMessage(Latencies);
+      }
+      clientStats_.WriteTo(ref output, _repeated_clientStats_codec);
+      serverStats_.WriteTo(ref output, _repeated_serverStats_codec);
+      serverCores_.WriteTo(ref output, _repeated_serverCores_codec);
+      if (summary_ != null) {
+        output.WriteRawTag(50);
+        output.WriteMessage(Summary);
+      }
+      clientSuccess_.WriteTo(ref output, _repeated_clientSuccess_codec);
+      serverSuccess_.WriteTo(ref output, _repeated_serverSuccess_codec);
+      requestResults_.WriteTo(ref output, _repeated_requestResults_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (scenario_ != null) {
@@ -4695,6 +6478,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(ScenarioResult other) {
       if (other == null) {
         return;
@@ -4727,7 +6511,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -4784,7 +6572,71 @@ namespace Grpc.Testing {
           }
         }
       }
+    #endif
     }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (scenario_ == null) {
+              Scenario = new global::Grpc.Testing.Scenario();
+            }
+            input.ReadMessage(Scenario);
+            break;
+          }
+          case 18: {
+            if (latencies_ == null) {
+              Latencies = new global::Grpc.Testing.HistogramData();
+            }
+            input.ReadMessage(Latencies);
+            break;
+          }
+          case 26: {
+            clientStats_.AddEntriesFrom(ref input, _repeated_clientStats_codec);
+            break;
+          }
+          case 34: {
+            serverStats_.AddEntriesFrom(ref input, _repeated_serverStats_codec);
+            break;
+          }
+          case 42:
+          case 40: {
+            serverCores_.AddEntriesFrom(ref input, _repeated_serverCores_codec);
+            break;
+          }
+          case 50: {
+            if (summary_ == null) {
+              Summary = new global::Grpc.Testing.ScenarioResultSummary();
+            }
+            input.ReadMessage(Summary);
+            break;
+          }
+          case 58:
+          case 56: {
+            clientSuccess_.AddEntriesFrom(ref input, _repeated_clientSuccess_codec);
+            break;
+          }
+          case 66:
+          case 64: {
+            serverSuccess_.AddEntriesFrom(ref input, _repeated_serverSuccess_codec);
+            break;
+          }
+          case 74: {
+            requestResults_.AddEntriesFrom(ref input, _repeated_requestResults_codec);
+            break;
+          }
+        }
+      }
+    }
+    #endif
 
   }
 

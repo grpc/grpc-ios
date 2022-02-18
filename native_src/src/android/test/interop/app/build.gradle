@@ -4,7 +4,7 @@ android {
     compileSdkVersion 26
     defaultConfig {
         applicationId "io.grpc.android.interop.cpp"
-        minSdkVersion 14
+        minSdkVersion 21
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
@@ -28,6 +28,9 @@ android {
                 arguments '-DPROTOBUF_PROTOC_EXECUTABLE=' + protoc
                 arguments '-DgRPC_CPP_PLUGIN_EXECUTABLE=' + grpc_cpp_plugin
             }
+        }
+        ndk {
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
         }
     }
     buildTypes {

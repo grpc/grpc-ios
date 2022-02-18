@@ -30,31 +30,30 @@
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/security/credentials/credentials.h"
 
-typedef struct {
-  gpr_mu* mu;
-  grpc_polling_entity pops;
-  bool is_done;
-  char* token;
+typedef struct oauth2_request {
+  gpr_mu* mu = nullptr;
+  grpc_polling_entity pops = {};
+  bool is_done = false;
+  char* token = nullptr;
 
-  grpc_credentials_mdelem_array md_array;
-  grpc_closure closure;
+  grpc_core::CredentialsMetadataArray md_array;
+  grpc_closure closure = {};
 } oauth2_request;
 
-static void on_oauth2_response(void* arg, grpc_error* error) {
+static void on_oauth2_response(void* arg, grpc_error_handle error) {
   oauth2_request* request = static_cast<oauth2_request*>(arg);
   char* token = nullptr;
-  grpc_slice token_slice;
+  grpc_core::Slice token_slice;
   if (error != GRPC_ERROR_NONE) {
-    gpr_log(GPR_ERROR, "Fetching token failed: %s", grpc_error_string(error));
+    gpr_log(GPR_ERROR, "Fetching token failed: %s",
+            grpc_error_std_string(error).c_str());
   } else {
-    GPR_ASSERT(request->md_array.size == 1);
-    token_slice = GRPC_MDVALUE(request->md_array.md[0]);
-    token = static_cast<char*>(gpr_malloc(GRPC_SLICE_LENGTH(token_slice) + 1));
-    memcpy(token, GRPC_SLICE_START_PTR(token_slice),
-           GRPC_SLICE_LENGTH(token_slice));
-    token[GRPC_SLICE_LENGTH(token_slice)] = '\0';
+    GPR_ASSERT(request->md_array.size() == 1);
+    token_slice = request->md_array[0].second.Ref();
+    token = static_cast<char*>(gpr_malloc(token_slice.length() + 1));
+    memcpy(token, token_slice.data(), token_slice.length());
+    token[token_slice.length()] = '\0';
   }
-  grpc_credentials_mdelem_array_destroy(&request->md_array);
   gpr_mu_lock(request->mu);
   request->is_done = true;
   request->token = token;
@@ -64,12 +63,11 @@ static void on_oauth2_response(void* arg, grpc_error* error) {
   gpr_mu_unlock(request->mu);
 }
 
-static void do_nothing(void* /*arg*/, grpc_error* /*error*/) {}
+static void do_nothing(void* /*arg*/, grpc_error_handle /*error*/) {}
 
 char* grpc_test_fetch_oauth2_token_with_credentials(
     grpc_call_credentials* creds) {
   oauth2_request request;
-  memset(&request, 0, sizeof(request));
   grpc_core::ExecCtx exec_ctx;
   grpc_closure do_nothing_closure;
   grpc_auth_metadata_context null_ctx = {"", "", nullptr, nullptr};
@@ -86,7 +84,7 @@ char* grpc_test_fetch_oauth2_token_with_credentials(
   GRPC_CLOSURE_INIT(&request.closure, on_oauth2_response, &request,
                     grpc_schedule_on_exec_ctx);
 
-  grpc_error* error = GRPC_ERROR_NONE;
+  grpc_error_handle error = GRPC_ERROR_NONE;
   if (creds->get_request_metadata(&request.pops, null_ctx, &request.md_array,
                                   &request.closure, &error)) {
     // Synchronous result; invoke callback directly.

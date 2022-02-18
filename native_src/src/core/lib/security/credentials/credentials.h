@@ -21,18 +21,20 @@
 
 #include <grpc/support/port_platform.h>
 
+#include <string.h>
+
+#include <string>
+
 #include <grpc/grpc.h>
 #include <grpc/grpc_security.h>
 #include <grpc/support/sync.h>
-#include "src/core/lib/transport/metadata_batch.h"
 
-#include "src/core/lib/gprpp/map.h"
 #include "src/core/lib/gprpp/ref_counted.h"
-#include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/http/httpcli.h"
 #include "src/core/lib/http/parser.h"
 #include "src/core/lib/iomgr/polling_entity.h"
 #include "src/core/lib/security/security_connector/security_connector.h"
+#include "src/core/lib/transport/metadata_batch.h"
 
 struct grpc_http_response;
 
@@ -79,19 +81,19 @@ typedef enum {
 /* --- Google utils --- */
 
 /* It is the caller's responsibility to gpr_free the result if not NULL. */
-char* grpc_get_well_known_google_credentials_file_path(void);
+std::string grpc_get_well_known_google_credentials_file_path(void);
 
 /* Implementation function for the different platforms. */
-char* grpc_get_well_known_google_credentials_file_path_impl(void);
+std::string grpc_get_well_known_google_credentials_file_path_impl(void);
 
 /* Override for testing only. Not thread-safe */
-typedef char* (*grpc_well_known_credentials_path_getter)(void);
+typedef std::string (*grpc_well_known_credentials_path_getter)(void);
 void grpc_override_well_known_credentials_path_getter(
     grpc_well_known_credentials_path_getter getter);
 
 /* --- grpc_channel_credentials. --- */
 
-#define GRPC_ARG_CHANNEL_CREDENTIALS "grpc.channel_credentials"
+#define GRPC_ARG_CHANNEL_CREDENTIALS "grpc.internal.channel_credentials"
 
 // This type is forward declared as a C struct and we cannot define it as a
 // class. Otherwise, compiler will complain about type mismatch due to
@@ -100,7 +102,7 @@ struct grpc_channel_credentials
     : grpc_core::RefCounted<grpc_channel_credentials> {
  public:
   explicit grpc_channel_credentials(const char* type) : type_(type) {}
-  virtual ~grpc_channel_credentials() = default;
+  ~grpc_channel_credentials() override = default;
 
   // Creates a security connector for the channel. May also create new channel
   // args for the channel to be used in place of the passed in const args if
@@ -129,30 +131,16 @@ struct grpc_channel_credentials
     return args;
   }
 
-  // Attaches control_plane_creds to the local registry, under authority,
-  // if no other creds are currently registered under authority. Returns
-  // true if registered successfully and false if not.
-  bool attach_credentials(
-      const char* authority,
-      grpc_core::RefCountedPtr<grpc_channel_credentials> control_plane_creds);
-
-  // Gets the control plane credentials registered under authority. This
-  // prefers the local control plane creds registry but falls back to the
-  // global registry. Lastly, this returns self but with any attached
-  // call credentials stripped off, in the case that neither the local
-  // registry nor the global registry have an entry for authority.
-  grpc_core::RefCountedPtr<grpc_channel_credentials>
-  get_control_plane_credentials(const char* authority);
-
   const char* type() const { return type_; }
 
  private:
   const char* type_;
-  std::map<grpc_core::UniquePtr<char>,
-           grpc_core::RefCountedPtr<grpc_channel_credentials>,
-           grpc_core::StringLess>
-      local_control_plane_creds_;
 };
+
+// TODO(roth): Once we eliminate insecure builds, find a better way to
+// plumb credentials so that it doesn't need to flow through channel
+// args.  For example, we'll want to expose it to LB policies by adding
+// methods on the helper API.
 
 /* Util to encapsulate the channel credentials in a channel arg. */
 grpc_arg grpc_channel_credentials_to_arg(grpc_channel_credentials* credentials);
@@ -165,57 +153,11 @@ grpc_channel_credentials* grpc_channel_credentials_from_arg(
 grpc_channel_credentials* grpc_channel_credentials_find_in_args(
     const grpc_channel_args* args);
 
-/** EXPERIMENTAL.  API MAY CHANGE IN THE FUTURE.
-    Attaches \a control_plane_creds to \a credentials
-    under the key \a authority. Returns false if \a authority
-    is already present, in which case no changes are made.
-    Note that this API is not thread safe. Only one thread may
-    attach control plane creds to a given credentials object at
-    any one time, and new control plane creds must not be
-    attached after \a credentials has been used to create a channel. */
-bool grpc_channel_credentials_attach_credentials(
-    grpc_channel_credentials* credentials, const char* authority,
-    grpc_channel_credentials* control_plane_creds);
+/* --- grpc_core::CredentialsMetadataArray. --- */
 
-/** EXPERIMENTAL.  API MAY CHANGE IN THE FUTURE.
-    Registers \a control_plane_creds in the global registry
-    under the key \a authority. Returns false if \a authority
-    is already present, in which case no changes are made. */
-bool grpc_control_plane_credentials_register(
-    const char* authority, grpc_channel_credentials* control_plane_creds);
-
-/* Initializes global control plane credentials data. */
-void grpc_control_plane_credentials_init();
-
-/* Test only: destroy global control plane credentials data.
- * This API is meant for use by a few tests that need to
- * satisdy grpc_core::LeakDetector. */
-void grpc_test_only_control_plane_credentials_destroy();
-
-/* Test only: force re-initialization of global control
- * plane credentials data if it was previously destroyed.
- * This API is meant to be used in
- * tandem with the
- * grpc_test_only_control_plane_credentials_destroy, for
- * the few tests that need it. */
-void grpc_test_only_control_plane_credentials_force_init();
-
-/* --- grpc_credentials_mdelem_array. --- */
-
-typedef struct {
-  grpc_mdelem* md = nullptr;
-  size_t size = 0;
-} grpc_credentials_mdelem_array;
-
-/// Takes a new ref to \a md.
-void grpc_credentials_mdelem_array_add(grpc_credentials_mdelem_array* list,
-                                       grpc_mdelem md);
-
-/// Appends all elements from \a src to \a dst, taking a new ref to each one.
-void grpc_credentials_mdelem_array_append(grpc_credentials_mdelem_array* dst,
-                                          grpc_credentials_mdelem_array* src);
-
-void grpc_credentials_mdelem_array_destroy(grpc_credentials_mdelem_array* list);
+namespace grpc_core {
+using CredentialsMetadataArray = std::vector<std::pair<Slice, Slice>>;
+}
 
 /* --- grpc_call_credentials. --- */
 
@@ -230,26 +172,30 @@ struct grpc_call_credentials
       grpc_security_level min_security_level = GRPC_PRIVACY_AND_INTEGRITY)
       : type_(type), min_security_level_(min_security_level) {}
 
-  virtual ~grpc_call_credentials() = default;
+  ~grpc_call_credentials() override = default;
 
   // Returns true if completed synchronously, in which case \a error will
   // be set to indicate the result.  Otherwise, \a on_request_metadata will
   // be invoked asynchronously when complete.  \a md_array will be populated
   // with the resulting metadata once complete.
-  virtual bool get_request_metadata(grpc_polling_entity* pollent,
-                                    grpc_auth_metadata_context context,
-                                    grpc_credentials_mdelem_array* md_array,
-                                    grpc_closure* on_request_metadata,
-                                    grpc_error** error) = 0;
+  virtual bool get_request_metadata(
+      grpc_polling_entity* pollent, grpc_auth_metadata_context context,
+      grpc_core::CredentialsMetadataArray* md_array,
+      grpc_closure* on_request_metadata, grpc_error_handle* error) = 0;
 
   // Cancels a pending asynchronous operation started by
   // grpc_call_credentials_get_request_metadata() with the corresponding
   // value of \a md_array.
   virtual void cancel_get_request_metadata(
-      grpc_credentials_mdelem_array* md_array, grpc_error* error) = 0;
+      grpc_core::CredentialsMetadataArray* md_array,
+      grpc_error_handle error) = 0;
 
   virtual grpc_security_level min_security_level() const {
     return min_security_level_;
+  }
+
+  virtual std::string debug_string() {
+    return "grpc_call_credentials did not provide debug string";
   }
 
   const char* type() const { return type_; }
@@ -274,10 +220,11 @@ struct grpc_server_credentials
  public:
   explicit grpc_server_credentials(const char* type) : type_(type) {}
 
-  virtual ~grpc_server_credentials() { DestroyProcessor(); }
+  ~grpc_server_credentials() override { DestroyProcessor(); }
 
+  // Ownership of \a args is not passed.
   virtual grpc_core::RefCountedPtr<grpc_server_security_connector>
-  create_security_connector() = 0;
+  create_security_connector(const grpc_channel_args* args) = 0;
 
   const char* type() const { return type_; }
 

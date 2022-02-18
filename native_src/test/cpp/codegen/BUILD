@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-licenses(["notice"])  # Apache v2
-
 load("//bazel:grpc_build_system.bzl", "grpc_cc_binary", "grpc_cc_test", "grpc_package", "grpc_sh_test")
+
+licenses(["notice"])
 
 grpc_package(name = "test/cpp/codegen")
 
@@ -63,8 +63,8 @@ grpc_cc_binary(
     testonly = True,
     srcs = ["golden_file_test.cc"],
     external_deps = [
+        "absl/flags:flag",
         "gtest",
-        "gflags",
     ],
     deps = [
         "//:grpc++",

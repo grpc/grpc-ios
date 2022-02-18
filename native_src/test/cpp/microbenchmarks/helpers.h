@@ -19,28 +19,27 @@
 #ifndef TEST_CPP_MICROBENCHMARKS_COUNTERS_H
 #define TEST_CPP_MICROBENCHMARKS_COUNTERS_H
 
+#include <grpc/support/port_platform.h>
+
 #include <sstream>
 #include <vector>
 
-#include <grpc/support/port_platform.h>
+#include <benchmark/benchmark.h>
+
+#include <grpcpp/impl/grpc_library.h>
+
 #include "src/core/lib/debug/stats.h"
 #include "test/core/util/memory_counters.h"
-
-#include <benchmark/benchmark.h>
-#include <grpcpp/impl/grpc_library.h>
 
 class LibraryInitializer {
  public:
   LibraryInitializer();
   ~LibraryInitializer();
 
-  grpc_resource_quota* rq() { return rq_; }
-
   static LibraryInitializer& get();
 
  private:
   grpc::internal::GrpcLibrary init_lib_;
-  grpc_resource_quota* rq_;
 };
 
 #ifdef GPR_LOW_LEVEL_COUNTERS
@@ -55,12 +54,12 @@ class TrackCounters {
   TrackCounters() { grpc_stats_collect(&stats_begin_); }
   virtual ~TrackCounters() {}
   virtual void Finish(benchmark::State& state);
-  virtual void AddLabel(const grpc::string& label);
+  virtual void AddLabel(const std::string& label);
   virtual void AddToLabel(std::ostream& out, benchmark::State& state);
 
  private:
   grpc_stats_data stats_begin_;
-  std::vector<grpc::string> labels_;
+  std::vector<std::string> labels_;
 #ifdef GPR_LOW_LEVEL_COUNTERS
   const size_t mu_locks_at_start_ = gpr_atm_no_barrier_load(&gpr_mu_locks);
   const size_t atm_cas_at_start_ =

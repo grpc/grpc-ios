@@ -13,17 +13,35 @@
 // limitations under the License.
 
 #include "bloaty.h"
+#include "bloaty.pb.h"
 
 #include <iostream>
 
 int main(int argc, char *argv[]) {
+  bloaty::Options options;
+  bloaty::OutputOptions output_options;
+  std::string error;
+  if (!bloaty::ParseOptions(false, &argc, &argv, &options, &output_options,
+                            &error)) {
+    if (!error.empty()) {
+      fprintf(stderr, "bloaty: %s\n", error.c_str());
+      return 1;
+    } else {
+      return 0;  // --help or similar.
+    }
+  }
+
   bloaty::RollupOutput output;
   bloaty::MmapInputFileFactory mmap_factory;
-  bool ok = bloaty::BloatyMain(argc, argv, mmap_factory, &output);
-  if (ok) {
-    output.Print(&std::cout);
-    return 0;
-  } else {
+  if (!bloaty::BloatyMain(options, mmap_factory, &output, &error)) {
+    if (!error.empty()) {
+      fprintf(stderr, "bloaty: %s\n", error.c_str());
+    }
     return 1;
   }
+
+  if (!options.dump_raw_map()) {
+    output.Print(output_options, &std::cout);
+  }
+  return 0;
 }

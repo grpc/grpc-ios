@@ -25,6 +25,8 @@
 #include <grpc/support/alloc.h>
 #include <grpc/support/string_util.h>
 
+#include "src/core/lib/gprpp/memory.h"
+
 typedef struct filter_node {
   struct filter_node* next;
   struct filter_node* prev;
@@ -40,7 +42,6 @@ struct grpc_channel_stack_builder {
   // various set/get-able parameters
   grpc_channel_args* args;
   grpc_transport* transport;
-  grpc_resource_user* resource_user;
   char* target;
   const char* name;
 };
@@ -50,17 +51,17 @@ struct grpc_channel_stack_builder_iterator {
   filter_node* node;
 };
 
-grpc_channel_stack_builder* grpc_channel_stack_builder_create(void) {
+grpc_channel_stack_builder* grpc_channel_stack_builder_create(
+    const char* name) {
   grpc_channel_stack_builder* b =
-      static_cast<grpc_channel_stack_builder*>(gpr_zalloc(sizeof(*b)));
-
+      grpc_core::Zalloc<grpc_channel_stack_builder>();
   b->begin.filter = nullptr;
   b->end.filter = nullptr;
   b->begin.next = &b->end;
   b->begin.prev = &b->end;
   b->end.next = &b->begin;
   b->end.prev = &b->begin;
-
+  b->name = name;
   return b;
 }
 
@@ -70,9 +71,9 @@ void grpc_channel_stack_builder_set_target(grpc_channel_stack_builder* b,
   b->target = gpr_strdup(target);
 }
 
-const char* grpc_channel_stack_builder_get_target(
+std::string grpc_channel_stack_builder_get_target(
     grpc_channel_stack_builder* b) {
-  return b->target;
+  return b->target == nullptr ? std::string("unknown") : std::string(b->target);
 }
 
 static grpc_channel_stack_builder_iterator* create_iterator_at_filter_node(
@@ -144,12 +145,6 @@ grpc_channel_stack_builder_iterator* grpc_channel_stack_builder_iterator_find(
 bool grpc_channel_stack_builder_move_prev(
     grpc_channel_stack_builder_iterator* iterator);
 
-void grpc_channel_stack_builder_set_name(grpc_channel_stack_builder* builder,
-                                         const char* name) {
-  GPR_ASSERT(builder->name == nullptr);
-  builder->name = name;
-}
-
 void grpc_channel_stack_builder_set_channel_arguments(
     grpc_channel_stack_builder* builder, const grpc_channel_args* args) {
   if (builder->args != nullptr) {
@@ -172,17 +167,6 @@ void grpc_channel_stack_builder_set_transport(
 grpc_transport* grpc_channel_stack_builder_get_transport(
     grpc_channel_stack_builder* builder) {
   return builder->transport;
-}
-
-void grpc_channel_stack_builder_set_resource_user(
-    grpc_channel_stack_builder* builder, grpc_resource_user* resource_user) {
-  GPR_ASSERT(builder->resource_user == nullptr);
-  builder->resource_user = resource_user;
-}
-
-grpc_resource_user* grpc_channel_stack_builder_get_resource_user(
-    grpc_channel_stack_builder* builder) {
-  return builder->resource_user;
 }
 
 bool grpc_channel_stack_builder_append_filter(
@@ -267,7 +251,7 @@ void grpc_channel_stack_builder_destroy(grpc_channel_stack_builder* builder) {
   gpr_free(builder);
 }
 
-grpc_error* grpc_channel_stack_builder_finish(
+grpc_error_handle grpc_channel_stack_builder_finish(
     grpc_channel_stack_builder* builder, size_t prefix_bytes, int initial_refs,
     grpc_iomgr_cb_func destroy, void* destroy_arg, void** result) {
   // count the number of filters
@@ -294,7 +278,7 @@ grpc_error* grpc_channel_stack_builder_finish(
   grpc_channel_stack* channel_stack = reinterpret_cast<grpc_channel_stack*>(
       static_cast<char*>(*result) + prefix_bytes);
   // and initialize it
-  grpc_error* error = grpc_channel_stack_init(
+  grpc_error_handle error = grpc_channel_stack_init(
       initial_refs, destroy, destroy_arg == nullptr ? *result : destroy_arg,
       filters, num_filters, builder->args, builder->transport, builder->name,
       channel_stack);
