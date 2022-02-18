@@ -42,7 +42,6 @@
 #include <grpc/support/sync.h>
 #include <grpc/support/thd_id.h>
 
-extern "C" {
 #include <openssl/bio.h>
 #include <openssl/crypto.h> /* For OPENSSL_free */
 #include <openssl/engine.h>
@@ -50,7 +49,6 @@ extern "C" {
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
-}
 
 #include "src/core/lib/gpr/useful.h"
 #include "src/core/tsi/ssl/session_cache/ssl_session_cache.h"
