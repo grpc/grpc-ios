@@ -14,11 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load(
-    "//bazel:grpc_build_system.bzl",
-    "grpc_cc_library",
-    "grpc_proto_plugin",
-)
+licenses(["notice"])  # Apache v2
+
+exports_files(["LICENSE"])
 
 package(
     default_visibility = ["//visibility:public"],
@@ -28,9 +26,11 @@ package(
     ],
 )
 
-licenses(["notice"])
-
-exports_files(["LICENSE"])
+load(
+    "//bazel:grpc_build_system.bzl",
+    "grpc_cc_library",
+    "grpc_proto_plugin",
+)
 
 grpc_cc_library(
     name = "grpc_plugin_support",

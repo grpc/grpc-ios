@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2.7
 #
 # Copyright 2018 gRPC authors.
 #
@@ -21,7 +21,6 @@ import os
 import shutil
 import subprocess
 import sys
-
 from parse_link_map import parse_link_map
 
 sys.path.append(
@@ -96,7 +95,7 @@ for frameworks in [False, True]:
     if args.diff_base:
         old = 'old'
         where_am_i = subprocess.check_output(
-            ['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode().strip()
+            ['git', 'rev-parse', '--abbrev-ref', 'HEAD']).strip()
         subprocess.check_call(['git', 'checkout', '--', '.'])
         subprocess.check_call(['git', 'checkout', args.diff_base])
         subprocess.check_call(['git', 'submodule', 'update', '--force'])
@@ -144,6 +143,6 @@ for frameworks in [False, True]:
             text += '\n No significant differences in binary sizes\n'
     text += '\n'
 
-print(text)
+print text
 
 check_on_pr.check_on_pr('Binary Size', '```\n%s\n```' % text)

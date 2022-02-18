@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import platform
-import threading
 import time
+import threading
 import unittest
+import platform
 
 from grpc._cython import cygrpc
-
-from tests.unit import resources
-from tests.unit import test_common
 from tests.unit._cython import test_utilities
+from tests.unit import test_common
+from tests.unit import resources
 
 _SSL_HOST_OVERRIDE = b'foo.test.google.fr'
 _CALL_CREDENTIALS_METADATA_KEY = 'call-creds-key'
@@ -43,10 +42,12 @@ class TypeSmokeTest(unittest.TestCase):
         del completion_queue
 
     def testServerUpDown(self):
-        server = cygrpc.Server(set([(
-            b'grpc.so_reuseport',
-            0,
-        )]), False)
+        server = cygrpc.Server(set([
+            (
+                b'grpc.so_reuseport',
+                0,
+            ),
+        ]))
         del server
 
     def testChannelUpDown(self):
@@ -58,10 +59,12 @@ class TypeSmokeTest(unittest.TestCase):
                                              b'test plugin name!')
 
     def testServerStartNoExplicitShutdown(self):
-        server = cygrpc.Server([(
-            b'grpc.so_reuseport',
-            0,
-        )], False)
+        server = cygrpc.Server([
+            (
+                b'grpc.so_reuseport',
+                0,
+            ),
+        ])
         completion_queue = cygrpc.CompletionQueue()
         server.register_completion_queue(completion_queue)
         port = server.add_http2_port(b'[::]:0')
@@ -76,7 +79,7 @@ class TypeSmokeTest(unittest.TestCase):
                 b'grpc.so_reuseport',
                 0,
             ),
-        ], False)
+        ])
         server.add_http2_port(b'[::]:0')
         server.register_completion_queue(completion_queue)
         server.start()
@@ -94,10 +97,12 @@ class ServerClientMixin(object):
 
     def setUpMixin(self, server_credentials, client_credentials, host_override):
         self.server_completion_queue = cygrpc.CompletionQueue()
-        self.server = cygrpc.Server([(
-            b'grpc.so_reuseport',
-            0,
-        )], False)
+        self.server = cygrpc.Server([
+            (
+                b'grpc.so_reuseport',
+                0,
+            ),
+        ])
         self.server.register_completion_queue(self.server_completion_queue)
         if server_credentials:
             self.port = self.server.add_http2_port(b'[::]:0',

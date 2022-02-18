@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2018 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,14 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 
 syntax = "proto3";
 
 package google.privacy.dlp.v2;
 
-import "google/api/resource.proto";
-import "google/protobuf/timestamp.proto";
 import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
 
 option csharp_namespace = "Google.Cloud.Dlp.V2";
 option go_package = "google.golang.org/genproto/googleapis/privacy/dlp/v2;dlp";
@@ -26,15 +26,15 @@ option java_multiple_files = true;
 option java_outer_classname = "DlpStorage";
 option java_package = "com.google.privacy.dlp.v2";
 option php_namespace = "Google\\Cloud\\Dlp\\V2";
-option ruby_package = "Google::Cloud::Dlp::V2";
+
 
 // Type of information detected by the API.
 message InfoType {
   // Name of the information type. Either a name of your choosing when
   // creating a CustomInfoType, or one of the names listed
   // at https://cloud.google.com/dlp/docs/infotypes-reference when specifying
-  // a built-in type.  When sending Cloud DLP results to Data Catalog, infoType
-  // names should conform to the pattern `[A-Za-z0-9$-_]{1,64}`.
+  // a built-in type. InfoType names should conform to the pattern
+  // [a-zA-Z0-9_]{1,64}.
   string name = 1;
 }
 
@@ -48,26 +48,6 @@ message StoredType {
   // Timestamp indicating when the version of the `StoredInfoType` used for
   // inspection was created. Output-only field, populated by the system.
   google.protobuf.Timestamp create_time = 2;
-}
-
-// Categorization of results based on how likely they are to represent a match,
-// based on the number of elements they contain which imply a match.
-enum Likelihood {
-  // Default value; same as POSSIBLE.
-  LIKELIHOOD_UNSPECIFIED = 0;
-
-  // Few matching elements.
-  VERY_UNLIKELY = 1;
-
-  UNLIKELY = 2;
-
-  // Some matching elements.
-  POSSIBLE = 3;
-
-  LIKELY = 4;
-
-  // Many matching elements.
-  VERY_LIKELY = 5;
 }
 
 // Custom information type provided by the user. Used to find domain-specific
@@ -121,15 +101,11 @@ message CustomInfoType {
     // (https://github.com/google/re2/wiki/Syntax) can be found under the
     // google/re2 repository on GitHub.
     string pattern = 1;
-
-    // The index of the submatch to extract as findings. When not
-    // specified, the entire match is returned. No more than 3 may be included.
-    repeated int32 group_indexes = 2;
   }
 
   // Message for detecting output from deidentification transformations
   // such as
-  // [`CryptoReplaceFfxFpeConfig`](https://cloud.google.com/dlp/docs/reference/rest/v2/organizations.deidentifyTemplates#cryptoreplaceffxfpeconfig).
+  // [`CryptoReplaceFfxFpeConfig`](/dlp/docs/reference/rest/v2/organizations.deidentifyTemplates#cryptoreplaceffxfpeconfig).
   // These types of transformations are
   // those that perform pseudonymization, thereby producing a "surrogate" as
   // output. This should be used in conjunction with a field on the
@@ -139,10 +115,9 @@ message CustomInfoType {
 
   }
 
-  // Deprecated; use `InspectionRuleSet` instead. Rule for modifying a
-  // `CustomInfoType` to alter behavior under certain circumstances, depending
-  // on the specific details of the rule. Not supported for the `surrogate_type`
-  // custom infoType.
+  // Rule for modifying a CustomInfoType to alter behavior under certain
+  // circumstances, depending on the specific details of the rule. Not supported
+  // for the `surrogate_type` custom info type.
   message DetectionRule {
     // Message for specifying a window around a finding to apply a detection
     // rule.
@@ -346,15 +321,8 @@ message CloudStorageOptions {
   // Set of files to scan.
   message FileSet {
     // The Cloud Storage url of the file(s) to scan, in the format
-    // `gs://<bucket>/<path>`. Trailing wildcard in the path is allowed.
-    //
-    // If the url ends in a trailing slash, the bucket or directory represented
-    // by the url will be scanned non-recursively (content in sub-directories
-    // will not be scanned). This means that `gs://mybucket/` is equivalent to
-    // `gs://mybucket/*`, and `gs://mybucket/directory/` is equivalent to
-    // `gs://mybucket/directory/*`.
-    //
-    // Exactly one of `url` or `regex_file_set` must be set.
+    // `gs://<bucket>/<path>`. Trailing wildcard in the path is allowed. Exactly
+    // one of `url` or `regex_file_set` must be set.
     string url = 1;
 
     // The regex-filtered set of files to scan. Exactly one of `url` or
@@ -394,9 +362,6 @@ message CloudStorageOptions {
   // If empty, all files are scanned and available data format processors
   // are applied. In addition, the binary content of the selected files
   // is always scanned as well.
-  // Images are scanned only as binary if the specified region
-  // does not support image inspection and no file_types were specified.
-  // Image inspection is restricted to 'global', 'us', 'asia', and 'europe'.
   repeated FileType file_types = 5;
 
   SampleMethod sample_method = 6;
@@ -424,28 +389,23 @@ message CloudStoragePath {
 // Options defining BigQuery table and row identifiers.
 message BigQueryOptions {
   // How to sample rows if not all rows are scanned. Meaningful only when used
-  // in conjunction with either rows_limit or rows_limit_percent. If not
-  // specified, rows are scanned in the order BigQuery reads them.
+  // in conjunction with rows_limit. If not specified, scanning would start
+  // from the top.
   enum SampleMethod {
     SAMPLE_METHOD_UNSPECIFIED = 0;
 
-    // Scan groups of rows in the order BigQuery provides (default). Multiple
-    // groups of rows may be scanned in parallel, so results may not appear in
-    // the same order the rows are read.
+    // Scan from the top (default).
     TOP = 1;
 
-    // Randomly pick groups of rows to scan.
+    // Randomly pick the row to start scanning. The scanned rows are contiguous.
     RANDOM_START = 2;
   }
 
   // Complete BigQuery table reference.
   BigQueryTable table_reference = 1;
 
-  // Table fields that may uniquely identify a row within the table. When
-  // `actions.saveFindings.outputConfig.table` is specified, the values of
-  // columns specified here are available in the output table under
-  // `location.content_locations.record_location.record_key.id_values`. Nested
-  // fields such as `person.birthdate.year` are allowed.
+  // References to fields uniquely identifying rows within the table.
+  // Nested fields in the format, like `person.birthdate.year`, are allowed.
   repeated FieldId identifying_fields = 2;
 
   // Max number of rows to scan. If the table has more rows than this value, the
@@ -473,31 +433,22 @@ message StorageConfig {
   // Configuration of the timespan of the items to include in scanning.
   // Currently only supported when inspecting Google Cloud Storage and BigQuery.
   message TimespanConfig {
-    // Exclude files, tables, or rows older than this value.
-    // If not set, no lower time limit is applied.
+    // Exclude files or rows older than this value.
     google.protobuf.Timestamp start_time = 1;
 
-    // Exclude files, tables, or rows newer than this value.
-    // If not set, no upper time limit is applied.
+    // Exclude files or rows newer than this value.
+    // If set to zero, no upper time limit is applied.
     google.protobuf.Timestamp end_time = 2;
 
     // Specification of the field containing the timestamp of scanned items.
-    // Used for data sources like Datastore and BigQuery.
-    //
-    // For BigQuery:
-    // If this value is not specified and the table was modified between the
-    // given start and end times, the entire table will be scanned. If this
-    // value is specified, then rows are filtered based on the given start and
-    // end times. Rows with a `NULL` value in the provided BigQuery column are
-    // skipped.
-    // Valid data types of the provided BigQuery column are: `INTEGER`, `DATE`,
-    // `TIMESTAMP`, and `DATETIME`.
-    //
-    // For Datastore:
-    // If this value is specified, then entities are filtered based on the given
-    // start and end times. If an entity does not contain the provided timestamp
-    // property or contains empty or invalid values, then it is included.
-    // Valid data types of the provided timestamp property are: `TIMESTAMP`.
+    // Used for data sources like Datastore or BigQuery.
+    // If not specified for BigQuery, table last modification timestamp
+    // is checked against given time span.
+    // The valid data types of the timestamp field are:
+    // for BigQuery - timestamp, date, datetime;
+    // for Datastore - timestamp.
+    // Datastore entity will be scanned if the timestamp property does not exist
+    // or its value is empty or invalid.
     FieldId timestamp_field = 3;
 
     // When the job is started by a JobTrigger we will automatically figure out
@@ -508,110 +459,17 @@ message StorageConfig {
   }
 
   oneof type {
-    // Google Cloud Datastore options.
+    // Google Cloud Datastore options specification.
     DatastoreOptions datastore_options = 2;
 
-    // Google Cloud Storage options.
+    // Google Cloud Storage options specification.
     CloudStorageOptions cloud_storage_options = 3;
 
-    // BigQuery options.
+    // BigQuery options specification.
     BigQueryOptions big_query_options = 4;
-
-    // Hybrid inspection options.
-    // Early access feature is in a pre-release state and might change or have
-    // limited support. For more information, see
-    // https://cloud.google.com/products#product-launch-stages.
-    HybridOptions hybrid_options = 9;
   }
 
   TimespanConfig timespan_config = 6;
-}
-
-// Definitions of file type groups to scan. New types will be added to this
-// list.
-enum FileType {
-  // Includes all files.
-  FILE_TYPE_UNSPECIFIED = 0;
-
-  // Includes all file extensions not covered by another entry. Binary
-  // scanning attempts to convert the content of the file to utf_8 to scan
-  // the file.
-  // If you wish to avoid this fall back, specify one or more of the other
-  // FileType's in your storage scan.
-  BINARY_FILE = 1;
-
-  // Included file extensions:
-  //   asc, brf, c, cc, cpp, csv, cxx, c++, cs, css, dart, eml, go, h, hh, hpp,
-  //   hxx, h++, hs, html, htm, shtml, shtm, xhtml, lhs, ini, java, js, json,
-  //   ocaml, md, mkd, markdown, m, ml, mli, pl, pm, php, phtml, pht, py, pyw,
-  //   rb, rbw, rs, rc, scala, sh, sql, tex, txt, text, tsv, vcard, vcs, wml,
-  //   xml, xsl, xsd, yml, yaml.
-  TEXT_FILE = 2;
-
-  // Included file extensions:
-  //   bmp, gif, jpg, jpeg, jpe, png.
-  // bytes_limit_per_file has no effect on image files.
-  // Image inspection is restricted to 'global', 'us', 'asia', and 'europe'.
-  IMAGE = 3;
-
-  // Word files >30 MB will be scanned as binary files.
-  // Included file extensions:
-  //   docx, dotx, docm, dotm
-  WORD = 5;
-
-  // PDF files >30 MB will be scanned as binary files.
-  // Included file extensions:
-  //   pdf
-  PDF = 6;
-
-  // Included file extensions:
-  //   avro
-  AVRO = 7;
-
-  // Included file extensions:
-  //   csv
-  CSV = 8;
-
-  // Included file extensions:
-  //   tsv
-  TSV = 9;
-}
-
-// Configuration to control jobs where the content being inspected is outside
-// of Google Cloud Platform.
-message HybridOptions {
-  // A short description of where the data is coming from. Will be stored once
-  // in the job. 256 max length.
-  string description = 1;
-
-  // These are labels that each inspection request must include within their
-  // 'finding_labels' map. Request may contain others, but any missing one of
-  // these will be rejected.
-  //
-  // Label keys must be between 1 and 63 characters long and must conform
-  // to the following regular expression: `[a-z]([-a-z0-9]*[a-z0-9])?`.
-  //
-  // No more than 10 keys can be required.
-  repeated string required_finding_label_keys = 2;
-
-  // To organize findings, these labels will be added to each finding.
-  //
-  // Label keys must be between 1 and 63 characters long and must conform
-  // to the following regular expression: `[a-z]([-a-z0-9]*[a-z0-9])?`.
-  //
-  // Label values must be between 0 and 63 characters long and must conform
-  // to the regular expression `([a-z]([-a-z0-9]*[a-z0-9])?)?`.
-  //
-  // No more than 10 labels can be associated with a given finding.
-  //
-  // Examples:
-  // * `"environment" : "production"`
-  // * `"pipeline" : "etl"`
-  map<string, string> labels = 3;
-
-  // If the container is a table, additional information to make findings
-  // meaningful such as the columns that are primary keys.
-  TableOptions table_options = 4;
 }
 
 // Row key for identifying a record in BigQuery table.
@@ -619,11 +477,8 @@ message BigQueryKey {
   // Complete BigQuery table reference.
   BigQueryTable table_reference = 1;
 
-  // Row number inferred at the time the table was scanned. This value is
-  // nondeterministic, cannot be queried, and may be null for inspection
-  // jobs. To locate findings within a table, specify
-  // `inspect_job.storage_config.big_query_options.identifying_fields` in
-  // `CreateDlpJobRequest`.
+  // Absolute number of the row from the beginning of the table at the time
+  // of scanning.
   int64 row_number = 2;
 }
 
@@ -688,10 +543,6 @@ message RecordKey {
 
     BigQueryKey big_query_key = 3;
   }
-
-  // Values of identifying columns in the given row. Order of values matches
-  // the order of `identifying_fields` specified in the scanning request.
-  repeated string id_values = 5;
 }
 
 // Message defining the location of a BigQuery table. A table is uniquely
@@ -730,11 +581,39 @@ message EntityId {
   FieldId field = 1;
 }
 
-// Instructions regarding the table content being inspected.
-message TableOptions {
-  // The columns that are the primary keys for table objects included in
-  // ContentItem. A copy of this cell's value will stored alongside alongside
-  // each finding so that the finding can be traced to the specific row it came
-  // from. No more than 3 may be provided.
-  repeated FieldId identifying_fields = 1;
+// Categorization of results based on how likely they are to represent a match,
+// based on the number of elements they contain which imply a match.
+enum Likelihood {
+  // Default value; same as POSSIBLE.
+  LIKELIHOOD_UNSPECIFIED = 0;
+
+  // Few matching elements.
+  VERY_UNLIKELY = 1;
+
+  UNLIKELY = 2;
+
+  // Some matching elements.
+  POSSIBLE = 3;
+
+  LIKELY = 4;
+
+  // Many matching elements.
+  VERY_LIKELY = 5;
+}
+
+// Definitions of file type groups to scan.
+enum FileType {
+  // Includes all files.
+  FILE_TYPE_UNSPECIFIED = 0;
+
+  // Includes all file extensions not covered by text file types.
+  BINARY_FILE = 1;
+
+  // Included file extensions:
+  //   asc, brf, c, cc, cpp, csv, cxx, c++, cs, css, dart, eml, go, h, hh, hpp,
+  //   hxx, h++, hs, html, htm, shtml, shtm, xhtml, lhs, ini, java, js, json,
+  //   ocaml, md, mkd, markdown, m, ml, mli, pl, pm, php, phtml, pht, py, pyw,
+  //   rb, rbw, rs, rc, scala, sh, sql, tex, txt, text, tsv, vcard, vcs, wml,
+  //   xml, xsl, xsd, yml, yaml.
+  TEXT_FILE = 2;
 }

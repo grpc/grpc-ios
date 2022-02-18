@@ -150,7 +150,8 @@ TEST(FixedArrayExceptionSafety, InitListConstructorWithAlloc) {
 
 template <typename FixedArrT>
 testing::AssertionResult ReadMemory(FixedArrT* fixed_arr) {
-  int sum = 0;
+  // Marked volatile to prevent optimization. Used for running asan tests.
+  volatile int sum = 0;
   for (const auto& thrower : *fixed_arr) {
     sum += thrower.Get();
   }

@@ -16,13 +16,14 @@
  *
  */
 
+#include "test/core/bad_client/bad_client.h"
+
 #include <string.h>
 
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
 
 #include "src/core/lib/surface/server.h"
-#include "test/core/bad_client/bad_client.h"
 #include "test/core/end2end/cq_verifier.h"
 
 static const char prefix[] =
@@ -65,7 +66,7 @@ static const char prefix[] =
     "\x01\x00\x00\x27\x10"
     "";
 
-static void* tag(intptr_t t) { return reinterpret_cast<void*>(t); }
+static void* tag(intptr_t t) { return (void*)t; }
 
 static void verifier(grpc_server* server, grpc_completion_queue* cq,
                      void* registered_method) {
@@ -99,7 +100,7 @@ size_t g_count = 0;
 
 static void addbuf(const void* data, size_t len) {
   if (g_count + len > g_cap) {
-    g_cap = std::max(g_count + len, g_cap * 2);
+    g_cap = GPR_MAX(g_count + len, g_cap * 2);
     g_buffer = static_cast<char*>(gpr_realloc(g_buffer, g_cap));
   }
   memcpy(g_buffer + g_count, data, len);

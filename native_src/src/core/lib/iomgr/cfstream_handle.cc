@@ -23,16 +23,15 @@
 
 #ifdef GRPC_CFSTREAM
 #import <CoreFoundation/CoreFoundation.h>
+#import "src/core/lib/iomgr/cfstream_handle.h"
 
 #include <grpc/grpc.h>
 #include <grpc/support/atm.h>
 #include <grpc/support/sync.h>
 
 #include "src/core/lib/debug/trace.h"
-#import "src/core/lib/iomgr/cfstream_handle.h"
 #include "src/core/lib/iomgr/closure.h"
 #include "src/core/lib/iomgr/error_cfstream.h"
-#include "src/core/lib/iomgr/ev_apple.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 
 extern grpc_core::TraceFlag grpc_tcp_trace;
@@ -62,7 +61,7 @@ void CFStreamHandle::ReadCallback(CFReadStreamRef stream,
                                   void* client_callback_info) {
   grpc_core::ApplicationCallbackExecCtx callback_exec_ctx;
   grpc_core::ExecCtx exec_ctx;
-  grpc_error_handle error;
+  grpc_error* error;
   CFErrorRef stream_error;
   CFStreamHandle* handle = static_cast<CFStreamHandle*>(client_callback_info);
   if (grpc_tcp_trace.enabled()) {
@@ -97,7 +96,7 @@ void CFStreamHandle::WriteCallback(CFWriteStreamRef stream,
                                    void* clientCallBackInfo) {
   grpc_core::ApplicationCallbackExecCtx callback_exec_ctx;
   grpc_core::ExecCtx exec_ctx;
-  grpc_error_handle error;
+  grpc_error* error;
   CFErrorRef stream_error;
   CFStreamHandle* handle = static_cast<CFStreamHandle*>(clientCallBackInfo);
   if (grpc_tcp_trace.enabled()) {
@@ -148,15 +147,14 @@ CFStreamHandle::CFStreamHandle(CFReadStreamRef read_stream,
       kCFStreamEventOpenCompleted | kCFStreamEventCanAcceptBytes |
           kCFStreamEventErrorOccurred | kCFStreamEventEndEncountered,
       CFStreamHandle::WriteCallback, &ctx);
-  grpc_apple_register_read_stream(read_stream, dispatch_queue_);
-  grpc_apple_register_write_stream(write_stream, dispatch_queue_);
+  CFReadStreamSetDispatchQueue(read_stream, dispatch_queue_);
+  CFWriteStreamSetDispatchQueue(write_stream, dispatch_queue_);
 }
 
 CFStreamHandle::~CFStreamHandle() {
   open_event_.DestroyEvent();
   read_event_.DestroyEvent();
   write_event_.DestroyEvent();
-  dispatch_release(dispatch_queue_);
 }
 
 void CFStreamHandle::NotifyOnOpen(grpc_closure* closure) {
@@ -171,7 +169,7 @@ void CFStreamHandle::NotifyOnWrite(grpc_closure* closure) {
   write_event_.NotifyOn(closure);
 }
 
-void CFStreamHandle::Shutdown(grpc_error_handle error) {
+void CFStreamHandle::Shutdown(grpc_error* error) {
   open_event_.SetShutdown(GRPC_ERROR_REF(error));
   read_event_.SetShutdown(GRPC_ERROR_REF(error));
   write_event_.SetShutdown(GRPC_ERROR_REF(error));
@@ -202,9 +200,9 @@ void CFStreamHandle::Unref(const char* file, int line, const char* reason) {
 
 #else
 
-/* Creating a phony function so that the grpc_cfstream library will be
+/* Creating a dummy function so that the grpc_cfstream library will be
  * non-empty.
  */
-void CFStreamPhony() {}
+void CFStreamDummy() {}
 
 #endif

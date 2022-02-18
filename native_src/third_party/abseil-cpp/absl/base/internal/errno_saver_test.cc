@@ -18,7 +18,6 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/base/internal/strerror.h"
 
 namespace {
 using ::testing::Eq;
@@ -27,7 +26,7 @@ struct ErrnoPrinter {
   int no;
 };
 std::ostream &operator<<(std::ostream &os, ErrnoPrinter ep) {
-  return os << absl::base_internal::StrError(ep.no) << " [" << ep.no << "]";
+  return os << strerror(ep.no) << " [" << ep.no << "]";
 }
 bool operator==(ErrnoPrinter one, ErrnoPrinter two) { return one.no == two.no; }
 

@@ -26,9 +26,8 @@
 #include <errno.h>
 
 /* NOTE: Number should be big enough to trigger this problem */
-#if defined(__CYGWIN__) || defined(__MSYS__) || defined(__PASE__)
+#if defined(__CYGWIN__) || defined(__MSYS__)
 /* Cygwin crashes or hangs in socket() with too many AF_INET sockets.  */
-/* IBMi PASE timeout with too many AF_INET sockets.  */
 static uv_udp_t sockets[1250];
 #else
 static uv_udp_t sockets[2500];

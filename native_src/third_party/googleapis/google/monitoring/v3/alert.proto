@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2018 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,18 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 
 syntax = "proto3";
 
 package google.monitoring.v3;
 
-import "google/api/field_behavior.proto";
-import "google/api/resource.proto";
+import "google/api/annotations.proto";
 import "google/monitoring/v3/common.proto";
 import "google/monitoring/v3/mutation_record.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/wrappers.proto";
-import "google/rpc/status.proto";
 
 option csharp_namespace = "Google.Cloud.Monitoring.V3";
 option go_package = "google.golang.org/genproto/googleapis/monitoring/v3;monitoring";
@@ -30,21 +29,13 @@ option java_multiple_files = true;
 option java_outer_classname = "AlertProto";
 option java_package = "com.google.monitoring.v3";
 option php_namespace = "Google\\Cloud\\Monitoring\\V3";
-option ruby_package = "Google::Cloud::Monitoring::V3";
+
 
 // A description of the conditions under which some aspect of your system is
 // considered to be "unhealthy" and the ways to notify people or services about
 // this state. For an overview of alert policies, see
-// [Introduction to Alerting](https://cloud.google.com/monitoring/alerts/).
+// [Introduction to Alerting](/monitoring/alerts/).
 message AlertPolicy {
-  option (google.api.resource) = {
-    type: "monitoring.googleapis.com/AlertPolicy"
-    pattern: "projects/{project}/alertPolicies/{alert_policy}"
-    pattern: "organizations/{organization}/alertPolicies/{alert_policy}"
-    pattern: "folders/{folder}/alertPolicies/{alert_policy}"
-    pattern: "*"
-  };
-
   // A content string and a MIME type that describes the content string's
   // format.
   message Documentation {
@@ -64,14 +55,6 @@ message AlertPolicy {
   // should open an incident. If a condition evaluates to true, it signifies
   // that something is wrong.
   message Condition {
-    option (google.api.resource) = {
-      type: "monitoring.googleapis.com/AlertPolicyCondition"
-      pattern: "projects/{project}/alertPolicies/{alert_policy}/conditions/{condition}"
-      pattern: "organizations/{organization}/alertPolicies/{alert_policy}/conditions/{condition}"
-      pattern: "folders/{folder}/alertPolicies/{alert_policy}/conditions/{condition}"
-      pattern: "*"
-    };
-
     // Specifies how many time series must fail a predicate to trigger a
     // condition. If not specified, then a `{count: 1}` trigger is used.
     message Trigger {
@@ -90,17 +73,17 @@ message AlertPolicy {
     // A condition type that compares a collection of time series
     // against a threshold.
     message MetricThreshold {
-      // Required. A [filter](https://cloud.google.com/monitoring/api/v3/filters) that
+      // A [filter](/monitoring/api/v3/filters) that
       // identifies which time series should be compared with the threshold.
       //
       // The filter is similar to the one that is specified in the
-      // [`ListTimeSeries`
-      // request](https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list)
-      // (that call is useful to verify the time series that will be retrieved /
-      // processed). The filter must specify the metric type and the resource
-      // type. Optionally, it can specify resource labels and metric labels.
-      // This field must not exceed 2048 Unicode characters in length.
-      string filter = 2 [(google.api.field_behavior) = REQUIRED];
+      // [`MetricService.ListTimeSeries`
+      // request](/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list) (that
+      // call is useful to verify the time series that will be retrieved /
+      // processed) and must specify the metric type and optionally may contain
+      // restrictions on resource type, resource labels, and metric labels.
+      // This field may not exceed 2048 Unicode characters in length.
+      string filter = 2;
 
       // Specifies the alignment of data points in individual time series as
       // well as how to combine the retrieved time series together (such as
@@ -109,19 +92,22 @@ message AlertPolicy {
       // members of a group of resrouces). Multiple aggregations
       // are applied in the order specified.
       //
-      // This field is similar to the one in the [`ListTimeSeries`
-      // request](https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list).
-      // It is advisable to use the `ListTimeSeries` method when debugging this
-      // field.
+      // This field is similar to the one in the
+      // [`MetricService.ListTimeSeries` request](/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list).
+      // It is advisable to use the `ListTimeSeries` method when debugging this field.
       repeated Aggregation aggregations = 8;
 
-      // A [filter](https://cloud.google.com/monitoring/api/v3/filters) that
-      // identifies a time series that should be used as the denominator of a
-      // ratio that will be compared with the threshold. If a
-      // `denominator_filter` is specified, the time series specified by the
-      // `filter` field will be used as the numerator.
+      // A [filter](/monitoring/api/v3/filters) that identifies a time
+      // series that should be used as the denominator of a ratio that will be
+      // compared with the threshold. If a `denominator_filter` is specified,
+      // the time series specified by the `filter` field will be used as the
+      // numerator.
       //
-      // The filter must specify the metric type and optionally may contain
+      // The filter is similar to the one that is specified in the
+      // [`MetricService.ListTimeSeries`
+      // request](/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list) (that
+      // call is useful to verify the time series that will be retrieved /
+      // processed) and must specify the metric type and optionally may contain
       // restrictions on resource type, resource labels, and metric labels.
       // This field may not exceed 2048 Unicode characters in length.
       string denominator_filter = 9;
@@ -136,6 +122,12 @@ message AlertPolicy {
       // When computing ratios, the `aggregations` and
       // `denominator_aggregations` fields must use the same alignment period
       // and produce time series that have the same periodicity and labels.
+      //
+      // This field is similar to the one in the
+      // [`MetricService.ListTimeSeries`
+      // request](/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list). It
+      // is advisable to use the `ListTimeSeries` method when debugging this
+      // field.
       repeated Aggregation denominator_aggregations = 10;
 
       // The comparison to apply between the time series (indicated by `filter`
@@ -176,17 +168,17 @@ message AlertPolicy {
     // when a time series for the specified metric of a monitored
     // resource does not include any data in the specified `duration`.
     message MetricAbsence {
-      // Required. A [filter](https://cloud.google.com/monitoring/api/v3/filters) that
+      // A [filter](/monitoring/api/v3/filters) that
       // identifies which time series should be compared with the threshold.
       //
       // The filter is similar to the one that is specified in the
-      // [`ListTimeSeries`
-      // request](https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list)
-      // (that call is useful to verify the time series that will be retrieved /
-      // processed). The filter must specify the metric type and the resource
-      // type. Optionally, it can specify resource labels and metric labels.
-      // This field must not exceed 2048 Unicode characters in length.
-      string filter = 1 [(google.api.field_behavior) = REQUIRED];
+      // [`MetricService.ListTimeSeries`
+      // request](/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list) (that
+      // call is useful to verify the time series that will be retrieved /
+      // processed) and must specify the metric type and optionally may contain
+      // restrictions on resource type, resource labels, and metric labels.
+      // This field may not exceed 2048 Unicode characters in length.
+      string filter = 1;
 
       // Specifies the alignment of data points in individual time series as
       // well as how to combine the retrieved time series together (such as
@@ -195,17 +187,15 @@ message AlertPolicy {
       // members of a group of resrouces). Multiple aggregations
       // are applied in the order specified.
       //
-      // This field is similar to the one in the [`ListTimeSeries`
-      // request](https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list).
-      // It is advisable to use the `ListTimeSeries` method when debugging this
-      // field.
+      // This field is similar to the
+      // one in the [`MetricService.ListTimeSeries` request](/monitoring/api/ref_v3/rest/v3/projects.timeSeries/list).
+      // It is advisable to use the `ListTimeSeries` method when debugging this field.
       repeated Aggregation aggregations = 5;
 
       // The amount of time that a time series must fail to report new
-      // data to be considered failing. The minimum value of this field
-      // is 120 seconds. Larger values that are a multiple of a
-      // minute--for example, 240 or 300 seconds--are supported.
-      // If an invalid value is given, an
+      // data to be considered failing. Currently, only values that
+      // are a multiple of a minute--e.g.  60, 120, or 300
+      // seconds--are supported. If an invalid value is given, an
       // error will be returned. The `Duration.nanos` field is
       // ignored.
       google.protobuf.Duration duration = 2;
@@ -217,38 +207,10 @@ message AlertPolicy {
       Trigger trigger = 3;
     }
 
-    // A condition type that allows alert policies to be defined using
-    // [Monitoring Query Language](https://cloud.google.com/monitoring/mql).
-    message MonitoringQueryLanguageCondition {
-      // [Monitoring Query Language](https://cloud.google.com/monitoring/mql)
-      // query that outputs a boolean stream.
-      string query = 1;
-
-      // The amount of time that a time series must violate the
-      // threshold to be considered failing. Currently, only values
-      // that are a multiple of a minute--e.g., 0, 60, 120, or 300
-      // seconds--are supported. If an invalid value is given, an
-      // error will be returned. When choosing a duration, it is useful to
-      // keep in mind the frequency of the underlying time series data
-      // (which may also be affected by any alignments specified in the
-      // `aggregations` field); a good duration is long enough so that a single
-      // outlier does not generate spurious alerts, but short enough that
-      // unhealthy states are detected and alerted on quickly.
-      google.protobuf.Duration duration = 2;
-
-      // The number/percent of time series for which the comparison must hold
-      // in order for the condition to trigger. If unspecified, then the
-      // condition will trigger if the comparison is true for any of the
-      // time series that have been identified by `filter` and `aggregations`,
-      // or by the ratio, if `denominator_filter` and `denominator_aggregations`
-      // are specified.
-      Trigger trigger = 3;
-    }
-
     // Required if the condition exists. The unique resource name for this
-    // condition. Its format is:
+    // condition. Its syntax is:
     //
-    //     projects/[PROJECT_ID_OR_NUMBER]/alertPolicies/[POLICY_ID]/conditions/[CONDITION_ID]
+    //     projects/[PROJECT_ID]/alertPolicies/[POLICY_ID]/conditions/[CONDITION_ID]
     //
     // `[CONDITION_ID]` is assigned by Stackdriver Monitoring when the
     // condition is created as part of a new or updated alerting policy.
@@ -285,10 +247,6 @@ message AlertPolicy {
       // A condition that checks that a time series continues to
       // receive new data points.
       MetricAbsence condition_absent = 2;
-
-      // A condition that uses the Monitoring Query Language to define
-      // alerts.
-      MonitoringQueryLanguageCondition condition_monitoring_query_language = 19;
     }
   }
 
@@ -298,7 +256,7 @@ message AlertPolicy {
     COMBINE_UNSPECIFIED = 0;
 
     // Combine conditions using the logical `AND` operator. An
-    // incident is created only if all the conditions are met
+    // incident is created only if all conditions are met
     // simultaneously. This combiner is satisfied if all conditions are
     // met, even if they are met on completely different resources.
     AND = 1;
@@ -314,9 +272,9 @@ message AlertPolicy {
   }
 
   // Required if the policy exists. The resource name for this policy. The
-  // format is:
+  // syntax is:
   //
-  //     projects/[PROJECT_ID_OR_NUMBER]/alertPolicies/[ALERT_POLICY_ID]
+  //     projects/[PROJECT_ID]/alertPolicies/[ALERT_POLICY_ID]
   //
   // `[ALERT_POLICY_ID]` is assigned by Stackdriver Monitoring when the policy
   // is created.  When calling the
@@ -351,14 +309,10 @@ message AlertPolicy {
   // OR according to the `combiner` field. If the combined conditions evaluate
   // to true, then an incident is created. A policy can have from one to six
   // conditions.
-  // If `condition_time_series_query_language` is present, it must be the only
-  // `condition`.
   repeated Condition conditions = 12;
 
-  // How to combine the results of multiple conditions to determine if an
-  // incident should be opened.
-  // If `condition_time_series_query_language` is present, this must be
-  // `COMBINE_UNSPECIFIED`.
+  // How to combine the results of multiple conditions
+  // to determine if an incident should be opened.
   ConditionCombinerType combiner = 6;
 
   // Whether or not the policy is enabled. On write, the default interpretation
@@ -368,10 +322,6 @@ message AlertPolicy {
   // a field projection has been specified that strips it out.
   google.protobuf.BoolValue enabled = 17;
 
-  // Read-only description of how the alert policy is invalid. OK if the alert
-  // policy is valid. If not OK, the alert policy will not generate incidents.
-  google.rpc.Status validity = 18;
-
   // Identifies the notification channels to which notifications should be sent
   // when incidents are opened or closed or when new violations occur on
   // an already opened incident. Each element of this array corresponds to
@@ -379,9 +329,9 @@ message AlertPolicy {
   // [`NotificationChannel`][google.monitoring.v3.NotificationChannel]
   // objects that are returned from the [`ListNotificationChannels`]
   // [google.monitoring.v3.NotificationChannelService.ListNotificationChannels]
-  // method. The format of the entries in this field is:
+  // method. The syntax of the entries in this field is:
   //
-  //     projects/[PROJECT_ID_OR_NUMBER]/notificationChannels/[CHANNEL_ID]
+  //     projects/[PROJECT_ID]/notificationChannels/[CHANNEL_ID]
   repeated string notification_channels = 14;
 
   // A read-only record of the creation of the alerting policy. If provided

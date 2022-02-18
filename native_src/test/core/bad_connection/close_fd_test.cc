@@ -26,6 +26,8 @@
 // This test won't work except with posix sockets enabled
 #ifdef GRPC_POSIX_SOCKET_TCP
 
+#include "test/core/util/test_config.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -36,15 +38,13 @@
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/time.h>
-
 #include "src/core/ext/transport/chttp2/transport/chttp2_transport.h"
 #include "src/core/lib/iomgr/endpoint_pair.h"
 #include "src/core/lib/surface/channel.h"
 #include "src/core/lib/surface/completion_queue.h"
 #include "src/core/lib/surface/server.h"
-#include "test/core/util/test_config.h"
 
-static void* tag(intptr_t t) { return reinterpret_cast<void*>(t); }
+static void* tag(intptr_t t) { return (void*)t; }
 
 typedef struct test_ctx test_ctx;
 
@@ -73,11 +73,9 @@ static test_ctx g_ctx;
 static void server_setup_transport(grpc_transport* transport) {
   grpc_core::ExecCtx exec_ctx;
   grpc_endpoint_add_to_pollset(g_ctx.ep->server, grpc_cq_pollset(g_ctx.cq));
-  grpc_core::Server* core_server = grpc_core::Server::FromC(g_ctx.server);
-  GPR_ASSERT(GRPC_LOG_IF_ERROR(
-      "SetupTransport",
-      core_server->SetupTransport(transport, nullptr,
-                                  core_server->channel_args(), nullptr)));
+  grpc_server_setup_transport(g_ctx.server, transport, nullptr,
+                              grpc_server_get_channel_args(g_ctx.server),
+                              nullptr);
 }
 
 static void client_setup_transport(grpc_transport* transport) {
@@ -91,9 +89,8 @@ static void client_setup_transport(grpc_transport* transport) {
       grpc_channel_args_copy_and_add(nullptr, &authority_arg, 1);
   /* TODO (pjaikumar): use GRPC_CLIENT_CHANNEL instead of
    * GRPC_CLIENT_DIRECT_CHANNEL */
-  g_ctx.client = grpc_channel_create_internal("socketpair-target", args,
-                                              GRPC_CLIENT_DIRECT_CHANNEL,
-                                              transport, nullptr);
+  g_ctx.client = grpc_channel_create("socketpair-target", args,
+                                     GRPC_CLIENT_DIRECT_CHANNEL, transport);
   grpc_channel_args_destroy(args);
 }
 
@@ -103,7 +100,7 @@ static void init_client() {
   transport = grpc_create_chttp2_transport(nullptr, g_ctx.ep->client, true);
   client_setup_transport(transport);
   GPR_ASSERT(g_ctx.client);
-  grpc_chttp2_transport_start_reading(transport, nullptr, nullptr, nullptr);
+  grpc_chttp2_transport_start_reading(transport, nullptr, nullptr);
 }
 
 static void init_server() {
@@ -115,7 +112,7 @@ static void init_server() {
   grpc_server_start(g_ctx.server);
   transport = grpc_create_chttp2_transport(nullptr, g_ctx.ep->server, false);
   server_setup_transport(transport);
-  grpc_chttp2_transport_start_reading(transport, nullptr, nullptr, nullptr);
+  grpc_chttp2_transport_start_reading(transport, nullptr, nullptr);
 }
 
 static void test_init() {

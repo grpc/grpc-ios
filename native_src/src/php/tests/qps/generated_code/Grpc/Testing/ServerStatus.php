@@ -16,36 +16,23 @@ class ServerStatus extends \Google\Protobuf\Internal\Message
     /**
      * Generated from protobuf field <code>.grpc.testing.ServerStats stats = 1;</code>
      */
-    protected $stats = null;
+    private $stats = null;
     /**
      * the port bound by the server
      *
      * Generated from protobuf field <code>int32 port = 2;</code>
      */
-    protected $port = 0;
+    private $port = 0;
     /**
      * Number of cores available to the server
      *
      * Generated from protobuf field <code>int32 cores = 3;</code>
      */
-    protected $cores = 0;
+    private $cores = 0;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type \Grpc\Testing\ServerStats $stats
-     *     @type int $port
-     *           the port bound by the server
-     *     @type int $cores
-     *           Number of cores available to the server
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Control::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

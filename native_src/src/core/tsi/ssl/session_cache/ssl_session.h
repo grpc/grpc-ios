@@ -21,9 +21,13 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <openssl/ssl.h>
+#include "src/core/tsi/grpc_shadow_boringssl.h"
 
 #include <grpc/slice.h>
+
+extern "C" {
+#include <openssl/ssl.h>
+}
 
 #include "src/core/lib/gprpp/ref_counted.h"
 

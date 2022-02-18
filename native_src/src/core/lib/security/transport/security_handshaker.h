@@ -22,7 +22,6 @@
 #include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/handshaker.h"
-#include "src/core/lib/config/core_configuration.h"
 #include "src/core/lib/security/security_connector/security_connector.h"
 
 namespace grpc_core {
@@ -33,7 +32,7 @@ RefCountedPtr<Handshaker> SecurityHandshakerCreate(
     const grpc_channel_args* args);
 
 /// Registers security handshaker factories.
-void SecurityRegisterHandshakerFactories(CoreConfiguration::Builder*);
+void SecurityRegisterHandshakerFactories();
 
 }  // namespace grpc_core
 

@@ -27,29 +27,25 @@ cdef CallbackFailureHandler _WATCH_CONNECTIVITY_FAILURE_HANDLER = CallbackFailur
 
 cdef class AioChannel:
     def __cinit__(self, bytes target, tuple options, ChannelCredentials credentials, object loop):
-        init_grpc_aio()
         if options is None:
             options = ()
         cdef _ChannelArgs channel_args = _ChannelArgs(options)
         self._target = target
+        self.cq = CallbackCompletionQueue()
         self.loop = loop
         self._status = AIO_CHANNEL_STATUS_READY
 
         if credentials is None:
-            self._is_secure = False
-            creds = grpc_insecure_credentials_create();
-            self.channel = grpc_channel_create(<char *>target,
-                creds,
-                channel_args.c_args())
-            grpc_channel_credentials_release(creds)
+            self.channel = grpc_insecure_channel_create(
+                <char *>target,
+                channel_args.c_args(),
+                NULL)
         else:
-            self._is_secure = True
-            self.channel = grpc_channel_create(<char *>target,
+            self.channel = grpc_secure_channel_create(
                 <grpc_channel_credentials *> credentials.c(),
-                channel_args.c_args())
-
-    def __dealloc__(self):
-        shutdown_grpc_aio()
+                <char *>target,
+                channel_args.c_args(),
+                NULL)
 
     def __repr__(self):
         class_name = self.__class__.__name__
@@ -82,13 +78,12 @@ cdef class AioChannel:
         cdef object future = self.loop.create_future()
         cdef CallbackWrapper wrapper = CallbackWrapper(
             future,
-            self.loop,
             _WATCH_CONNECTIVITY_FAILURE_HANDLER)
         grpc_channel_watch_connectivity_state(
             self.channel,
             last_observed_state,
             c_deadline,
-            global_completion_queue(),
+            self.cq.c_ptr(),
             wrapper.c_functor())
 
         try:
@@ -116,16 +111,13 @@ cdef class AioChannel:
         """Assembles a Cython Call object.
 
         Returns:
-          An _AioCall object.
+          The _AioCall object.
         """
         if self.closed():
             raise UsageError('Channel is closed.')
 
         cdef CallCredentials cython_call_credentials
         if python_call_credentials is not None:
-            if not self._is_secure:
-                raise UsageError("Call credentials are only valid on secure channels")
-
             cython_call_credentials = python_call_credentials._credentials
         else:
             cython_call_credentials = None

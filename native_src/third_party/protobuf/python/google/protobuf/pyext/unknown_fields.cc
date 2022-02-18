@@ -30,7 +30,6 @@
 
 #include <google/protobuf/pyext/unknown_fields.h>
 
-#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <set>
 #include <memory>
@@ -40,6 +39,10 @@
 #include <google/protobuf/pyext/scoped_pyobject_ptr.h>
 #include <google/protobuf/unknown_field_set.h>
 #include <google/protobuf/wire_format_lite.h>
+
+#if PY_MAJOR_VERSION >= 3
+  #define PyInt_FromLong PyLong_FromLong
+#endif
 
 namespace google {
 namespace protobuf {
@@ -139,7 +142,6 @@ static void Dealloc(PyObject* pself) {
   }
   Py_CLEAR(self->parent);
   self->~PyUnknownFields();
-  Py_TYPE(pself)->tp_free(pself);
 }
 
 static PySequenceMethods SqMethods = {
@@ -219,7 +221,7 @@ const UnknownField* GetUnknownField(PyUnknownFieldRef* self) {
                  "The parent message might be cleared.");
     return NULL;
   }
-  Py_ssize_t total_size = fields->field_count();
+  ssize_t total_size = fields->field_count();
   if (self->index >= total_size) {
     PyErr_Format(PyExc_ValueError,
                  "UnknownField does not exist. "
@@ -234,7 +236,7 @@ static PyObject* GetFieldNumber(PyUnknownFieldRef* self, void *closure) {
   if (unknown_field == NULL) {
     return NULL;
   }
-  return PyLong_FromLong(unknown_field->number());
+  return PyInt_FromLong(unknown_field->number());
 }
 
 using internal::WireFormatLite;
@@ -244,7 +246,7 @@ static PyObject* GetWireType(PyUnknownFieldRef* self, void *closure) {
     return NULL;
   }
 
-  // Assign a default value to suppress may-uninitialized warnings (errors
+  // Assign a default value to suppress may-unintialized warnings (errors
   // when built in some places).
   WireFormatLite::WireType wire_type = WireFormatLite::WIRETYPE_VARINT;
   switch (unknown_field->type()) {
@@ -264,7 +266,7 @@ static PyObject* GetWireType(PyUnknownFieldRef* self, void *closure) {
       wire_type = WireFormatLite::WIRETYPE_START_GROUP;
       break;
   }
-  return PyLong_FromLong(wire_type);
+  return PyInt_FromLong(wire_type);
 }
 
 static PyObject* GetData(PyUnknownFieldRef* self, void *closure) {
@@ -275,13 +277,13 @@ static PyObject* GetData(PyUnknownFieldRef* self, void *closure) {
   PyObject* data = NULL;
   switch (field->type()) {
     case UnknownField::TYPE_VARINT:
-      data = PyLong_FromLong(field->varint());
+      data = PyInt_FromLong(field->varint());
       break;
     case UnknownField::TYPE_FIXED32:
-      data = PyLong_FromLong(field->fixed32());
+      data = PyInt_FromLong(field->fixed32());
       break;
     case UnknownField::TYPE_FIXED64:
-      data = PyLong_FromLong(field->fixed64());
+      data = PyInt_FromLong(field->fixed64());
       break;
     case UnknownField::TYPE_LENGTH_DELIMITED:
       data = PyBytes_FromStringAndSize(field->length_delimited().data(),

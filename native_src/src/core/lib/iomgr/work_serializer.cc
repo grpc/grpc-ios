@@ -24,79 +24,54 @@ namespace grpc_core {
 
 DebugOnlyTraceFlag grpc_work_serializer_trace(false, "work_serializer");
 
+struct CallbackWrapper {
+  CallbackWrapper(std::function<void()> cb, const grpc_core::DebugLocation& loc)
+      : callback(std::move(cb)), location(loc) {}
+
+  MultiProducerSingleConsumerQueue::Node mpscq_node;
+  const std::function<void()> callback;
+  const DebugLocation location;
+};
+
 class WorkSerializer::WorkSerializerImpl : public Orphanable {
  public:
-  void Run(std::function<void()> callback, const DebugLocation& location);
-  void Schedule(std::function<void()> callback, const DebugLocation& location);
-  void DrainQueue();
+  void Run(std::function<void()> callback,
+           const grpc_core::DebugLocation& location);
+
   void Orphan() override;
 
  private:
-  struct CallbackWrapper {
-    CallbackWrapper(std::function<void()> cb, const DebugLocation& loc)
-        : callback(std::move(cb)), location(loc) {}
-
-    MultiProducerSingleConsumerQueue::Node mpscq_node;
-    const std::function<void()> callback;
-    const DebugLocation location;
-  };
-
-  // Callers of DrainQueueOwned should make sure to grab the lock on the
-  // workserializer with
-  //
-  //   prev_ref_pair =
-  //     refs_.fetch_add(MakeRefPair(1, 1), std::memory_order_acq_rel);
-  //
-  // and only invoke DrainQueueOwned() if there was previously no owner. Note
-  // that the queue size is also incremented as part of the fetch_add to allow
-  // the callers to add a callback to the queue if another thread already holds
-  // the lock to the work serializer.
-  void DrainQueueOwned();
-
-  // First 16 bits indicate ownership of the WorkSerializer, next 48 bits are
-  // queue size (i.e., refs).
-  static uint64_t MakeRefPair(uint16_t owners, uint64_t size) {
-    GPR_ASSERT(size >> 48 == 0);
-    return (static_cast<uint64_t>(owners) << 48) + static_cast<int64_t>(size);
-  }
-  static uint32_t GetOwners(uint64_t ref_pair) {
-    return static_cast<uint32_t>(ref_pair >> 48);
-  }
-  static uint64_t GetSize(uint64_t ref_pair) {
-    return static_cast<uint64_t>(ref_pair & 0xffffffffffffu);
-  }
+  void DrainQueue();
 
   // An initial size of 1 keeps track of whether the work serializer has been
   // orphaned.
-  std::atomic<uint64_t> refs_{MakeRefPair(0, 1)};
+  Atomic<size_t> size_{1};
   MultiProducerSingleConsumerQueue queue_;
 };
 
-void WorkSerializer::WorkSerializerImpl::Run(std::function<void()> callback,
-                                             const DebugLocation& location) {
+void WorkSerializer::WorkSerializerImpl::Run(
+    std::function<void()> callback, const grpc_core::DebugLocation& location) {
   if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
     gpr_log(GPR_INFO, "WorkSerializer::Run() %p Scheduling callback [%s:%d]",
             this, location.file(), location.line());
   }
-  // Increment queue size for the new callback and owner count to attempt to
-  // take ownership of the WorkSerializer.
-  const uint64_t prev_ref_pair =
-      refs_.fetch_add(MakeRefPair(1, 1), std::memory_order_acq_rel);
+  const size_t prev_size = size_.FetchAdd(1);
   // The work serializer should not have been orphaned.
-  GPR_DEBUG_ASSERT(GetSize(prev_ref_pair) > 0);
-  if (GetOwners(prev_ref_pair) == 0) {
-    // We took ownership of the WorkSerializer. Invoke callback and drain queue.
+  GPR_DEBUG_ASSERT(prev_size > 0);
+  if (prev_size == 1) {
+    // There is no other closure executing right now on this work serializer.
+    // Execute this closure immediately.
     if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
       gpr_log(GPR_INFO, "  Executing immediately");
     }
     callback();
-    DrainQueueOwned();
+    // Loan this thread to the work serializer thread and drain the queue.
+    DrainQueue();
   } else {
-    // Another thread is holding the WorkSerializer, so decrement the ownership
-    // count we just added and queue the callback.
-    refs_.fetch_sub(MakeRefPair(1, 0), std::memory_order_acq_rel);
     CallbackWrapper* cb_wrapper =
         new CallbackWrapper(std::move(callback), location);
+    // There already are closures executing on this work serializer. Simply add
+    // this closure to the queue.
     if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
       gpr_log(GPR_INFO, "  Scheduling on queue : item %p", cb_wrapper);
     }
@@ -104,26 +79,12 @@ void WorkSerializer::WorkSerializerImpl::Run(std::function<void()> callback,
   }
 }
 
-void WorkSerializer::WorkSerializerImpl::Schedule(
-    std::function<void()> callback, const DebugLocation& location) {
-  CallbackWrapper* cb_wrapper =
-      new CallbackWrapper(std::move(callback), location);
-  if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
-    gpr_log(GPR_INFO,
-            "WorkSerializer::Schedule() %p Scheduling callback %p [%s:%d]",
-            this, cb_wrapper, location.file(), location.line());
-  }
-  refs_.fetch_add(MakeRefPair(0, 1), std::memory_order_acq_rel);
-  queue_.Push(&cb_wrapper->mpscq_node);
-}
-
 void WorkSerializer::WorkSerializerImpl::Orphan() {
   if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
     gpr_log(GPR_INFO, "WorkSerializer::Orphan() %p", this);
   }
-  const uint64_t prev_ref_pair =
-      refs_.fetch_sub(MakeRefPair(0, 1), std::memory_order_acq_rel);
-  if (GetOwners(prev_ref_pair) == 0 && GetSize(prev_ref_pair) == 1) {
+  size_t prev_size = size_.FetchSub(1);
+  if (prev_size == 1) {
     if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
       gpr_log(GPR_INFO, "  Destroying");
     }
@@ -132,58 +93,30 @@ void WorkSerializer::WorkSerializerImpl::Orphan() {
 }
 
 // The thread that calls this loans itself to the work serializer so as to
-// execute all the scheduled callbacks.
+// execute all the scheduled callback. This is called from within
+// WorkSerializer::Run() after executing a callback immediately, and hence size_
+// is at least 1.
 void WorkSerializer::WorkSerializerImpl::DrainQueue() {
-  if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
-    gpr_log(GPR_INFO, "WorkSerializer::DrainQueue() %p", this);
-  }
-  // Attempt to take ownership of the WorkSerializer. Also increment the queue
-  // size as required by `DrainQueueOwned()`.
-  const uint64_t prev_ref_pair =
-      refs_.fetch_add(MakeRefPair(1, 1), std::memory_order_acq_rel);
-  if (GetOwners(prev_ref_pair) == 0) {
-    // We took ownership of the WorkSerializer. Drain the queue.
-    DrainQueueOwned();
-  } else {
-    // Another thread is holding the WorkSerializer, so decrement the ownership
-    // count we just added and queue a no-op callback.
-    refs_.fetch_sub(MakeRefPair(1, 0), std::memory_order_acq_rel);
-    CallbackWrapper* cb_wrapper = new CallbackWrapper([]() {}, DEBUG_LOCATION);
-    queue_.Push(&cb_wrapper->mpscq_node);
-  }
-}
-
-void WorkSerializer::WorkSerializerImpl::DrainQueueOwned() {
-  if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
-    gpr_log(GPR_INFO, "WorkSerializer::DrainQueueOwned() %p", this);
-  }
   while (true) {
-    auto prev_ref_pair = refs_.fetch_sub(MakeRefPair(0, 1));
-    // It is possible that while draining the queue, the last callback ended
+    if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
+      gpr_log(GPR_INFO, "WorkSerializer::DrainQueue() %p", this);
+    }
+    size_t prev_size = size_.FetchSub(1);
+    GPR_DEBUG_ASSERT(prev_size >= 1);
+    // It is possible that while draining the queue, one of the callbacks ended
     // up orphaning the work serializer. In that case, delete the object.
-    if (GetSize(prev_ref_pair) == 1) {
+    if (prev_size == 1) {
       if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
         gpr_log(GPR_INFO, "  Queue Drained. Destroying");
       }
       delete this;
       return;
     }
-    if (GetSize(prev_ref_pair) == 2) {
-      // Queue drained. Give up ownership but only if queue remains empty.
-      uint64_t expected = MakeRefPair(1, 1);
-      if (refs_.compare_exchange_strong(expected, MakeRefPair(0, 1),
-                                        std::memory_order_acq_rel)) {
-        // Queue is drained.
-        return;
+    if (prev_size == 2) {
+      if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
+        gpr_log(GPR_INFO, "  Queue Drained");
       }
-      if (GetSize(expected) == 0) {
-        // WorkSerializer got orphaned while this was running
-        if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
-          gpr_log(GPR_INFO, "  Queue Drained. Destroying");
-        }
-        delete this;
-        return;
-      }
+      return;
     }
     // There is at least one callback on the queue. Pop the callback from the
     // queue and execute it.
@@ -191,8 +124,8 @@ void WorkSerializer::WorkSerializerImpl::DrainQueueOwned() {
     bool empty_unused;
     while ((cb_wrapper = reinterpret_cast<CallbackWrapper*>(
                 queue_.PopAndCheckEnd(&empty_unused))) == nullptr) {
-      // This can happen due to a race condition within the mpscq
-      // implementation or because of a race with Run()/Schedule().
+      // This can happen either due to a race condition within the mpscq
+      // implementation or because of a race with Run()
       if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
         gpr_log(GPR_INFO, "  Queue returned nullptr, trying again");
       }
@@ -207,9 +140,7 @@ void WorkSerializer::WorkSerializerImpl::DrainQueueOwned() {
   }
 }
 
-//
 // WorkSerializer
-//
 
 WorkSerializer::WorkSerializer()
     : impl_(MakeOrphanable<WorkSerializerImpl>()) {}
@@ -217,15 +148,8 @@ WorkSerializer::WorkSerializer()
 WorkSerializer::~WorkSerializer() {}
 
 void WorkSerializer::Run(std::function<void()> callback,
-                         const DebugLocation& location) {
+                         const grpc_core::DebugLocation& location) {
   impl_->Run(std::move(callback), location);
 }
-
-void WorkSerializer::Schedule(std::function<void()> callback,
-                              const DebugLocation& location) {
-  impl_->Schedule(std::move(callback), location);
-}
-
-void WorkSerializer::DrainQueue() { impl_->DrainQueue(); }
 
 }  // namespace grpc_core

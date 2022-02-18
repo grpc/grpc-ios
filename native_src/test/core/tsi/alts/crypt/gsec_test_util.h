@@ -55,9 +55,9 @@ uint32_t gsec_test_bias_random_uint32(uint32_t max_length);
  *
  * - src: a source buffer.
  * - des: a destination buffer.
- * - source_len: the length of source buffer to be copied from its beginning.
+ * - length: the length of source buffer to be copied from its beginning.
  */
-void gsec_test_copy(const uint8_t* src, uint8_t** des, size_t source_len);
+void gsec_test_copy(const uint8_t* src, uint8_t** des, size_t length);
 
 /**
  * This method copies data from a source to a destination buffer, and flips one

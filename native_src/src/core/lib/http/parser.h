@@ -22,7 +22,6 @@
 #include <grpc/support/port_platform.h>
 
 #include <grpc/slice.h>
-
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/iomgr/error.h"
 
@@ -56,7 +55,7 @@ typedef enum {
 typedef struct grpc_http_request {
   /* Method of the request (e.g. GET, POST) */
   char* method;
-  /* The path of the resource to fetch (only used for parsed requests) */
+  /* The path of the resource to fetch */
   char* path;
   /* HTTP version to use */
   grpc_http_version version;
@@ -80,7 +79,7 @@ typedef struct grpc_http_response {
   char* body = nullptr;
 } grpc_http_response;
 
-struct grpc_http_parser {
+typedef struct {
   grpc_http_parser_state state;
   grpc_http_type type;
 
@@ -95,16 +94,17 @@ struct grpc_http_parser {
   uint8_t cur_line[GRPC_HTTP_PARSER_MAX_HEADER_LENGTH];
   size_t cur_line_length;
   size_t cur_line_end_length;
-};
+} grpc_http_parser;
+
 void grpc_http_parser_init(grpc_http_parser* parser, grpc_http_type type,
                            void* request_or_response);
 void grpc_http_parser_destroy(grpc_http_parser* parser);
 
 /* Sets \a start_of_body to the offset in \a slice of the start of the body. */
-grpc_error_handle grpc_http_parser_parse(grpc_http_parser* parser,
-                                         const grpc_slice& slice,
-                                         size_t* start_of_body);
-grpc_error_handle grpc_http_parser_eof(grpc_http_parser* parser);
+grpc_error* grpc_http_parser_parse(grpc_http_parser* parser,
+                                   const grpc_slice& slice,
+                                   size_t* start_of_body);
+grpc_error* grpc_http_parser_eof(grpc_http_parser* parser);
 
 void grpc_http_request_destroy(grpc_http_request* request);
 void grpc_http_response_destroy(grpc_http_response* response);

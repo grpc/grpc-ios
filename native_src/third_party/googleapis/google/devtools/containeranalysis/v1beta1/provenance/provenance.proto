@@ -16,18 +16,18 @@ syntax = "proto3";
 
 package grafeas.v1beta1.provenance;
 
-import "google/devtools/containeranalysis/v1beta1/source/source.proto";
-import "google/protobuf/timestamp.proto";
-
 option go_package = "google.golang.org/genproto/googleapis/devtools/containeranalysis/v1beta1/provenance;provenance";
 option java_multiple_files = true;
 option java_package = "io.grafeas.v1beta1.provenance";
 option objc_class_prefix = "GRA";
 
+import "google/protobuf/timestamp.proto";
+import "google/devtools/containeranalysis/v1beta1/source/source.proto";
+
 // Provenance of a build. Contains all information needed to verify the full
 // details about the build from source to completion.
 message BuildProvenance {
-  // Required. Unique identifier of the build.
+  // Unique identifier of the build.
   string id = 1;
 
   // ID of the project.
@@ -98,16 +98,16 @@ message Source {
   repeated grafeas.v1beta1.source.SourceContext additional_contexts = 4;
 }
 
-// Container message for hashes of byte content of files, used in source
+// Container message for hashes of byte content of files, used in Source
 // messages to verify integrity of source input to the build.
 message FileHashes {
-  // Required. Collection of file hashes.
+  // Collection of file hashes.
   repeated Hash file_hash = 1;
 }
 
 // Container message for hash values.
 message Hash {
-  // Specifies the hash algorithm.
+  // Specifies the hash algorithm, if any.
   enum HashType {
     // Unknown.
     HASH_TYPE_UNSPECIFIED = 0;
@@ -115,16 +115,16 @@ message Hash {
     SHA256 = 1;
   }
 
-  // Required. The type of hash that was performed.
+  // The type of hash that was performed.
   HashType type = 1;
-  // Required. The hash value.
+  // The hash value.
   bytes value = 2;
 }
 
 // Command describes a step performed as part of the build pipeline.
 message Command {
-  // Required. Name of the command, as presented on the command line, or if the
-  // command is packaged as a Docker container, as presented to `docker pull`.
+  // Name of the command, as presented on the command line, or if the command is
+  // packaged as a Docker container, as presented to `docker pull`.
   string name = 1;
 
   // Environment variables set before running this command.

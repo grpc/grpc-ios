@@ -18,6 +18,11 @@ set -ex
 # cd to repository root
 cd "$(dirname "$0")/../../.."
 
-cd src/csharp
+mkdir -p cmake/build
+cd cmake/build
+
+cmake -DgRPC_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE="${MSBUILD_CONFIG}" ../..
+
+cd ../../src/csharp
 
 dotnet restore Grpc.sln

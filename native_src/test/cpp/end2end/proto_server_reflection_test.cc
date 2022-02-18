@@ -16,10 +16,6 @@
  *
  */
 
-#include <gtest/gtest.h>
-
-#include "absl/memory/memory.h"
-
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
@@ -37,6 +33,8 @@
 #include "test/cpp/end2end/test_service_impl.h"
 #include "test/cpp/util/proto_reflection_descriptor_database.h"
 
+#include <gtest/gtest.h>
+
 namespace grpc {
 namespace testing {
 
@@ -49,7 +47,7 @@ class ProtoServerReflectionTest : public ::testing::Test {
     ref_desc_pool_ = protobuf::DescriptorPool::generated_pool();
 
     ServerBuilder builder;
-    std::string server_address = "localhost:" + to_string(port_);
+    grpc::string server_address = "localhost:" + to_string(port_);
     builder.AddListeningPort(server_address, InsecureServerCredentials());
     server_ = builder.BuildAndStart();
   }
@@ -59,8 +57,8 @@ class ProtoServerReflectionTest : public ::testing::Test {
     std::shared_ptr<Channel> channel =
         grpc::CreateChannel(target, InsecureChannelCredentials());
     stub_ = grpc::testing::EchoTestService::NewStub(channel);
-    desc_db_ = absl::make_unique<ProtoReflectionDescriptorDatabase>(channel);
-    desc_pool_ = absl::make_unique<protobuf::DescriptorPool>(desc_db_.get());
+    desc_db_.reset(new ProtoReflectionDescriptorDatabase(channel));
+    desc_pool_.reset(new protobuf::DescriptorPool(desc_db_.get()));
   }
 
   string to_string(const int number) {
@@ -69,7 +67,7 @@ class ProtoServerReflectionTest : public ::testing::Test {
     return strs.str();
   }
 
-  void CompareService(const std::string& service) {
+  void CompareService(const grpc::string& service) {
     const protobuf::ServiceDescriptor* service_desc =
         desc_pool_->FindServiceByName(service);
     const protobuf::ServiceDescriptor* ref_service_desc =
@@ -91,7 +89,7 @@ class ProtoServerReflectionTest : public ::testing::Test {
     }
   }
 
-  void CompareMethod(const std::string& method) {
+  void CompareMethod(const grpc::string& method) {
     const protobuf::MethodDescriptor* method_desc =
         desc_pool_->FindMethodByName(method);
     const protobuf::MethodDescriptor* ref_method_desc =
@@ -104,7 +102,7 @@ class ProtoServerReflectionTest : public ::testing::Test {
     CompareType(method_desc->output_type()->full_name());
   }
 
-  void CompareType(const std::string& type) {
+  void CompareType(const grpc::string& type) {
     if (known_types_.find(type) != known_types_.end()) {
       return;
     }
@@ -132,10 +130,10 @@ class ProtoServerReflectionTest : public ::testing::Test {
 TEST_F(ProtoServerReflectionTest, CheckResponseWithLocalDescriptorPool) {
   ResetStub();
 
-  std::vector<std::string> services;
+  std::vector<grpc::string> services;
   desc_db_->GetServices(&services);
   // The service list has at least one service (reflection servcie).
-  EXPECT_TRUE(!services.empty());
+  EXPECT_TRUE(services.size() > 0);
 
   for (auto it = services.begin(); it != services.end(); ++it) {
     CompareService(*it);

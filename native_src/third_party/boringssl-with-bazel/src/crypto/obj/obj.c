@@ -67,12 +67,8 @@
 #include <openssl/mem.h>
 #include <openssl/thread.h>
 
-#include "../asn1/internal.h"
-#include "../internal.h"
-#include "../lhash/internal.h"
-
-// obj_data.h must be included after the definition of |ASN1_OBJECT|.
 #include "obj_dat.h"
+#include "../internal.h"
 
 
 DEFINE_LHASH_OF(ASN1_OBJECT)
@@ -342,12 +338,12 @@ OPENSSL_EXPORT int OBJ_nid2cbb(CBB *out, int nid) {
   return 1;
 }
 
-ASN1_OBJECT *OBJ_nid2obj(int nid) {
+const ASN1_OBJECT *OBJ_nid2obj(int nid) {
   if (nid >= 0 && nid < NUM_NID) {
     if (nid != NID_undef && kObjects[nid].nid == NID_undef) {
       goto err;
     }
-    return (ASN1_OBJECT *)&kObjects[nid];
+    return &kObjects[nid];
   }
 
   CRYPTO_STATIC_MUTEX_lock_read(&global_added_lock);
@@ -415,7 +411,7 @@ ASN1_OBJECT *OBJ_txt2obj(const char *s, int dont_search_names) {
     }
 
     if (nid != NID_undef) {
-      return OBJ_nid2obj(nid);
+      return (ASN1_OBJECT*) OBJ_nid2obj(nid);
     }
   }
 
@@ -488,7 +484,7 @@ static int cmp_data(const ASN1_OBJECT *a, const ASN1_OBJECT *b) {
 }
 
 static uint32_t hash_short_name(const ASN1_OBJECT *obj) {
-  return OPENSSL_strhash(obj->sn);
+  return lh_strhash(obj->sn);
 }
 
 static int cmp_short_name(const ASN1_OBJECT *a, const ASN1_OBJECT *b) {
@@ -496,7 +492,7 @@ static int cmp_short_name(const ASN1_OBJECT *a, const ASN1_OBJECT *b) {
 }
 
 static uint32_t hash_long_name(const ASN1_OBJECT *obj) {
-  return OPENSSL_strhash(obj->ln);
+  return lh_strhash(obj->ln);
 }
 
 static int cmp_long_name(const ASN1_OBJECT *a, const ASN1_OBJECT *b) {

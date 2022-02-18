@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include <grpc/grpc.h>
-#include <grpc/grpc_security.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 
@@ -28,7 +27,7 @@
 #include "test/core/end2end/cq_verifier.h"
 #include "test/core/util/test_config.h"
 
-static void* tag(intptr_t t) { return reinterpret_cast<void*>(t); }
+static void* tag(intptr_t i) { return (void*)i; }
 
 void run_test(bool wait_for_ready) {
   gpr_log(GPR_INFO, "TEST: wait_for_ready=%d", wait_for_ready);
@@ -46,9 +45,8 @@ void run_test(bool wait_for_ready) {
   grpc_channel_args args = {1, &arg};
 
   /* create a call, channel to a non existant server */
-  grpc_channel_credentials* creds = grpc_insecure_credentials_create();
-  grpc_channel* chan = grpc_channel_create("fake:nonexistant", creds, &args);
-  grpc_channel_credentials_release(creds);
+  grpc_channel* chan =
+      grpc_insecure_channel_create("fake:nonexistant", &args, nullptr);
   gpr_timespec deadline = grpc_timeout_seconds_to_deadline(2);
   grpc_call* call = grpc_channel_create_call(
       chan, nullptr, GRPC_PROPAGATE_DEFAULTS, cq,
@@ -99,8 +97,8 @@ void run_test(bool wait_for_ready) {
   grpc_completion_queue_shutdown(cq);
   while (grpc_completion_queue_next(cq, gpr_inf_future(GPR_CLOCK_REALTIME),
                                     nullptr)
-             .type != GRPC_QUEUE_SHUTDOWN) {
-  }
+             .type != GRPC_QUEUE_SHUTDOWN)
+    ;
   grpc_completion_queue_destroy(cq);
   grpc_call_unref(call);
   grpc_channel_destroy(chan);

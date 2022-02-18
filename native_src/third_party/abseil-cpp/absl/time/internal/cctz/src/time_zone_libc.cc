@@ -27,12 +27,6 @@
 #include "absl/time/internal/cctz/include/cctz/civil_time.h"
 #include "absl/time/internal/cctz/include/cctz/time_zone.h"
 
-#if defined(_AIX)
-extern "C" {
-extern long altzone;
-}
-#endif
-
 namespace absl {
 ABSL_NAMESPACE_BEGIN
 namespace time_internal {
@@ -50,7 +44,7 @@ auto tm_zone(const std::tm& tm) -> decltype(_tzname[0]) {
   const bool is_dst = tm.tm_isdst > 0;
   return _tzname[is_dst];
 }
-#elif defined(__sun) || defined(_AIX)
+#elif defined(__sun)
 // Uses the globals: 'timezone', 'altzone' and 'tzname'.
 auto tm_gmtoff(const std::tm& tm) -> decltype(timezone) {
   const bool is_dst = tm.tm_isdst > 0;
@@ -159,8 +153,7 @@ std::time_t find_trans(std::time_t lo, std::time_t hi, int offset) {
   std::tm tm;
   while (lo + 1 != hi) {
     const std::time_t mid = lo + (hi - lo) / 2;
-    std::tm* tmp = local_time(&mid, &tm);
-    if (tmp != nullptr) {
+    if (std::tm* tmp = local_time(&mid, &tm)) {
       if (tm_gmtoff(*tmp) == offset) {
         hi = mid;
       } else {
@@ -170,8 +163,7 @@ std::time_t find_trans(std::time_t lo, std::time_t hi, int offset) {
       // If std::tm cannot hold some result we resort to a linear search,
       // ignoring all failed conversions.  Slow, but never really happens.
       while (++lo != hi) {
-        tmp = local_time(&lo, &tm);
-        if (tmp != nullptr) {
+        if (std::tm* tmp = local_time(&lo, &tm)) {
           if (tm_gmtoff(*tmp) == offset) break;
         }
       }
@@ -231,10 +223,11 @@ time_zone::civil_lookup TimeZoneLibC::MakeTime(const civil_second& cs) const {
         civil_second() + ToUnixSeconds(time_point<seconds>::min());
     static const civil_second max_tp_cs =
         civil_second() + ToUnixSeconds(time_point<seconds>::max());
-    const time_point<seconds> tp = (cs < min_tp_cs) ? time_point<seconds>::min()
-                                   : (cs > max_tp_cs)
-                                       ? time_point<seconds>::max()
-                                       : FromUnixSeconds(cs - civil_second());
+    const time_point<seconds> tp =
+        (cs < min_tp_cs)
+            ? time_point<seconds>::min()
+            : (cs > max_tp_cs) ? time_point<seconds>::max()
+                               : FromUnixSeconds(cs - civil_second());
     return {time_zone::civil_lookup::UNIQUE, tp, tp, tp};
   }
 

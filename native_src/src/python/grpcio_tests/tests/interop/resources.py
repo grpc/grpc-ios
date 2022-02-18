@@ -14,8 +14,8 @@
 """Constants and functions for data used in interoperability testing."""
 
 import argparse
-import os
 import pkgutil
+import os
 
 _ROOT_CERTIFICATES_RESOURCE_PATH = 'credentials/ca.pem'
 _PRIVATE_KEY_RESOURCE_PATH = 'credentials/server1.key'

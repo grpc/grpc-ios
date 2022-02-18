@@ -16,21 +16,18 @@
  *
  */
 
+#include <benchmark/benchmark.h>
 #include <string.h>
-
 #include <atomic>
 #include <vector>
-
-#include <benchmark/benchmark.h>
 
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
-
-#include "src/core/lib/iomgr/timer.h"
-#include "test/core/util/test_config.h"
 #include "test/cpp/microbenchmarks/helpers.h"
 #include "test/cpp/util/test_config.h"
+
+#include "src/core/lib/iomgr/timer.h"
 
 namespace grpc {
 namespace testing {
@@ -48,10 +45,9 @@ static void BM_InitCancelTimer(benchmark::State& state) {
   int i = 0;
   for (auto _ : state) {
     TimerClosure* timer_closure = &timer_closures[i++ % kTimerCount];
-    GRPC_CLOSURE_INIT(
-        &timer_closure->closure,
-        [](void* /*args*/, grpc_error_handle /*err*/) {}, nullptr,
-        grpc_schedule_on_exec_ctx);
+    GRPC_CLOSURE_INIT(&timer_closure->closure,
+                      [](void* /*args*/, grpc_error* /*err*/) {}, nullptr,
+                      grpc_schedule_on_exec_ctx);
     grpc_timer_init(&timer_closure->timer, GRPC_MILLIS_INF_FUTURE,
                     &timer_closure->closure);
     grpc_timer_cancel(&timer_closure->timer);
@@ -78,10 +74,9 @@ static void BM_TimerBatch(benchmark::State& state) {
   for (auto _ : state) {
     for (grpc_millis deadline = start; deadline != end; deadline += increment) {
       TimerClosure* timer_closure = &timer_closures[deadline % kTimerCount];
-      GRPC_CLOSURE_INIT(
-          &timer_closure->closure,
-          [](void* /*args*/, grpc_error_handle /*err*/) {}, nullptr,
-          grpc_schedule_on_exec_ctx);
+      GRPC_CLOSURE_INIT(&timer_closure->closure,
+                        [](void* /*args*/, grpc_error* /*err*/) {}, nullptr,
+                        grpc_schedule_on_exec_ctx);
 
       grpc_timer_init(&timer_closure->timer, deadline, &timer_closure->closure);
     }
@@ -114,7 +109,6 @@ void RunTheBenchmarksNamespaced() { RunSpecifiedBenchmarks(); }
 }  // namespace benchmark
 
 int main(int argc, char** argv) {
-  grpc::testing::TestEnvironment env(argc, argv);
   LibraryInitializer libInit;
   ::benchmark::Initialize(&argc, argv);
   ::grpc::testing::InitTest(&argc, &argv, false);

@@ -22,22 +22,26 @@
 #include "src/core/lib/channel/channel_stack.h"
 #include "src/core/lib/iomgr/timer.h"
 
-namespace grpc_core {
-class TimerState;
-}  // namespace grpc_core
+enum grpc_deadline_timer_state {
+  GRPC_DEADLINE_STATE_INITIAL,
+  GRPC_DEADLINE_STATE_PENDING,
+  GRPC_DEADLINE_STATE_FINISHED
+};
 
 // State used for filters that enforce call deadlines.
 // Must be the first field in the filter's call_data.
 struct grpc_deadline_state {
-  grpc_deadline_state(grpc_call_element* elem,
-                      const grpc_call_element_args& args, grpc_millis deadline);
+  grpc_deadline_state(grpc_call_element* elem, grpc_call_stack* call_stack,
+                      grpc_core::CallCombiner* call_combiner,
+                      grpc_millis deadline);
   ~grpc_deadline_state();
 
   // We take a reference to the call stack for the timer callback.
   grpc_call_stack* call_stack;
   grpc_core::CallCombiner* call_combiner;
-  grpc_core::Arena* arena;
-  grpc_core::TimerState* timer_state = nullptr;
+  grpc_deadline_timer_state timer_state = GRPC_DEADLINE_STATE_INITIAL;
+  grpc_timer timer;
+  grpc_closure timer_callback;
   // Closure to invoke when we receive trailing metadata.
   // We use this to cancel the timer.
   grpc_closure recv_trailing_metadata_ready;

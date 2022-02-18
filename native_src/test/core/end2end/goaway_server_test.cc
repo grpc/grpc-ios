@@ -16,40 +16,42 @@
  *
  */
 
-#include <string.h>
-
-#include <string>
-
-#include "absl/strings/str_cat.h"
-
-#include <grpc/grpc.h>
-#include <grpc/grpc_security.h>
-#include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
-
-#include "src/core/ext/filters/client_channel/resolver/dns/c_ares/grpc_ares_wrapper.h"
-#include "src/core/lib/iomgr/resolve_address.h"
-#include "src/core/lib/iomgr/resolve_address_impl.h"
+/* With the addition of a libuv endpoint, sockaddr.h now includes uv.h when
+   using that endpoint. Because of various transitive includes in uv.h,
+   including windows.h on Windows, uv.h must be included before other system
+   headers. Therefore, sockaddr.h must always be included first */
 #include "src/core/lib/iomgr/sockaddr.h"
 #include "src/core/lib/iomgr/socket_utils.h"
-#include "src/core/lib/resolver/server_address.h"
+
+#include <grpc/grpc.h>
+#include <grpc/support/alloc.h>
+#include <grpc/support/log.h>
+#include <grpc/support/string_util.h>
+#include <string.h>
+#include "src/core/ext/filters/client_channel/resolver/dns/c_ares/grpc_ares_wrapper.h"
+#include "src/core/ext/filters/client_channel/server_address.h"
+#include "src/core/lib/iomgr/resolve_address.h"
+#include "src/core/lib/iomgr/sockaddr.h"
 #include "test/core/end2end/cq_verifier.h"
 #include "test/core/util/port.h"
 #include "test/core/util/test_config.h"
 
-static void* tag(intptr_t t) { return reinterpret_cast<void*>(t); }
+extern grpc_address_resolver_vtable* grpc_resolve_address_impl;
+static grpc_address_resolver_vtable* default_resolver;
+
+static void* tag(intptr_t i) { return (void*)i; }
 
 static gpr_mu g_mu;
 static int g_resolve_port = -1;
 
-static grpc_ares_request* (*iomgr_dns_lookup_ares)(
+static grpc_ares_request* (*iomgr_dns_lookup_ares_locked)(
     const char* dns_server, const char* addr, const char* default_port,
     grpc_pollset_set* interested_parties, grpc_closure* on_done,
-    std::unique_ptr<grpc_core::ServerAddressList>* addresses,
-    std::unique_ptr<grpc_core::ServerAddressList>* balancer_addresses,
-    char** service_config_json, int query_timeout_ms);
+    std::unique_ptr<grpc_core::ServerAddressList>* addresses, bool check_grpclb,
+    char** service_config_json, int query_timeout_ms,
+    grpc_core::Combiner* combiner);
 
-static void (*iomgr_cancel_ares_request)(grpc_ares_request* request);
+static void (*iomgr_cancel_ares_request_locked)(grpc_ares_request* request);
 
 static void set_resolve_port(int port) {
   gpr_mu_lock(&g_mu);
@@ -57,80 +59,61 @@ static void set_resolve_port(int port) {
   gpr_mu_unlock(&g_mu);
 }
 
-namespace {
-
-grpc_core::DNSResolver* g_default_dns_resolver;
-
-class TestDNSResolver : public grpc_core::DNSResolver {
- public:
-  class TestDNSRequest : public grpc_core::DNSResolver::Request {
-   public:
-    explicit TestDNSRequest(
-        std::function<void(absl::StatusOr<std::vector<grpc_resolved_address>>)>
-            on_done)
-        : on_done_(std::move(on_done)) {}
-
-    void Start() override {
-      gpr_mu_lock(&g_mu);
-      if (g_resolve_port < 0) {
-        gpr_mu_unlock(&g_mu);
-        new grpc_core::DNSCallbackExecCtxScheduler(
-            std::move(on_done_), absl::UnknownError("Forced Failure"));
-      } else {
-        std::vector<grpc_resolved_address> addrs;
-        grpc_resolved_address addr;
-        grpc_sockaddr_in* sa = reinterpret_cast<grpc_sockaddr_in*>(&addr);
-        sa->sin_family = GRPC_AF_INET;
-        sa->sin_addr.s_addr = 0x100007f;
-        sa->sin_port = grpc_htons(static_cast<uint16_t>(g_resolve_port));
-        addr.len = static_cast<socklen_t>(sizeof(*sa));
-        addrs.push_back(addr);
-        gpr_mu_unlock(&g_mu);
-        new grpc_core::DNSCallbackExecCtxScheduler(std::move(on_done_),
-                                                   std::move(addrs));
-      }
-    }
-
-    void Orphan() override { Unref(); }
-
-   private:
-    std::function<void(absl::StatusOr<std::vector<grpc_resolved_address>>)>
-        on_done_;
-  };
-
-  grpc_core::OrphanablePtr<grpc_core::DNSResolver::Request> ResolveName(
-      absl::string_view name, absl::string_view default_port,
-      grpc_pollset_set* interested_parties,
-      std::function<void(absl::StatusOr<std::vector<grpc_resolved_address>>)>
-          on_done) override {
-    if (name != "test") {
-      return g_default_dns_resolver->ResolveName(
-          name, default_port, interested_parties, std::move(on_done));
-    }
-    return grpc_core::MakeOrphanable<TestDNSRequest>(std::move(on_done));
+static void my_resolve_address(const char* addr, const char* default_port,
+                               grpc_pollset_set* interested_parties,
+                               grpc_closure* on_done,
+                               grpc_resolved_addresses** addrs) {
+  if (0 != strcmp(addr, "test")) {
+    default_resolver->resolve_address(addr, default_port, interested_parties,
+                                      on_done, addrs);
+    return;
   }
 
-  absl::StatusOr<std::vector<grpc_resolved_address>> ResolveNameBlocking(
-      absl::string_view name, absl::string_view default_port) override {
-    return g_default_dns_resolver->ResolveNameBlocking(name, default_port);
+  grpc_error* error = GRPC_ERROR_NONE;
+  gpr_mu_lock(&g_mu);
+  if (g_resolve_port < 0) {
+    gpr_mu_unlock(&g_mu);
+    error = GRPC_ERROR_CREATE_FROM_STATIC_STRING("Forced Failure");
+  } else {
+    *addrs = static_cast<grpc_resolved_addresses*>(gpr_malloc(sizeof(**addrs)));
+    (*addrs)->naddrs = 1;
+    (*addrs)->addrs = static_cast<grpc_resolved_address*>(
+        gpr_malloc(sizeof(*(*addrs)->addrs)));
+    memset((*addrs)->addrs, 0, sizeof(*(*addrs)->addrs));
+    grpc_sockaddr_in* sa =
+        reinterpret_cast<grpc_sockaddr_in*>((*addrs)->addrs[0].addr);
+    sa->sin_family = GRPC_AF_INET;
+    sa->sin_addr.s_addr = 0x100007f;
+    sa->sin_port = grpc_htons(static_cast<uint16_t>(g_resolve_port));
+    (*addrs)->addrs[0].len = static_cast<socklen_t>(sizeof(*sa));
+    gpr_mu_unlock(&g_mu);
   }
-};
+  grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, error);
+}
 
-}  // namespace
+static grpc_error* my_blocking_resolve_address(
+    const char* name, const char* default_port,
+    grpc_resolved_addresses** addresses) {
+  return default_resolver->blocking_resolve_address(name, default_port,
+                                                    addresses);
+}
 
-static grpc_ares_request* my_dns_lookup_ares(
+static grpc_address_resolver_vtable test_resolver = {
+    my_resolve_address, my_blocking_resolve_address};
+
+static grpc_ares_request* my_dns_lookup_ares_locked(
     const char* dns_server, const char* addr, const char* default_port,
     grpc_pollset_set* interested_parties, grpc_closure* on_done,
-    std::unique_ptr<grpc_core::ServerAddressList>* addresses,
-    std::unique_ptr<grpc_core::ServerAddressList>* balancer_addresses,
-    char** service_config_json, int query_timeout_ms) {
+    std::unique_ptr<grpc_core::ServerAddressList>* addresses, bool check_grpclb,
+    char** service_config_json, int query_timeout_ms,
+    grpc_core::Combiner* combiner) {
   if (0 != strcmp(addr, "test")) {
-    return iomgr_dns_lookup_ares(
+    return iomgr_dns_lookup_ares_locked(
         dns_server, addr, default_port, interested_parties, on_done, addresses,
-        balancer_addresses, service_config_json, query_timeout_ms);
+        check_grpclb, service_config_json, query_timeout_ms, combiner);
   }
 
-  grpc_error_handle error = GRPC_ERROR_NONE;
+  grpc_error* error = GRPC_ERROR_NONE;
   gpr_mu_lock(&g_mu);
   if (g_resolve_port < 0) {
     gpr_mu_unlock(&g_mu);
@@ -138,7 +121,6 @@ static grpc_ares_request* my_dns_lookup_ares(
   } else {
     *addresses = absl::make_unique<grpc_core::ServerAddressList>();
     grpc_sockaddr_in sa;
-    memset(&sa, 0, sizeof(sa));
     sa.sin_family = GRPC_AF_INET;
     sa.sin_addr.s_addr = 0x100007f;
     sa.sin_port = grpc_htons(static_cast<uint16_t>(g_resolve_port));
@@ -149,9 +131,9 @@ static grpc_ares_request* my_dns_lookup_ares(
   return nullptr;
 }
 
-static void my_cancel_ares_request(grpc_ares_request* request) {
+static void my_cancel_ares_request_locked(grpc_ares_request* request) {
   if (request != nullptr) {
-    iomgr_cancel_ares_request(request);
+    iomgr_cancel_ares_request_locked(request);
   }
 }
 
@@ -165,13 +147,12 @@ int main(int argc, char** argv) {
 
   gpr_mu_init(&g_mu);
   grpc_init();
-  g_default_dns_resolver = grpc_core::GetDNSResolver();
-  auto* resolver = new TestDNSResolver();
-  grpc_core::SetDNSResolver(resolver);
-  iomgr_dns_lookup_ares = grpc_dns_lookup_ares;
-  iomgr_cancel_ares_request = grpc_cancel_ares_request;
-  grpc_dns_lookup_ares = my_dns_lookup_ares;
-  grpc_cancel_ares_request = my_cancel_ares_request;
+  default_resolver = grpc_resolve_address_impl;
+  grpc_set_resolver_impl(&test_resolver);
+  iomgr_dns_lookup_ares_locked = grpc_dns_lookup_ares_locked;
+  iomgr_cancel_ares_request_locked = grpc_cancel_ares_request_locked;
+  grpc_dns_lookup_ares_locked = my_dns_lookup_ares_locked;
+  grpc_cancel_ares_request_locked = my_cancel_ares_request_locked;
 
   int was_cancelled1;
   int was_cancelled2;
@@ -201,7 +182,7 @@ int main(int argc, char** argv) {
   int port1 = grpc_pick_unused_port_or_die();
   int port2 = grpc_pick_unused_port_or_die();
 
-  std::string addr;
+  char* addr;
 
   grpc_channel_args client_args;
   grpc_arg arg_array[2];
@@ -223,9 +204,8 @@ int main(int argc, char** argv) {
   client_args.num_args = 2;
 
   /* create a channel that picks first amongst the servers */
-  grpc_channel_credentials* creds = grpc_insecure_credentials_create();
-  grpc_channel* chan = grpc_channel_create("test", creds, &client_args);
-  grpc_channel_credentials_release(creds);
+  grpc_channel* chan =
+      grpc_insecure_channel_create("test", &client_args, nullptr);
   /* and an initial call to them */
   grpc_slice host = grpc_slice_from_static_string("127.0.0.1");
   grpc_call* call1 =
@@ -259,12 +239,10 @@ int main(int argc, char** argv) {
 
   /* bring a server up on the first port */
   grpc_server* server1 = grpc_server_create(nullptr, nullptr);
-  addr = absl::StrCat("127.0.0.1:", port1);
-  grpc_server_credentials* server_creds =
-      grpc_insecure_server_credentials_create();
-  grpc_server_add_http2_port(server1, addr.c_str(), server_creds);
-  grpc_server_credentials_release(server_creds);
+  gpr_asprintf(&addr, "127.0.0.1:%d", port1);
+  grpc_server_add_insecure_http2_port(server1, addr);
   grpc_server_register_completion_queue(server1, cq, nullptr);
+  gpr_free(addr);
   grpc_server_start(server1);
 
   /* request a call to the server */
@@ -338,12 +316,10 @@ int main(int argc, char** argv) {
   /* and bring up second server */
   set_resolve_port(port2);
   grpc_server* server2 = grpc_server_create(nullptr, nullptr);
-  addr = absl::StrCat("127.0.0.1:", port2);
-  grpc_server_credentials* another_server_creds =
-      grpc_insecure_server_credentials_create();
-  grpc_server_add_http2_port(server2, addr.c_str(), another_server_creds);
-  grpc_server_credentials_release(another_server_creds);
+  gpr_asprintf(&addr, "127.0.0.1:%d", port2);
+  grpc_server_add_insecure_http2_port(server2, addr);
   grpc_server_register_completion_queue(server2, cq, nullptr);
+  gpr_free(addr);
   grpc_server_start(server2);
 
   /* request a call to the server */
@@ -404,8 +380,6 @@ int main(int argc, char** argv) {
   cq_verifier_destroy(cqv);
   grpc_completion_queue_destroy(cq);
 
-  grpc_core::SetDNSResolver(g_default_dns_resolver);
-  delete resolver;
   grpc_shutdown();
   gpr_mu_destroy(&g_mu);
 

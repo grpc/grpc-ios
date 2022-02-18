@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2.7
 # Copyright 2017 gRPC authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,8 +17,8 @@
 # to stdout
 
 import collections
-import re
 import sys
+import re
 
 
 def new_obj():
@@ -39,6 +39,6 @@ for line in sys.stdin:
         else:
             outstanding[m.group(2)].remove(m.group(3))
 
-for obj, remaining in list(outstanding.items()):
+for obj, remaining in outstanding.items():
     if remaining:
-        print(('LEAKED: %s %r' % (obj, remaining)))
+        print 'LEAKED: %s %r' % (obj, remaining)

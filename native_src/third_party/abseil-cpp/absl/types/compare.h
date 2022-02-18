@@ -86,8 +86,7 @@ enum class ncmp : value_type { unordered = -127 };
 // incomplete types so they need to be defined after the types are complete.
 #ifdef __cpp_inline_variables
 
-// A no-op expansion that can be followed by a semicolon at class level.
-#define ABSL_COMPARE_INLINE_BASECLASS_DECL(name) static_assert(true, "")
+#define ABSL_COMPARE_INLINE_BASECLASS_DECL(name)
 
 #define ABSL_COMPARE_INLINE_SUBCLASS_DECL(type, name) \
   static const type name
@@ -100,8 +99,7 @@ enum class ncmp : value_type { unordered = -127 };
 #define ABSL_COMPARE_INLINE_BASECLASS_DECL(name) \
   ABSL_CONST_INIT static const T name
 
-// A no-op expansion that can be followed by a semicolon at class level.
-#define ABSL_COMPARE_INLINE_SUBCLASS_DECL(type, name) static_assert(true, "")
+#define ABSL_COMPARE_INLINE_SUBCLASS_DECL(type, name)
 
 #define ABSL_COMPARE_INLINE_INIT(type, name, init) \
   template <typename T>                            \

@@ -2,7 +2,7 @@
 set(GOOGLETEST_PREFIX "${benchmark_BINARY_DIR}/third_party/googletest")
 configure_file(${benchmark_SOURCE_DIR}/cmake/GoogleTest.cmake.in ${GOOGLETEST_PREFIX}/CMakeLists.txt @ONLY)
 
-set(GOOGLETEST_PATH "${CMAKE_CURRENT_SOURCE_DIR}/googletest" CACHE PATH "") # Mind the quotes
+set(GOOGLETEST_PATH "${CMAKE_CURRENT_SOURCE_DIR}/googletest") # Mind the quotes
 execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}"
   -DALLOW_DOWNLOADING_GOOGLETEST=${BENCHMARK_DOWNLOAD_DEPENDENCIES} -DGOOGLETEST_PATH:PATH=${GOOGLETEST_PATH} .
   RESULT_VARIABLE result
@@ -28,9 +28,6 @@ endif()
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 include(${GOOGLETEST_PREFIX}/googletest-paths.cmake)
-
-# googletest doesn't seem to want to stay build warning clean so let's not hurt ourselves.
-add_compile_options(-w)
 
 # Add googletest directly to our build. This defines
 # the gtest and gtest_main targets.

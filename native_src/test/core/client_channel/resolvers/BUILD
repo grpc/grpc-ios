@@ -12,28 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//bazel:grpc_build_system.bzl", "grpc_cc_test", "grpc_package")
+load("//bazel:grpc_build_system.bzl", "grpc_cc_binary", "grpc_cc_library", "grpc_cc_test", "grpc_package")
 
-grpc_package(name = "test/core/client_channel/resolvers")
+grpc_package(name = "test/core/client_channel_resolvers")
 
-licenses(["notice"])
-
-grpc_cc_test(
-    name = "binder_resolver_test",
-    srcs = ["binder_resolver_test.cc"],
-    external_deps = [
-        "gtest",
-    ],
-    language = "C++",
-    deps = [
-        "//:gpr",
-        "//:grpc",
-        "//test/core/util:grpc_test_util",
-    ],
-)
+licenses(["notice"])  # Apache v2
 
 grpc_cc_test(
-    name = "dns_resolver_connectivity_using_ares_test",
+    name = "dns_resolver_connectivity_using_ares_resolver_test",
     srcs = ["dns_resolver_connectivity_test.cc"],
     args = [
         "--resolver=ares",
@@ -47,7 +33,7 @@ grpc_cc_test(
 )
 
 grpc_cc_test(
-    name = "dns_resolver_connectivity_using_native_test",
+    name = "dns_resolver_connectivity_using_native_resolver_test",
     srcs = ["dns_resolver_connectivity_test.cc"],
     args = [
         "--resolver=native",
@@ -102,23 +88,5 @@ grpc_cc_test(
         "//:grpc",
         "//:grpc_resolver_fake",
         "//test/core/util:grpc_test_util",
-    ],
-)
-
-grpc_cc_test(
-    name = "google_c2p_resolver_test",
-    srcs = ["google_c2p_resolver_test.cc"],
-    external_deps = [
-        "absl/strings:str_format",
-        "gtest",
-    ],
-    language = "C++",
-    deps = [
-        "//:gpr",
-        "//:grpc",
-        "//:grpc++",
-        "//test/core/util:fake_udp_and_tcp_server",
-        "//test/core/util:grpc_test_util",
-        "//test/cpp/util:test_util",
     ],
 )

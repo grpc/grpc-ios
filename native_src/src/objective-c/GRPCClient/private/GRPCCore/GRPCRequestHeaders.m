@@ -22,18 +22,11 @@
 
 #import "NSDictionary+GRPC.h"
 
-static void CheckIsNilOrString(NSString *name, id value) {
-  if (value && ![value isKindOfClass:[NSString class]]) {
-    [NSException raise:NSInvalidArgumentException format:@"%@ must be an NSString", name];
-  }
-}
-
 // Used by the setter.
-static void CheckIsNonNilASCIIString(NSString *name, id value) {
+static void CheckIsNonNilASCII(NSString *name, NSString *value) {
   if (!value) {
     [NSException raise:NSInvalidArgumentException format:@"%@ cannot be nil", name];
   }
-  CheckIsNilOrString(name, value);
   if (![value canBeConvertedToEncoding:NSASCIIStringEncoding]) {
     [NSException raise:NSInvalidArgumentException
                 format:@"%@ %@ contains non-ASCII characters", name, value];
@@ -45,18 +38,20 @@ static void CheckKeyValuePairIsValid(NSString *key, id value) {
   if ([key hasSuffix:@"-bin"]) {
     if (![value isKindOfClass:[NSData class]]) {
       [NSException raise:NSInvalidArgumentException
-                  format:@"Expected NSData value for header %@ ending in \"-bin\", "
-                         @"instead got %@",
-                         key, value];
+                  format:
+                      @"Expected NSData value for header %@ ending in \"-bin\", "
+                      @"instead got %@",
+                      key, value];
     }
   } else {
     if (![value isKindOfClass:[NSString class]]) {
       [NSException raise:NSInvalidArgumentException
-                  format:@"Expected NSString value for header %@ not ending in \"-bin\", "
-                         @"instead got %@",
-                         key, value];
+                  format:
+                      @"Expected NSString value for header %@ not ending in \"-bin\", "
+                      @"instead got %@",
+                      key, value];
     }
-    CheckIsNonNilASCIIString(@"Text header value", value);
+    CheckIsNonNilASCII(@"Text header value", (NSString *)value);
   }
 }
 
@@ -107,24 +102,20 @@ static void CheckKeyValuePairIsValid(NSString *key, id value) {
   }
 }
 
-- (id)objectForKey:(id)key {
-  CheckIsNilOrString(@"Header name", key);
-  NSString *stringKey = [(NSString *)key lowercaseString];
-  return _delegate[stringKey];
+- (id)objectForKey:(NSString *)key {
+  return _delegate[key.lowercaseString];
 }
 
-- (void)setObject:(id)obj forKey:(id<NSCopying>)key {
-  CheckIsNonNilASCIIString(@"Header name", key);
-  NSString *stringKey = [(NSString *)key lowercaseString];
-  CheckKeyValuePairIsValid(stringKey, obj);
-  _delegate[stringKey] = obj;
+- (void)setObject:(id)obj forKey:(NSString *)key {
+  CheckIsNonNilASCII(@"Header name", key);
+  key = key.lowercaseString;
+  CheckKeyValuePairIsValid(key, obj);
+  _delegate[key] = obj;
 }
 
-- (void)removeObjectForKey:(id)key {
-  CheckIsNilOrString(@"Header name", key);
-  NSString *stringKey = [(NSString *)key lowercaseString];
+- (void)removeObjectForKey:(NSString *)key {
   [self checkCallIsNotStarted];
-  [_delegate removeObjectForKey:stringKey];
+  [_delegate removeObjectForKey:key.lowercaseString];
 }
 
 - (NSUInteger)count {

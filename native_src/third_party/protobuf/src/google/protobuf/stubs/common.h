@@ -43,10 +43,9 @@
 #include <string>
 #include <vector>
 
+#include <google/protobuf/stubs/port.h>
 #include <google/protobuf/stubs/macros.h>
 #include <google/protobuf/stubs/platform_macros.h>
-#include <google/protobuf/stubs/port.h>
-#include <google/protobuf/stubs/stringpiece.h>
 
 #ifndef PROTOBUF_USE_EXCEPTIONS
 #if defined(_MSC_VER) && defined(_CPPUNWIND)
@@ -82,7 +81,7 @@ namespace internal {
 
 // The current version, represented as a single integer to make comparison
 // easier:  major * 10^6 + minor * 10^3 + micro
-#define GOOGLE_PROTOBUF_VERSION 3019004
+#define GOOGLE_PROTOBUF_VERSION 3011002
 
 // A suffix string for alpha, beta or rc releases. Empty for stable releases.
 #define GOOGLE_PROTOBUF_VERSION_SUFFIX ""
@@ -90,15 +89,15 @@ namespace internal {
 // The minimum header version which works with the current version of
 // the library.  This constant should only be used by protoc's C++ code
 // generator.
-static const int kMinHeaderVersionForLibrary = 3019000;
+static const int kMinHeaderVersionForLibrary = 3011000;
 
 // The minimum protoc version which works with the current version of the
 // headers.
-#define GOOGLE_PROTOBUF_MIN_PROTOC_VERSION 3019000
+#define GOOGLE_PROTOBUF_MIN_PROTOC_VERSION 3011000
 
 // The minimum header version which works with the current version of
 // protoc.  This constant should only be used in VerifyVersion().
-static const int kMinHeaderVersionForProtoc = 3019000;
+static const int kMinHeaderVersionForProtoc = 3011000;
 
 // Verifies that the headers and libraries are compatible.  Use the macro
 // below to call this.
@@ -123,18 +122,19 @@ std::string PROTOBUF_EXPORT VersionString(int version);
 // ===================================================================
 // from google3/util/utf8/public/unilib.h
 
+class StringPiece;
 namespace internal {
 
 // Checks if the buffer contains structurally-valid UTF-8.  Implemented in
 // structurally_valid.cc.
 PROTOBUF_EXPORT bool IsStructurallyValidUTF8(const char* buf, int len);
 
-inline bool IsStructurallyValidUTF8(StringPiece str) {
+inline bool IsStructurallyValidUTF8(const std::string& str) {
   return IsStructurallyValidUTF8(str.data(), static_cast<int>(str.length()));
 }
 
-// Returns initial number of bytes of structurally valid UTF-8.
-PROTOBUF_EXPORT int UTF8SpnStructurallyValid(StringPiece str);
+// Returns initial number of bytes of structually valid UTF-8.
+PROTOBUF_EXPORT int UTF8SpnStructurallyValid(const StringPiece& str);
 
 // Coerce UTF-8 byte string in src_str to be
 // a structurally-valid equal-length string by selectively
@@ -148,7 +148,8 @@ PROTOBUF_EXPORT int UTF8SpnStructurallyValid(StringPiece str);
 //
 // Optimized for: all structurally valid and no byte copying is done.
 //
-PROTOBUF_EXPORT char* UTF8CoerceToStructurallyValid(StringPiece str, char* dst,
+PROTOBUF_EXPORT char* UTF8CoerceToStructurallyValid(const StringPiece& str,
+                                                    char* dst,
                                                     char replace_char);
 
 }  // namespace internal
@@ -176,7 +177,7 @@ class FatalException : public std::exception {
       : filename_(filename), line_(line), message_(message) {}
   virtual ~FatalException() throw();
 
-  const char* what() const throw() override;
+  virtual const char* what() const throw();
 
   const char* filename() const { return filename_; }
   int line() const { return line_; }

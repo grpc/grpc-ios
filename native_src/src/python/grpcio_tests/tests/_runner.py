@@ -80,7 +80,7 @@ class CaptureFile(object):
       value (str): What to write to the original file.
     """
         if six.PY3 and not isinstance(value, six.binary_type):
-            value = value.encode('ascii')
+            value = bytes(value, 'ascii')
         if self._saved_fd is None:
             os.write(self._redirect_fd, value)
         else:
@@ -183,6 +183,7 @@ class Runner(object):
                 pass
 
         try_set_handler('SIGINT', sigint_handler)
+        try_set_handler('SIGSEGV', fault_handler)
         try_set_handler('SIGBUS', fault_handler)
         try_set_handler('SIGABRT', fault_handler)
         try_set_handler('SIGFPE', fault_handler)

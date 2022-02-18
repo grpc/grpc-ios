@@ -11,33 +11,45 @@ types:
 - name: google.cloud.redis.v1beta1.ZoneMetadata
 
 documentation:
-  summary: Creates and manages Redis instances on the Google Cloud Platform.
+  summary: |-
+    The Google Cloud Memorystore for Redis API is used for creating and managing
+    Redis instances on the Google Cloud Platform.
 
 backend:
   rules:
-  - selector: 'google.cloud.redis.v1beta1.CloudRedis.*'
+  - selector: google.longrunning.Operations.ListOperations
     deadline: 60.0
-  - selector: 'google.longrunning.Operations.*'
+  - selector: google.longrunning.Operations.GetOperation
+    deadline: 60.0
+  - selector: google.longrunning.Operations.DeleteOperation
+    deadline: 60.0
+  - selector: google.longrunning.Operations.CancelOperation
+    deadline: 60.0
+  - selector: google.cloud.redis.v1beta1.CloudRedis.ListInstances
+    deadline: 60.0
+  - selector: google.cloud.redis.v1beta1.CloudRedis.GetInstance
+    deadline: 60.0
+  - selector: google.cloud.redis.v1beta1.CloudRedis.CreateInstance
+    deadline: 60.0
+  - selector: google.cloud.redis.v1beta1.CloudRedis.UpdateInstance
+    deadline: 60.0
+  - selector: google.cloud.redis.v1beta1.CloudRedis.DeleteInstance
     deadline: 60.0
 
 http:
   rules:
-  - selector: google.longrunning.Operations.CancelOperation
-    post: '/v1beta1/{name=projects/*/locations/*/operations/*}:cancel'
-  - selector: google.longrunning.Operations.DeleteOperation
-    delete: '/v1beta1/{name=projects/*/locations/*/operations/*}'
-  - selector: google.longrunning.Operations.GetOperation
-    get: '/v1beta1/{name=projects/*/locations/*/operations/*}'
   - selector: google.longrunning.Operations.ListOperations
     get: '/v1beta1/{name=projects/*/locations/*}/operations'
+    additional_bindings:
+
+  - selector: google.longrunning.Operations.GetOperation
+    get: '/v1beta1/{name=projects/*/locations/*/operations/*}'
+    additional_bindings:
+
 
 authentication:
   rules:
-  - selector: 'google.cloud.redis.v1beta1.CloudRedis.*'
-    oauth:
-      canonical_scopes: |-
-        https://www.googleapis.com/auth/cloud-platform
-  - selector: 'google.longrunning.Operations.*'
+  - selector: '*'
     oauth:
       canonical_scopes: |-
         https://www.googleapis.com/auth/cloud-platform

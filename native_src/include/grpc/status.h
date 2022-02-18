@@ -21,6 +21,6 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <grpc/impl/codegen/status.h>  // IWYU pragma: export
+#include <grpc/impl/codegen/status.h>
 
 #endif /* GRPC_STATUS_H */

@@ -73,6 +73,8 @@ class PrimeTableTest : public testing::Test {
   PrimeTable* const table_;
 };
 
+#if GTEST_HAS_TYPED_TEST
+
 using testing::Types;
 
 // Google Test offers two ways for reusing tests for different types.
@@ -131,6 +133,10 @@ TYPED_TEST(PrimeTableTest, CanGetNextPrime) {
 // That's it!  Google Test will repeat each TYPED_TEST for each type
 // in the type list specified in TYPED_TEST_SUITE.  Sit back and be
 // happy that you don't have to define them multiple times.
+
+#endif  // GTEST_HAS_TYPED_TEST
+
+#if GTEST_HAS_TYPED_TEST_P
 
 using testing::Types;
 
@@ -214,4 +220,5 @@ INSTANTIATE_TYPED_TEST_SUITE_P(OnTheFlyAndPreCalculated,    // Instance name
                                PrimeTableTest2,             // Test case name
                                PrimeTableImplementations);  // Type list
 
+#endif  // GTEST_HAS_TYPED_TEST_P
 }  // namespace

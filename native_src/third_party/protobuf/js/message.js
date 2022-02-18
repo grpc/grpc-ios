@@ -31,7 +31,6 @@
 /**
  * @fileoverview Definition of jspb.Message.
  *
- * @suppress {missingRequire} TODO(b/152540451): this shouldn't be needed
  * @author mwr@google.com (Mark Rawling)
  */
 
@@ -318,7 +317,7 @@ jspb.Message.getIndex_ = function(msg, fieldNumber) {
   return fieldNumber + msg.arrayIndexOffset_;
 };
 
-// This is only here to ensure we are not back sliding on ES6 requirements for
+// This is only here to ensure we are not back sliding on ES6 requiements for
 // protos in g3.
 jspb.Message.hiddenES6Property_ = class {};
 
@@ -367,7 +366,7 @@ jspb.Message.initialize = function(
 
   if (!jspb.Message.SERIALIZE_EMPTY_TRAILING_FIELDS) {
     // TODO(jakubvrana): This is same for all instances, move to prototype.
-    // TODO(jakubvrana): There are indexOf calls on this in serialization,
+    // TODO(jakubvrana): There are indexOf calls on this in serializtion,
     // consider switching to a set.
     msg.repeatedFields = repeatedFields;
   }
@@ -418,7 +417,7 @@ jspb.Message.EMPTY_LIST_SENTINEL_ = goog.DEBUG && Object.freeze ?
  */
 jspb.Message.isArray_ = function(o) {
   return jspb.Message.ASSUME_LOCAL_ARRAYS ? o instanceof Array :
-                                            Array.isArray(o);
+                                            goog.isArray(o);
 };
 
 /**
@@ -1113,11 +1112,8 @@ jspb.Message.setFieldIgnoringDefault_ = function(
   goog.asserts.assertInstanceof(msg, jspb.Message);
   if (value !== defaultValue) {
     jspb.Message.setField(msg, fieldNumber, value);
-  } else if (fieldNumber < msg.pivot_) {
-    msg.array[jspb.Message.getIndex_(msg, fieldNumber)] = null;
   } else {
-    jspb.Message.maybeInitEmptyExtensionObject_(msg);
-    delete msg.extensionObject_[fieldNumber];
+    msg.array[jspb.Message.getIndex_(msg, fieldNumber)] = null;
   }
   return msg;
 };
@@ -1434,7 +1430,7 @@ jspb.Message.prototype.syncMapFields_ = function() {
   if (this.wrappers_) {
     for (var fieldNumber in this.wrappers_) {
       var val = this.wrappers_[fieldNumber];
-      if (Array.isArray(val)) {
+      if (goog.isArray(val)) {
         for (var i = 0; i < val.length; i++) {
           if (val[i]) {
             val[i].toArray();
@@ -1824,7 +1820,7 @@ jspb.Message.copyInto = function(fromMessage, toMessage) {
  */
 jspb.Message.clone_ = function(obj) {
   var o;
-  if (Array.isArray(obj)) {
+  if (goog.isArray(obj)) {
     // Allocate array of correct size.
     var clonedArray = new Array(obj.length);
     // Use array iteration where possible because it is faster than for-in.
@@ -1864,7 +1860,7 @@ jspb.Message.clone_ = function(obj) {
  * @param {Function} constructor The message constructor.
  */
 jspb.Message.registerMessageType = function(id, constructor) {
-  // This is needed so we can later access messageId directly on the constructor,
+  // This is needed so we can later access messageId directly on the contructor,
   // otherwise it is not available due to 'property collapsing' by the compiler.
   /**
    * @suppress {strictMissingProperties} messageId is not defined on Function

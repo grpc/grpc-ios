@@ -16,17 +16,16 @@
  *
  */
 
+#include "src/core/lib/iomgr/resolve_address.h"
+
 #include <net/if.h>
 #include <string.h>
 #include <sys/un.h>
 
-#include <string>
-
-#include "absl/strings/str_format.h"
-
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/string_util.h>
 #include <grpc/support/sync.h>
 #include <grpc/support/time.h>
 
@@ -37,7 +36,6 @@
 #include "src/core/lib/gprpp/thd.h"
 #include "src/core/lib/iomgr/executor.h"
 #include "src/core/lib/iomgr/iomgr.h"
-#include "src/core/lib/iomgr/resolve_address.h"
 #include "test/core/util/cmdline.h"
 #include "test/core/util/test_config.h"
 
@@ -48,13 +46,14 @@ static gpr_timespec test_deadline(void) {
 typedef struct args_struct {
   grpc_core::Thread thd;
   gpr_event ev;
+  grpc_resolved_addresses* addrs;
+  gpr_atm done_atm;
   gpr_mu* mu;
-  bool done;              // guarded by mu
-  grpc_pollset* pollset;  // guarded by mu
+  grpc_pollset* pollset;
   grpc_pollset_set* pollset_set;
 } args_struct;
 
-static void do_nothing(void* /*arg*/, grpc_error_handle /*error*/) {}
+static void do_nothing(void* /*arg*/, grpc_error* /*error*/) {}
 
 void args_init(args_struct* args) {
   gpr_event_init(&args->ev);
@@ -62,7 +61,7 @@ void args_init(args_struct* args) {
   grpc_pollset_init(args->pollset, &args->mu);
   args->pollset_set = grpc_pollset_set_create();
   grpc_pollset_set_add_pollset(args->pollset_set, args->pollset);
-  args->done = false;
+  args->addrs = nullptr;
 }
 
 void args_finish(args_struct* args) {
@@ -70,6 +69,7 @@ void args_finish(args_struct* args) {
   args->thd.Join();
   // Don't need to explicitly destruct args->thd since
   // args is actually going to be destructed, not just freed
+  grpc_resolved_addresses_destroy(args->addrs);
   grpc_pollset_set_del_pollset(args->pollset_set, args->pollset);
   grpc_pollset_set_destroy(args->pollset_set);
   grpc_closure do_nothing_cb;
@@ -92,52 +92,92 @@ static void actually_poll(void* argsp) {
   grpc_millis deadline = n_sec_deadline(10);
   while (true) {
     grpc_core::ExecCtx exec_ctx;
-    {
-      grpc_core::MutexLockForGprMu lock(args->mu);
-      if (args->done) {
-        break;
-      }
-      grpc_millis time_left = deadline - grpc_core::ExecCtx::Get()->Now();
-      gpr_log(GPR_DEBUG, "done=%d, time_left=%" PRId64, args->done, time_left);
-      GPR_ASSERT(time_left >= 0);
-      grpc_pollset_worker* worker = nullptr;
-      GRPC_LOG_IF_ERROR(
-          "pollset_work",
-          grpc_pollset_work(args->pollset, &worker, n_sec_deadline(1)));
+    bool done = gpr_atm_acq_load(&args->done_atm) != 0;
+    if (done) {
+      break;
     }
+    grpc_millis time_left = deadline - grpc_core::ExecCtx::Get()->Now();
+    gpr_log(GPR_DEBUG, "done=%d, time_left=%" PRId64, done, time_left);
+    GPR_ASSERT(time_left >= 0);
+    grpc_pollset_worker* worker = nullptr;
+    gpr_mu_lock(args->mu);
+    GRPC_LOG_IF_ERROR("pollset_work", grpc_pollset_work(args->pollset, &worker,
+                                                        n_sec_deadline(1)));
+    gpr_mu_unlock(args->mu);
+    grpc_core::ExecCtx::Get()->Flush();
   }
-  gpr_event_set(&args->ev, reinterpret_cast<void*>(1));
+  gpr_event_set(&args->ev, (void*)1);
 }
 
 static void poll_pollset_until_request_done(args_struct* args) {
+  gpr_atm_rel_store(&args->done_atm, 0);
   args->thd = grpc_core::Thread("grpc_poll_pollset", actually_poll, args);
   args->thd.Start();
 }
 
-namespace {
-
-void MustSucceed(args_struct* args,
-                 absl::StatusOr<std::vector<grpc_resolved_address>> result) {
-  GPR_ASSERT(result.ok());
-  GPR_ASSERT(!result->empty());
-  grpc_core::MutexLockForGprMu lock(args->mu);
-  args->done = true;
+static void must_succeed(void* argsp, grpc_error* err) {
+  args_struct* args = static_cast<args_struct*>(argsp);
+  GPR_ASSERT(err == GRPC_ERROR_NONE);
+  GPR_ASSERT(args->addrs != nullptr);
+  GPR_ASSERT(args->addrs->naddrs > 0);
+  gpr_atm_rel_store(&args->done_atm, 1);
+  gpr_mu_lock(args->mu);
   GRPC_LOG_IF_ERROR("pollset_kick", grpc_pollset_kick(args->pollset, nullptr));
+  gpr_mu_unlock(args->mu);
 }
 
-}  // namespace
+static void must_fail(void* argsp, grpc_error* err) {
+  args_struct* args = static_cast<args_struct*>(argsp);
+  GPR_ASSERT(err != GRPC_ERROR_NONE);
+  gpr_atm_rel_store(&args->done_atm, 1);
+  gpr_mu_lock(args->mu);
+  GRPC_LOG_IF_ERROR("pollset_kick", grpc_pollset_kick(args->pollset, nullptr));
+  gpr_mu_unlock(args->mu);
+}
+
+static void test_unix_socket(void) {
+  grpc_core::ExecCtx exec_ctx;
+  args_struct args;
+  args_init(&args);
+  poll_pollset_until_request_done(&args);
+  grpc_resolve_address(
+      "unix:/path/name", nullptr, args.pollset_set,
+      GRPC_CLOSURE_CREATE(must_succeed, &args, grpc_schedule_on_exec_ctx),
+      &args.addrs);
+  args_finish(&args);
+}
+
+static void test_unix_socket_path_name_too_long(void) {
+  grpc_core::ExecCtx exec_ctx;
+  args_struct args;
+  args_init(&args);
+  const char prefix[] = "unix:/path/name";
+  size_t path_name_length =
+      GPR_ARRAY_SIZE(((struct sockaddr_un*)nullptr)->sun_path) + 6;
+  char* path_name =
+      static_cast<char*>(gpr_malloc(sizeof(char) * path_name_length));
+  memset(path_name, 'a', path_name_length);
+  memcpy(path_name, prefix, strlen(prefix) - 1);
+  path_name[path_name_length - 1] = '\0';
+
+  poll_pollset_until_request_done(&args);
+  grpc_resolve_address(
+      path_name, nullptr, args.pollset_set,
+      GRPC_CLOSURE_CREATE(must_fail, &args, grpc_schedule_on_exec_ctx),
+      &args.addrs);
+  gpr_free(path_name);
+  args_finish(&args);
+}
 
 static void resolve_address_must_succeed(const char* target) {
   grpc_core::ExecCtx exec_ctx;
   args_struct args;
   args_init(&args);
   poll_pollset_until_request_done(&args);
-  auto r = grpc_core::GetDNSResolver()->ResolveName(
+  grpc_resolve_address(
       target, "1" /* port number */, args.pollset_set,
-      [&args](absl::StatusOr<std::vector<grpc_resolved_address>> result) {
-        MustSucceed(&args, std::move(result));
-      });
-  r->Start();
+      GRPC_CLOSURE_CREATE(must_succeed, &args, grpc_schedule_on_exec_ctx),
+      &args.addrs);
   grpc_core::ExecCtx::Get()->Flush();
   args_finish(&args);
 }
@@ -149,26 +189,30 @@ static void test_named_and_numeric_scope_ids(void) {
   // system recognizes, and then use that for the test.
   for (size_t i = 1; i < 65536; i++) {
     if (if_indextoname(i, arbitrary_interface_name) != nullptr) {
-      gpr_log(GPR_DEBUG,
-              "Found interface at index %" PRIuPTR
-              " named %s. Will use this for the test",
-              i, arbitrary_interface_name);
-      interface_index = static_cast<int>(i);
+      gpr_log(
+          GPR_DEBUG,
+          "Found interface at index %d named %s. Will use this for the test",
+          (int)i, arbitrary_interface_name);
+      interface_index = (int)i;
       break;
     }
   }
   GPR_ASSERT(strlen(arbitrary_interface_name) > 0);
   // Test resolution of an ipv6 address with a named scope ID
   gpr_log(GPR_DEBUG, "test resolution with a named scope ID");
-  std::string target_with_named_scope_id =
-      absl::StrFormat("fe80::1234%%%s", arbitrary_interface_name);
-  resolve_address_must_succeed(target_with_named_scope_id.c_str());
+  char* target_with_named_scope_id = nullptr;
+  gpr_asprintf(&target_with_named_scope_id, "fe80::1234%%%s",
+               arbitrary_interface_name);
+  resolve_address_must_succeed(target_with_named_scope_id);
+  gpr_free(target_with_named_scope_id);
   gpr_free(arbitrary_interface_name);
   // Test resolution of an ipv6 address with a numeric scope ID
   gpr_log(GPR_DEBUG, "test resolution with a numeric scope ID");
-  std::string target_with_numeric_scope_id =
-      absl::StrFormat("fe80::1234%%%d", interface_index);
-  resolve_address_must_succeed(target_with_numeric_scope_id.c_str());
+  char* target_with_numeric_scope_id = nullptr;
+  gpr_asprintf(&target_with_numeric_scope_id, "fe80::1234%%%d",
+               interface_index);
+  resolve_address_must_succeed(target_with_numeric_scope_id);
+  gpr_free(target_with_numeric_scope_id);
 }
 
 int main(int argc, char** argv) {
@@ -207,6 +251,10 @@ int main(int argc, char** argv) {
     // unconditionally use the native DNS resolver).
     grpc_core::UniquePtr<char> resolver =
         GPR_GLOBAL_CONFIG_GET(grpc_dns_resolver);
+    if (gpr_stricmp(resolver.get(), "native") == 0) {
+      test_unix_socket();
+      test_unix_socket_path_name_too_long();
+    }
   }
   gpr_cmdline_destroy(cl);
 

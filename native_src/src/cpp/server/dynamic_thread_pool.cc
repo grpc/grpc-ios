@@ -27,12 +27,11 @@ namespace grpc {
 
 DynamicThreadPool::DynamicThread::DynamicThread(DynamicThreadPool* pool)
     : pool_(pool),
-      thd_(
-          "grpcpp_dynamic_pool",
-          [](void* th) {
-            static_cast<DynamicThreadPool::DynamicThread*>(th)->ThreadFunc();
-          },
-          this) {
+      thd_("grpcpp_dynamic_pool",
+           [](void* th) {
+             static_cast<DynamicThreadPool::DynamicThread*>(th)->ThreadFunc();
+           },
+           this) {
   thd_.Start();
 }
 DynamicThreadPool::DynamicThread::~DynamicThread() { thd_.Join(); }
@@ -68,7 +67,7 @@ void DynamicThreadPool::ThreadFunc() {
     if (!callbacks_.empty()) {
       auto cb = callbacks_.front();
       callbacks_.pop();
-      lock.Release();
+      lock.Unlock();
       cb();
     } else if (shutdown_) {
       break;
@@ -97,7 +96,7 @@ void DynamicThreadPool::ReapThreads(std::list<DynamicThread*>* tlist) {
 DynamicThreadPool::~DynamicThreadPool() {
   grpc_core::MutexLock lock(&mu_);
   shutdown_ = true;
-  cv_.SignalAll();
+  cv_.Broadcast();
   while (nthreads_ != 0) {
     shutdown_cv_.Wait(&mu_);
   }

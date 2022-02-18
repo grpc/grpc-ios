@@ -20,8 +20,8 @@
 #include <memory>
 #include <string>
 
-#include <grpc/support/log.h>
 #include <grpcpp/grpcpp.h>
+#include <grpc/support/log.h>
 
 #ifdef BAZEL_BUILD
 #include "examples/protos/helloworld.grpc.pb.h"
@@ -34,9 +34,9 @@ using grpc::ClientAsyncResponseReader;
 using grpc::ClientContext;
 using grpc::CompletionQueue;
 using grpc::Status;
-using helloworld::Greeter;
-using helloworld::HelloReply;
 using helloworld::HelloRequest;
+using helloworld::HelloReply;
+using helloworld::Greeter;
 
 class GreeterClient {
  public:

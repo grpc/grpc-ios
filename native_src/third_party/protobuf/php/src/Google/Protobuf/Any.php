@@ -5,6 +5,7 @@
 namespace Google\Protobuf;
 
 use Google\Protobuf\Internal\GPBType;
+use Google\Protobuf\Internal\Message;
 use Google\Protobuf\Internal\RepeatedField;
 use Google\Protobuf\Internal\GPBUtil;
 
@@ -38,13 +39,10 @@ use Google\Protobuf\Internal\GPBUtil;
  *       ...
  *  Example 4: Pack and unpack a message in Go
  *      foo := &pb.Foo{...}
- *      any, err := anypb.New(foo)
- *      if err != nil {
- *        ...
- *      }
+ *      any, err := ptypes.MarshalAny(foo)
  *      ...
  *      foo := &pb.Foo{}
- *      if err := any.UnmarshalTo(foo); err != nil {
+ *      if err := ptypes.UnmarshalAny(any, foo); err != nil {
  *        ...
  *      }
  * The pack methods provided by protobuf library will by default use
@@ -78,12 +76,11 @@ use Google\Protobuf\Internal\GPBUtil;
  *
  * Generated from protobuf message <code>google.protobuf.Any</code>
  */
-class Any extends \Google\Protobuf\Internal\AnyBase
+class Any extends \Google\Protobuf\Internal\Message
 {
     /**
      * A URL/resource name that uniquely identifies the type of the serialized
-     * protocol buffer message. This string must contain at least
-     * one "/" character. The last segment of the URL's path must represent
+     * protocol buffer message. The last segment of the URL's path must represent
      * the fully qualified name of the type (as in
      * `path/google.protobuf.Duration`). The name should be in a canonical form
      * (e.g., leading "." is not accepted).
@@ -107,13 +104,15 @@ class Any extends \Google\Protobuf\Internal\AnyBase
      *
      * Generated from protobuf field <code>string type_url = 1;</code>
      */
-    protected $type_url = '';
+    private $type_url = '';
     /**
      * Must be a valid serialized protocol buffer of the above specified type.
      *
      * Generated from protobuf field <code>bytes value = 2;</code>
      */
-    protected $value = '';
+    private $value = '';
+
+    const TYPE_URL_PREFIX = 'type.googleapis.com/';
 
     /**
      * Constructor.
@@ -123,8 +122,7 @@ class Any extends \Google\Protobuf\Internal\AnyBase
      *
      *     @type string $type_url
      *           A URL/resource name that uniquely identifies the type of the serialized
-     *           protocol buffer message. This string must contain at least
-     *           one "/" character. The last segment of the URL's path must represent
+     *           protocol buffer message. The last segment of the URL's path must represent
      *           the fully qualified name of the type (as in
      *           `path/google.protobuf.Duration`). The name should be in a canonical form
      *           (e.g., leading "." is not accepted).
@@ -156,8 +154,7 @@ class Any extends \Google\Protobuf\Internal\AnyBase
 
     /**
      * A URL/resource name that uniquely identifies the type of the serialized
-     * protocol buffer message. This string must contain at least
-     * one "/" character. The last segment of the URL's path must represent
+     * protocol buffer message. The last segment of the URL's path must represent
      * the fully qualified name of the type (as in
      * `path/google.protobuf.Duration`). The name should be in a canonical form
      * (e.g., leading "." is not accepted).
@@ -189,8 +186,7 @@ class Any extends \Google\Protobuf\Internal\AnyBase
 
     /**
      * A URL/resource name that uniquely identifies the type of the serialized
-     * protocol buffer message. This string must contain at least
-     * one "/" character. The last segment of the URL's path must represent
+     * protocol buffer message. The last segment of the URL's path must represent
      * the fully qualified name of the type (as in
      * `path/google.protobuf.Duration`). The name should be in a canonical form
      * (e.g., leading "." is not accepted).
@@ -250,5 +246,80 @@ class Any extends \Google\Protobuf\Internal\AnyBase
         return $this;
     }
 
+    /**
+     * This method will try to resolve the type_url in Any message to get the
+     * targeted message type. If failed, an error will be thrown. Otherwise,
+     * the method will create a message of the targeted type and fill it with
+     * the decoded value in Any.
+     * @return unpacked message
+     * @throws \Exception Type url needs to be type.googleapis.com/fully-qulified.
+     * @throws \Exception Class hasn't been added to descriptor pool.
+     * @throws \Exception cannot decode data in value field.
+     */
+    public function unpack()
+    {
+        // Get fully qualifed name from type url.
+        $url_prifix_len = strlen(GPBUtil::TYPE_URL_PREFIX);
+        if (substr($this->type_url, 0, $url_prifix_len) !=
+                GPBUtil::TYPE_URL_PREFIX) {
+            throw new \Exception(
+                "Type url needs to be type.googleapis.com/fully-qulified");
+        }
+        $fully_qualifed_name =
+            substr($this->type_url, $url_prifix_len);
+
+        // Create message according to fully qualified name.
+        $pool = \Google\Protobuf\Internal\DescriptorPool::getGeneratedPool();
+        $desc = $pool->getDescriptorByProtoName( ".".$fully_qualifed_name);
+        if (is_null($desc)) {
+            throw new \Exception("Class ".$fully_qualifed_name
+                                     ." hasn't been added to descriptor pool");
+        }
+        $klass = $desc->getClass();
+        $msg = new $klass();
+
+        // Merge data into message.
+        $msg->mergeFromString($this->value);
+        return $msg;
+    }
+
+    /**
+     * The type_url will be created according to the given message’s type and
+     * the value is encoded data from the given message..
+     * @param message: A proto message.
+     */
+    public function pack($msg)
+    {
+        if (!$msg instanceof Message) {
+            trigger_error("Given parameter is not a message instance.",
+                          E_USER_ERROR);
+            return;
+        }
+
+        // Set value using serialzed message.
+        $this->value = $msg->serializeToString();
+
+        // Set type url.
+        $pool = \Google\Protobuf\Internal\DescriptorPool::getGeneratedPool();
+        $desc = $pool->getDescriptorByClassName(get_class($msg));
+        $fully_qualifed_name = $desc->getFullName();
+        $this->type_url = GPBUtil::TYPE_URL_PREFIX.substr(
+            $fully_qualifed_name, 1, strlen($fully_qualifed_name));
+    }
+
+    /**
+     * This method returns whether the type_url in any_message is corresponded
+     * to the given class.
+     * @param klass: The fully qualified PHP class name of a proto message type.
+     */
+    public function is($klass)
+    {
+        $pool = \Google\Protobuf\Internal\DescriptorPool::getGeneratedPool();
+        $desc = $pool->getDescriptorByClassName($klass);
+        $fully_qualifed_name = $desc->getFullName();
+        $type_url = GPBUtil::TYPE_URL_PREFIX.substr(
+            $fully_qualifed_name, 1, strlen($fully_qualifed_name));
+        return $this->type_url === $type_url;
+    }
 }
 

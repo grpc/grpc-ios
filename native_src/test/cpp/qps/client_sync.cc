@@ -50,7 +50,7 @@ static std::unique_ptr<BenchmarkService::Stub> BenchmarkStubCreator(
 class SynchronousClient
     : public ClientImpl<BenchmarkService::Stub, SimpleRequest> {
  public:
-  explicit SynchronousClient(const ClientConfig& config)
+  SynchronousClient(const ClientConfig& config)
       : ClientImpl<BenchmarkService::Stub, SimpleRequest>(
             config, BenchmarkStubCreator) {
     num_threads_ =
@@ -59,7 +59,7 @@ class SynchronousClient
     SetupLoadTest(config, num_threads_);
   }
 
-  ~SynchronousClient() override {}
+  virtual ~SynchronousClient() {}
 
   virtual bool InitThreadFuncImpl(size_t thread_idx) = 0;
   virtual bool ThreadFuncImpl(HistogramEntry* entry, size_t thread_idx) = 0;
@@ -111,11 +111,11 @@ class SynchronousClient
 
 class SynchronousUnaryClient final : public SynchronousClient {
  public:
-  explicit SynchronousUnaryClient(const ClientConfig& config)
+  SynchronousUnaryClient(const ClientConfig& config)
       : SynchronousClient(config) {
     StartThreads(num_threads_);
   }
-  ~SynchronousUnaryClient() override {}
+  ~SynchronousUnaryClient() {}
 
   bool InitThreadFuncImpl(size_t /*thread_idx*/) override { return true; }
 
@@ -137,13 +137,13 @@ class SynchronousUnaryClient final : public SynchronousClient {
   }
 
  private:
-  void DestroyMultithreading() final { EndThreads(); }
+  void DestroyMultithreading() override final { EndThreads(); }
 };
 
 template <class StreamType>
 class SynchronousStreamingClient : public SynchronousClient {
  public:
-  explicit SynchronousStreamingClient(const ClientConfig& config)
+  SynchronousStreamingClient(const ClientConfig& config)
       : SynchronousClient(config),
         context_(num_threads_),
         stream_(num_threads_),
@@ -153,7 +153,7 @@ class SynchronousStreamingClient : public SynchronousClient {
         messages_issued_(num_threads_) {
     StartThreads(num_threads_);
   }
-  ~SynchronousStreamingClient() override {
+  virtual ~SynchronousStreamingClient() {
     CleanupAllStreams([this](size_t thread_idx) {
       // Don't log any kind of error since we may have canceled this
       stream_[thread_idx]->Finish().IgnoreError();
@@ -208,7 +208,7 @@ class SynchronousStreamingClient : public SynchronousClient {
   }
 
  private:
-  void DestroyMultithreading() final {
+  void DestroyMultithreading() override final {
     CleanupAllStreams(
         [this](size_t thread_idx) { context_[thread_idx].TryCancel(); });
     EndThreads();
@@ -219,9 +219,9 @@ class SynchronousStreamingPingPongClient final
     : public SynchronousStreamingClient<
           grpc::ClientReaderWriter<SimpleRequest, SimpleResponse>> {
  public:
-  explicit SynchronousStreamingPingPongClient(const ClientConfig& config)
+  SynchronousStreamingPingPongClient(const ClientConfig& config)
       : SynchronousStreamingClient(config) {}
-  ~SynchronousStreamingPingPongClient() override {
+  ~SynchronousStreamingPingPongClient() {
     CleanupAllStreams(
         [this](size_t thread_idx) { stream_[thread_idx]->WritesDone(); });
   }
@@ -276,9 +276,9 @@ class SynchronousStreamingPingPongClient final
 class SynchronousStreamingFromClientClient final
     : public SynchronousStreamingClient<grpc::ClientWriter<SimpleRequest>> {
  public:
-  explicit SynchronousStreamingFromClientClient(const ClientConfig& config)
+  SynchronousStreamingFromClientClient(const ClientConfig& config)
       : SynchronousStreamingClient(config), last_issue_(num_threads_) {}
-  ~SynchronousStreamingFromClientClient() override {
+  ~SynchronousStreamingFromClientClient() {
     CleanupAllStreams(
         [this](size_t thread_idx) { stream_[thread_idx]->WritesDone(); });
   }
@@ -329,9 +329,9 @@ class SynchronousStreamingFromClientClient final
 class SynchronousStreamingFromServerClient final
     : public SynchronousStreamingClient<grpc::ClientReader<SimpleResponse>> {
  public:
-  explicit SynchronousStreamingFromServerClient(const ClientConfig& config)
+  SynchronousStreamingFromServerClient(const ClientConfig& config)
       : SynchronousStreamingClient(config), last_recv_(num_threads_) {}
-  ~SynchronousStreamingFromServerClient() override {}
+  ~SynchronousStreamingFromServerClient() {}
 
  private:
   std::vector<double> last_recv_;
@@ -375,9 +375,9 @@ class SynchronousStreamingBothWaysClient final
     : public SynchronousStreamingClient<
           grpc::ClientReaderWriter<SimpleRequest, SimpleResponse>> {
  public:
-  explicit SynchronousStreamingBothWaysClient(const ClientConfig& config)
+  SynchronousStreamingBothWaysClient(const ClientConfig& config)
       : SynchronousStreamingClient(config) {}
-  ~SynchronousStreamingBothWaysClient() override {
+  ~SynchronousStreamingBothWaysClient() {
     CleanupAllStreams(
         [this](size_t thread_idx) { stream_[thread_idx]->WritesDone(); });
   }

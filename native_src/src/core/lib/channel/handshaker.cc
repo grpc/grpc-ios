@@ -18,11 +18,7 @@
 
 #include <grpc/support/port_platform.h>
 
-#include "src/core/lib/channel/handshaker.h"
-
 #include <string.h>
-
-#include "absl/strings/str_format.h"
 
 #include <grpc/impl/codegen/slice.h>
 #include <grpc/support/alloc.h>
@@ -30,6 +26,7 @@
 #include <grpc/support/string_util.h>
 
 #include "src/core/lib/channel/channel_args.h"
+#include "src/core/lib/channel/handshaker.h"
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/iomgr/timer.h"
 #include "src/core/lib/slice/slice_internal.h"
@@ -40,21 +37,62 @@ TraceFlag grpc_handshaker_trace(false, "handshaker");
 
 namespace {
 
-std::string HandshakerArgsString(HandshakerArgs* args) {
+char* HandshakerArgsString(HandshakerArgs* args) {
+  char* args_str = grpc_channel_args_string(args->args);
   size_t num_args = args->args != nullptr ? args->args->num_args : 0;
   size_t read_buffer_length =
       args->read_buffer != nullptr ? args->read_buffer->length : 0;
-  return absl::StrFormat(
-      "{endpoint=%p, args=%p {size=%" PRIuPTR
-      ": %s}, read_buffer=%p (length=%" PRIuPTR "), exit_early=%d}",
-      args->endpoint, args->args, num_args,
-      grpc_channel_args_string(args->args), args->read_buffer,
-      read_buffer_length, args->exit_early);
+  char* str;
+  gpr_asprintf(&str,
+               "{endpoint=%p, args=%p {size=%" PRIuPTR
+               ": %s}, read_buffer=%p (length=%" PRIuPTR "), exit_early=%d}",
+               args->endpoint, args->args, num_args, args_str,
+               args->read_buffer, read_buffer_length, args->exit_early);
+  gpr_free(args_str);
+  return str;
 }
 
 }  // namespace
 
-HandshakeManager::HandshakeManager() {}
+HandshakeManager::HandshakeManager() { gpr_mu_init(&mu_); }
+
+/// Add \a mgr to the server side list of all pending handshake managers, the
+/// list starts with \a *head.
+// Not thread-safe. Caller needs to synchronize.
+void HandshakeManager::AddToPendingMgrList(HandshakeManager** head) {
+  GPR_ASSERT(prev_ == nullptr);
+  GPR_ASSERT(next_ == nullptr);
+  next_ = *head;
+  if (*head) {
+    (*head)->prev_ = this;
+  }
+  *head = this;
+}
+
+/// Remove \a mgr from the server side list of all pending handshake managers.
+// Not thread-safe. Caller needs to synchronize.
+void HandshakeManager::RemoveFromPendingMgrList(HandshakeManager** head) {
+  if (next_ != nullptr) {
+    next_->prev_ = prev_;
+  }
+  if (prev_ != nullptr) {
+    prev_->next_ = next_;
+  } else {
+    GPR_ASSERT(*head == this);
+    *head = next_;
+  }
+}
+
+/// Shutdown all pending handshake managers starting at head on the server
+/// side. Not thread-safe. Caller needs to synchronize.
+void HandshakeManager::ShutdownAllPending(grpc_error* why) {
+  auto* head = this;
+  while (head != nullptr) {
+    head->Shutdown(GRPC_ERROR_REF(why));
+    head = head->next_;
+  }
+  GRPC_ERROR_UNREF(why);
+}
 
 void HandshakeManager::Add(RefCountedPtr<Handshaker> handshaker) {
   if (GRPC_TRACE_FLAG_ENABLED(grpc_handshaker_trace)) {
@@ -67,9 +105,12 @@ void HandshakeManager::Add(RefCountedPtr<Handshaker> handshaker) {
   handshakers_.push_back(std::move(handshaker));
 }
 
-HandshakeManager::~HandshakeManager() { handshakers_.clear(); }
+HandshakeManager::~HandshakeManager() {
+  handshakers_.clear();
+  gpr_mu_destroy(&mu_);
+}
 
-void HandshakeManager::Shutdown(grpc_error_handle why) {
+void HandshakeManager::Shutdown(grpc_error* why) {
   {
     MutexLock lock(&mu_);
     // Shutdown the handshaker that's currently in progress, if any.
@@ -84,13 +125,14 @@ void HandshakeManager::Shutdown(grpc_error_handle why) {
 // Helper function to call either the next handshaker or the
 // on_handshake_done callback.
 // Returns true if we've scheduled the on_handshake_done callback.
-bool HandshakeManager::CallNextHandshakerLocked(grpc_error_handle error) {
+bool HandshakeManager::CallNextHandshakerLocked(grpc_error* error) {
   if (GRPC_TRACE_FLAG_ENABLED(grpc_handshaker_trace)) {
+    char* args_str = HandshakerArgsString(&args_);
     gpr_log(GPR_INFO,
             "handshake_manager %p: error=%s shutdown=%d index=%" PRIuPTR
             ", args=%s",
-            this, grpc_error_std_string(error).c_str(), is_shutdown_, index_,
-            HandshakerArgsString(&args_).c_str());
+            this, grpc_error_string(error), is_shutdown_, index_, args_str);
+    gpr_free(args_str);
   }
   GPR_ASSERT(index_ <= handshakers_.size());
   // If we got an error or we've been shut down or we're exiting early or
@@ -122,7 +164,7 @@ bool HandshakeManager::CallNextHandshakerLocked(grpc_error_handle error) {
       gpr_log(GPR_INFO,
               "handshake_manager %p: handshaking complete -- scheduling "
               "on_handshake_done with error=%s",
-              this, grpc_error_std_string(error).c_str());
+              this, grpc_error_string(error));
     }
     // Cancel deadline timer, since we're invoking the on_handshake_done
     // callback now.
@@ -143,8 +185,7 @@ bool HandshakeManager::CallNextHandshakerLocked(grpc_error_handle error) {
   return is_shutdown_;
 }
 
-void HandshakeManager::CallNextHandshakerFn(void* arg,
-                                            grpc_error_handle error) {
+void HandshakeManager::CallNextHandshakerFn(void* arg, grpc_error* error) {
   auto* mgr = static_cast<HandshakeManager*>(arg);
   bool done;
   {
@@ -159,7 +200,7 @@ void HandshakeManager::CallNextHandshakerFn(void* arg,
   }
 }
 
-void HandshakeManager::OnTimeoutFn(void* arg, grpc_error_handle error) {
+void HandshakeManager::OnTimeoutFn(void* arg, grpc_error* error) {
   auto* mgr = static_cast<HandshakeManager*>(arg);
   if (error == GRPC_ERROR_NONE) {  // Timer fired, rather than being cancelled
     mgr->Shutdown(GRPC_ERROR_CREATE_FROM_STATIC_STRING("Handshake timed out"));
@@ -177,6 +218,7 @@ void HandshakeManager::DoHandshake(grpc_endpoint* endpoint,
   {
     MutexLock lock(&mu_);
     GPR_ASSERT(index_ == 0);
+    GPR_ASSERT(!is_shutdown_);
     // Construct handshaker args.  These will be passed through all
     // handshakers and eventually be freed by the on_handshake_done callback.
     args_.endpoint = endpoint;
@@ -216,7 +258,7 @@ void HandshakeManager::DoHandshake(grpc_endpoint* endpoint,
 void grpc_handshake_manager_add(grpc_handshake_manager* mgr,
                                 grpc_handshaker* handshaker) {
   // This is a transition method to aid the API change for handshakers.
-  grpc_core::RefCountedPtr<grpc_core::Handshaker> refd_hs(
-      static_cast<grpc_core::Handshaker*>(handshaker));
+  using namespace grpc_core;
+  RefCountedPtr<Handshaker> refd_hs(static_cast<Handshaker*>(handshaker));
   mgr->Add(refd_hs);
 }

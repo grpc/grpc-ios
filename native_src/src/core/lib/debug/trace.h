@@ -21,9 +21,8 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <stdbool.h>
-
 #include <grpc/support/atm.h>
+#include <stdbool.h>
 
 #include "src/core/lib/gprpp/global_config.h"
 
@@ -56,7 +55,7 @@ class TraceFlagList {
 };
 
 namespace testing {
-void grpc_tracer_enable_flag(TraceFlag* flag);
+void grpc_tracer_enable_flag(grpc_core::TraceFlag* flag);
 }
 
 class TraceFlag {
@@ -90,7 +89,7 @@ class TraceFlag {
 #endif /* defined(GRPC_USE_TRACERS) || !defined(NDEBUG) */
 
  private:
-  friend void testing::grpc_tracer_enable_flag(TraceFlag* flag);
+  friend void grpc_core::testing::grpc_tracer_enable_flag(TraceFlag* flag);
   friend class TraceFlagList;
 
   void set_enabled(bool enabled) {

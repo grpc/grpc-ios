@@ -1,9 +1,7 @@
 ---
 tasks:
   ubuntu:
-    platform: ubuntu1804
-    shell_commands:
-    - "sudo apt -y update && sudo apt -y install libreadline-dev cmake"
+    platform: ubuntu1604
     test_targets:
     - //...
   macos:

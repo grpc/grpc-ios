@@ -19,8 +19,6 @@
 #ifndef GRPCPP_IMPL_CODEGEN_TIME_H
 #define GRPCPP_IMPL_CODEGEN_TIME_H
 
-// IWYU pragma: private, include <grpcpp/support/time.h>
-
 #include <chrono>
 
 #include <grpc/impl/codegen/grpc_types.h>
@@ -52,7 +50,6 @@ class TimePoint {
 template <>
 class TimePoint<gpr_timespec> {
  public:
-  /* NOLINTNEXTLINE(google-explicit-constructor) */
   TimePoint(const gpr_timespec& time) : time_(time) {}
   gpr_timespec raw_time() { return time_; }
 
@@ -76,7 +73,6 @@ std::chrono::system_clock::time_point Timespec2Timepoint(gpr_timespec t);
 template <>
 class TimePoint<std::chrono::system_clock::time_point> {
  public:
-  /* NOLINTNEXTLINE(google-explicit-constructor) */
   TimePoint(const std::chrono::system_clock::time_point& time) {
     Timepoint2Timespec(time, &time_);
   }

@@ -14,22 +14,19 @@
 """Testing the done callbacks mechanism."""
 
 import asyncio
-import gc
 import logging
-import platform
-import time
 import unittest
+import time
+import gc
 
 import grpc
 from grpc.experimental import aio
-
-from src.proto.grpc.testing import messages_pb2
-from src.proto.grpc.testing import test_pb2_grpc
-from tests.unit.framework.common import get_socket
-from tests.unit.framework.common import test_constants
-from tests_aio.unit import _common
 from tests_aio.unit._test_base import AioTestBase
+from tests.unit.framework.common import test_constants
+from tests.unit.framework.common import get_socket
+from src.proto.grpc.testing import messages_pb2, test_pb2_grpc
 from tests_aio.unit._test_server import start_test_server
+from tests_aio.unit import _common
 
 _NUM_STREAM_RESPONSES = 5
 _REQUEST_PAYLOAD_SIZE = 7
@@ -122,8 +119,6 @@ class TestWaitForReady(AioTestBase):
         """RPC should fail immediately after connection failed."""
         await self._connection_fails_fast(False)
 
-    @unittest.skipIf(platform.system() == 'Windows',
-                     'https://github.com/grpc/grpc/pull/26729')
     async def test_call_wait_for_ready_enabled(self):
         """RPC will wait until the connection is ready."""
         for action in _RPC_ACTIONS:

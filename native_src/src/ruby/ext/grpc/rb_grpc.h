@@ -20,7 +20,6 @@
 #define GRPC_RB_H_
 
 #include <ruby/ruby.h>
-
 #include <sys/time.h>
 
 #include <grpc/support/time.h>

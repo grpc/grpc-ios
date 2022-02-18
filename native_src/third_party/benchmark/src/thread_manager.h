@@ -11,7 +11,7 @@ namespace internal {
 
 class ThreadManager {
  public:
-  explicit ThreadManager(int num_threads)
+  ThreadManager(int num_threads)
       : alive_threads_(num_threads), start_stop_barrier_(num_threads) {}
 
   Mutex& GetBenchmarkMutex() const RETURN_CAPABILITY(benchmark_mutex_) {

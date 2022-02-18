@@ -16,23 +16,26 @@
  *
  */
 
+/* With the addition of a libuv endpoint, sockaddr.h now includes uv.h when
+   using that endpoint. Because of various transitive includes in uv.h,
+   including windows.h on Windows, uv.h must be included before other system
+   headers. Therefore, sockaddr.h must always be included first */
 #include <grpc/support/port_platform.h>
 
-#include "src/core/lib/security/transport/secure_endpoint.h"
-
 #include <new>
+
+#include "src/core/lib/iomgr/sockaddr.h"
 
 #include <grpc/slice.h>
 #include <grpc/slice_buffer.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/sync.h>
-
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/gpr/string.h"
 #include "src/core/lib/gprpp/memory.h"
-#include "src/core/lib/iomgr/sockaddr.h"
 #include "src/core/lib/profiling/timers.h"
+#include "src/core/lib/security/transport/secure_endpoint.h"
 #include "src/core/lib/security/transport/tsi_error.h"
 #include "src/core/lib/slice/slice_internal.h"
 #include "src/core/lib/slice/slice_string_helpers.h"
@@ -40,7 +43,7 @@
 
 #define STAGING_BUFFER_SIZE 8192
 
-static void on_read(void* user_data, grpc_error_handle error);
+static void on_read(void* user_data, grpc_error* error);
 
 namespace {
 struct secure_endpoint {
@@ -151,7 +154,7 @@ static void flush_read_staging_buffer(secure_endpoint* ep, uint8_t** cur,
   *end = GRPC_SLICE_END_PTR(ep->read_staging_buffer);
 }
 
-static void call_read_cb(secure_endpoint* ep, grpc_error_handle error) {
+static void call_read_cb(secure_endpoint* ep, grpc_error* error) {
   if (GRPC_TRACE_FLAG_ENABLED(grpc_trace_secure_endpoint)) {
     size_t i;
     for (i = 0; i < ep->read_buffer->count; i++) {
@@ -166,7 +169,7 @@ static void call_read_cb(secure_endpoint* ep, grpc_error_handle error) {
   SECURE_ENDPOINT_UNREF(ep, "read");
 }
 
-static void on_read(void* user_data, grpc_error_handle error) {
+static void on_read(void* user_data, grpc_error* error) {
   unsigned i;
   uint8_t keep_looping = 0;
   tsi_result result = TSI_OK;
@@ -370,7 +373,7 @@ static void endpoint_write(grpc_endpoint* secure_ep, grpc_slice_buffer* slices,
   grpc_endpoint_write(ep->wrapped_ep, &ep->output_buffer, cb, arg);
 }
 
-static void endpoint_shutdown(grpc_endpoint* secure_ep, grpc_error_handle why) {
+static void endpoint_shutdown(grpc_endpoint* secure_ep, grpc_error* why) {
   secure_endpoint* ep = reinterpret_cast<secure_endpoint*>(secure_ep);
   grpc_endpoint_shutdown(ep->wrapped_ep, why);
 }
@@ -398,19 +401,20 @@ static void endpoint_delete_from_pollset_set(grpc_endpoint* secure_ep,
   grpc_endpoint_delete_from_pollset_set(ep->wrapped_ep, pollset_set);
 }
 
-static absl::string_view endpoint_get_peer(grpc_endpoint* secure_ep) {
+static char* endpoint_get_peer(grpc_endpoint* secure_ep) {
   secure_endpoint* ep = reinterpret_cast<secure_endpoint*>(secure_ep);
   return grpc_endpoint_get_peer(ep->wrapped_ep);
-}
-
-static absl::string_view endpoint_get_local_address(grpc_endpoint* secure_ep) {
-  secure_endpoint* ep = reinterpret_cast<secure_endpoint*>(secure_ep);
-  return grpc_endpoint_get_local_address(ep->wrapped_ep);
 }
 
 static int endpoint_get_fd(grpc_endpoint* secure_ep) {
   secure_endpoint* ep = reinterpret_cast<secure_endpoint*>(secure_ep);
   return grpc_endpoint_get_fd(ep->wrapped_ep);
+}
+
+static grpc_resource_user* endpoint_get_resource_user(
+    grpc_endpoint* secure_ep) {
+  secure_endpoint* ep = reinterpret_cast<secure_endpoint*>(secure_ep);
+  return grpc_endpoint_get_resource_user(ep->wrapped_ep);
 }
 
 static bool endpoint_can_track_err(grpc_endpoint* secure_ep) {
@@ -425,18 +429,18 @@ static const grpc_endpoint_vtable vtable = {endpoint_read,
                                             endpoint_delete_from_pollset_set,
                                             endpoint_shutdown,
                                             endpoint_destroy,
+                                            endpoint_get_resource_user,
                                             endpoint_get_peer,
-                                            endpoint_get_local_address,
                                             endpoint_get_fd,
                                             endpoint_can_track_err};
 
 grpc_endpoint* grpc_secure_endpoint_create(
     struct tsi_frame_protector* protector,
     struct tsi_zero_copy_grpc_protector* zero_copy_protector,
-    grpc_endpoint* to_wrap, grpc_slice* leftover_slices,
+    grpc_endpoint* transport, grpc_slice* leftover_slices,
     size_t leftover_nslices) {
   secure_endpoint* ep =
-      new secure_endpoint(&vtable, protector, zero_copy_protector, to_wrap,
+      new secure_endpoint(&vtable, protector, zero_copy_protector, transport,
                           leftover_slices, leftover_nslices);
   return &ep->base;
 }

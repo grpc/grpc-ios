@@ -21,19 +21,14 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <atomic>
-#include <map>
-#include <memory>
-
-#include "absl/status/status.h"
-
 #include <grpc/grpc.h>
 
 #include "src/core/lib/debug/trace.h"
+#include "src/core/lib/gprpp/atomic.h"
+#include "src/core/lib/gprpp/map.h"
 #include "src/core/lib/gprpp/orphanable.h"
 #include "src/core/lib/iomgr/closure.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
-#include "src/core/lib/iomgr/work_serializer.h"
 
 namespace grpc_core {
 
@@ -50,11 +45,10 @@ const char* ConnectivityStateName(grpc_connectivity_state state);
 class ConnectivityStateWatcherInterface
     : public InternallyRefCounted<ConnectivityStateWatcherInterface> {
  public:
-  ~ConnectivityStateWatcherInterface() override = default;
+  virtual ~ConnectivityStateWatcherInterface() = default;
 
   // Notifies the watcher that the state has changed to new_state.
-  virtual void Notify(grpc_connectivity_state new_state,
-                      const absl::Status& status) = 0;
+  virtual void Notify(grpc_connectivity_state new_state) = 0;
 
   void Orphan() override { Unref(); }
 };
@@ -65,28 +59,25 @@ class ConnectivityStateWatcherInterface
 class AsyncConnectivityStateWatcherInterface
     : public ConnectivityStateWatcherInterface {
  public:
-  ~AsyncConnectivityStateWatcherInterface() override = default;
+  virtual ~AsyncConnectivityStateWatcherInterface() = default;
 
   // Schedules a closure on the ExecCtx to invoke
   // OnConnectivityStateChange() asynchronously.
-  void Notify(grpc_connectivity_state new_state,
-              const absl::Status& status) final;
+  void Notify(grpc_connectivity_state new_state) override final;
 
  protected:
   class Notifier;
 
-  // If \a work_serializer is nullptr, then the notification will be scheduled
-  // on the ExecCtx.
-  explicit AsyncConnectivityStateWatcherInterface(
-      std::shared_ptr<WorkSerializer> work_serializer = nullptr)
-      : work_serializer_(std::move(work_serializer)) {}
+  // If \a combiner is nullptr, then the notification will be scheduled on the
+  // ExecCtx.
+  explicit AsyncConnectivityStateWatcherInterface(Combiner* combiner = nullptr)
+      : combiner_(combiner) {}
 
   // Invoked asynchronously when Notify() is called.
-  virtual void OnConnectivityStateChange(grpc_connectivity_state new_state,
-                                         const absl::Status& status) = 0;
+  virtual void OnConnectivityStateChange(grpc_connectivity_state new_state) = 0;
 
  private:
-  std::shared_ptr<WorkSerializer> work_serializer_;
+  Combiner* combiner_;
 };
 
 // Tracks connectivity state.  Maintains a list of watchers that are
@@ -97,10 +88,9 @@ class AsyncConnectivityStateWatcherInterface
 // to be called).
 class ConnectivityStateTracker {
  public:
-  explicit ConnectivityStateTracker(
-      const char* name, grpc_connectivity_state state = GRPC_CHANNEL_IDLE,
-      const absl::Status& status = absl::Status())
-      : name_(name), state_(state), status_(status) {}
+  ConnectivityStateTracker(const char* name,
+                           grpc_connectivity_state state = GRPC_CHANNEL_IDLE)
+      : name_(name), state_(state) {}
 
   ~ConnectivityStateTracker();
 
@@ -118,21 +108,15 @@ class ConnectivityStateTracker {
 
   // Sets connectivity state.
   // Not thread safe; access must be serialized with an external lock.
-  void SetState(grpc_connectivity_state state, const absl::Status& status,
-                const char* reason);
+  void SetState(grpc_connectivity_state state, const char* reason);
 
   // Gets the current state.
   // Thread safe; no need to use an external lock.
   grpc_connectivity_state state() const;
 
-  // Get the current status.
-  // Not thread safe; access must be serialized with an external lock.
-  absl::Status status() const { return status_; }
-
  private:
   const char* name_;
-  std::atomic<grpc_connectivity_state> state_{grpc_connectivity_state()};
-  absl::Status status_;
+  Atomic<grpc_connectivity_state> state_;
   // TODO(roth): Once we can use C++-14 heterogeneous lookups, this can
   // be a set instead of a map.
   std::map<ConnectivityStateWatcherInterface*,

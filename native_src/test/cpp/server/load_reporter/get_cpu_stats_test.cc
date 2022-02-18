@@ -18,14 +18,13 @@
 
 #include <grpc/impl/codegen/port_platform.h>
 
-#include "src/cpp/server/load_reporter/get_cpu_stats.h"
-
-#include <gtest/gtest.h>
-
 #include <grpc/grpc.h>
+#include <gtest/gtest.h>
 
 #include "test/core/util/port.h"
 #include "test/core/util/test_config.h"
+
+#include "src/cpp/server/load_reporter/get_cpu_stats.h"
 
 namespace grpc {
 namespace testing {

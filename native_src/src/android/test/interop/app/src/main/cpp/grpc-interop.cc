@@ -51,9 +51,7 @@ Java_io_grpc_interop_cpp_InteropActivity_doEmpty(JNIEnv* env, jobject obj_this,
   int port = static_cast<int>(port_raw);
   bool use_tls = static_cast<bool>(use_tls_raw);
 
-  jboolean result = GetClient(host, port, use_tls)->DoEmpty();
-  env->ReleaseStringUTFChars(host_raw, host);
-  return result;
+  return GetClient(host, port, use_tls)->DoEmpty();
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
@@ -66,9 +64,7 @@ Java_io_grpc_interop_cpp_InteropActivity_doLargeUnary(JNIEnv* env,
   int port = static_cast<int>(port_raw);
   bool use_tls = static_cast<bool>(use_tls_raw);
 
-  jboolean result = GetClient(host, port, use_tls)->DoLargeUnary();
-  env->ReleaseStringUTFChars(host_raw, host);
-  return result;
+  return GetClient(host, port, use_tls)->DoLargeUnary();
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
@@ -81,9 +77,7 @@ Java_io_grpc_interop_cpp_InteropActivity_doEmptyStream(JNIEnv* env,
   int port = static_cast<int>(port_raw);
   bool use_tls = static_cast<bool>(use_tls_raw);
 
-  jboolean result = GetClient(host, port, use_tls)->DoEmptyStream();
-  env->ReleaseStringUTFChars(host_raw, host);
-  return result;
+  return GetClient(host, port, use_tls)->DoEmptyStream();
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
@@ -94,9 +88,7 @@ Java_io_grpc_interop_cpp_InteropActivity_doRequestStreaming(
   int port = static_cast<int>(port_raw);
   bool use_tls = static_cast<bool>(use_tls_raw);
 
-  jboolean result = GetClient(host, port, use_tls)->DoRequestStreaming();
-  env->ReleaseStringUTFChars(host_raw, host);
-  return result;
+  return GetClient(host, port, use_tls)->DoRequestStreaming();
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
@@ -107,9 +99,7 @@ Java_io_grpc_interop_cpp_InteropActivity_doResponseStreaming(
   int port = static_cast<int>(port_raw);
   bool use_tls = static_cast<bool>(use_tls_raw);
 
-  jboolean result = GetClient(host, port, use_tls)->DoResponseStreaming();
-  env->ReleaseStringUTFChars(host_raw, host);
-  return result;
+  return GetClient(host, port, use_tls)->DoResponseStreaming();
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
@@ -122,7 +112,5 @@ Java_io_grpc_interop_cpp_InteropActivity_doPingPong(JNIEnv* env,
   int port = static_cast<int>(port_raw);
   bool use_tls = static_cast<bool>(use_tls_raw);
 
-  jboolean result = GetClient(host, port, use_tls)->DoPingPong();
-  env->ReleaseStringUTFChars(host_raw, host);
-  return result;
+  return GetClient(host, port, use_tls)->DoPingPong();
 }

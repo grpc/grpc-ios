@@ -18,30 +18,19 @@ class SecurityParams extends \Google\Protobuf\Internal\Message
     /**
      * Generated from protobuf field <code>bool use_test_ca = 1;</code>
      */
-    protected $use_test_ca = false;
+    private $use_test_ca = false;
     /**
      * Generated from protobuf field <code>string server_host_override = 2;</code>
      */
-    protected $server_host_override = '';
+    private $server_host_override = '';
     /**
      * Generated from protobuf field <code>string cred_type = 3;</code>
      */
-    protected $cred_type = '';
+    private $cred_type = '';
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type bool $use_test_ca
-     *     @type string $server_host_override
-     *     @type string $cred_type
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Control::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

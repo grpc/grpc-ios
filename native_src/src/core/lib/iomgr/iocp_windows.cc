@@ -23,7 +23,6 @@
 #ifdef GRPC_WINSOCK_SOCKET
 
 #include <winsock2.h>
-
 #include <limits>
 
 #include <grpc/support/alloc.h>

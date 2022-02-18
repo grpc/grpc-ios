@@ -1,5 +1,5 @@
-// This file is generated from a similarly-named Perl script in the BoringSSL
-// source tree. Do not edit by hand.
+# This file is generated from a similarly-named Perl script in the BoringSSL
+# source tree. Do not edit by hand.
 
 #if defined(__has_feature)
 #if __has_feature(memory_sanitizer) && !defined(OPENSSL_NO_ASM)
@@ -18,26 +18,26 @@
 chacha20_poly1305_constants:
 
 .align	64
-.Lchacha20_consts:
+.chacha20_consts:
 .byte	'e','x','p','a','n','d',' ','3','2','-','b','y','t','e',' ','k'
 .byte	'e','x','p','a','n','d',' ','3','2','-','b','y','t','e',' ','k'
-.Lrol8:
+.rol8:
 .byte	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14
 .byte	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14
-.Lrol16:
+.rol16:
 .byte	2,3,0,1, 6,7,4,5, 10,11,8,9, 14,15,12,13
 .byte	2,3,0,1, 6,7,4,5, 10,11,8,9, 14,15,12,13
-.Lavx2_init:
+.avx2_init:
 .long	0,0,0,0
-.Lsse_inc:
+.sse_inc:
 .long	1,0,0,0
-.Lavx2_inc:
+.avx2_inc:
 .long	2,0,0,0,2,0,0,0
-.Lclamp:
+.clamp:
 .quad	0x0FFFFFFC0FFFFFFF, 0x0FFFFFFC0FFFFFFC
 .quad	0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF
 .align	16
-.Land_masks:
+.and_masks:
 .byte	0xff,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 .byte	0xff,0xff,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 .byte	0xff,0xff,0xff,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
@@ -59,35 +59,34 @@ chacha20_poly1305_constants:
 .align	64
 poly_hash_ad_internal:
 .cfi_startproc	
-.cfi_def_cfa	rsp, 8
 	xorq	%r10,%r10
 	xorq	%r11,%r11
 	xorq	%r12,%r12
 	cmpq	$13,%r8
-	jne	.Lhash_ad_loop
-.Lpoly_fast_tls_ad:
+	jne	hash_ad_loop
+poly_fast_tls_ad:
 
 	movq	(%rcx),%r10
 	movq	5(%rcx),%r11
 	shrq	$24,%r11
 	movq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -103,37 +102,38 @@ poly_hash_ad_internal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	.byte	0xf3,0xc3
-.Lhash_ad_loop:
+hash_ad_loop:
 
 	cmpq	$16,%r8
-	jb	.Lhash_ad_tail
-	addq	0+0(%rcx),%r10
+	jb	hash_ad_tail
+	addq	0(%rcx),%r10
 	adcq	8+0(%rcx),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -149,52 +149,53 @@ poly_hash_ad_internal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rcx),%rcx
 	subq	$16,%r8
-	jmp	.Lhash_ad_loop
-.Lhash_ad_tail:
+	jmp	hash_ad_loop
+hash_ad_tail:
 	cmpq	$0,%r8
-	je	.Lhash_ad_done
+	je	1f
 
 	xorq	%r13,%r13
 	xorq	%r14,%r14
 	xorq	%r15,%r15
 	addq	%r8,%rcx
-.Lhash_ad_tail_loop:
+hash_ad_tail_loop:
 	shldq	$8,%r13,%r14
 	shlq	$8,%r13
 	movzbq	-1(%rcx),%r15
 	xorq	%r15,%r13
 	decq	%rcx
 	decq	%r8
-	jne	.Lhash_ad_tail_loop
+	jne	hash_ad_tail_loop
 
 	addq	%r13,%r10
 	adcq	%r14,%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -210,14 +211,15 @@ poly_hash_ad_internal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 
-.Lhash_ad_done:
+1:
 	.byte	0xf3,0xc3
 .cfi_endproc	
 .size	poly_hash_ad_internal, .-poly_hash_ad_internal
@@ -230,60 +232,57 @@ chacha20_poly1305_open:
 .cfi_startproc	
 	pushq	%rbp
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%rbp,-16
 	pushq	%rbx
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%rbx,-24
 	pushq	%r12
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%r12,-32
 	pushq	%r13
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%r13,-40
 	pushq	%r14
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%r14,-48
 	pushq	%r15
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%r15,-56
 
 
 	pushq	%r9
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%r9,-64
-	subq	$288 + 0 + 32,%rsp
+	subq	$288 + 32,%rsp
 .cfi_adjust_cfa_offset	288 + 32
-
+.cfi_offset	rbp, -16
+.cfi_offset	rbx, -24
+.cfi_offset	r12, -32
+.cfi_offset	r13, -40
+.cfi_offset	r14, -48
+.cfi_offset	r15, -56
 	leaq	32(%rsp),%rbp
 	andq	$-32,%rbp
-
+	movq	%rdx,8+32(%rbp)
+	movq	%r8,0+32(%rbp)
 	movq	%rdx,%rbx
-	movq	%r8,0+0+32(%rbp)
-	movq	%rbx,8+0+32(%rbp)
 
 	movl	OPENSSL_ia32cap_P+8(%rip),%eax
 	andl	$288,%eax
 	xorl	$288,%eax
 	jz	chacha20_poly1305_open_avx2
 
+1:
 	cmpq	$128,%rbx
-	jbe	.Lopen_sse_128
+	jbe	open_sse_128
 
-	movdqa	.Lchacha20_consts(%rip),%xmm0
+	movdqa	.chacha20_consts(%rip),%xmm0
 	movdqu	0(%r9),%xmm4
 	movdqu	16(%r9),%xmm8
 	movdqu	32(%r9),%xmm12
-
 	movdqa	%xmm12,%xmm7
 
-	movdqa	%xmm4,0+48(%rbp)
-	movdqa	%xmm8,0+64(%rbp)
-	movdqa	%xmm12,0+96(%rbp)
+	movdqa	%xmm4,48(%rbp)
+	movdqa	%xmm8,64(%rbp)
+	movdqa	%xmm12,96(%rbp)
 	movq	$10,%r10
-.Lopen_sse_init_rounds:
+1:
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -292,7 +291,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -304,7 +303,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,12
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -313,7 +312,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -325,24 +324,24 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,4
 
 	decq	%r10
-	jne	.Lopen_sse_init_rounds
+	jne	1b
 
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	0+48(%rbp),%xmm4
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	48(%rbp),%xmm4
 
-	pand	.Lclamp(%rip),%xmm0
-	movdqa	%xmm0,0+0(%rbp)
-	movdqa	%xmm4,0+16(%rbp)
+	pand	.clamp(%rip),%xmm0
+	movdqa	%xmm0,0(%rbp)
+	movdqa	%xmm4,16(%rbp)
 
 	movq	%r8,%r8
 	call	poly_hash_ad_internal
-.Lopen_sse_main_loop:
+open_sse_main_loop:
 	cmpq	$256,%rbx
-	jb	.Lopen_sse_tail
+	jb	2f
 
-	movdqa	.Lchacha20_consts(%rip),%xmm0
-	movdqa	0+48(%rbp),%xmm4
-	movdqa	0+64(%rbp),%xmm8
+	movdqa	.chacha20_consts(%rip),%xmm0
+	movdqa	48(%rbp),%xmm4
+	movdqa	64(%rbp),%xmm8
 	movdqa	%xmm0,%xmm1
 	movdqa	%xmm4,%xmm5
 	movdqa	%xmm8,%xmm9
@@ -352,26 +351,26 @@ chacha20_poly1305_open:
 	movdqa	%xmm0,%xmm3
 	movdqa	%xmm4,%xmm7
 	movdqa	%xmm8,%xmm11
-	movdqa	0+96(%rbp),%xmm15
-	paddd	.Lsse_inc(%rip),%xmm15
+	movdqa	96(%rbp),%xmm15
+	paddd	.sse_inc(%rip),%xmm15
 	movdqa	%xmm15,%xmm14
-	paddd	.Lsse_inc(%rip),%xmm14
+	paddd	.sse_inc(%rip),%xmm14
 	movdqa	%xmm14,%xmm13
-	paddd	.Lsse_inc(%rip),%xmm13
+	paddd	.sse_inc(%rip),%xmm13
 	movdqa	%xmm13,%xmm12
-	paddd	.Lsse_inc(%rip),%xmm12
-	movdqa	%xmm12,0+96(%rbp)
-	movdqa	%xmm13,0+112(%rbp)
-	movdqa	%xmm14,0+128(%rbp)
-	movdqa	%xmm15,0+144(%rbp)
+	paddd	.sse_inc(%rip),%xmm12
+	movdqa	%xmm12,96(%rbp)
+	movdqa	%xmm13,112(%rbp)
+	movdqa	%xmm14,128(%rbp)
+	movdqa	%xmm15,144(%rbp)
 
 
 
 	movq	$4,%rcx
 	movq	%rsi,%r8
-.Lopen_sse_main_loop_rounds:
-	movdqa	%xmm8,0+80(%rbp)
-	movdqa	.Lrol16(%rip),%xmm8
+1:
+	movdqa	%xmm8,80(%rbp)
+	movdqa	.rol16(%rip),%xmm8
 	paddd	%xmm7,%xmm3
 	paddd	%xmm6,%xmm2
 	paddd	%xmm5,%xmm1
@@ -384,13 +383,13 @@ chacha20_poly1305_open:
 .byte	102,69,15,56,0,240
 .byte	102,69,15,56,0,232
 .byte	102,69,15,56,0,224
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	paddd	%xmm15,%xmm11
 	paddd	%xmm14,%xmm10
 	paddd	%xmm13,%xmm9
 	paddd	%xmm12,%xmm8
 	pxor	%xmm11,%xmm7
-	addq	0+0(%r8),%r10
+	addq	0(%r8),%r10
 	adcq	8+0(%r8),%r11
 	adcq	$1,%r12
 
@@ -398,7 +397,7 @@ chacha20_poly1305_open:
 	pxor	%xmm10,%xmm6
 	pxor	%xmm9,%xmm5
 	pxor	%xmm8,%xmm4
-	movdqa	%xmm8,0+80(%rbp)
+	movdqa	%xmm8,80(%rbp)
 	movdqa	%xmm7,%xmm8
 	psrld	$20,%xmm8
 	pslld	$32-20,%xmm7
@@ -415,17 +414,17 @@ chacha20_poly1305_open:
 	psrld	$20,%xmm8
 	pslld	$32-20,%xmm4
 	pxor	%xmm8,%xmm4
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movdqa	.Lrol8(%rip),%xmm8
+	movdqa	.rol8(%rip),%xmm8
 	paddd	%xmm7,%xmm3
 	paddd	%xmm6,%xmm2
 	paddd	%xmm5,%xmm1
@@ -438,26 +437,26 @@ chacha20_poly1305_open:
 .byte	102,69,15,56,0,240
 .byte	102,69,15,56,0,232
 .byte	102,69,15,56,0,224
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	paddd	%xmm15,%xmm11
 	paddd	%xmm14,%xmm10
 	paddd	%xmm13,%xmm9
 	paddd	%xmm12,%xmm8
 	pxor	%xmm11,%xmm7
 	pxor	%xmm10,%xmm6
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
 	pxor	%xmm9,%xmm5
 	pxor	%xmm8,%xmm4
-	movdqa	%xmm8,0+80(%rbp)
+	movdqa	%xmm8,80(%rbp)
 	movdqa	%xmm7,%xmm8
 	psrld	$25,%xmm8
 	pslld	$32-25,%xmm7
@@ -474,7 +473,7 @@ chacha20_poly1305_open:
 	psrld	$25,%xmm8
 	pslld	$32-25,%xmm4
 	pxor	%xmm8,%xmm4
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	imulq	%r12,%r9
 	addq	%r10,%r15
 	adcq	%rdx,%r9
@@ -490,8 +489,8 @@ chacha20_poly1305_open:
 .byte	102,15,58,15,228,4
 .byte	102,69,15,58,15,192,8
 .byte	102,69,15,58,15,228,12
-	movdqa	%xmm8,0+80(%rbp)
-	movdqa	.Lrol16(%rip),%xmm8
+	movdqa	%xmm8,80(%rbp)
+	movdqa	.rol16(%rip),%xmm8
 	paddd	%xmm7,%xmm3
 	paddd	%xmm6,%xmm2
 	paddd	%xmm5,%xmm1
@@ -507,8 +506,9 @@ chacha20_poly1305_open:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
@@ -518,7 +518,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,56,0,240
 .byte	102,69,15,56,0,232
 .byte	102,69,15,56,0,224
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	paddd	%xmm15,%xmm11
 	paddd	%xmm14,%xmm10
 	paddd	%xmm13,%xmm9
@@ -527,7 +527,7 @@ chacha20_poly1305_open:
 	pxor	%xmm10,%xmm6
 	pxor	%xmm9,%xmm5
 	pxor	%xmm8,%xmm4
-	movdqa	%xmm8,0+80(%rbp)
+	movdqa	%xmm8,80(%rbp)
 	movdqa	%xmm7,%xmm8
 	psrld	$20,%xmm8
 	pslld	$32-20,%xmm7
@@ -544,7 +544,7 @@ chacha20_poly1305_open:
 	psrld	$20,%xmm8
 	pslld	$32-20,%xmm4
 	pxor	%xmm8,%xmm4
-	movdqa	.Lrol8(%rip),%xmm8
+	movdqa	.rol8(%rip),%xmm8
 	paddd	%xmm7,%xmm3
 	paddd	%xmm6,%xmm2
 	paddd	%xmm5,%xmm1
@@ -557,7 +557,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,56,0,240
 .byte	102,69,15,56,0,232
 .byte	102,69,15,56,0,224
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	paddd	%xmm15,%xmm11
 	paddd	%xmm14,%xmm10
 	paddd	%xmm13,%xmm9
@@ -566,7 +566,7 @@ chacha20_poly1305_open:
 	pxor	%xmm10,%xmm6
 	pxor	%xmm9,%xmm5
 	pxor	%xmm8,%xmm4
-	movdqa	%xmm8,0+80(%rbp)
+	movdqa	%xmm8,80(%rbp)
 	movdqa	%xmm7,%xmm8
 	psrld	$25,%xmm8
 	pslld	$32-25,%xmm7
@@ -583,7 +583,7 @@ chacha20_poly1305_open:
 	psrld	$25,%xmm8
 	pslld	$32-25,%xmm4
 	pxor	%xmm8,%xmm4
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 .byte	102,15,58,15,255,12
 .byte	102,69,15,58,15,219,8
 .byte	102,69,15,58,15,255,4
@@ -598,27 +598,27 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,4
 
 	decq	%rcx
-	jge	.Lopen_sse_main_loop_rounds
-	addq	0+0(%r8),%r10
+	jge	1b
+	addq	0(%r8),%r10
 	adcq	8+0(%r8),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -634,32 +634,33 @@ chacha20_poly1305_open:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%r8),%r8
 	cmpq	$-6,%rcx
-	jg	.Lopen_sse_main_loop_rounds
-	paddd	.Lchacha20_consts(%rip),%xmm3
-	paddd	0+48(%rbp),%xmm7
-	paddd	0+64(%rbp),%xmm11
-	paddd	0+144(%rbp),%xmm15
-	paddd	.Lchacha20_consts(%rip),%xmm2
-	paddd	0+48(%rbp),%xmm6
-	paddd	0+64(%rbp),%xmm10
-	paddd	0+128(%rbp),%xmm14
-	paddd	.Lchacha20_consts(%rip),%xmm1
-	paddd	0+48(%rbp),%xmm5
-	paddd	0+64(%rbp),%xmm9
-	paddd	0+112(%rbp),%xmm13
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	0+48(%rbp),%xmm4
-	paddd	0+64(%rbp),%xmm8
-	paddd	0+96(%rbp),%xmm12
-	movdqa	%xmm12,0+80(%rbp)
+	jg	1b
+	paddd	.chacha20_consts(%rip),%xmm3
+	paddd	48(%rbp),%xmm7
+	paddd	64(%rbp),%xmm11
+	paddd	144(%rbp),%xmm15
+	paddd	.chacha20_consts(%rip),%xmm2
+	paddd	48(%rbp),%xmm6
+	paddd	64(%rbp),%xmm10
+	paddd	128(%rbp),%xmm14
+	paddd	.chacha20_consts(%rip),%xmm1
+	paddd	48(%rbp),%xmm5
+	paddd	64(%rbp),%xmm9
+	paddd	112(%rbp),%xmm13
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	48(%rbp),%xmm4
+	paddd	64(%rbp),%xmm8
+	paddd	96(%rbp),%xmm12
+	movdqa	%xmm12,80(%rbp)
 	movdqu	0 + 0(%rsi),%xmm12
 	pxor	%xmm3,%xmm12
 	movdqu	%xmm12,0 + 0(%rdi)
@@ -703,7 +704,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm0
 	pxor	%xmm7,%xmm4
 	pxor	%xmm11,%xmm8
-	pxor	0+80(%rbp),%xmm15
+	pxor	80(%rbp),%xmm15
 	movdqu	%xmm0,0 + 192(%rdi)
 	movdqu	%xmm4,16 + 192(%rdi)
 	movdqu	%xmm8,32 + 192(%rdi)
@@ -712,49 +713,45 @@ chacha20_poly1305_open:
 	leaq	256(%rsi),%rsi
 	leaq	256(%rdi),%rdi
 	subq	$256,%rbx
-	jmp	.Lopen_sse_main_loop
-.Lopen_sse_tail:
+	jmp	open_sse_main_loop
+2:
 
 	testq	%rbx,%rbx
-	jz	.Lopen_sse_finalize
-	cmpq	$192,%rbx
-	ja	.Lopen_sse_tail_256
-	cmpq	$128,%rbx
-	ja	.Lopen_sse_tail_192
+	jz	open_sse_finalize
 	cmpq	$64,%rbx
-	ja	.Lopen_sse_tail_128
-	movdqa	.Lchacha20_consts(%rip),%xmm0
-	movdqa	0+48(%rbp),%xmm4
-	movdqa	0+64(%rbp),%xmm8
-	movdqa	0+96(%rbp),%xmm12
-	paddd	.Lsse_inc(%rip),%xmm12
-	movdqa	%xmm12,0+96(%rbp)
+	ja	3f
+	movdqa	.chacha20_consts(%rip),%xmm0
+	movdqa	48(%rbp),%xmm4
+	movdqa	64(%rbp),%xmm8
+	movdqa	96(%rbp),%xmm12
+	paddd	.sse_inc(%rip),%xmm12
+	movdqa	%xmm12,96(%rbp)
 
 	xorq	%r8,%r8
 	movq	%rbx,%rcx
 	cmpq	$16,%rcx
-	jb	.Lopen_sse_tail_64_rounds
-.Lopen_sse_tail_64_rounds_and_x1hash:
-	addq	0+0(%rsi,%r8,1),%r10
-	adcq	8+0(%rsi,%r8,1),%r11
+	jb	2f
+1:
+	addq	0(%rsi,%r8), %r10
+	adcq	8+0(%rsi,%r8), %r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -770,18 +767,19 @@ chacha20_poly1305_open:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	subq	$16,%rcx
-.Lopen_sse_tail_64_rounds:
+2:
 	addq	$16,%r8
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -790,7 +788,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -802,7 +800,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,12
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -811,7 +809,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -823,54 +821,55 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,4
 
 	cmpq	$16,%rcx
-	jae	.Lopen_sse_tail_64_rounds_and_x1hash
+	jae	1b
 	cmpq	$160,%r8
-	jne	.Lopen_sse_tail_64_rounds
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	0+48(%rbp),%xmm4
-	paddd	0+64(%rbp),%xmm8
-	paddd	0+96(%rbp),%xmm12
+	jne	2b
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	48(%rbp),%xmm4
+	paddd	64(%rbp),%xmm8
+	paddd	96(%rbp),%xmm12
 
-	jmp	.Lopen_sse_tail_64_dec_loop
-
-.Lopen_sse_tail_128:
-	movdqa	.Lchacha20_consts(%rip),%xmm0
-	movdqa	0+48(%rbp),%xmm4
-	movdqa	0+64(%rbp),%xmm8
+	jmp	open_sse_tail_64_dec_loop
+3:
+	cmpq	$128,%rbx
+	ja	3f
+	movdqa	.chacha20_consts(%rip),%xmm0
+	movdqa	48(%rbp),%xmm4
+	movdqa	64(%rbp),%xmm8
 	movdqa	%xmm0,%xmm1
 	movdqa	%xmm4,%xmm5
 	movdqa	%xmm8,%xmm9
-	movdqa	0+96(%rbp),%xmm13
-	paddd	.Lsse_inc(%rip),%xmm13
+	movdqa	96(%rbp),%xmm13
+	paddd	.sse_inc(%rip),%xmm13
 	movdqa	%xmm13,%xmm12
-	paddd	.Lsse_inc(%rip),%xmm12
-	movdqa	%xmm12,0+96(%rbp)
-	movdqa	%xmm13,0+112(%rbp)
+	paddd	.sse_inc(%rip),%xmm12
+	movdqa	%xmm12,96(%rbp)
+	movdqa	%xmm13,112(%rbp)
 
 	movq	%rbx,%rcx
 	andq	$-16,%rcx
 	xorq	%r8,%r8
-.Lopen_sse_tail_128_rounds_and_x1hash:
-	addq	0+0(%rsi,%r8,1),%r10
-	adcq	8+0(%rsi,%r8,1),%r11
+1:
+	addq	0(%rsi,%r8), %r10
+	adcq	8+0(%rsi,%r8), %r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -886,17 +885,18 @@ chacha20_poly1305_open:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
-.Lopen_sse_tail_128_rounds:
+2:
 	addq	$16,%r8
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -905,7 +905,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -917,7 +917,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,12
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -926,7 +926,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -938,7 +938,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,237,12
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -947,7 +947,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -959,7 +959,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,4
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -968,7 +968,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -980,17 +980,17 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,237,4
 
 	cmpq	%rcx,%r8
-	jb	.Lopen_sse_tail_128_rounds_and_x1hash
+	jb	1b
 	cmpq	$160,%r8
-	jne	.Lopen_sse_tail_128_rounds
-	paddd	.Lchacha20_consts(%rip),%xmm1
-	paddd	0+48(%rbp),%xmm5
-	paddd	0+64(%rbp),%xmm9
-	paddd	0+112(%rbp),%xmm13
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	0+48(%rbp),%xmm4
-	paddd	0+64(%rbp),%xmm8
-	paddd	0+96(%rbp),%xmm12
+	jne	2b
+	paddd	.chacha20_consts(%rip),%xmm1
+	paddd	48(%rbp),%xmm5
+	paddd	64(%rbp),%xmm9
+	paddd	112(%rbp),%xmm13
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	48(%rbp),%xmm4
+	paddd	64(%rbp),%xmm8
+	paddd	96(%rbp),%xmm12
 	movdqu	0 + 0(%rsi),%xmm3
 	movdqu	16 + 0(%rsi),%xmm7
 	movdqu	32 + 0(%rsi),%xmm11
@@ -1007,27 +1007,28 @@ chacha20_poly1305_open:
 	subq	$64,%rbx
 	leaq	64(%rsi),%rsi
 	leaq	64(%rdi),%rdi
-	jmp	.Lopen_sse_tail_64_dec_loop
-
-.Lopen_sse_tail_192:
-	movdqa	.Lchacha20_consts(%rip),%xmm0
-	movdqa	0+48(%rbp),%xmm4
-	movdqa	0+64(%rbp),%xmm8
+	jmp	open_sse_tail_64_dec_loop
+3:
+	cmpq	$192,%rbx
+	ja	3f
+	movdqa	.chacha20_consts(%rip),%xmm0
+	movdqa	48(%rbp),%xmm4
+	movdqa	64(%rbp),%xmm8
 	movdqa	%xmm0,%xmm1
 	movdqa	%xmm4,%xmm5
 	movdqa	%xmm8,%xmm9
 	movdqa	%xmm0,%xmm2
 	movdqa	%xmm4,%xmm6
 	movdqa	%xmm8,%xmm10
-	movdqa	0+96(%rbp),%xmm14
-	paddd	.Lsse_inc(%rip),%xmm14
+	movdqa	96(%rbp),%xmm14
+	paddd	.sse_inc(%rip),%xmm14
 	movdqa	%xmm14,%xmm13
-	paddd	.Lsse_inc(%rip),%xmm13
+	paddd	.sse_inc(%rip),%xmm13
 	movdqa	%xmm13,%xmm12
-	paddd	.Lsse_inc(%rip),%xmm12
-	movdqa	%xmm12,0+96(%rbp)
-	movdqa	%xmm13,0+112(%rbp)
-	movdqa	%xmm14,0+128(%rbp)
+	paddd	.sse_inc(%rip),%xmm12
+	movdqa	%xmm12,96(%rbp)
+	movdqa	%xmm13,112(%rbp)
+	movdqa	%xmm14,128(%rbp)
 
 	movq	%rbx,%rcx
 	movq	$160,%r8
@@ -1035,27 +1036,27 @@ chacha20_poly1305_open:
 	cmovgq	%r8,%rcx
 	andq	$-16,%rcx
 	xorq	%r8,%r8
-.Lopen_sse_tail_192_rounds_and_x1hash:
-	addq	0+0(%rsi,%r8,1),%r10
-	adcq	8+0(%rsi,%r8,1),%r11
+1:
+	addq	0(%rsi,%r8), %r10
+	adcq	8+0(%rsi,%r8), %r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -1071,17 +1072,18 @@ chacha20_poly1305_open:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
-.Lopen_sse_tail_192_rounds:
+2:
 	addq	$16,%r8
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -1090,7 +1092,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -1102,7 +1104,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,12
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -1111,7 +1113,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -1123,7 +1125,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,237,12
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol16(%rip),%xmm14
+	pshufb	.rol16(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -1132,7 +1134,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm6
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol8(%rip),%xmm14
+	pshufb	.rol8(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -1144,7 +1146,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,246,12
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -1153,7 +1155,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -1165,7 +1167,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,4
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -1174,7 +1176,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -1186,7 +1188,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,237,4
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol16(%rip),%xmm14
+	pshufb	.rol16(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -1195,7 +1197,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm6
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol8(%rip),%xmm14
+	pshufb	.rol8(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -1207,31 +1209,31 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,246,4
 
 	cmpq	%rcx,%r8
-	jb	.Lopen_sse_tail_192_rounds_and_x1hash
+	jb	1b
 	cmpq	$160,%r8
-	jne	.Lopen_sse_tail_192_rounds
+	jne	2b
 	cmpq	$176,%rbx
-	jb	.Lopen_sse_tail_192_finish
-	addq	0+160(%rsi),%r10
+	jb	1f
+	addq	160(%rsi),%r10
 	adcq	8+160(%rsi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -1247,34 +1249,35 @@ chacha20_poly1305_open:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	cmpq	$192,%rbx
-	jb	.Lopen_sse_tail_192_finish
-	addq	0+176(%rsi),%r10
+	jb	1f
+	addq	176(%rsi),%r10
 	adcq	8+176(%rsi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -1290,25 +1293,26 @@ chacha20_poly1305_open:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
-.Lopen_sse_tail_192_finish:
-	paddd	.Lchacha20_consts(%rip),%xmm2
-	paddd	0+48(%rbp),%xmm6
-	paddd	0+64(%rbp),%xmm10
-	paddd	0+128(%rbp),%xmm14
-	paddd	.Lchacha20_consts(%rip),%xmm1
-	paddd	0+48(%rbp),%xmm5
-	paddd	0+64(%rbp),%xmm9
-	paddd	0+112(%rbp),%xmm13
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	0+48(%rbp),%xmm4
-	paddd	0+64(%rbp),%xmm8
-	paddd	0+96(%rbp),%xmm12
+1:
+	paddd	.chacha20_consts(%rip),%xmm2
+	paddd	48(%rbp),%xmm6
+	paddd	64(%rbp),%xmm10
+	paddd	128(%rbp),%xmm14
+	paddd	.chacha20_consts(%rip),%xmm1
+	paddd	48(%rbp),%xmm5
+	paddd	64(%rbp),%xmm9
+	paddd	112(%rbp),%xmm13
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	48(%rbp),%xmm4
+	paddd	64(%rbp),%xmm8
+	paddd	96(%rbp),%xmm12
 	movdqu	0 + 0(%rsi),%xmm3
 	movdqu	16 + 0(%rsi),%xmm7
 	movdqu	32 + 0(%rsi),%xmm11
@@ -1337,12 +1341,12 @@ chacha20_poly1305_open:
 	subq	$128,%rbx
 	leaq	128(%rsi),%rsi
 	leaq	128(%rdi),%rdi
-	jmp	.Lopen_sse_tail_64_dec_loop
+	jmp	open_sse_tail_64_dec_loop
+3:
 
-.Lopen_sse_tail_256:
-	movdqa	.Lchacha20_consts(%rip),%xmm0
-	movdqa	0+48(%rbp),%xmm4
-	movdqa	0+64(%rbp),%xmm8
+	movdqa	.chacha20_consts(%rip),%xmm0
+	movdqa	48(%rbp),%xmm4
+	movdqa	64(%rbp),%xmm8
 	movdqa	%xmm0,%xmm1
 	movdqa	%xmm4,%xmm5
 	movdqa	%xmm8,%xmm9
@@ -1352,28 +1356,28 @@ chacha20_poly1305_open:
 	movdqa	%xmm0,%xmm3
 	movdqa	%xmm4,%xmm7
 	movdqa	%xmm8,%xmm11
-	movdqa	0+96(%rbp),%xmm15
-	paddd	.Lsse_inc(%rip),%xmm15
+	movdqa	96(%rbp),%xmm15
+	paddd	.sse_inc(%rip),%xmm15
 	movdqa	%xmm15,%xmm14
-	paddd	.Lsse_inc(%rip),%xmm14
+	paddd	.sse_inc(%rip),%xmm14
 	movdqa	%xmm14,%xmm13
-	paddd	.Lsse_inc(%rip),%xmm13
+	paddd	.sse_inc(%rip),%xmm13
 	movdqa	%xmm13,%xmm12
-	paddd	.Lsse_inc(%rip),%xmm12
-	movdqa	%xmm12,0+96(%rbp)
-	movdqa	%xmm13,0+112(%rbp)
-	movdqa	%xmm14,0+128(%rbp)
-	movdqa	%xmm15,0+144(%rbp)
+	paddd	.sse_inc(%rip),%xmm12
+	movdqa	%xmm12,96(%rbp)
+	movdqa	%xmm13,112(%rbp)
+	movdqa	%xmm14,128(%rbp)
+	movdqa	%xmm15,144(%rbp)
 
 	xorq	%r8,%r8
-.Lopen_sse_tail_256_rounds_and_x1hash:
-	addq	0+0(%rsi,%r8,1),%r10
-	adcq	8+0(%rsi,%r8,1),%r11
+1:
+	addq	0(%rsi,%r8), %r10
+	adcq	8+0(%rsi,%r8), %r11
 	adcq	$1,%r12
-	movdqa	%xmm11,0+80(%rbp)
+	movdqa	%xmm11,80(%rbp)
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm11
@@ -1382,7 +1386,7 @@ chacha20_poly1305_open:
 	pxor	%xmm11,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm11
@@ -1394,7 +1398,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,12
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm11
@@ -1403,7 +1407,7 @@ chacha20_poly1305_open:
 	pxor	%xmm11,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm11
@@ -1415,7 +1419,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,237,12
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol16(%rip),%xmm14
+	pshufb	.rol16(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm11
@@ -1424,7 +1428,7 @@ chacha20_poly1305_open:
 	pxor	%xmm11,%xmm6
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol8(%rip),%xmm14
+	pshufb	.rol8(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm11
@@ -1434,21 +1438,21 @@ chacha20_poly1305_open:
 .byte	102,15,58,15,246,4
 .byte	102,69,15,58,15,210,8
 .byte	102,69,15,58,15,246,12
-	movdqa	0+80(%rbp),%xmm11
-	movq	0+0+0(%rbp),%rax
+	movdqa	80(%rbp),%xmm11
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movdqa	%xmm9,0+80(%rbp)
+	movdqa	%xmm9,80(%rbp)
 	paddd	%xmm7,%xmm3
 	pxor	%xmm3,%xmm15
-	pshufb	.Lrol16(%rip),%xmm15
+	pshufb	.rol16(%rip),%xmm15
 	paddd	%xmm15,%xmm11
 	pxor	%xmm11,%xmm7
 	movdqa	%xmm7,%xmm9
@@ -1457,7 +1461,7 @@ chacha20_poly1305_open:
 	pxor	%xmm9,%xmm7
 	paddd	%xmm7,%xmm3
 	pxor	%xmm3,%xmm15
-	pshufb	.Lrol8(%rip),%xmm15
+	pshufb	.rol8(%rip),%xmm15
 	paddd	%xmm15,%xmm11
 	pxor	%xmm11,%xmm7
 	movdqa	%xmm7,%xmm9
@@ -1467,21 +1471,21 @@ chacha20_poly1305_open:
 .byte	102,15,58,15,255,4
 .byte	102,69,15,58,15,219,8
 .byte	102,69,15,58,15,255,12
-	movdqa	0+80(%rbp),%xmm9
-	movq	8+0+0(%rbp),%rax
+	movdqa	80(%rbp),%xmm9
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
-	movdqa	%xmm11,0+80(%rbp)
+	movdqa	%xmm11,80(%rbp)
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm11
@@ -1490,7 +1494,7 @@ chacha20_poly1305_open:
 	pxor	%xmm11,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm11
@@ -1502,7 +1506,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,4
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm11
@@ -1511,7 +1515,7 @@ chacha20_poly1305_open:
 	pxor	%xmm11,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm11
@@ -1526,7 +1530,7 @@ chacha20_poly1305_open:
 	adcq	%rdx,%r9
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol16(%rip),%xmm14
+	pshufb	.rol16(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm11
@@ -1535,7 +1539,7 @@ chacha20_poly1305_open:
 	pxor	%xmm11,%xmm6
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol8(%rip),%xmm14
+	pshufb	.rol8(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm11
@@ -1545,7 +1549,7 @@ chacha20_poly1305_open:
 .byte	102,15,58,15,246,12
 .byte	102,69,15,58,15,210,8
 .byte	102,69,15,58,15,246,4
-	movdqa	0+80(%rbp),%xmm11
+	movdqa	80(%rbp),%xmm11
 	movq	%r13,%r10
 	movq	%r14,%r11
 	movq	%r15,%r12
@@ -1555,15 +1559,16 @@ chacha20_poly1305_open:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
-	movdqa	%xmm9,0+80(%rbp)
+	movdqa	%xmm9,80(%rbp)
 	paddd	%xmm7,%xmm3
 	pxor	%xmm3,%xmm15
-	pshufb	.Lrol16(%rip),%xmm15
+	pshufb	.rol16(%rip),%xmm15
 	paddd	%xmm15,%xmm11
 	pxor	%xmm11,%xmm7
 	movdqa	%xmm7,%xmm9
@@ -1572,7 +1577,7 @@ chacha20_poly1305_open:
 	pxor	%xmm9,%xmm7
 	paddd	%xmm7,%xmm3
 	pxor	%xmm3,%xmm15
-	pshufb	.Lrol8(%rip),%xmm15
+	pshufb	.rol8(%rip),%xmm15
 	paddd	%xmm15,%xmm11
 	pxor	%xmm11,%xmm7
 	movdqa	%xmm7,%xmm9
@@ -1582,35 +1587,34 @@ chacha20_poly1305_open:
 .byte	102,15,58,15,255,12
 .byte	102,69,15,58,15,219,8
 .byte	102,69,15,58,15,255,4
-	movdqa	0+80(%rbp),%xmm9
+	movdqa	80(%rbp),%xmm9
 
 	addq	$16,%r8
 	cmpq	$160,%r8
-	jb	.Lopen_sse_tail_256_rounds_and_x1hash
-
+	jb	1b
 	movq	%rbx,%rcx
 	andq	$-16,%rcx
-.Lopen_sse_tail_256_hash:
-	addq	0+0(%rsi,%r8,1),%r10
-	adcq	8+0(%rsi,%r8,1),%r11
+1:
+	addq	0(%rsi,%r8), %r10
+	adcq	8+0(%rsi,%r8), %r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -1626,32 +1630,33 @@ chacha20_poly1305_open:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	addq	$16,%r8
 	cmpq	%rcx,%r8
-	jb	.Lopen_sse_tail_256_hash
-	paddd	.Lchacha20_consts(%rip),%xmm3
-	paddd	0+48(%rbp),%xmm7
-	paddd	0+64(%rbp),%xmm11
-	paddd	0+144(%rbp),%xmm15
-	paddd	.Lchacha20_consts(%rip),%xmm2
-	paddd	0+48(%rbp),%xmm6
-	paddd	0+64(%rbp),%xmm10
-	paddd	0+128(%rbp),%xmm14
-	paddd	.Lchacha20_consts(%rip),%xmm1
-	paddd	0+48(%rbp),%xmm5
-	paddd	0+64(%rbp),%xmm9
-	paddd	0+112(%rbp),%xmm13
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	0+48(%rbp),%xmm4
-	paddd	0+64(%rbp),%xmm8
-	paddd	0+96(%rbp),%xmm12
-	movdqa	%xmm12,0+80(%rbp)
+	jb	1b
+	paddd	.chacha20_consts(%rip),%xmm3
+	paddd	48(%rbp),%xmm7
+	paddd	64(%rbp),%xmm11
+	paddd	144(%rbp),%xmm15
+	paddd	.chacha20_consts(%rip),%xmm2
+	paddd	48(%rbp),%xmm6
+	paddd	64(%rbp),%xmm10
+	paddd	128(%rbp),%xmm14
+	paddd	.chacha20_consts(%rip),%xmm1
+	paddd	48(%rbp),%xmm5
+	paddd	64(%rbp),%xmm9
+	paddd	112(%rbp),%xmm13
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	48(%rbp),%xmm4
+	paddd	64(%rbp),%xmm8
+	paddd	96(%rbp),%xmm12
+	movdqa	%xmm12,80(%rbp)
 	movdqu	0 + 0(%rsi),%xmm12
 	pxor	%xmm3,%xmm12
 	movdqu	%xmm12,0 + 0(%rdi)
@@ -1689,15 +1694,15 @@ chacha20_poly1305_open:
 	movdqu	%xmm9,32 + 128(%rdi)
 	movdqu	%xmm15,48 + 128(%rdi)
 
-	movdqa	0+80(%rbp),%xmm12
+	movdqa	80(%rbp),%xmm12
 	subq	$192,%rbx
 	leaq	192(%rsi),%rsi
 	leaq	192(%rdi),%rdi
 
 
-.Lopen_sse_tail_64_dec_loop:
+open_sse_tail_64_dec_loop:
 	cmpq	$16,%rbx
-	jb	.Lopen_sse_tail_16_init
+	jb	1f
 	subq	$16,%rbx
 	movdqu	(%rsi),%xmm3
 	pxor	%xmm3,%xmm0
@@ -1707,60 +1712,61 @@ chacha20_poly1305_open:
 	movdqa	%xmm4,%xmm0
 	movdqa	%xmm8,%xmm4
 	movdqa	%xmm12,%xmm8
-	jmp	.Lopen_sse_tail_64_dec_loop
-.Lopen_sse_tail_16_init:
+	jmp	open_sse_tail_64_dec_loop
+1:
 	movdqa	%xmm0,%xmm1
 
 
-.Lopen_sse_tail_16:
+open_sse_tail_16:
 	testq	%rbx,%rbx
-	jz	.Lopen_sse_finalize
+	jz	open_sse_finalize
 
 
 
 	pxor	%xmm3,%xmm3
-	leaq	-1(%rsi,%rbx,1),%rsi
+	leaq	-1(%rsi,%rbx), %rsi
 	movq	%rbx,%r8
-.Lopen_sse_tail_16_compose:
+2:
 	pslldq	$1,%xmm3
 	pinsrb	$0,(%rsi),%xmm3
 	subq	$1,%rsi
 	subq	$1,%r8
-	jnz	.Lopen_sse_tail_16_compose
+	jnz	2b
 
+3:
 .byte	102,73,15,126,221
 	pextrq	$1,%xmm3,%r14
 
 	pxor	%xmm1,%xmm3
 
 
-.Lopen_sse_tail_16_extract:
+2:
 	pextrb	$0,%xmm3,(%rdi)
 	psrldq	$1,%xmm3
 	addq	$1,%rdi
 	subq	$1,%rbx
-	jne	.Lopen_sse_tail_16_extract
+	jne	2b
 
 	addq	%r13,%r10
 	adcq	%r14,%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -1776,34 +1782,35 @@ chacha20_poly1305_open:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 
-.Lopen_sse_finalize:
-	addq	0+0+32(%rbp),%r10
-	adcq	8+0+32(%rbp),%r11
+open_sse_finalize:
+	addq	32(%rbp),%r10
+	adcq	8+32(%rbp),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -1819,8 +1826,9 @@ chacha20_poly1305_open:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
@@ -1836,41 +1844,33 @@ chacha20_poly1305_open:
 	cmovcq	%r14,%r11
 	cmovcq	%r15,%r12
 
-	addq	0+0+16(%rbp),%r10
-	adcq	8+0+16(%rbp),%r11
+	addq	0+16(%rbp),%r10
+	adcq	8+16(%rbp),%r11
 
-.cfi_remember_state	
-	addq	$288 + 0 + 32,%rsp
+	addq	$288 + 32,%rsp
 .cfi_adjust_cfa_offset	-(288 + 32)
-
 	popq	%r9
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%r9
 	movq	%r10,(%r9)
 	movq	%r11,8(%r9)
+
 	popq	%r15
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%r15
 	popq	%r14
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%r14
 	popq	%r13
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%r13
 	popq	%r12
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%r12
 	popq	%rbx
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%rbx
 	popq	%rbp
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%rbp
 	.byte	0xf3,0xc3
+.cfi_adjust_cfa_offset	(8 * 6) + 288 + 32
 
-.Lopen_sse_128:
-.cfi_restore_state	
-	movdqu	.Lchacha20_consts(%rip),%xmm0
+open_sse_128:
+	movdqu	.chacha20_consts(%rip),%xmm0
 	movdqa	%xmm0,%xmm1
 	movdqa	%xmm0,%xmm2
 	movdqu	0(%r9),%xmm4
@@ -1881,18 +1881,17 @@ chacha20_poly1305_open:
 	movdqa	%xmm8,%xmm10
 	movdqu	32(%r9),%xmm12
 	movdqa	%xmm12,%xmm13
-	paddd	.Lsse_inc(%rip),%xmm13
+	paddd	.sse_inc(%rip),%xmm13
 	movdqa	%xmm13,%xmm14
-	paddd	.Lsse_inc(%rip),%xmm14
+	paddd	.sse_inc(%rip),%xmm14
 	movdqa	%xmm4,%xmm7
 	movdqa	%xmm8,%xmm11
 	movdqa	%xmm13,%xmm15
 	movq	$10,%r10
-
-.Lopen_sse_128_rounds:
+1:
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -1901,7 +1900,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -1913,7 +1912,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,12
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -1922,7 +1921,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -1934,7 +1933,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,237,12
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol16(%rip),%xmm14
+	pshufb	.rol16(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -1943,7 +1942,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm6
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol8(%rip),%xmm14
+	pshufb	.rol8(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -1955,7 +1954,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,246,12
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -1964,7 +1963,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -1976,7 +1975,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,228,4
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -1985,7 +1984,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -1997,7 +1996,7 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,237,4
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol16(%rip),%xmm14
+	pshufb	.rol16(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -2006,7 +2005,7 @@ chacha20_poly1305_open:
 	pxor	%xmm3,%xmm6
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol8(%rip),%xmm14
+	pshufb	.rol8(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -2018,30 +2017,30 @@ chacha20_poly1305_open:
 .byte	102,69,15,58,15,246,4
 
 	decq	%r10
-	jnz	.Lopen_sse_128_rounds
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	.Lchacha20_consts(%rip),%xmm1
-	paddd	.Lchacha20_consts(%rip),%xmm2
+	jnz	1b
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	.chacha20_consts(%rip),%xmm1
+	paddd	.chacha20_consts(%rip),%xmm2
 	paddd	%xmm7,%xmm4
 	paddd	%xmm7,%xmm5
 	paddd	%xmm7,%xmm6
 	paddd	%xmm11,%xmm9
 	paddd	%xmm11,%xmm10
 	paddd	%xmm15,%xmm13
-	paddd	.Lsse_inc(%rip),%xmm15
+	paddd	.sse_inc(%rip),%xmm15
 	paddd	%xmm15,%xmm14
 
-	pand	.Lclamp(%rip),%xmm0
-	movdqa	%xmm0,0+0(%rbp)
-	movdqa	%xmm4,0+16(%rbp)
+	pand	.clamp(%rip),%xmm0
+	movdqa	%xmm0,0(%rbp)
+	movdqa	%xmm4,16(%rbp)
 
 	movq	%r8,%r8
 	call	poly_hash_ad_internal
-.Lopen_sse_128_xor_hash:
+1:
 	cmpq	$16,%rbx
-	jb	.Lopen_sse_tail_16
+	jb	open_sse_tail_16
 	subq	$16,%rbx
-	addq	0+0(%rsi),%r10
+	addq	0(%rsi),%r10
 	adcq	8+0(%rsi),%r11
 	adcq	$1,%r12
 
@@ -2051,23 +2050,23 @@ chacha20_poly1305_open:
 	movdqu	%xmm1,0(%rdi)
 	leaq	16(%rsi),%rsi
 	leaq	16(%rdi),%rdi
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -2083,8 +2082,9 @@ chacha20_poly1305_open:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
@@ -2097,12 +2097,10 @@ chacha20_poly1305_open:
 	movdqa	%xmm6,%xmm2
 	movdqa	%xmm10,%xmm6
 	movdqa	%xmm14,%xmm10
-	jmp	.Lopen_sse_128_xor_hash
+	jmp	1b
+	jmp	open_sse_tail_16
 .size	chacha20_poly1305_open, .-chacha20_poly1305_open
 .cfi_endproc	
-
-
-
 
 
 
@@ -2115,36 +2113,34 @@ chacha20_poly1305_seal:
 .cfi_startproc	
 	pushq	%rbp
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%rbp,-16
 	pushq	%rbx
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%rbx,-24
 	pushq	%r12
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%r12,-32
 	pushq	%r13
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%r13,-40
 	pushq	%r14
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%r14,-48
 	pushq	%r15
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%r15,-56
 
 
 	pushq	%r9
 .cfi_adjust_cfa_offset	8
-.cfi_offset	%r9,-64
-	subq	$288 + 0 + 32,%rsp
+	subq	$288 + 32,%rsp
 .cfi_adjust_cfa_offset	288 + 32
+.cfi_offset	rbp, -16
+.cfi_offset	rbx, -24
+.cfi_offset	r12, -32
+.cfi_offset	r13, -40
+.cfi_offset	r14, -48
+.cfi_offset	r15, -56
 	leaq	32(%rsp),%rbp
 	andq	$-32,%rbp
-
 	movq	56(%r9),%rbx
 	addq	%rdx,%rbx
-	movq	%r8,0+0+32(%rbp)
-	movq	%rbx,8+0+32(%rbp)
+	movq	%rbx,8+32(%rbp)
+	movq	%r8,0+32(%rbp)
 	movq	%rdx,%rbx
 
 	movl	OPENSSL_ia32cap_P+8(%rip),%eax
@@ -2153,13 +2149,12 @@ chacha20_poly1305_seal:
 	jz	chacha20_poly1305_seal_avx2
 
 	cmpq	$128,%rbx
-	jbe	.Lseal_sse_128
+	jbe	seal_sse_128
 
-	movdqa	.Lchacha20_consts(%rip),%xmm0
+	movdqa	.chacha20_consts(%rip),%xmm0
 	movdqu	0(%r9),%xmm4
 	movdqu	16(%r9),%xmm8
 	movdqu	32(%r9),%xmm12
-
 	movdqa	%xmm0,%xmm1
 	movdqa	%xmm0,%xmm2
 	movdqa	%xmm0,%xmm3
@@ -2170,22 +2165,22 @@ chacha20_poly1305_seal:
 	movdqa	%xmm8,%xmm10
 	movdqa	%xmm8,%xmm11
 	movdqa	%xmm12,%xmm15
-	paddd	.Lsse_inc(%rip),%xmm12
+	paddd	.sse_inc(%rip),%xmm12
 	movdqa	%xmm12,%xmm14
-	paddd	.Lsse_inc(%rip),%xmm12
+	paddd	.sse_inc(%rip),%xmm12
 	movdqa	%xmm12,%xmm13
-	paddd	.Lsse_inc(%rip),%xmm12
+	paddd	.sse_inc(%rip),%xmm12
 
-	movdqa	%xmm4,0+48(%rbp)
-	movdqa	%xmm8,0+64(%rbp)
-	movdqa	%xmm12,0+96(%rbp)
-	movdqa	%xmm13,0+112(%rbp)
-	movdqa	%xmm14,0+128(%rbp)
-	movdqa	%xmm15,0+144(%rbp)
+	movdqa	%xmm4,48(%rbp)
+	movdqa	%xmm8,64(%rbp)
+	movdqa	%xmm12,96(%rbp)
+	movdqa	%xmm13,112(%rbp)
+	movdqa	%xmm14,128(%rbp)
+	movdqa	%xmm15,144(%rbp)
 	movq	$10,%r10
-.Lseal_sse_init_rounds:
-	movdqa	%xmm8,0+80(%rbp)
-	movdqa	.Lrol16(%rip),%xmm8
+1:
+	movdqa	%xmm8,80(%rbp)
+	movdqa	.rol16(%rip),%xmm8
 	paddd	%xmm7,%xmm3
 	paddd	%xmm6,%xmm2
 	paddd	%xmm5,%xmm1
@@ -2198,7 +2193,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,56,0,240
 .byte	102,69,15,56,0,232
 .byte	102,69,15,56,0,224
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	paddd	%xmm15,%xmm11
 	paddd	%xmm14,%xmm10
 	paddd	%xmm13,%xmm9
@@ -2207,7 +2202,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm10,%xmm6
 	pxor	%xmm9,%xmm5
 	pxor	%xmm8,%xmm4
-	movdqa	%xmm8,0+80(%rbp)
+	movdqa	%xmm8,80(%rbp)
 	movdqa	%xmm7,%xmm8
 	psrld	$20,%xmm8
 	pslld	$32-20,%xmm7
@@ -2224,7 +2219,7 @@ chacha20_poly1305_seal:
 	psrld	$20,%xmm8
 	pslld	$32-20,%xmm4
 	pxor	%xmm8,%xmm4
-	movdqa	.Lrol8(%rip),%xmm8
+	movdqa	.rol8(%rip),%xmm8
 	paddd	%xmm7,%xmm3
 	paddd	%xmm6,%xmm2
 	paddd	%xmm5,%xmm1
@@ -2237,7 +2232,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,56,0,240
 .byte	102,69,15,56,0,232
 .byte	102,69,15,56,0,224
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	paddd	%xmm15,%xmm11
 	paddd	%xmm14,%xmm10
 	paddd	%xmm13,%xmm9
@@ -2246,7 +2241,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm10,%xmm6
 	pxor	%xmm9,%xmm5
 	pxor	%xmm8,%xmm4
-	movdqa	%xmm8,0+80(%rbp)
+	movdqa	%xmm8,80(%rbp)
 	movdqa	%xmm7,%xmm8
 	psrld	$25,%xmm8
 	pslld	$32-25,%xmm7
@@ -2263,7 +2258,7 @@ chacha20_poly1305_seal:
 	psrld	$25,%xmm8
 	pslld	$32-25,%xmm4
 	pxor	%xmm8,%xmm4
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 .byte	102,15,58,15,255,4
 .byte	102,69,15,58,15,219,8
 .byte	102,69,15,58,15,255,12
@@ -2276,8 +2271,8 @@ chacha20_poly1305_seal:
 .byte	102,15,58,15,228,4
 .byte	102,69,15,58,15,192,8
 .byte	102,69,15,58,15,228,12
-	movdqa	%xmm8,0+80(%rbp)
-	movdqa	.Lrol16(%rip),%xmm8
+	movdqa	%xmm8,80(%rbp)
+	movdqa	.rol16(%rip),%xmm8
 	paddd	%xmm7,%xmm3
 	paddd	%xmm6,%xmm2
 	paddd	%xmm5,%xmm1
@@ -2290,7 +2285,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,56,0,240
 .byte	102,69,15,56,0,232
 .byte	102,69,15,56,0,224
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	paddd	%xmm15,%xmm11
 	paddd	%xmm14,%xmm10
 	paddd	%xmm13,%xmm9
@@ -2299,7 +2294,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm10,%xmm6
 	pxor	%xmm9,%xmm5
 	pxor	%xmm8,%xmm4
-	movdqa	%xmm8,0+80(%rbp)
+	movdqa	%xmm8,80(%rbp)
 	movdqa	%xmm7,%xmm8
 	psrld	$20,%xmm8
 	pslld	$32-20,%xmm7
@@ -2316,7 +2311,7 @@ chacha20_poly1305_seal:
 	psrld	$20,%xmm8
 	pslld	$32-20,%xmm4
 	pxor	%xmm8,%xmm4
-	movdqa	.Lrol8(%rip),%xmm8
+	movdqa	.rol8(%rip),%xmm8
 	paddd	%xmm7,%xmm3
 	paddd	%xmm6,%xmm2
 	paddd	%xmm5,%xmm1
@@ -2329,7 +2324,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,56,0,240
 .byte	102,69,15,56,0,232
 .byte	102,69,15,56,0,224
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	paddd	%xmm15,%xmm11
 	paddd	%xmm14,%xmm10
 	paddd	%xmm13,%xmm9
@@ -2338,7 +2333,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm10,%xmm6
 	pxor	%xmm9,%xmm5
 	pxor	%xmm8,%xmm4
-	movdqa	%xmm8,0+80(%rbp)
+	movdqa	%xmm8,80(%rbp)
 	movdqa	%xmm7,%xmm8
 	psrld	$25,%xmm8
 	pslld	$32-25,%xmm7
@@ -2355,7 +2350,7 @@ chacha20_poly1305_seal:
 	psrld	$25,%xmm8
 	pslld	$32-25,%xmm4
 	pxor	%xmm8,%xmm4
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 .byte	102,15,58,15,255,12
 .byte	102,69,15,58,15,219,8
 .byte	102,69,15,58,15,255,4
@@ -2370,28 +2365,28 @@ chacha20_poly1305_seal:
 .byte	102,69,15,58,15,228,4
 
 	decq	%r10
-	jnz	.Lseal_sse_init_rounds
-	paddd	.Lchacha20_consts(%rip),%xmm3
-	paddd	0+48(%rbp),%xmm7
-	paddd	0+64(%rbp),%xmm11
-	paddd	0+144(%rbp),%xmm15
-	paddd	.Lchacha20_consts(%rip),%xmm2
-	paddd	0+48(%rbp),%xmm6
-	paddd	0+64(%rbp),%xmm10
-	paddd	0+128(%rbp),%xmm14
-	paddd	.Lchacha20_consts(%rip),%xmm1
-	paddd	0+48(%rbp),%xmm5
-	paddd	0+64(%rbp),%xmm9
-	paddd	0+112(%rbp),%xmm13
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	0+48(%rbp),%xmm4
-	paddd	0+64(%rbp),%xmm8
-	paddd	0+96(%rbp),%xmm12
+	jnz	1b
+	paddd	.chacha20_consts(%rip),%xmm3
+	paddd	48(%rbp),%xmm7
+	paddd	64(%rbp),%xmm11
+	paddd	144(%rbp),%xmm15
+	paddd	.chacha20_consts(%rip),%xmm2
+	paddd	48(%rbp),%xmm6
+	paddd	64(%rbp),%xmm10
+	paddd	128(%rbp),%xmm14
+	paddd	.chacha20_consts(%rip),%xmm1
+	paddd	48(%rbp),%xmm5
+	paddd	64(%rbp),%xmm9
+	paddd	112(%rbp),%xmm13
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	48(%rbp),%xmm4
+	paddd	64(%rbp),%xmm8
+	paddd	96(%rbp),%xmm12
 
 
-	pand	.Lclamp(%rip),%xmm3
-	movdqa	%xmm3,0+0(%rbp)
-	movdqa	%xmm7,0+16(%rbp)
+	pand	.clamp(%rip),%xmm3
+	movdqa	%xmm3,0(%rbp)
+	movdqa	%xmm7,16(%rbp)
 
 	movq	%r8,%r8
 	call	poly_hash_ad_internal
@@ -2421,12 +2416,12 @@ chacha20_poly1305_seal:
 	movdqu	%xmm15,48 + 64(%rdi)
 
 	cmpq	$192,%rbx
-	ja	.Lseal_sse_main_init
+	ja	1f
 	movq	$128,%rcx
 	subq	$128,%rbx
 	leaq	128(%rsi),%rsi
-	jmp	.Lseal_sse_128_tail_hash
-.Lseal_sse_main_init:
+	jmp	seal_sse_128_seal_hash
+1:
 	movdqu	0 + 128(%rsi),%xmm3
 	movdqu	16 + 128(%rsi),%xmm7
 	movdqu	32 + 128(%rsi),%xmm11
@@ -2446,16 +2441,16 @@ chacha20_poly1305_seal:
 	movq	$2,%rcx
 	movq	$8,%r8
 	cmpq	$64,%rbx
-	jbe	.Lseal_sse_tail_64
+	jbe	seal_sse_tail_64
 	cmpq	$128,%rbx
-	jbe	.Lseal_sse_tail_128
+	jbe	seal_sse_tail_128
 	cmpq	$192,%rbx
-	jbe	.Lseal_sse_tail_192
+	jbe	seal_sse_tail_192
 
-.Lseal_sse_main_loop:
-	movdqa	.Lchacha20_consts(%rip),%xmm0
-	movdqa	0+48(%rbp),%xmm4
-	movdqa	0+64(%rbp),%xmm8
+1:
+	movdqa	.chacha20_consts(%rip),%xmm0
+	movdqa	48(%rbp),%xmm4
+	movdqa	64(%rbp),%xmm8
 	movdqa	%xmm0,%xmm1
 	movdqa	%xmm4,%xmm5
 	movdqa	%xmm8,%xmm9
@@ -2465,23 +2460,22 @@ chacha20_poly1305_seal:
 	movdqa	%xmm0,%xmm3
 	movdqa	%xmm4,%xmm7
 	movdqa	%xmm8,%xmm11
-	movdqa	0+96(%rbp),%xmm15
-	paddd	.Lsse_inc(%rip),%xmm15
+	movdqa	96(%rbp),%xmm15
+	paddd	.sse_inc(%rip),%xmm15
 	movdqa	%xmm15,%xmm14
-	paddd	.Lsse_inc(%rip),%xmm14
+	paddd	.sse_inc(%rip),%xmm14
 	movdqa	%xmm14,%xmm13
-	paddd	.Lsse_inc(%rip),%xmm13
+	paddd	.sse_inc(%rip),%xmm13
 	movdqa	%xmm13,%xmm12
-	paddd	.Lsse_inc(%rip),%xmm12
-	movdqa	%xmm12,0+96(%rbp)
-	movdqa	%xmm13,0+112(%rbp)
-	movdqa	%xmm14,0+128(%rbp)
-	movdqa	%xmm15,0+144(%rbp)
+	paddd	.sse_inc(%rip),%xmm12
+	movdqa	%xmm12,96(%rbp)
+	movdqa	%xmm13,112(%rbp)
+	movdqa	%xmm14,128(%rbp)
+	movdqa	%xmm15,144(%rbp)
 
-.align	32
-.Lseal_sse_main_rounds:
-	movdqa	%xmm8,0+80(%rbp)
-	movdqa	.Lrol16(%rip),%xmm8
+2:
+	movdqa	%xmm8,80(%rbp)
+	movdqa	.rol16(%rip),%xmm8
 	paddd	%xmm7,%xmm3
 	paddd	%xmm6,%xmm2
 	paddd	%xmm5,%xmm1
@@ -2494,19 +2488,19 @@ chacha20_poly1305_seal:
 .byte	102,69,15,56,0,240
 .byte	102,69,15,56,0,232
 .byte	102,69,15,56,0,224
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	paddd	%xmm15,%xmm11
 	paddd	%xmm14,%xmm10
 	paddd	%xmm13,%xmm9
 	paddd	%xmm12,%xmm8
 	pxor	%xmm11,%xmm7
-	addq	0+0(%rdi),%r10
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
 	pxor	%xmm10,%xmm6
 	pxor	%xmm9,%xmm5
 	pxor	%xmm8,%xmm4
-	movdqa	%xmm8,0+80(%rbp)
+	movdqa	%xmm8,80(%rbp)
 	movdqa	%xmm7,%xmm8
 	psrld	$20,%xmm8
 	pslld	$32-20,%xmm7
@@ -2523,17 +2517,17 @@ chacha20_poly1305_seal:
 	psrld	$20,%xmm8
 	pslld	$32-20,%xmm4
 	pxor	%xmm8,%xmm4
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movdqa	.Lrol8(%rip),%xmm8
+	movdqa	.rol8(%rip),%xmm8
 	paddd	%xmm7,%xmm3
 	paddd	%xmm6,%xmm2
 	paddd	%xmm5,%xmm1
@@ -2546,26 +2540,26 @@ chacha20_poly1305_seal:
 .byte	102,69,15,56,0,240
 .byte	102,69,15,56,0,232
 .byte	102,69,15,56,0,224
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	paddd	%xmm15,%xmm11
 	paddd	%xmm14,%xmm10
 	paddd	%xmm13,%xmm9
 	paddd	%xmm12,%xmm8
 	pxor	%xmm11,%xmm7
 	pxor	%xmm10,%xmm6
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
 	pxor	%xmm9,%xmm5
 	pxor	%xmm8,%xmm4
-	movdqa	%xmm8,0+80(%rbp)
+	movdqa	%xmm8,80(%rbp)
 	movdqa	%xmm7,%xmm8
 	psrld	$25,%xmm8
 	pslld	$32-25,%xmm7
@@ -2582,7 +2576,7 @@ chacha20_poly1305_seal:
 	psrld	$25,%xmm8
 	pslld	$32-25,%xmm4
 	pxor	%xmm8,%xmm4
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	imulq	%r12,%r9
 	addq	%r10,%r15
 	adcq	%rdx,%r9
@@ -2598,8 +2592,8 @@ chacha20_poly1305_seal:
 .byte	102,15,58,15,228,4
 .byte	102,69,15,58,15,192,8
 .byte	102,69,15,58,15,228,12
-	movdqa	%xmm8,0+80(%rbp)
-	movdqa	.Lrol16(%rip),%xmm8
+	movdqa	%xmm8,80(%rbp)
+	movdqa	.rol16(%rip),%xmm8
 	paddd	%xmm7,%xmm3
 	paddd	%xmm6,%xmm2
 	paddd	%xmm5,%xmm1
@@ -2615,8 +2609,9 @@ chacha20_poly1305_seal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
@@ -2626,7 +2621,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,56,0,240
 .byte	102,69,15,56,0,232
 .byte	102,69,15,56,0,224
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	paddd	%xmm15,%xmm11
 	paddd	%xmm14,%xmm10
 	paddd	%xmm13,%xmm9
@@ -2635,7 +2630,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm10,%xmm6
 	pxor	%xmm9,%xmm5
 	pxor	%xmm8,%xmm4
-	movdqa	%xmm8,0+80(%rbp)
+	movdqa	%xmm8,80(%rbp)
 	movdqa	%xmm7,%xmm8
 	psrld	$20,%xmm8
 	pslld	$32-20,%xmm7
@@ -2652,7 +2647,7 @@ chacha20_poly1305_seal:
 	psrld	$20,%xmm8
 	pslld	$32-20,%xmm4
 	pxor	%xmm8,%xmm4
-	movdqa	.Lrol8(%rip),%xmm8
+	movdqa	.rol8(%rip),%xmm8
 	paddd	%xmm7,%xmm3
 	paddd	%xmm6,%xmm2
 	paddd	%xmm5,%xmm1
@@ -2665,7 +2660,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,56,0,240
 .byte	102,69,15,56,0,232
 .byte	102,69,15,56,0,224
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 	paddd	%xmm15,%xmm11
 	paddd	%xmm14,%xmm10
 	paddd	%xmm13,%xmm9
@@ -2674,7 +2669,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm10,%xmm6
 	pxor	%xmm9,%xmm5
 	pxor	%xmm8,%xmm4
-	movdqa	%xmm8,0+80(%rbp)
+	movdqa	%xmm8,80(%rbp)
 	movdqa	%xmm7,%xmm8
 	psrld	$25,%xmm8
 	pslld	$32-25,%xmm7
@@ -2691,7 +2686,7 @@ chacha20_poly1305_seal:
 	psrld	$25,%xmm8
 	pslld	$32-25,%xmm4
 	pxor	%xmm8,%xmm4
-	movdqa	0+80(%rbp),%xmm8
+	movdqa	80(%rbp),%xmm8
 .byte	102,15,58,15,255,12
 .byte	102,69,15,58,15,219,8
 .byte	102,69,15,58,15,255,4
@@ -2707,27 +2702,27 @@ chacha20_poly1305_seal:
 
 	leaq	16(%rdi),%rdi
 	decq	%r8
-	jge	.Lseal_sse_main_rounds
-	addq	0+0(%rdi),%r10
+	jge	2b
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -2743,34 +2738,35 @@ chacha20_poly1305_seal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rdi),%rdi
 	decq	%rcx
-	jg	.Lseal_sse_main_rounds
-	paddd	.Lchacha20_consts(%rip),%xmm3
-	paddd	0+48(%rbp),%xmm7
-	paddd	0+64(%rbp),%xmm11
-	paddd	0+144(%rbp),%xmm15
-	paddd	.Lchacha20_consts(%rip),%xmm2
-	paddd	0+48(%rbp),%xmm6
-	paddd	0+64(%rbp),%xmm10
-	paddd	0+128(%rbp),%xmm14
-	paddd	.Lchacha20_consts(%rip),%xmm1
-	paddd	0+48(%rbp),%xmm5
-	paddd	0+64(%rbp),%xmm9
-	paddd	0+112(%rbp),%xmm13
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	0+48(%rbp),%xmm4
-	paddd	0+64(%rbp),%xmm8
-	paddd	0+96(%rbp),%xmm12
+	jg	2b
+	paddd	.chacha20_consts(%rip),%xmm3
+	paddd	48(%rbp),%xmm7
+	paddd	64(%rbp),%xmm11
+	paddd	144(%rbp),%xmm15
+	paddd	.chacha20_consts(%rip),%xmm2
+	paddd	48(%rbp),%xmm6
+	paddd	64(%rbp),%xmm10
+	paddd	128(%rbp),%xmm14
+	paddd	.chacha20_consts(%rip),%xmm1
+	paddd	48(%rbp),%xmm5
+	paddd	64(%rbp),%xmm9
+	paddd	112(%rbp),%xmm13
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	48(%rbp),%xmm4
+	paddd	64(%rbp),%xmm8
+	paddd	96(%rbp),%xmm12
 
-	movdqa	%xmm14,0+80(%rbp)
-	movdqa	%xmm14,0+80(%rbp)
+	movdqa	%xmm14,80(%rbp)
+	movdqa	%xmm14,80(%rbp)
 	movdqu	0 + 0(%rsi),%xmm14
 	pxor	%xmm3,%xmm14
 	movdqu	%xmm14,0 + 0(%rdi)
@@ -2784,7 +2780,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm15,%xmm14
 	movdqu	%xmm14,48 + 0(%rdi)
 
-	movdqa	0+80(%rbp),%xmm14
+	movdqa	80(%rbp),%xmm14
 	movdqu	0 + 64(%rsi),%xmm3
 	movdqu	16 + 64(%rsi),%xmm7
 	movdqu	32 + 64(%rsi),%xmm11
@@ -2811,13 +2807,13 @@ chacha20_poly1305_seal:
 	movdqu	%xmm15,48 + 128(%rdi)
 
 	cmpq	$256,%rbx
-	ja	.Lseal_sse_main_loop_xor
+	ja	3f
 
 	movq	$192,%rcx
 	subq	$192,%rbx
 	leaq	192(%rsi),%rsi
-	jmp	.Lseal_sse_128_tail_hash
-.Lseal_sse_main_loop_xor:
+	jmp	seal_sse_128_seal_hash
+3:
 	movdqu	0 + 192(%rsi),%xmm3
 	movdqu	16 + 192(%rsi),%xmm7
 	movdqu	32 + 192(%rsi),%xmm11
@@ -2836,45 +2832,43 @@ chacha20_poly1305_seal:
 	movq	$6,%rcx
 	movq	$4,%r8
 	cmpq	$192,%rbx
-	jg	.Lseal_sse_main_loop
+	jg	1b
 	movq	%rbx,%rcx
 	testq	%rbx,%rbx
-	je	.Lseal_sse_128_tail_hash
+	je	seal_sse_128_seal_hash
 	movq	$6,%rcx
-	cmpq	$128,%rbx
-	ja	.Lseal_sse_tail_192
 	cmpq	$64,%rbx
-	ja	.Lseal_sse_tail_128
+	jg	3f
 
-.Lseal_sse_tail_64:
-	movdqa	.Lchacha20_consts(%rip),%xmm0
-	movdqa	0+48(%rbp),%xmm4
-	movdqa	0+64(%rbp),%xmm8
-	movdqa	0+96(%rbp),%xmm12
-	paddd	.Lsse_inc(%rip),%xmm12
-	movdqa	%xmm12,0+96(%rbp)
+seal_sse_tail_64:
+	movdqa	.chacha20_consts(%rip),%xmm0
+	movdqa	48(%rbp),%xmm4
+	movdqa	64(%rbp),%xmm8
+	movdqa	96(%rbp),%xmm12
+	paddd	.sse_inc(%rip),%xmm12
+	movdqa	%xmm12,96(%rbp)
 
-.Lseal_sse_tail_64_rounds_and_x2hash:
-	addq	0+0(%rdi),%r10
+1:
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -2890,17 +2884,18 @@ chacha20_poly1305_seal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rdi),%rdi
-.Lseal_sse_tail_64_rounds_and_x1hash:
+2:
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -2909,7 +2904,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -2921,7 +2916,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,58,15,228,12
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -2930,7 +2925,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -2940,26 +2935,26 @@ chacha20_poly1305_seal:
 .byte	102,15,58,15,228,12
 .byte	102,69,15,58,15,192,8
 .byte	102,69,15,58,15,228,4
-	addq	0+0(%rdi),%r10
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -2975,59 +2970,63 @@ chacha20_poly1305_seal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rdi),%rdi
 	decq	%rcx
-	jg	.Lseal_sse_tail_64_rounds_and_x2hash
+	jg	1b
 	decq	%r8
-	jge	.Lseal_sse_tail_64_rounds_and_x1hash
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	0+48(%rbp),%xmm4
-	paddd	0+64(%rbp),%xmm8
-	paddd	0+96(%rbp),%xmm12
+	jge	2b
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	48(%rbp),%xmm4
+	paddd	64(%rbp),%xmm8
+	paddd	96(%rbp),%xmm12
 
-	jmp	.Lseal_sse_128_tail_xor
+	jmp	seal_sse_128_seal
+3:
+	cmpq	$128,%rbx
+	jg	3f
 
-.Lseal_sse_tail_128:
-	movdqa	.Lchacha20_consts(%rip),%xmm0
-	movdqa	0+48(%rbp),%xmm4
-	movdqa	0+64(%rbp),%xmm8
+seal_sse_tail_128:
+	movdqa	.chacha20_consts(%rip),%xmm0
+	movdqa	48(%rbp),%xmm4
+	movdqa	64(%rbp),%xmm8
 	movdqa	%xmm0,%xmm1
 	movdqa	%xmm4,%xmm5
 	movdqa	%xmm8,%xmm9
-	movdqa	0+96(%rbp),%xmm13
-	paddd	.Lsse_inc(%rip),%xmm13
+	movdqa	96(%rbp),%xmm13
+	paddd	.sse_inc(%rip),%xmm13
 	movdqa	%xmm13,%xmm12
-	paddd	.Lsse_inc(%rip),%xmm12
-	movdqa	%xmm12,0+96(%rbp)
-	movdqa	%xmm13,0+112(%rbp)
+	paddd	.sse_inc(%rip),%xmm12
+	movdqa	%xmm12,96(%rbp)
+	movdqa	%xmm13,112(%rbp)
 
-.Lseal_sse_tail_128_rounds_and_x2hash:
-	addq	0+0(%rdi),%r10
+1:
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -3043,17 +3042,18 @@ chacha20_poly1305_seal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rdi),%rdi
-.Lseal_sse_tail_128_rounds_and_x1hash:
+2:
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -3062,7 +3062,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -3074,7 +3074,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,58,15,228,12
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -3083,7 +3083,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm3,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -3093,26 +3093,26 @@ chacha20_poly1305_seal:
 .byte	102,15,58,15,237,4
 .byte	102,69,15,58,15,201,8
 .byte	102,69,15,58,15,237,12
-	addq	0+0(%rdi),%r10
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -3128,14 +3128,15 @@ chacha20_poly1305_seal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -3144,7 +3145,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -3156,7 +3157,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,58,15,228,4
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -3165,7 +3166,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm3,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -3178,17 +3179,17 @@ chacha20_poly1305_seal:
 
 	leaq	16(%rdi),%rdi
 	decq	%rcx
-	jg	.Lseal_sse_tail_128_rounds_and_x2hash
+	jg	1b
 	decq	%r8
-	jge	.Lseal_sse_tail_128_rounds_and_x1hash
-	paddd	.Lchacha20_consts(%rip),%xmm1
-	paddd	0+48(%rbp),%xmm5
-	paddd	0+64(%rbp),%xmm9
-	paddd	0+112(%rbp),%xmm13
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	0+48(%rbp),%xmm4
-	paddd	0+64(%rbp),%xmm8
-	paddd	0+96(%rbp),%xmm12
+	jge	2b
+	paddd	.chacha20_consts(%rip),%xmm1
+	paddd	48(%rbp),%xmm5
+	paddd	64(%rbp),%xmm9
+	paddd	112(%rbp),%xmm13
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	48(%rbp),%xmm4
+	paddd	64(%rbp),%xmm8
+	paddd	96(%rbp),%xmm12
 	movdqu	0 + 0(%rsi),%xmm3
 	movdqu	16 + 0(%rsi),%xmm7
 	movdqu	32 + 0(%rsi),%xmm11
@@ -3205,49 +3206,50 @@ chacha20_poly1305_seal:
 	movq	$64,%rcx
 	subq	$64,%rbx
 	leaq	64(%rsi),%rsi
-	jmp	.Lseal_sse_128_tail_hash
+	jmp	seal_sse_128_seal_hash
+3:
 
-.Lseal_sse_tail_192:
-	movdqa	.Lchacha20_consts(%rip),%xmm0
-	movdqa	0+48(%rbp),%xmm4
-	movdqa	0+64(%rbp),%xmm8
+seal_sse_tail_192:
+	movdqa	.chacha20_consts(%rip),%xmm0
+	movdqa	48(%rbp),%xmm4
+	movdqa	64(%rbp),%xmm8
 	movdqa	%xmm0,%xmm1
 	movdqa	%xmm4,%xmm5
 	movdqa	%xmm8,%xmm9
 	movdqa	%xmm0,%xmm2
 	movdqa	%xmm4,%xmm6
 	movdqa	%xmm8,%xmm10
-	movdqa	0+96(%rbp),%xmm14
-	paddd	.Lsse_inc(%rip),%xmm14
+	movdqa	96(%rbp),%xmm14
+	paddd	.sse_inc(%rip),%xmm14
 	movdqa	%xmm14,%xmm13
-	paddd	.Lsse_inc(%rip),%xmm13
+	paddd	.sse_inc(%rip),%xmm13
 	movdqa	%xmm13,%xmm12
-	paddd	.Lsse_inc(%rip),%xmm12
-	movdqa	%xmm12,0+96(%rbp)
-	movdqa	%xmm13,0+112(%rbp)
-	movdqa	%xmm14,0+128(%rbp)
+	paddd	.sse_inc(%rip),%xmm12
+	movdqa	%xmm12,96(%rbp)
+	movdqa	%xmm13,112(%rbp)
+	movdqa	%xmm14,128(%rbp)
 
-.Lseal_sse_tail_192_rounds_and_x2hash:
-	addq	0+0(%rdi),%r10
+1:
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -3263,17 +3265,18 @@ chacha20_poly1305_seal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rdi),%rdi
-.Lseal_sse_tail_192_rounds_and_x1hash:
+2:
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -3282,7 +3285,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -3294,7 +3297,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,58,15,228,12
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -3303,7 +3306,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm3,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -3315,7 +3318,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,58,15,237,12
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol16(%rip),%xmm14
+	pshufb	.rol16(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -3324,7 +3327,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm3,%xmm6
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol8(%rip),%xmm14
+	pshufb	.rol8(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -3334,26 +3337,26 @@ chacha20_poly1305_seal:
 .byte	102,15,58,15,246,4
 .byte	102,69,15,58,15,210,8
 .byte	102,69,15,58,15,246,12
-	addq	0+0(%rdi),%r10
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -3369,14 +3372,15 @@ chacha20_poly1305_seal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -3385,7 +3389,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -3397,7 +3401,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,58,15,228,4
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -3406,7 +3410,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm3,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -3418,7 +3422,7 @@ chacha20_poly1305_seal:
 .byte	102,69,15,58,15,237,4
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol16(%rip),%xmm14
+	pshufb	.rol16(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -3427,7 +3431,7 @@ chacha20_poly1305_seal:
 	pxor	%xmm3,%xmm6
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol8(%rip),%xmm14
+	pshufb	.rol8(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -3440,21 +3444,21 @@ chacha20_poly1305_seal:
 
 	leaq	16(%rdi),%rdi
 	decq	%rcx
-	jg	.Lseal_sse_tail_192_rounds_and_x2hash
+	jg	1b
 	decq	%r8
-	jge	.Lseal_sse_tail_192_rounds_and_x1hash
-	paddd	.Lchacha20_consts(%rip),%xmm2
-	paddd	0+48(%rbp),%xmm6
-	paddd	0+64(%rbp),%xmm10
-	paddd	0+128(%rbp),%xmm14
-	paddd	.Lchacha20_consts(%rip),%xmm1
-	paddd	0+48(%rbp),%xmm5
-	paddd	0+64(%rbp),%xmm9
-	paddd	0+112(%rbp),%xmm13
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	0+48(%rbp),%xmm4
-	paddd	0+64(%rbp),%xmm8
-	paddd	0+96(%rbp),%xmm12
+	jge	2b
+	paddd	.chacha20_consts(%rip),%xmm2
+	paddd	48(%rbp),%xmm6
+	paddd	64(%rbp),%xmm10
+	paddd	128(%rbp),%xmm14
+	paddd	.chacha20_consts(%rip),%xmm1
+	paddd	48(%rbp),%xmm5
+	paddd	64(%rbp),%xmm9
+	paddd	112(%rbp),%xmm13
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	48(%rbp),%xmm4
+	paddd	64(%rbp),%xmm8
+	paddd	96(%rbp),%xmm12
 	movdqu	0 + 0(%rsi),%xmm3
 	movdqu	16 + 0(%rsi),%xmm7
 	movdqu	32 + 0(%rsi),%xmm11
@@ -3484,29 +3488,29 @@ chacha20_poly1305_seal:
 	subq	$128,%rbx
 	leaq	128(%rsi),%rsi
 
-.Lseal_sse_128_tail_hash:
+seal_sse_128_seal_hash:
 	cmpq	$16,%rcx
-	jb	.Lseal_sse_128_tail_xor
-	addq	0+0(%rdi),%r10
+	jb	seal_sse_128_seal
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -3522,19 +3526,20 @@ chacha20_poly1305_seal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	subq	$16,%rcx
 	leaq	16(%rdi),%rdi
-	jmp	.Lseal_sse_128_tail_hash
+	jmp	seal_sse_128_seal_hash
 
-.Lseal_sse_128_tail_xor:
+seal_sse_128_seal:
 	cmpq	$16,%rbx
-	jb	.Lseal_sse_tail_16
+	jb	seal_sse_tail_16
 	subq	$16,%rbx
 
 	movdqu	0(%rsi),%xmm3
@@ -3546,23 +3551,23 @@ chacha20_poly1305_seal:
 	adcq	$1,%r12
 	leaq	16(%rsi),%rsi
 	leaq	16(%rdi),%rdi
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -3578,8 +3583,9 @@ chacha20_poly1305_seal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
@@ -3592,22 +3598,22 @@ chacha20_poly1305_seal:
 	movdqa	%xmm5,%xmm1
 	movdqa	%xmm9,%xmm5
 	movdqa	%xmm13,%xmm9
-	jmp	.Lseal_sse_128_tail_xor
+	jmp	seal_sse_128_seal
 
-.Lseal_sse_tail_16:
+seal_sse_tail_16:
 	testq	%rbx,%rbx
-	jz	.Lprocess_blocks_of_extra_in
+	jz	process_blocks_of_extra_in
 
 	movq	%rbx,%r8
 	movq	%rbx,%rcx
-	leaq	-1(%rsi,%rbx,1),%rsi
+	leaq	-1(%rsi,%rbx), %rsi
 	pxor	%xmm15,%xmm15
-.Lseal_sse_tail_16_compose:
+1:
 	pslldq	$1,%xmm15
 	pinsrb	$0,(%rsi),%xmm15
 	leaq	-1(%rsi),%rsi
 	decq	%rcx
-	jne	.Lseal_sse_tail_16_compose
+	jne	1b
 
 
 	pxor	%xmm0,%xmm15
@@ -3615,12 +3621,12 @@ chacha20_poly1305_seal:
 
 	movq	%rbx,%rcx
 	movdqu	%xmm15,%xmm0
-.Lseal_sse_tail_16_extract:
+2:
 	pextrb	$0,%xmm0,(%rdi)
 	psrldq	$1,%xmm0
 	addq	$1,%rdi
 	subq	$1,%rcx
-	jnz	.Lseal_sse_tail_16_extract
+	jnz	2b
 
 
 
@@ -3629,23 +3635,23 @@ chacha20_poly1305_seal:
 
 
 
-	movq	288 + 0 + 32(%rsp),%r9
+	movq	288+32(%rsp),%r9
 	movq	56(%r9),%r14
 	movq	48(%r9),%r13
 	testq	%r14,%r14
-	jz	.Lprocess_partial_block
+	jz	process_partial_block
 
 	movq	$16,%r15
 	subq	%rbx,%r15
 	cmpq	%r15,%r14
 
-	jge	.Lload_extra_in
+	jge	load_extra_in
 	movq	%r14,%r15
 
-.Lload_extra_in:
+load_extra_in:
 
 
-	leaq	-1(%r13,%r15,1),%rsi
+	leaq	-1(%r13,%r15), %rsi
 
 
 	addq	%r15,%r13
@@ -3659,29 +3665,29 @@ chacha20_poly1305_seal:
 
 
 	pxor	%xmm11,%xmm11
-.Lload_extra_load_loop:
+3:
 	pslldq	$1,%xmm11
 	pinsrb	$0,(%rsi),%xmm11
 	leaq	-1(%rsi),%rsi
 	subq	$1,%r15
-	jnz	.Lload_extra_load_loop
+	jnz	3b
 
 
 
 
 	movq	%rbx,%r15
 
-.Lload_extra_shift_loop:
+4:
 	pslldq	$1,%xmm11
 	subq	$1,%r15
-	jnz	.Lload_extra_shift_loop
+	jnz	4b
 
 
 
 
-	leaq	.Land_masks(%rip),%r15
+	leaq	.and_masks(%rip),%r15
 	shlq	$4,%rbx
-	pand	-16(%r15,%rbx,1),%xmm15
+	pand	-16(%r15,%rbx), %xmm15
 
 
 	por	%xmm11,%xmm15
@@ -3693,23 +3699,23 @@ chacha20_poly1305_seal:
 	addq	%r13,%r10
 	adcq	%r14,%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -3725,43 +3731,44 @@ chacha20_poly1305_seal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 
-.Lprocess_blocks_of_extra_in:
+process_blocks_of_extra_in:
 
-	movq	288+32+0 (%rsp),%r9
+	movq	288+32(%rsp),%r9
 	movq	48(%r9),%rsi
 	movq	56(%r9),%r8
 	movq	%r8,%rcx
 	shrq	$4,%r8
 
-.Lprocess_extra_hash_loop:
+5:
 	jz	process_extra_in_trailer
-	addq	0+0(%rsi),%r10
+	addq	0(%rsi),%r10
 	adcq	8+0(%rsi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -3777,55 +3784,57 @@ chacha20_poly1305_seal:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rsi),%rsi
 	subq	$1,%r8
-	jmp	.Lprocess_extra_hash_loop
+	jmp	5b
+
 process_extra_in_trailer:
 	andq	$15,%rcx
 	movq	%rcx,%rbx
-	jz	.Ldo_length_block
-	leaq	-1(%rsi,%rcx,1),%rsi
+	jz	do_length_block
+	leaq	-1(%rsi,%rcx), %rsi
 
-.Lprocess_extra_in_trailer_load:
+6:
 	pslldq	$1,%xmm15
 	pinsrb	$0,(%rsi),%xmm15
 	leaq	-1(%rsi),%rsi
 	subq	$1,%rcx
-	jnz	.Lprocess_extra_in_trailer_load
+	jnz	6b
 
-.Lprocess_partial_block:
+process_partial_block:
 
-	leaq	.Land_masks(%rip),%r15
+	leaq	.and_masks(%rip),%r15
 	shlq	$4,%rbx
-	pand	-16(%r15,%rbx,1),%xmm15
+	pand	-16(%r15,%rbx), %xmm15
 .byte	102,77,15,126,253
 	pextrq	$1,%xmm15,%r14
 	addq	%r13,%r10
 	adcq	%r14,%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -3841,34 +3850,35 @@ process_extra_in_trailer:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 
-.Ldo_length_block:
-	addq	0+0+32(%rbp),%r10
-	adcq	8+0+32(%rbp),%r11
+do_length_block:
+	addq	32(%rbp),%r10
+	adcq	8+32(%rbp),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -3884,8 +3894,9 @@ process_extra_in_trailer:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
@@ -3901,41 +3912,33 @@ process_extra_in_trailer:
 	cmovcq	%r14,%r11
 	cmovcq	%r15,%r12
 
-	addq	0+0+16(%rbp),%r10
-	adcq	8+0+16(%rbp),%r11
+	addq	0+16(%rbp),%r10
+	adcq	8+16(%rbp),%r11
 
-.cfi_remember_state	
-	addq	$288 + 0 + 32,%rsp
+	addq	$288 + 32,%rsp
 .cfi_adjust_cfa_offset	-(288 + 32)
-
 	popq	%r9
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%r9
-	movq	%r10,(%r9)
+	movq	%r10,0(%r9)
 	movq	%r11,8(%r9)
+
 	popq	%r15
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%r15
 	popq	%r14
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%r14
 	popq	%r13
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%r13
 	popq	%r12
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%r12
 	popq	%rbx
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%rbx
 	popq	%rbp
 .cfi_adjust_cfa_offset	-8
-.cfi_restore	%rbp
 	.byte	0xf3,0xc3
+.cfi_adjust_cfa_offset	(8 * 6) + 288 + 32
 
-.Lseal_sse_128:
-.cfi_restore_state	
-	movdqu	.Lchacha20_consts(%rip),%xmm0
+seal_sse_128:
+	movdqu	.chacha20_consts(%rip),%xmm0
 	movdqa	%xmm0,%xmm1
 	movdqa	%xmm0,%xmm2
 	movdqu	0(%r9),%xmm4
@@ -3946,18 +3949,17 @@ process_extra_in_trailer:
 	movdqa	%xmm8,%xmm10
 	movdqu	32(%r9),%xmm14
 	movdqa	%xmm14,%xmm12
-	paddd	.Lsse_inc(%rip),%xmm12
+	paddd	.sse_inc(%rip),%xmm12
 	movdqa	%xmm12,%xmm13
-	paddd	.Lsse_inc(%rip),%xmm13
+	paddd	.sse_inc(%rip),%xmm13
 	movdqa	%xmm4,%xmm7
 	movdqa	%xmm8,%xmm11
 	movdqa	%xmm12,%xmm15
 	movq	$10,%r10
-
-.Lseal_sse_128_rounds:
+1:
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -3966,7 +3968,7 @@ process_extra_in_trailer:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -3978,7 +3980,7 @@ process_extra_in_trailer:
 .byte	102,69,15,58,15,228,12
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -3987,7 +3989,7 @@ process_extra_in_trailer:
 	pxor	%xmm3,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -3999,7 +4001,7 @@ process_extra_in_trailer:
 .byte	102,69,15,58,15,237,12
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol16(%rip),%xmm14
+	pshufb	.rol16(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -4008,7 +4010,7 @@ process_extra_in_trailer:
 	pxor	%xmm3,%xmm6
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol8(%rip),%xmm14
+	pshufb	.rol8(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -4020,7 +4022,7 @@ process_extra_in_trailer:
 .byte	102,69,15,58,15,246,12
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol16(%rip),%xmm12
+	pshufb	.rol16(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -4029,7 +4031,7 @@ process_extra_in_trailer:
 	pxor	%xmm3,%xmm4
 	paddd	%xmm4,%xmm0
 	pxor	%xmm0,%xmm12
-	pshufb	.Lrol8(%rip),%xmm12
+	pshufb	.rol8(%rip),%xmm12
 	paddd	%xmm12,%xmm8
 	pxor	%xmm8,%xmm4
 	movdqa	%xmm4,%xmm3
@@ -4041,7 +4043,7 @@ process_extra_in_trailer:
 .byte	102,69,15,58,15,228,4
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol16(%rip),%xmm13
+	pshufb	.rol16(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -4050,7 +4052,7 @@ process_extra_in_trailer:
 	pxor	%xmm3,%xmm5
 	paddd	%xmm5,%xmm1
 	pxor	%xmm1,%xmm13
-	pshufb	.Lrol8(%rip),%xmm13
+	pshufb	.rol8(%rip),%xmm13
 	paddd	%xmm13,%xmm9
 	pxor	%xmm9,%xmm5
 	movdqa	%xmm5,%xmm3
@@ -4062,7 +4064,7 @@ process_extra_in_trailer:
 .byte	102,69,15,58,15,237,4
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol16(%rip),%xmm14
+	pshufb	.rol16(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -4071,7 +4073,7 @@ process_extra_in_trailer:
 	pxor	%xmm3,%xmm6
 	paddd	%xmm6,%xmm2
 	pxor	%xmm2,%xmm14
-	pshufb	.Lrol8(%rip),%xmm14
+	pshufb	.rol8(%rip),%xmm14
 	paddd	%xmm14,%xmm10
 	pxor	%xmm10,%xmm6
 	movdqa	%xmm6,%xmm3
@@ -4083,71 +4085,51 @@ process_extra_in_trailer:
 .byte	102,69,15,58,15,246,4
 
 	decq	%r10
-	jnz	.Lseal_sse_128_rounds
-	paddd	.Lchacha20_consts(%rip),%xmm0
-	paddd	.Lchacha20_consts(%rip),%xmm1
-	paddd	.Lchacha20_consts(%rip),%xmm2
+	jnz	1b
+	paddd	.chacha20_consts(%rip),%xmm0
+	paddd	.chacha20_consts(%rip),%xmm1
+	paddd	.chacha20_consts(%rip),%xmm2
 	paddd	%xmm7,%xmm4
 	paddd	%xmm7,%xmm5
 	paddd	%xmm7,%xmm6
 	paddd	%xmm11,%xmm8
 	paddd	%xmm11,%xmm9
 	paddd	%xmm15,%xmm12
-	paddd	.Lsse_inc(%rip),%xmm15
+	paddd	.sse_inc(%rip),%xmm15
 	paddd	%xmm15,%xmm13
 
-	pand	.Lclamp(%rip),%xmm2
-	movdqa	%xmm2,0+0(%rbp)
-	movdqa	%xmm6,0+16(%rbp)
+	pand	.clamp(%rip),%xmm2
+	movdqa	%xmm2,0(%rbp)
+	movdqa	%xmm6,16(%rbp)
 
 	movq	%r8,%r8
 	call	poly_hash_ad_internal
-	jmp	.Lseal_sse_128_tail_xor
+	jmp	seal_sse_128_seal
 .size	chacha20_poly1305_seal, .-chacha20_poly1305_seal
-.cfi_endproc	
 
 
 .type	chacha20_poly1305_open_avx2,@function
 .align	64
 chacha20_poly1305_open_avx2:
-.cfi_startproc	
-
-
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%rbp,-16
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%rbx,-24
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%r12,-32
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%r13,-40
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%r14,-48
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%r15,-56
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%r9,-64
-.cfi_adjust_cfa_offset	288 + 32
-
 	vzeroupper
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
+	vmovdqa	.chacha20_consts(%rip),%ymm0
 	vbroadcasti128	0(%r9),%ymm4
 	vbroadcasti128	16(%r9),%ymm8
 	vbroadcasti128	32(%r9),%ymm12
-	vpaddd	.Lavx2_init(%rip),%ymm12,%ymm12
+	vpaddd	.avx2_init(%rip),%ymm12,%ymm12
 	cmpq	$192,%rbx
-	jbe	.Lopen_avx2_192
+	jbe	open_avx2_192
 	cmpq	$320,%rbx
-	jbe	.Lopen_avx2_320
+	jbe	open_avx2_320
 
-	vmovdqa	%ymm4,0+64(%rbp)
-	vmovdqa	%ymm8,0+96(%rbp)
-	vmovdqa	%ymm12,0+160(%rbp)
+	vmovdqa	%ymm4,64(%rbp)
+	vmovdqa	%ymm8,96(%rbp)
+	vmovdqa	%ymm12,160(%rbp)
 	movq	$10,%r10
-.Lopen_avx2_init_rounds:
+1:
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -4155,7 +4137,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -4166,7 +4148,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -4174,7 +4156,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -4185,45 +4167,45 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
 
 	decq	%r10
-	jne	.Lopen_avx2_init_rounds
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	0+64(%rbp),%ymm4,%ymm4
-	vpaddd	0+96(%rbp),%ymm8,%ymm8
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
+	jne	1b
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	64(%rbp),%ymm4,%ymm4
+	vpaddd	96(%rbp),%ymm8,%ymm8
+	vpaddd	160(%rbp),%ymm12,%ymm12
 
 	vperm2i128	$0x02,%ymm0,%ymm4,%ymm3
 
-	vpand	.Lclamp(%rip),%ymm3,%ymm3
-	vmovdqa	%ymm3,0+0(%rbp)
+	vpand	.clamp(%rip),%ymm3,%ymm3
+	vmovdqa	%ymm3,0(%rbp)
 
 	vperm2i128	$0x13,%ymm0,%ymm4,%ymm0
 	vperm2i128	$0x13,%ymm8,%ymm12,%ymm4
 
 	movq	%r8,%r8
 	call	poly_hash_ad_internal
-
 	xorq	%rcx,%rcx
-.Lopen_avx2_init_hash:
-	addq	0+0(%rsi,%rcx,1),%r10
-	adcq	8+0(%rsi,%rcx,1),%r11
+
+1:
+	addq	0(%rsi,%rcx), %r10
+	adcq	8+0(%rsi,%rcx), %r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -4239,31 +4221,31 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	addq	$16,%rcx
 	cmpq	$64,%rcx
-	jne	.Lopen_avx2_init_hash
+	jne	1b
 
 	vpxor	0(%rsi),%ymm0,%ymm0
 	vpxor	32(%rsi),%ymm4,%ymm4
-
 	vmovdqu	%ymm0,0(%rdi)
 	vmovdqu	%ymm4,32(%rdi)
 	leaq	64(%rsi),%rsi
 	leaq	64(%rdi),%rdi
 	subq	$64,%rbx
-.Lopen_avx2_main_loop:
+1:
 
 	cmpq	$512,%rbx
-	jb	.Lopen_avx2_main_loop_done
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
-	vmovdqa	0+64(%rbp),%ymm4
-	vmovdqa	0+96(%rbp),%ymm8
+	jb	3f
+	vmovdqa	.chacha20_consts(%rip),%ymm0
+	vmovdqa	64(%rbp),%ymm4
+	vmovdqa	96(%rbp),%ymm8
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm8,%ymm9
@@ -4273,23 +4255,23 @@ chacha20_poly1305_open_avx2:
 	vmovdqa	%ymm0,%ymm3
 	vmovdqa	%ymm4,%ymm7
 	vmovdqa	%ymm8,%ymm11
-	vmovdqa	.Lavx2_inc(%rip),%ymm12
-	vpaddd	0+160(%rbp),%ymm12,%ymm15
+	vmovdqa	.avx2_inc(%rip),%ymm12
+	vpaddd	160(%rbp),%ymm12,%ymm15
 	vpaddd	%ymm15,%ymm12,%ymm14
 	vpaddd	%ymm14,%ymm12,%ymm13
 	vpaddd	%ymm13,%ymm12,%ymm12
-	vmovdqa	%ymm15,0+256(%rbp)
-	vmovdqa	%ymm14,0+224(%rbp)
-	vmovdqa	%ymm13,0+192(%rbp)
-	vmovdqa	%ymm12,0+160(%rbp)
+	vmovdqa	%ymm15,256(%rbp)
+	vmovdqa	%ymm14,224(%rbp)
+	vmovdqa	%ymm13,192(%rbp)
+	vmovdqa	%ymm12,160(%rbp)
 
 	xorq	%rcx,%rcx
-.Lopen_avx2_main_loop_rounds:
-	addq	0+0(%rsi,%rcx,1),%r10
-	adcq	8+0(%rsi,%rcx,1),%r11
+2:
+	addq	0*8(%rsi,%rcx), %r10
+	adcq	8+0*8(%rsi,%rcx), %r11
 	adcq	$1,%r12
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
+	vmovdqa	%ymm8,128(%rbp)
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -4298,7 +4280,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm2,%ymm14,%ymm14
 	vpxor	%ymm1,%ymm13,%ymm13
 	vpxor	%ymm0,%ymm12,%ymm12
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
@@ -4309,22 +4291,23 @@ chacha20_poly1305_open_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
-	vpxor	%ymm11,%ymm7,%ymm7
-	movq	8+0+0(%rbp),%rdx
+	vpaddd	%ymm12,%ymm8,%ymm8
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
 	adcq	%r11,%r15
 	adcq	$0,%r9
 	imulq	%r12,%rdx
+	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$20,%ymm7,%ymm8
 	vpslld	$32-20,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -4332,19 +4315,18 @@ chacha20_poly1305_open_avx2:
 	vpslld	$32-20,%ymm6,%ymm6
 	vpxor	%ymm8,%ymm6,%ymm6
 	vpsrld	$20,%ymm5,%ymm8
-	vpslld	$32-20,%ymm5,%ymm5
 	addq	%rax,%r15
 	adcq	%rdx,%r9
+	vpslld	$32-20,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm5,%ymm5
 	vpsrld	$20,%ymm4,%ymm8
 	vpslld	$32-20,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
+	vmovdqa	.rol8(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpaddd	%ymm4,%ymm0,%ymm0
-	vpxor	%ymm3,%ymm15,%ymm15
 	movq	%r13,%r10
 	movq	%r14,%r11
 	movq	%r15,%r12
@@ -4354,11 +4336,13 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
+	vpxor	%ymm3,%ymm15,%ymm15
 	vpxor	%ymm2,%ymm14,%ymm14
 	vpxor	%ymm1,%ymm13,%ymm13
 	vpxor	%ymm0,%ymm12,%ymm12
@@ -4366,26 +4350,27 @@ chacha20_poly1305_open_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
+	addq	2*8(%rsi,%rcx), %r10
+	adcq	8+2*8(%rsi,%rcx), %r11
+	adcq	$1,%r12
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
-	addq	0+16(%rsi,%rcx,1),%r10
-	adcq	8+16(%rsi,%rcx,1),%r11
-	adcq	$1,%r12
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
-	vpsrld	$25,%ymm7,%ymm8
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
+	vmovdqa	%ymm8,128(%rbp)
+	vpsrld	$25,%ymm7,%ymm8
 	vpslld	$32-25,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
 	vpsrld	$25,%ymm6,%ymm8
@@ -4397,28 +4382,28 @@ chacha20_poly1305_open_avx2:
 	vpsrld	$25,%ymm4,%ymm8
 	vpslld	$32-25,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	0+128(%rbp),%ymm8
+	vmovdqa	128(%rbp),%ymm8
 	vpalignr	$4,%ymm7,%ymm7,%ymm7
 	vpalignr	$8,%ymm11,%ymm11,%ymm11
 	vpalignr	$12,%ymm15,%ymm15,%ymm15
 	vpalignr	$4,%ymm6,%ymm6,%ymm6
-	vpalignr	$8,%ymm10,%ymm10,%ymm10
-	vpalignr	$12,%ymm14,%ymm14,%ymm14
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
 	adcq	%r11,%r15
 	adcq	$0,%r9
 	imulq	%r12,%rdx
+	vpalignr	$8,%ymm10,%ymm10,%ymm10
+	vpalignr	$12,%ymm14,%ymm14,%ymm14
 	vpalignr	$4,%ymm5,%ymm5,%ymm5
 	vpalignr	$8,%ymm9,%ymm9,%ymm9
 	vpalignr	$12,%ymm13,%ymm13,%ymm13
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpalignr	$8,%ymm8,%ymm8,%ymm8
 	vpalignr	$12,%ymm12,%ymm12,%ymm12
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
+	vmovdqa	%ymm8,128(%rbp)
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -4427,19 +4412,17 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm2,%ymm14,%ymm14
 	vpxor	%ymm1,%ymm13,%ymm13
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	%ymm8,%ymm15,%ymm15
-	vpshufb	%ymm8,%ymm14,%ymm14
 	addq	%rax,%r15
 	adcq	%rdx,%r9
+	vpshufb	%ymm8,%ymm15,%ymm15
+	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
-	vpxor	%ymm11,%ymm7,%ymm7
-	vpxor	%ymm10,%ymm6,%ymm6
-	vpxor	%ymm9,%ymm5,%ymm5
+	vpaddd	%ymm12,%ymm8,%ymm8
 	movq	%r13,%r10
 	movq	%r14,%r11
 	movq	%r15,%r12
@@ -4449,31 +4432,35 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
+	vpxor	%ymm11,%ymm7,%ymm7
+	vpxor	%ymm10,%ymm6,%ymm6
+	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$20,%ymm7,%ymm8
 	vpslld	$32-20,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
-	vpsrld	$20,%ymm6,%ymm8
-	vpslld	$32-20,%ymm6,%ymm6
-	vpxor	%ymm8,%ymm6,%ymm6
-	addq	0+32(%rsi,%rcx,1),%r10
-	adcq	8+32(%rsi,%rcx,1),%r11
+	addq	4*8(%rsi,%rcx), %r10
+	adcq	8+4*8(%rsi,%rcx), %r11
 	adcq	$1,%r12
 
 	leaq	48(%rcx),%rcx
+	vpsrld	$20,%ymm6,%ymm8
+	vpslld	$32-20,%ymm6,%ymm6
+	vpxor	%ymm8,%ymm6,%ymm6
 	vpsrld	$20,%ymm5,%ymm8
 	vpslld	$32-20,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm5,%ymm5
 	vpsrld	$20,%ymm4,%ymm8
 	vpslld	$32-20,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
+	vmovdqa	.rol8(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -4482,48 +4469,49 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm2,%ymm14,%ymm14
 	vpxor	%ymm1,%ymm13,%ymm13
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	%ymm8,%ymm15,%ymm15
-	vpshufb	%ymm8,%ymm14,%ymm14
-	vpshufb	%ymm8,%ymm13,%ymm13
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
+	vpshufb	%ymm8,%ymm15,%ymm15
+	vpshufb	%ymm8,%ymm14,%ymm14
+	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
-	vpxor	%ymm11,%ymm7,%ymm7
-	vpxor	%ymm10,%ymm6,%ymm6
-	vpxor	%ymm9,%ymm5,%ymm5
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
 	adcq	%r11,%r15
 	adcq	$0,%r9
 	imulq	%r12,%rdx
+	vpaddd	%ymm12,%ymm8,%ymm8
+	vpxor	%ymm11,%ymm7,%ymm7
+	vpxor	%ymm10,%ymm6,%ymm6
+	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$25,%ymm7,%ymm8
 	vpslld	$32-25,%ymm7,%ymm7
+	addq	%rax,%r15
+	adcq	%rdx,%r9
 	vpxor	%ymm8,%ymm7,%ymm7
 	vpsrld	$25,%ymm6,%ymm8
 	vpslld	$32-25,%ymm6,%ymm6
 	vpxor	%ymm8,%ymm6,%ymm6
-	addq	%rax,%r15
-	adcq	%rdx,%r9
 	vpsrld	$25,%ymm5,%ymm8
 	vpslld	$32-25,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm5,%ymm5
 	vpsrld	$25,%ymm4,%ymm8
 	vpslld	$32-25,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	0+128(%rbp),%ymm8
+	vmovdqa	128(%rbp),%ymm8
 	vpalignr	$12,%ymm7,%ymm7,%ymm7
 	vpalignr	$8,%ymm11,%ymm11,%ymm11
 	vpalignr	$4,%ymm15,%ymm15,%ymm15
@@ -4531,10 +4519,6 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$8,%ymm10,%ymm10,%ymm10
 	vpalignr	$4,%ymm14,%ymm14,%ymm14
 	vpalignr	$12,%ymm5,%ymm5,%ymm5
-	vpalignr	$8,%ymm9,%ymm9,%ymm9
-	vpalignr	$4,%ymm13,%ymm13,%ymm13
-	vpalignr	$12,%ymm4,%ymm4,%ymm4
-	vpalignr	$8,%ymm8,%ymm8,%ymm8
 	movq	%r13,%r10
 	movq	%r14,%r11
 	movq	%r15,%r12
@@ -4544,34 +4528,39 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
+	vpalignr	$8,%ymm9,%ymm9,%ymm9
+	vpalignr	$4,%ymm13,%ymm13,%ymm13
+	vpalignr	$12,%ymm4,%ymm4,%ymm4
+	vpalignr	$8,%ymm8,%ymm8,%ymm8
 	vpalignr	$4,%ymm12,%ymm12,%ymm12
 
 	cmpq	$60*8,%rcx
-	jne	.Lopen_avx2_main_loop_rounds
-	vpaddd	.Lchacha20_consts(%rip),%ymm3,%ymm3
-	vpaddd	0+64(%rbp),%ymm7,%ymm7
-	vpaddd	0+96(%rbp),%ymm11,%ymm11
-	vpaddd	0+256(%rbp),%ymm15,%ymm15
-	vpaddd	.Lchacha20_consts(%rip),%ymm2,%ymm2
-	vpaddd	0+64(%rbp),%ymm6,%ymm6
-	vpaddd	0+96(%rbp),%ymm10,%ymm10
-	vpaddd	0+224(%rbp),%ymm14,%ymm14
-	vpaddd	.Lchacha20_consts(%rip),%ymm1,%ymm1
-	vpaddd	0+64(%rbp),%ymm5,%ymm5
-	vpaddd	0+96(%rbp),%ymm9,%ymm9
-	vpaddd	0+192(%rbp),%ymm13,%ymm13
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	0+64(%rbp),%ymm4,%ymm4
-	vpaddd	0+96(%rbp),%ymm8,%ymm8
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
+	jne	2b
+	vpaddd	.chacha20_consts(%rip),%ymm3,%ymm3
+	vpaddd	64(%rbp),%ymm7,%ymm7
+	vpaddd	96(%rbp),%ymm11,%ymm11
+	vpaddd	256(%rbp),%ymm15,%ymm15
+	vpaddd	.chacha20_consts(%rip),%ymm2,%ymm2
+	vpaddd	64(%rbp),%ymm6,%ymm6
+	vpaddd	96(%rbp),%ymm10,%ymm10
+	vpaddd	224(%rbp),%ymm14,%ymm14
+	vpaddd	.chacha20_consts(%rip),%ymm1,%ymm1
+	vpaddd	64(%rbp),%ymm5,%ymm5
+	vpaddd	96(%rbp),%ymm9,%ymm9
+	vpaddd	192(%rbp),%ymm13,%ymm13
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	64(%rbp),%ymm4,%ymm4
+	vpaddd	96(%rbp),%ymm8,%ymm8
+	vpaddd	160(%rbp),%ymm12,%ymm12
 
-	vmovdqa	%ymm0,0+128(%rbp)
-	addq	0+60*8(%rsi),%r10
+	vmovdqa	%ymm0,128(%rbp)
+	addq	60*8(%rsi),%r10
 	adcq	8+60*8(%rsi),%r11
 	adcq	$1,%r12
 	vperm2i128	$0x02,%ymm3,%ymm7,%ymm0
@@ -4587,24 +4576,24 @@ chacha20_poly1305_open_avx2:
 	vmovdqu	%ymm7,64+0(%rdi)
 	vmovdqu	%ymm11,96+0(%rdi)
 
-	vmovdqa	0+128(%rbp),%ymm0
-	movq	0+0+0(%rbp),%rax
+	vmovdqa	128(%rbp),%ymm0
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -4620,8 +4609,9 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
@@ -4637,7 +4627,7 @@ chacha20_poly1305_open_avx2:
 	vmovdqu	%ymm2,32+128(%rdi)
 	vmovdqu	%ymm6,64+128(%rdi)
 	vmovdqu	%ymm10,96+128(%rdi)
-	addq	0+60*8+16(%rsi),%r10
+	addq	60*8+16(%rsi),%r10
 	adcq	8+60*8+16(%rsi),%r11
 	adcq	$1,%r12
 	vperm2i128	$0x02,%ymm1,%ymm5,%ymm3
@@ -4652,23 +4642,23 @@ chacha20_poly1305_open_avx2:
 	vmovdqu	%ymm1,32+256(%rdi)
 	vmovdqu	%ymm5,64+256(%rdi)
 	vmovdqu	%ymm9,96+256(%rdi)
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -4684,8 +4674,9 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
@@ -4705,51 +4696,47 @@ chacha20_poly1305_open_avx2:
 	leaq	512(%rsi),%rsi
 	leaq	512(%rdi),%rdi
 	subq	$512,%rbx
-	jmp	.Lopen_avx2_main_loop
-.Lopen_avx2_main_loop_done:
+	jmp	1b
+3:
 	testq	%rbx,%rbx
 	vzeroupper
-	je	.Lopen_sse_finalize
-
-	cmpq	$384,%rbx
-	ja	.Lopen_avx2_tail_512
-	cmpq	$256,%rbx
-	ja	.Lopen_avx2_tail_384
+	je	open_sse_finalize
+3:
 	cmpq	$128,%rbx
-	ja	.Lopen_avx2_tail_256
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
-	vmovdqa	0+64(%rbp),%ymm4
-	vmovdqa	0+96(%rbp),%ymm8
-	vmovdqa	.Lavx2_inc(%rip),%ymm12
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
-	vmovdqa	%ymm12,0+160(%rbp)
+	ja	3f
+	vmovdqa	.chacha20_consts(%rip),%ymm0
+	vmovdqa	64(%rbp),%ymm4
+	vmovdqa	96(%rbp),%ymm8
+	vmovdqa	.avx2_inc(%rip),%ymm12
+	vpaddd	160(%rbp),%ymm12,%ymm12
+	vmovdqa	%ymm12,160(%rbp)
 
 	xorq	%r8,%r8
 	movq	%rbx,%rcx
 	andq	$-16,%rcx
 	testq	%rcx,%rcx
-	je	.Lopen_avx2_tail_128_rounds
-.Lopen_avx2_tail_128_rounds_and_x1hash:
-	addq	0+0(%rsi,%r8,1),%r10
-	adcq	8+0(%rsi,%r8,1),%r11
+	je	2f
+1:
+	addq	0*8(%rsi,%r8), %r10
+	adcq	8+0*8(%rsi,%r8), %r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -4765,17 +4752,18 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
-.Lopen_avx2_tail_128_rounds:
+2:
 	addq	$16,%r8
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -4783,7 +4771,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -4794,7 +4782,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -4802,7 +4790,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -4813,35 +4801,36 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
 
 	cmpq	%rcx,%r8
-	jb	.Lopen_avx2_tail_128_rounds_and_x1hash
+	jb	1b
 	cmpq	$160,%r8
-	jne	.Lopen_avx2_tail_128_rounds
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	0+64(%rbp),%ymm4,%ymm4
-	vpaddd	0+96(%rbp),%ymm8,%ymm8
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
+	jne	2b
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	64(%rbp),%ymm4,%ymm4
+	vpaddd	96(%rbp),%ymm8,%ymm8
+	vpaddd	160(%rbp),%ymm12,%ymm12
 	vperm2i128	$0x13,%ymm0,%ymm4,%ymm3
 	vperm2i128	$0x02,%ymm0,%ymm4,%ymm0
 	vperm2i128	$0x02,%ymm8,%ymm12,%ymm4
 	vperm2i128	$0x13,%ymm8,%ymm12,%ymm12
 	vmovdqa	%ymm3,%ymm8
 
-	jmp	.Lopen_avx2_tail_128_xor
-
-.Lopen_avx2_tail_256:
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
-	vmovdqa	0+64(%rbp),%ymm4
-	vmovdqa	0+96(%rbp),%ymm8
+	jmp	open_avx2_tail_loop
+3:
+	cmpq	$256,%rbx
+	ja	3f
+	vmovdqa	.chacha20_consts(%rip),%ymm0
+	vmovdqa	64(%rbp),%ymm4
+	vmovdqa	96(%rbp),%ymm8
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm8,%ymm9
-	vmovdqa	.Lavx2_inc(%rip),%ymm12
-	vpaddd	0+160(%rbp),%ymm12,%ymm13
+	vmovdqa	.avx2_inc(%rip),%ymm12
+	vpaddd	160(%rbp),%ymm12,%ymm13
 	vpaddd	%ymm13,%ymm12,%ymm12
-	vmovdqa	%ymm12,0+160(%rbp)
-	vmovdqa	%ymm13,0+192(%rbp)
+	vmovdqa	%ymm12,160(%rbp)
+	vmovdqa	%ymm13,192(%rbp)
 
-	movq	%rbx,0+128(%rbp)
+	movq	%rbx,128(%rbp)
 	movq	%rbx,%rcx
 	subq	$128,%rcx
 	shrq	$4,%rcx
@@ -4850,18 +4839,18 @@ chacha20_poly1305_open_avx2:
 	cmovgq	%r8,%rcx
 	movq	%rsi,%rbx
 	xorq	%r8,%r8
-.Lopen_avx2_tail_256_rounds_and_x1hash:
-	addq	0+0(%rbx),%r10
+1:
+	addq	0(%rbx),%r10
 	adcq	8+0(%rbx),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
@@ -4879,17 +4868,18 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rbx),%rbx
-.Lopen_avx2_tail_256_rounds:
+2:
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -4897,7 +4887,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -4908,7 +4898,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -4916,7 +4906,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -4929,7 +4919,7 @@ chacha20_poly1305_open_avx2:
 	incq	%r8
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -4937,7 +4927,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -4948,7 +4938,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -4956,7 +4946,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -4967,7 +4957,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm5,%ymm5,%ymm5
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol16(%rip),%ymm14,%ymm14
+	vpshufb	.rol16(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpsrld	$20,%ymm6,%ymm3
@@ -4975,7 +4965,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm6,%ymm6
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol8(%rip),%ymm14,%ymm14
+	vpshufb	.rol8(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpslld	$7,%ymm6,%ymm3
@@ -4986,28 +4976,28 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm6,%ymm6,%ymm6
 
 	cmpq	%rcx,%r8
-	jb	.Lopen_avx2_tail_256_rounds_and_x1hash
+	jb	1b
 	cmpq	$10,%r8
-	jne	.Lopen_avx2_tail_256_rounds
+	jne	2b
 	movq	%rbx,%r8
 	subq	%rsi,%rbx
 	movq	%rbx,%rcx
-	movq	0+128(%rbp),%rbx
-.Lopen_avx2_tail_256_hash:
+	movq	128(%rbp),%rbx
+1:
 	addq	$16,%rcx
 	cmpq	%rbx,%rcx
-	jg	.Lopen_avx2_tail_256_done
-	addq	0+0(%r8),%r10
+	jg	1f
+	addq	0(%r8),%r10
 	adcq	8+0(%r8),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
@@ -5025,23 +5015,24 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%r8),%r8
-	jmp	.Lopen_avx2_tail_256_hash
-.Lopen_avx2_tail_256_done:
-	vpaddd	.Lchacha20_consts(%rip),%ymm1,%ymm1
-	vpaddd	0+64(%rbp),%ymm5,%ymm5
-	vpaddd	0+96(%rbp),%ymm9,%ymm9
-	vpaddd	0+192(%rbp),%ymm13,%ymm13
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	0+64(%rbp),%ymm4,%ymm4
-	vpaddd	0+96(%rbp),%ymm8,%ymm8
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
+	jmp	1b
+1:
+	vpaddd	.chacha20_consts(%rip),%ymm1,%ymm1
+	vpaddd	64(%rbp),%ymm5,%ymm5
+	vpaddd	96(%rbp),%ymm9,%ymm9
+	vpaddd	192(%rbp),%ymm13,%ymm13
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	64(%rbp),%ymm4,%ymm4
+	vpaddd	96(%rbp),%ymm8,%ymm8
+	vpaddd	160(%rbp),%ymm12,%ymm12
 	vperm2i128	$0x02,%ymm1,%ymm5,%ymm3
 	vperm2i128	$0x13,%ymm1,%ymm5,%ymm5
 	vperm2i128	$0x02,%ymm9,%ymm13,%ymm1
@@ -5063,27 +5054,28 @@ chacha20_poly1305_open_avx2:
 	leaq	128(%rsi),%rsi
 	leaq	128(%rdi),%rdi
 	subq	$128,%rbx
-	jmp	.Lopen_avx2_tail_128_xor
-
-.Lopen_avx2_tail_384:
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
-	vmovdqa	0+64(%rbp),%ymm4
-	vmovdqa	0+96(%rbp),%ymm8
+	jmp	open_avx2_tail_loop
+3:
+	cmpq	$384,%rbx
+	ja	3f
+	vmovdqa	.chacha20_consts(%rip),%ymm0
+	vmovdqa	64(%rbp),%ymm4
+	vmovdqa	96(%rbp),%ymm8
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm8,%ymm9
 	vmovdqa	%ymm0,%ymm2
 	vmovdqa	%ymm4,%ymm6
 	vmovdqa	%ymm8,%ymm10
-	vmovdqa	.Lavx2_inc(%rip),%ymm12
-	vpaddd	0+160(%rbp),%ymm12,%ymm14
+	vmovdqa	.avx2_inc(%rip),%ymm12
+	vpaddd	160(%rbp),%ymm12,%ymm14
 	vpaddd	%ymm14,%ymm12,%ymm13
 	vpaddd	%ymm13,%ymm12,%ymm12
-	vmovdqa	%ymm12,0+160(%rbp)
-	vmovdqa	%ymm13,0+192(%rbp)
-	vmovdqa	%ymm14,0+224(%rbp)
+	vmovdqa	%ymm12,160(%rbp)
+	vmovdqa	%ymm13,192(%rbp)
+	vmovdqa	%ymm14,224(%rbp)
 
-	movq	%rbx,0+128(%rbp)
+	movq	%rbx,128(%rbp)
 	movq	%rbx,%rcx
 	subq	$256,%rcx
 	shrq	$4,%rcx
@@ -5093,18 +5085,18 @@ chacha20_poly1305_open_avx2:
 	cmovgq	%r8,%rcx
 	movq	%rsi,%rbx
 	xorq	%r8,%r8
-.Lopen_avx2_tail_384_rounds_and_x2hash:
-	addq	0+0(%rbx),%r10
+1:
+	addq	0(%rbx),%r10
 	adcq	8+0(%rbx),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
@@ -5122,17 +5114,18 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rbx),%rbx
-.Lopen_avx2_tail_384_rounds_and_x1hash:
+2:
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol16(%rip),%ymm14,%ymm14
+	vpshufb	.rol16(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpsrld	$20,%ymm6,%ymm3
@@ -5140,7 +5133,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm6,%ymm6
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol8(%rip),%ymm14,%ymm14
+	vpshufb	.rol8(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpslld	$7,%ymm6,%ymm3
@@ -5151,7 +5144,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$4,%ymm6,%ymm6,%ymm6
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -5159,7 +5152,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -5170,7 +5163,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$4,%ymm5,%ymm5,%ymm5
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -5178,7 +5171,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -5187,26 +5180,26 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm12,%ymm12,%ymm12
 	vpalignr	$8,%ymm8,%ymm8,%ymm8
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
-	addq	0+0(%rbx),%r10
+	addq	0(%rbx),%r10
 	adcq	8+0(%rbx),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -5222,8 +5215,9 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
@@ -5232,7 +5226,7 @@ chacha20_poly1305_open_avx2:
 	incq	%r8
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol16(%rip),%ymm14,%ymm14
+	vpshufb	.rol16(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpsrld	$20,%ymm6,%ymm3
@@ -5240,7 +5234,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm6,%ymm6
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol8(%rip),%ymm14,%ymm14
+	vpshufb	.rol8(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpslld	$7,%ymm6,%ymm3
@@ -5251,7 +5245,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm6,%ymm6,%ymm6
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -5259,7 +5253,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -5270,7 +5264,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm5,%ymm5,%ymm5
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -5278,7 +5272,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -5289,28 +5283,28 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
 
 	cmpq	%rcx,%r8
-	jb	.Lopen_avx2_tail_384_rounds_and_x2hash
+	jb	1b
 	cmpq	$10,%r8
-	jne	.Lopen_avx2_tail_384_rounds_and_x1hash
+	jne	2b
 	movq	%rbx,%r8
 	subq	%rsi,%rbx
 	movq	%rbx,%rcx
-	movq	0+128(%rbp),%rbx
-.Lopen_avx2_384_tail_hash:
+	movq	128(%rbp),%rbx
+1:
 	addq	$16,%rcx
 	cmpq	%rbx,%rcx
-	jg	.Lopen_avx2_384_tail_done
-	addq	0+0(%r8),%r10
+	jg	1f
+	addq	0(%r8),%r10
 	adcq	8+0(%r8),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
@@ -5328,27 +5322,28 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%r8),%r8
-	jmp	.Lopen_avx2_384_tail_hash
-.Lopen_avx2_384_tail_done:
-	vpaddd	.Lchacha20_consts(%rip),%ymm2,%ymm2
-	vpaddd	0+64(%rbp),%ymm6,%ymm6
-	vpaddd	0+96(%rbp),%ymm10,%ymm10
-	vpaddd	0+224(%rbp),%ymm14,%ymm14
-	vpaddd	.Lchacha20_consts(%rip),%ymm1,%ymm1
-	vpaddd	0+64(%rbp),%ymm5,%ymm5
-	vpaddd	0+96(%rbp),%ymm9,%ymm9
-	vpaddd	0+192(%rbp),%ymm13,%ymm13
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	0+64(%rbp),%ymm4,%ymm4
-	vpaddd	0+96(%rbp),%ymm8,%ymm8
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
+	jmp	1b
+1:
+	vpaddd	.chacha20_consts(%rip),%ymm2,%ymm2
+	vpaddd	64(%rbp),%ymm6,%ymm6
+	vpaddd	96(%rbp),%ymm10,%ymm10
+	vpaddd	224(%rbp),%ymm14,%ymm14
+	vpaddd	.chacha20_consts(%rip),%ymm1,%ymm1
+	vpaddd	64(%rbp),%ymm5,%ymm5
+	vpaddd	96(%rbp),%ymm9,%ymm9
+	vpaddd	192(%rbp),%ymm13,%ymm13
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	64(%rbp),%ymm4,%ymm4
+	vpaddd	96(%rbp),%ymm8,%ymm8
+	vpaddd	160(%rbp),%ymm12,%ymm12
 	vperm2i128	$0x02,%ymm2,%ymm6,%ymm3
 	vperm2i128	$0x13,%ymm2,%ymm6,%ymm6
 	vperm2i128	$0x02,%ymm10,%ymm14,%ymm2
@@ -5382,12 +5377,11 @@ chacha20_poly1305_open_avx2:
 	leaq	256(%rsi),%rsi
 	leaq	256(%rdi),%rdi
 	subq	$256,%rbx
-	jmp	.Lopen_avx2_tail_128_xor
-
-.Lopen_avx2_tail_512:
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
-	vmovdqa	0+64(%rbp),%ymm4
-	vmovdqa	0+96(%rbp),%ymm8
+	jmp	open_avx2_tail_loop
+3:
+	vmovdqa	.chacha20_consts(%rip),%ymm0
+	vmovdqa	64(%rbp),%ymm4
+	vmovdqa	96(%rbp),%ymm8
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm8,%ymm9
@@ -5397,39 +5391,39 @@ chacha20_poly1305_open_avx2:
 	vmovdqa	%ymm0,%ymm3
 	vmovdqa	%ymm4,%ymm7
 	vmovdqa	%ymm8,%ymm11
-	vmovdqa	.Lavx2_inc(%rip),%ymm12
-	vpaddd	0+160(%rbp),%ymm12,%ymm15
+	vmovdqa	.avx2_inc(%rip),%ymm12
+	vpaddd	160(%rbp),%ymm12,%ymm15
 	vpaddd	%ymm15,%ymm12,%ymm14
 	vpaddd	%ymm14,%ymm12,%ymm13
 	vpaddd	%ymm13,%ymm12,%ymm12
-	vmovdqa	%ymm15,0+256(%rbp)
-	vmovdqa	%ymm14,0+224(%rbp)
-	vmovdqa	%ymm13,0+192(%rbp)
-	vmovdqa	%ymm12,0+160(%rbp)
+	vmovdqa	%ymm15,256(%rbp)
+	vmovdqa	%ymm14,224(%rbp)
+	vmovdqa	%ymm13,192(%rbp)
+	vmovdqa	%ymm12,160(%rbp)
 
 	xorq	%rcx,%rcx
 	movq	%rsi,%r8
-.Lopen_avx2_tail_512_rounds_and_x2hash:
-	addq	0+0(%r8),%r10
+1:
+	addq	0(%r8),%r10
 	adcq	8+0(%r8),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -5445,16 +5439,17 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%r8),%r8
-.Lopen_avx2_tail_512_rounds_and_x1hash:
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
+2:
+	vmovdqa	%ymm8,128(%rbp)
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -5467,15 +5462,16 @@ chacha20_poly1305_open_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$20,%ymm7,%ymm8
 	vpslld	$32-20,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -5488,19 +5484,18 @@ chacha20_poly1305_open_avx2:
 	vpsrld	$20,%ymm4,%ymm8
 	vpslld	$32-20,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
-	vpaddd	%ymm7,%ymm3,%ymm3
-	addq	0+0(%r8),%r10
+	vmovdqa	.rol8(%rip),%ymm8
+	addq	0(%r8),%r10
 	adcq	8+0(%r8),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
@@ -5518,11 +5513,13 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
+	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpaddd	%ymm4,%ymm0,%ymm0
@@ -5534,15 +5531,16 @@ chacha20_poly1305_open_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$25,%ymm7,%ymm8
 	vpslld	$32-25,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -5555,7 +5553,7 @@ chacha20_poly1305_open_avx2:
 	vpsrld	$25,%ymm4,%ymm8
 	vpslld	$32-25,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	0+128(%rbp),%ymm8
+	vmovdqa	128(%rbp),%ymm8
 	vpalignr	$4,%ymm7,%ymm7,%ymm7
 	vpalignr	$8,%ymm11,%ymm11,%ymm11
 	vpalignr	$12,%ymm15,%ymm15,%ymm15
@@ -5568,20 +5566,18 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpalignr	$8,%ymm8,%ymm8,%ymm8
 	vpalignr	$12,%ymm12,%ymm12,%ymm12
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
-	vpaddd	%ymm7,%ymm3,%ymm3
-	addq	0+16(%r8),%r10
+	vmovdqa	%ymm8,128(%rbp)
+	addq	16(%r8),%r10
 	adcq	8+16(%r8),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
@@ -5599,46 +5595,15 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	32(%r8),%r8
-	vpaddd	%ymm6,%ymm2,%ymm2
-	vpaddd	%ymm5,%ymm1,%ymm1
-	vpaddd	%ymm4,%ymm0,%ymm0
-	vpxor	%ymm3,%ymm15,%ymm15
-	vpxor	%ymm2,%ymm14,%ymm14
-	vpxor	%ymm1,%ymm13,%ymm13
-	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	%ymm8,%ymm15,%ymm15
-	vpshufb	%ymm8,%ymm14,%ymm14
-	vpshufb	%ymm8,%ymm13,%ymm13
-	vpshufb	%ymm8,%ymm12,%ymm12
-	vpaddd	%ymm15,%ymm11,%ymm11
-	vpaddd	%ymm14,%ymm10,%ymm10
-	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
-	vpxor	%ymm11,%ymm7,%ymm7
-	vpxor	%ymm10,%ymm6,%ymm6
-	vpxor	%ymm9,%ymm5,%ymm5
-	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
-	vpsrld	$20,%ymm7,%ymm8
-	vpslld	$32-20,%ymm7,%ymm7
-	vpxor	%ymm8,%ymm7,%ymm7
-	vpsrld	$20,%ymm6,%ymm8
-	vpslld	$32-20,%ymm6,%ymm6
-	vpxor	%ymm8,%ymm6,%ymm6
-	vpsrld	$20,%ymm5,%ymm8
-	vpslld	$32-20,%ymm5,%ymm5
-	vpxor	%ymm8,%ymm5,%ymm5
-	vpsrld	$20,%ymm4,%ymm8
-	vpslld	$32-20,%ymm4,%ymm4
-	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -5651,15 +5616,51 @@ chacha20_poly1305_open_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
+	vpsrld	$20,%ymm7,%ymm8
+	vpslld	$32-20,%ymm7,%ymm7
+	vpxor	%ymm8,%ymm7,%ymm7
+	vpsrld	$20,%ymm6,%ymm8
+	vpslld	$32-20,%ymm6,%ymm6
+	vpxor	%ymm8,%ymm6,%ymm6
+	vpsrld	$20,%ymm5,%ymm8
+	vpslld	$32-20,%ymm5,%ymm5
+	vpxor	%ymm8,%ymm5,%ymm5
+	vpsrld	$20,%ymm4,%ymm8
+	vpslld	$32-20,%ymm4,%ymm4
+	vpxor	%ymm8,%ymm4,%ymm4
+	vmovdqa	.rol8(%rip),%ymm8
+	vpaddd	%ymm7,%ymm3,%ymm3
+	vpaddd	%ymm6,%ymm2,%ymm2
+	vpaddd	%ymm5,%ymm1,%ymm1
+	vpaddd	%ymm4,%ymm0,%ymm0
+	vpxor	%ymm3,%ymm15,%ymm15
+	vpxor	%ymm2,%ymm14,%ymm14
+	vpxor	%ymm1,%ymm13,%ymm13
+	vpxor	%ymm0,%ymm12,%ymm12
+	vpshufb	%ymm8,%ymm15,%ymm15
+	vpshufb	%ymm8,%ymm14,%ymm14
+	vpshufb	%ymm8,%ymm13,%ymm13
+	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
+	vpaddd	%ymm15,%ymm11,%ymm11
+	vpaddd	%ymm14,%ymm10,%ymm10
+	vpaddd	%ymm13,%ymm9,%ymm9
+	vpaddd	%ymm12,%ymm8,%ymm8
+	vpxor	%ymm11,%ymm7,%ymm7
+	vpxor	%ymm10,%ymm6,%ymm6
+	vpxor	%ymm9,%ymm5,%ymm5
+	vpxor	%ymm8,%ymm4,%ymm4
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$25,%ymm7,%ymm8
 	vpslld	$32-25,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -5672,7 +5673,7 @@ chacha20_poly1305_open_avx2:
 	vpsrld	$25,%ymm4,%ymm8
 	vpslld	$32-25,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	0+128(%rbp),%ymm8
+	vmovdqa	128(%rbp),%ymm8
 	vpalignr	$12,%ymm7,%ymm7,%ymm7
 	vpalignr	$8,%ymm11,%ymm11,%ymm11
 	vpalignr	$4,%ymm15,%ymm15,%ymm15
@@ -5688,26 +5689,26 @@ chacha20_poly1305_open_avx2:
 
 	incq	%rcx
 	cmpq	$4,%rcx
-	jl	.Lopen_avx2_tail_512_rounds_and_x2hash
+	jl	1b
 	cmpq	$10,%rcx
-	jne	.Lopen_avx2_tail_512_rounds_and_x1hash
+	jne	2b
 	movq	%rbx,%rcx
 	subq	$384,%rcx
 	andq	$-16,%rcx
-.Lopen_avx2_tail_512_hash:
+1:
 	testq	%rcx,%rcx
-	je	.Lopen_avx2_tail_512_done
-	addq	0+0(%r8),%r10
+	je	1f
+	addq	0(%r8),%r10
 	adcq	8+0(%r8),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
@@ -5725,34 +5726,35 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%r8),%r8
 	subq	$16,%rcx
-	jmp	.Lopen_avx2_tail_512_hash
-.Lopen_avx2_tail_512_done:
-	vpaddd	.Lchacha20_consts(%rip),%ymm3,%ymm3
-	vpaddd	0+64(%rbp),%ymm7,%ymm7
-	vpaddd	0+96(%rbp),%ymm11,%ymm11
-	vpaddd	0+256(%rbp),%ymm15,%ymm15
-	vpaddd	.Lchacha20_consts(%rip),%ymm2,%ymm2
-	vpaddd	0+64(%rbp),%ymm6,%ymm6
-	vpaddd	0+96(%rbp),%ymm10,%ymm10
-	vpaddd	0+224(%rbp),%ymm14,%ymm14
-	vpaddd	.Lchacha20_consts(%rip),%ymm1,%ymm1
-	vpaddd	0+64(%rbp),%ymm5,%ymm5
-	vpaddd	0+96(%rbp),%ymm9,%ymm9
-	vpaddd	0+192(%rbp),%ymm13,%ymm13
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	0+64(%rbp),%ymm4,%ymm4
-	vpaddd	0+96(%rbp),%ymm8,%ymm8
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
+	jmp	1b
+1:
+	vpaddd	.chacha20_consts(%rip),%ymm3,%ymm3
+	vpaddd	64(%rbp),%ymm7,%ymm7
+	vpaddd	96(%rbp),%ymm11,%ymm11
+	vpaddd	256(%rbp),%ymm15,%ymm15
+	vpaddd	.chacha20_consts(%rip),%ymm2,%ymm2
+	vpaddd	64(%rbp),%ymm6,%ymm6
+	vpaddd	96(%rbp),%ymm10,%ymm10
+	vpaddd	224(%rbp),%ymm14,%ymm14
+	vpaddd	.chacha20_consts(%rip),%ymm1,%ymm1
+	vpaddd	64(%rbp),%ymm5,%ymm5
+	vpaddd	96(%rbp),%ymm9,%ymm9
+	vpaddd	192(%rbp),%ymm13,%ymm13
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	64(%rbp),%ymm4,%ymm4
+	vpaddd	96(%rbp),%ymm8,%ymm8
+	vpaddd	160(%rbp),%ymm12,%ymm12
 
-	vmovdqa	%ymm0,0+128(%rbp)
+	vmovdqa	%ymm0,128(%rbp)
 	vperm2i128	$0x02,%ymm3,%ymm7,%ymm0
 	vperm2i128	$0x13,%ymm3,%ymm7,%ymm7
 	vperm2i128	$0x02,%ymm11,%ymm15,%ymm3
@@ -5766,7 +5768,7 @@ chacha20_poly1305_open_avx2:
 	vmovdqu	%ymm7,64+0(%rdi)
 	vmovdqu	%ymm11,96+0(%rdi)
 
-	vmovdqa	0+128(%rbp),%ymm0
+	vmovdqa	128(%rbp),%ymm0
 	vperm2i128	$0x02,%ymm2,%ymm6,%ymm3
 	vperm2i128	$0x13,%ymm2,%ymm6,%ymm6
 	vperm2i128	$0x02,%ymm10,%ymm14,%ymm2
@@ -5800,9 +5802,9 @@ chacha20_poly1305_open_avx2:
 	leaq	384(%rsi),%rsi
 	leaq	384(%rdi),%rdi
 	subq	$384,%rbx
-.Lopen_avx2_tail_128_xor:
+open_avx2_tail_loop:
 	cmpq	$32,%rbx
-	jb	.Lopen_avx2_tail_32_xor
+	jb	open_avx2_tail
 	subq	$32,%rbx
 	vpxor	(%rsi),%ymm0,%ymm0
 	vmovdqu	%ymm0,(%rdi)
@@ -5811,11 +5813,11 @@ chacha20_poly1305_open_avx2:
 	vmovdqa	%ymm4,%ymm0
 	vmovdqa	%ymm8,%ymm4
 	vmovdqa	%ymm12,%ymm8
-	jmp	.Lopen_avx2_tail_128_xor
-.Lopen_avx2_tail_32_xor:
+	jmp	open_avx2_tail_loop
+open_avx2_tail:
 	cmpq	$16,%rbx
 	vmovdqa	%xmm0,%xmm1
-	jb	.Lopen_avx2_exit
+	jb	1f
 	subq	$16,%rbx
 
 	vpxor	(%rsi),%xmm0,%xmm1
@@ -5824,25 +5826,25 @@ chacha20_poly1305_open_avx2:
 	leaq	16(%rdi),%rdi
 	vperm2i128	$0x11,%ymm0,%ymm0,%ymm0
 	vmovdqa	%xmm0,%xmm1
-.Lopen_avx2_exit:
+1:
 	vzeroupper
-	jmp	.Lopen_sse_tail_16
+	jmp	open_sse_tail_16
 
-.Lopen_avx2_192:
+open_avx2_192:
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm0,%ymm2
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm4,%ymm6
 	vmovdqa	%ymm8,%ymm9
 	vmovdqa	%ymm8,%ymm10
-	vpaddd	.Lavx2_inc(%rip),%ymm12,%ymm13
+	vpaddd	.avx2_inc(%rip),%ymm12,%ymm13
 	vmovdqa	%ymm12,%ymm11
 	vmovdqa	%ymm13,%ymm15
 	movq	$10,%r10
-.Lopen_avx2_192_rounds:
+1:
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -5850,7 +5852,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -5861,7 +5863,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -5869,7 +5871,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -5880,7 +5882,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$4,%ymm5,%ymm5,%ymm5
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -5888,7 +5890,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -5899,7 +5901,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -5907,7 +5909,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -5918,7 +5920,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm5,%ymm5,%ymm5
 
 	decq	%r10
-	jne	.Lopen_avx2_192_rounds
+	jne	1b
 	vpaddd	%ymm2,%ymm0,%ymm0
 	vpaddd	%ymm2,%ymm1,%ymm1
 	vpaddd	%ymm6,%ymm4,%ymm4
@@ -5929,8 +5931,8 @@ chacha20_poly1305_open_avx2:
 	vpaddd	%ymm15,%ymm13,%ymm13
 	vperm2i128	$0x02,%ymm0,%ymm4,%ymm3
 
-	vpand	.Lclamp(%rip),%ymm3,%ymm3
-	vmovdqa	%ymm3,0+0(%rbp)
+	vpand	.clamp(%rip),%ymm3,%ymm3
+	vmovdqa	%ymm3,0(%rbp)
 
 	vperm2i128	$0x13,%ymm0,%ymm4,%ymm0
 	vperm2i128	$0x13,%ymm8,%ymm12,%ymm4
@@ -5938,33 +5940,33 @@ chacha20_poly1305_open_avx2:
 	vperm2i128	$0x02,%ymm9,%ymm13,%ymm12
 	vperm2i128	$0x13,%ymm1,%ymm5,%ymm1
 	vperm2i128	$0x13,%ymm9,%ymm13,%ymm5
-.Lopen_avx2_short:
+open_avx2_short:
 	movq	%r8,%r8
 	call	poly_hash_ad_internal
-.Lopen_avx2_short_hash_and_xor_loop:
+open_avx2_hash_and_xor_loop:
 	cmpq	$32,%rbx
-	jb	.Lopen_avx2_short_tail_32
+	jb	open_avx2_short_tail_32
 	subq	$32,%rbx
-	addq	0+0(%rsi),%r10
+	addq	0(%rsi),%r10
 	adcq	8+0(%rsi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -5980,31 +5982,32 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
-	addq	0+16(%rsi),%r10
+	addq	16(%rsi),%r10
 	adcq	8+16(%rsi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -6020,8 +6023,9 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
@@ -6041,32 +6045,32 @@ chacha20_poly1305_open_avx2:
 	vmovdqa	%ymm13,%ymm9
 	vmovdqa	%ymm2,%ymm13
 	vmovdqa	%ymm6,%ymm2
-	jmp	.Lopen_avx2_short_hash_and_xor_loop
-.Lopen_avx2_short_tail_32:
+	jmp	open_avx2_hash_and_xor_loop
+open_avx2_short_tail_32:
 	cmpq	$16,%rbx
 	vmovdqa	%xmm0,%xmm1
-	jb	.Lopen_avx2_short_tail_32_exit
+	jb	1f
 	subq	$16,%rbx
-	addq	0+0(%rsi),%r10
+	addq	0(%rsi),%r10
 	adcq	8+0(%rsi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -6082,8 +6086,9 @@ chacha20_poly1305_open_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
@@ -6093,29 +6098,29 @@ chacha20_poly1305_open_avx2:
 	leaq	16(%rsi),%rsi
 	leaq	16(%rdi),%rdi
 	vextracti128	$1,%ymm0,%xmm1
-.Lopen_avx2_short_tail_32_exit:
+1:
 	vzeroupper
-	jmp	.Lopen_sse_tail_16
+	jmp	open_sse_tail_16
 
-.Lopen_avx2_320:
+open_avx2_320:
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm0,%ymm2
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm4,%ymm6
 	vmovdqa	%ymm8,%ymm9
 	vmovdqa	%ymm8,%ymm10
-	vpaddd	.Lavx2_inc(%rip),%ymm12,%ymm13
-	vpaddd	.Lavx2_inc(%rip),%ymm13,%ymm14
+	vpaddd	.avx2_inc(%rip),%ymm12,%ymm13
+	vpaddd	.avx2_inc(%rip),%ymm13,%ymm14
 	vmovdqa	%ymm4,%ymm7
 	vmovdqa	%ymm8,%ymm11
-	vmovdqa	%ymm12,0+160(%rbp)
-	vmovdqa	%ymm13,0+192(%rbp)
-	vmovdqa	%ymm14,0+224(%rbp)
+	vmovdqa	%ymm12,160(%rbp)
+	vmovdqa	%ymm13,192(%rbp)
+	vmovdqa	%ymm14,224(%rbp)
 	movq	$10,%r10
-.Lopen_avx2_320_rounds:
+1:
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -6123,7 +6128,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -6134,7 +6139,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -6142,7 +6147,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -6153,7 +6158,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$4,%ymm5,%ymm5,%ymm5
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol16(%rip),%ymm14,%ymm14
+	vpshufb	.rol16(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpsrld	$20,%ymm6,%ymm3
@@ -6161,7 +6166,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm6,%ymm6
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol8(%rip),%ymm14,%ymm14
+	vpshufb	.rol8(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpslld	$7,%ymm6,%ymm3
@@ -6172,7 +6177,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$4,%ymm6,%ymm6,%ymm6
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -6180,7 +6185,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -6191,7 +6196,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -6199,7 +6204,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -6210,7 +6215,7 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm5,%ymm5,%ymm5
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol16(%rip),%ymm14,%ymm14
+	vpshufb	.rol16(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpsrld	$20,%ymm6,%ymm3
@@ -6218,7 +6223,7 @@ chacha20_poly1305_open_avx2:
 	vpxor	%ymm3,%ymm6,%ymm6
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol8(%rip),%ymm14,%ymm14
+	vpshufb	.rol8(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpslld	$7,%ymm6,%ymm3
@@ -6229,23 +6234,23 @@ chacha20_poly1305_open_avx2:
 	vpalignr	$12,%ymm6,%ymm6,%ymm6
 
 	decq	%r10
-	jne	.Lopen_avx2_320_rounds
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	.Lchacha20_consts(%rip),%ymm1,%ymm1
-	vpaddd	.Lchacha20_consts(%rip),%ymm2,%ymm2
+	jne	1b
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	.chacha20_consts(%rip),%ymm1,%ymm1
+	vpaddd	.chacha20_consts(%rip),%ymm2,%ymm2
 	vpaddd	%ymm7,%ymm4,%ymm4
 	vpaddd	%ymm7,%ymm5,%ymm5
 	vpaddd	%ymm7,%ymm6,%ymm6
 	vpaddd	%ymm11,%ymm8,%ymm8
 	vpaddd	%ymm11,%ymm9,%ymm9
 	vpaddd	%ymm11,%ymm10,%ymm10
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
-	vpaddd	0+192(%rbp),%ymm13,%ymm13
-	vpaddd	0+224(%rbp),%ymm14,%ymm14
+	vpaddd	160(%rbp),%ymm12,%ymm12
+	vpaddd	192(%rbp),%ymm13,%ymm13
+	vpaddd	224(%rbp),%ymm14,%ymm14
 	vperm2i128	$0x02,%ymm0,%ymm4,%ymm3
 
-	vpand	.Lclamp(%rip),%ymm3,%ymm3
-	vmovdqa	%ymm3,0+0(%rbp)
+	vpand	.clamp(%rip),%ymm3,%ymm3
+	vmovdqa	%ymm3,0(%rbp)
 
 	vperm2i128	$0x13,%ymm0,%ymm4,%ymm0
 	vperm2i128	$0x13,%ymm8,%ymm12,%ymm4
@@ -6257,66 +6262,46 @@ chacha20_poly1305_open_avx2:
 	vperm2i128	$0x02,%ymm10,%ymm14,%ymm13
 	vperm2i128	$0x13,%ymm2,%ymm6,%ymm2
 	vperm2i128	$0x13,%ymm10,%ymm14,%ymm6
-	jmp	.Lopen_avx2_short
+	jmp	open_avx2_short
 .size	chacha20_poly1305_open_avx2, .-chacha20_poly1305_open_avx2
-.cfi_endproc	
 
 
 .type	chacha20_poly1305_seal_avx2,@function
 .align	64
 chacha20_poly1305_seal_avx2:
-.cfi_startproc	
-
-
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%rbp,-16
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%rbx,-24
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%r12,-32
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%r13,-40
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%r14,-48
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%r15,-56
-.cfi_adjust_cfa_offset	8
-.cfi_offset	%r9,-64
-.cfi_adjust_cfa_offset	288 + 32
-
 	vzeroupper
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
+	vmovdqa	.chacha20_consts(%rip),%ymm0
 	vbroadcasti128	0(%r9),%ymm4
 	vbroadcasti128	16(%r9),%ymm8
 	vbroadcasti128	32(%r9),%ymm12
-	vpaddd	.Lavx2_init(%rip),%ymm12,%ymm12
+	vpaddd	.avx2_init(%rip),%ymm12,%ymm12
 	cmpq	$192,%rbx
-	jbe	.Lseal_avx2_192
+	jbe	seal_avx2_192
 	cmpq	$320,%rbx
-	jbe	.Lseal_avx2_320
+	jbe	seal_avx2_320
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm0,%ymm2
 	vmovdqa	%ymm0,%ymm3
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm4,%ymm6
 	vmovdqa	%ymm4,%ymm7
-	vmovdqa	%ymm4,0+64(%rbp)
+	vmovdqa	%ymm4,64(%rbp)
 	vmovdqa	%ymm8,%ymm9
 	vmovdqa	%ymm8,%ymm10
 	vmovdqa	%ymm8,%ymm11
-	vmovdqa	%ymm8,0+96(%rbp)
+	vmovdqa	%ymm8,96(%rbp)
 	vmovdqa	%ymm12,%ymm15
-	vpaddd	.Lavx2_inc(%rip),%ymm15,%ymm14
-	vpaddd	.Lavx2_inc(%rip),%ymm14,%ymm13
-	vpaddd	.Lavx2_inc(%rip),%ymm13,%ymm12
-	vmovdqa	%ymm12,0+160(%rbp)
-	vmovdqa	%ymm13,0+192(%rbp)
-	vmovdqa	%ymm14,0+224(%rbp)
-	vmovdqa	%ymm15,0+256(%rbp)
+	vpaddd	.avx2_inc(%rip),%ymm15,%ymm14
+	vpaddd	.avx2_inc(%rip),%ymm14,%ymm13
+	vpaddd	.avx2_inc(%rip),%ymm13,%ymm12
+	vmovdqa	%ymm12,160(%rbp)
+	vmovdqa	%ymm13,192(%rbp)
+	vmovdqa	%ymm14,224(%rbp)
+	vmovdqa	%ymm15,256(%rbp)
 	movq	$10,%r10
-.Lseal_avx2_init_rounds:
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
+1:
+	vmovdqa	%ymm8,128(%rbp)
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -6329,15 +6314,16 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$20,%ymm7,%ymm8
 	vpslld	$32-20,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -6350,7 +6336,7 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$20,%ymm4,%ymm8
 	vpslld	$32-20,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
+	vmovdqa	.rol8(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -6363,15 +6349,16 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$25,%ymm7,%ymm8
 	vpslld	$32-25,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -6384,7 +6371,7 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$25,%ymm4,%ymm8
 	vpslld	$32-25,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	0+128(%rbp),%ymm8
+	vmovdqa	128(%rbp),%ymm8
 	vpalignr	$4,%ymm7,%ymm7,%ymm7
 	vpalignr	$8,%ymm11,%ymm11,%ymm11
 	vpalignr	$12,%ymm15,%ymm15,%ymm15
@@ -6397,8 +6384,8 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpalignr	$8,%ymm8,%ymm8,%ymm8
 	vpalignr	$12,%ymm12,%ymm12,%ymm12
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
+	vmovdqa	%ymm8,128(%rbp)
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -6411,15 +6398,16 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$20,%ymm7,%ymm8
 	vpslld	$32-20,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -6432,7 +6420,7 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$20,%ymm4,%ymm8
 	vpslld	$32-20,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
+	vmovdqa	.rol8(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -6445,15 +6433,16 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$25,%ymm7,%ymm8
 	vpslld	$32-25,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -6466,7 +6455,7 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$25,%ymm4,%ymm8
 	vpslld	$32-25,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	0+128(%rbp),%ymm8
+	vmovdqa	128(%rbp),%ymm8
 	vpalignr	$12,%ymm7,%ymm7,%ymm7
 	vpalignr	$8,%ymm11,%ymm11,%ymm11
 	vpalignr	$4,%ymm15,%ymm15,%ymm15
@@ -6481,29 +6470,29 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm12,%ymm12,%ymm12
 
 	decq	%r10
-	jnz	.Lseal_avx2_init_rounds
-	vpaddd	.Lchacha20_consts(%rip),%ymm3,%ymm3
-	vpaddd	0+64(%rbp),%ymm7,%ymm7
-	vpaddd	0+96(%rbp),%ymm11,%ymm11
-	vpaddd	0+256(%rbp),%ymm15,%ymm15
-	vpaddd	.Lchacha20_consts(%rip),%ymm2,%ymm2
-	vpaddd	0+64(%rbp),%ymm6,%ymm6
-	vpaddd	0+96(%rbp),%ymm10,%ymm10
-	vpaddd	0+224(%rbp),%ymm14,%ymm14
-	vpaddd	.Lchacha20_consts(%rip),%ymm1,%ymm1
-	vpaddd	0+64(%rbp),%ymm5,%ymm5
-	vpaddd	0+96(%rbp),%ymm9,%ymm9
-	vpaddd	0+192(%rbp),%ymm13,%ymm13
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	0+64(%rbp),%ymm4,%ymm4
-	vpaddd	0+96(%rbp),%ymm8,%ymm8
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
+	jnz	1b
+	vpaddd	.chacha20_consts(%rip),%ymm3,%ymm3
+	vpaddd	64(%rbp),%ymm7,%ymm7
+	vpaddd	96(%rbp),%ymm11,%ymm11
+	vpaddd	256(%rbp),%ymm15,%ymm15
+	vpaddd	.chacha20_consts(%rip),%ymm2,%ymm2
+	vpaddd	64(%rbp),%ymm6,%ymm6
+	vpaddd	96(%rbp),%ymm10,%ymm10
+	vpaddd	224(%rbp),%ymm14,%ymm14
+	vpaddd	.chacha20_consts(%rip),%ymm1,%ymm1
+	vpaddd	64(%rbp),%ymm5,%ymm5
+	vpaddd	96(%rbp),%ymm9,%ymm9
+	vpaddd	192(%rbp),%ymm13,%ymm13
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	64(%rbp),%ymm4,%ymm4
+	vpaddd	96(%rbp),%ymm8,%ymm8
+	vpaddd	160(%rbp),%ymm12,%ymm12
 
 	vperm2i128	$0x13,%ymm11,%ymm15,%ymm11
 	vperm2i128	$0x02,%ymm3,%ymm7,%ymm15
 	vperm2i128	$0x13,%ymm3,%ymm7,%ymm3
-	vpand	.Lclamp(%rip),%ymm15,%ymm15
-	vmovdqa	%ymm15,0+0(%rbp)
+	vpand	.clamp(%rip),%ymm15,%ymm15
+	vmovdqa	%ymm15,0(%rbp)
 	movq	%r8,%r8
 	call	poly_hash_ad_internal
 
@@ -6545,7 +6534,7 @@ chacha20_poly1305_seal_avx2:
 	subq	$320,%rbx
 	movq	$320,%rcx
 	cmpq	$128,%rbx
-	jbe	.Lseal_avx2_short_hash_remainder
+	jbe	seal_avx2_hash
 	vpxor	0(%rsi),%ymm0,%ymm0
 	vpxor	32(%rsi),%ymm4,%ymm4
 	vpxor	64(%rsi),%ymm8,%ymm8
@@ -6559,16 +6548,16 @@ chacha20_poly1305_seal_avx2:
 	movq	$8,%rcx
 	movq	$2,%r8
 	cmpq	$128,%rbx
-	jbe	.Lseal_avx2_tail_128
+	jbe	seal_avx2_tail_128
 	cmpq	$256,%rbx
-	jbe	.Lseal_avx2_tail_256
+	jbe	seal_avx2_tail_256
 	cmpq	$384,%rbx
-	jbe	.Lseal_avx2_tail_384
+	jbe	seal_avx2_tail_384
 	cmpq	$512,%rbx
-	jbe	.Lseal_avx2_tail_512
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
-	vmovdqa	0+64(%rbp),%ymm4
-	vmovdqa	0+96(%rbp),%ymm8
+	jbe	seal_avx2_tail_512
+	vmovdqa	.chacha20_consts(%rip),%ymm0
+	vmovdqa	64(%rbp),%ymm4
+	vmovdqa	96(%rbp),%ymm8
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm8,%ymm9
@@ -6578,17 +6567,17 @@ chacha20_poly1305_seal_avx2:
 	vmovdqa	%ymm0,%ymm3
 	vmovdqa	%ymm4,%ymm7
 	vmovdqa	%ymm8,%ymm11
-	vmovdqa	.Lavx2_inc(%rip),%ymm12
-	vpaddd	0+160(%rbp),%ymm12,%ymm15
+	vmovdqa	.avx2_inc(%rip),%ymm12
+	vpaddd	160(%rbp),%ymm12,%ymm15
 	vpaddd	%ymm15,%ymm12,%ymm14
 	vpaddd	%ymm14,%ymm12,%ymm13
 	vpaddd	%ymm13,%ymm12,%ymm12
-	vmovdqa	%ymm15,0+256(%rbp)
-	vmovdqa	%ymm14,0+224(%rbp)
-	vmovdqa	%ymm13,0+192(%rbp)
-	vmovdqa	%ymm12,0+160(%rbp)
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
+	vmovdqa	%ymm15,256(%rbp)
+	vmovdqa	%ymm14,224(%rbp)
+	vmovdqa	%ymm13,192(%rbp)
+	vmovdqa	%ymm12,160(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -6601,15 +6590,16 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$20,%ymm7,%ymm8
 	vpslld	$32-20,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -6622,7 +6612,7 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$20,%ymm4,%ymm8
 	vpslld	$32-20,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
+	vmovdqa	.rol8(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -6635,15 +6625,16 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$25,%ymm7,%ymm8
 	vpslld	$32-25,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -6656,7 +6647,7 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$25,%ymm4,%ymm8
 	vpslld	$32-25,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	0+128(%rbp),%ymm8
+	vmovdqa	128(%rbp),%ymm8
 	vpalignr	$4,%ymm7,%ymm7,%ymm7
 	vpalignr	$8,%ymm11,%ymm11,%ymm11
 	vpalignr	$12,%ymm15,%ymm15,%ymm15
@@ -6669,8 +6660,8 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpalignr	$8,%ymm8,%ymm8,%ymm8
 	vpalignr	$12,%ymm12,%ymm12,%ymm12
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
+	vmovdqa	%ymm8,128(%rbp)
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -6683,15 +6674,16 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$20,%ymm7,%ymm8
 	vpslld	$32-20,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -6704,7 +6696,7 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$20,%ymm4,%ymm8
 	vpslld	$32-20,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
+	vmovdqa	.rol8(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -6717,15 +6709,16 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$25,%ymm7,%ymm8
 	vpslld	$32-25,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -6738,7 +6731,7 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$25,%ymm4,%ymm8
 	vpslld	$32-25,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	0+128(%rbp),%ymm8
+	vmovdqa	128(%rbp),%ymm8
 	vpalignr	$12,%ymm7,%ymm7,%ymm7
 	vpalignr	$8,%ymm11,%ymm11,%ymm11
 	vpalignr	$4,%ymm15,%ymm15,%ymm15
@@ -6751,8 +6744,8 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
 	vpalignr	$8,%ymm8,%ymm8,%ymm8
 	vpalignr	$4,%ymm12,%ymm12,%ymm12
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
+	vmovdqa	%ymm8,128(%rbp)
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -6765,15 +6758,16 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$20,%ymm7,%ymm8
 	vpslld	$32-20,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -6786,21 +6780,19 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$20,%ymm4,%ymm8
 	vpslld	$32-20,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
+	vmovdqa	.rol8(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpaddd	%ymm4,%ymm0,%ymm0
-	vpxor	%ymm3,%ymm15,%ymm15
 
 	subq	$16,%rdi
 	movq	$9,%rcx
-	jmp	.Lseal_avx2_main_loop_rounds_entry
-.align	32
-.Lseal_avx2_main_loop:
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
-	vmovdqa	0+64(%rbp),%ymm4
-	vmovdqa	0+96(%rbp),%ymm8
+	jmp	4f
+1:
+	vmovdqa	.chacha20_consts(%rip),%ymm0
+	vmovdqa	64(%rbp),%ymm4
+	vmovdqa	96(%rbp),%ymm8
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm8,%ymm9
@@ -6810,24 +6802,23 @@ chacha20_poly1305_seal_avx2:
 	vmovdqa	%ymm0,%ymm3
 	vmovdqa	%ymm4,%ymm7
 	vmovdqa	%ymm8,%ymm11
-	vmovdqa	.Lavx2_inc(%rip),%ymm12
-	vpaddd	0+160(%rbp),%ymm12,%ymm15
+	vmovdqa	.avx2_inc(%rip),%ymm12
+	vpaddd	160(%rbp),%ymm12,%ymm15
 	vpaddd	%ymm15,%ymm12,%ymm14
 	vpaddd	%ymm14,%ymm12,%ymm13
 	vpaddd	%ymm13,%ymm12,%ymm12
-	vmovdqa	%ymm15,0+256(%rbp)
-	vmovdqa	%ymm14,0+224(%rbp)
-	vmovdqa	%ymm13,0+192(%rbp)
-	vmovdqa	%ymm12,0+160(%rbp)
+	vmovdqa	%ymm15,256(%rbp)
+	vmovdqa	%ymm14,224(%rbp)
+	vmovdqa	%ymm13,192(%rbp)
+	vmovdqa	%ymm12,160(%rbp)
 
 	movq	$10,%rcx
-.align	32
-.Lseal_avx2_main_loop_rounds:
-	addq	0+0(%rdi),%r10
+2:
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
+	vmovdqa	%ymm8,128(%rbp)
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -6836,7 +6827,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm2,%ymm14,%ymm14
 	vpxor	%ymm1,%ymm13,%ymm13
 	vpxor	%ymm0,%ymm12,%ymm12
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
@@ -6847,22 +6838,23 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
-	vpxor	%ymm11,%ymm7,%ymm7
-	movq	8+0+0(%rbp),%rdx
+	vpaddd	%ymm12,%ymm8,%ymm8
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
 	adcq	%r11,%r15
 	adcq	$0,%r9
 	imulq	%r12,%rdx
+	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$20,%ymm7,%ymm8
 	vpslld	$32-20,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -6870,19 +6862,18 @@ chacha20_poly1305_seal_avx2:
 	vpslld	$32-20,%ymm6,%ymm6
 	vpxor	%ymm8,%ymm6,%ymm6
 	vpsrld	$20,%ymm5,%ymm8
-	vpslld	$32-20,%ymm5,%ymm5
 	addq	%rax,%r15
 	adcq	%rdx,%r9
+	vpslld	$32-20,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm5,%ymm5
 	vpsrld	$20,%ymm4,%ymm8
 	vpslld	$32-20,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
+	vmovdqa	.rol8(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpaddd	%ymm4,%ymm0,%ymm0
-	vpxor	%ymm3,%ymm15,%ymm15
 	movq	%r13,%r10
 	movq	%r14,%r11
 	movq	%r15,%r12
@@ -6892,13 +6883,15 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
-.Lseal_avx2_main_loop_rounds_entry:
+4:
+	vpxor	%ymm3,%ymm15,%ymm15
 	vpxor	%ymm2,%ymm14,%ymm14
 	vpxor	%ymm1,%ymm13,%ymm13
 	vpxor	%ymm0,%ymm12,%ymm12
@@ -6906,26 +6899,27 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
-	vpaddd	%ymm15,%ymm11,%ymm11
-	vpaddd	%ymm14,%ymm10,%ymm10
-	addq	0+16(%rdi),%r10
+	vmovdqa	128(%rbp),%ymm8
+	addq	16(%rdi),%r10
 	adcq	8+16(%rdi),%r11
 	adcq	$1,%r12
+	vpaddd	%ymm15,%ymm11,%ymm11
+	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
-	vpsrld	$25,%ymm7,%ymm8
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
+	vmovdqa	%ymm8,128(%rbp)
+	vpsrld	$25,%ymm7,%ymm8
 	vpslld	$32-25,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
 	vpsrld	$25,%ymm6,%ymm8
@@ -6937,28 +6931,28 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$25,%ymm4,%ymm8
 	vpslld	$32-25,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	0+128(%rbp),%ymm8
+	vmovdqa	128(%rbp),%ymm8
 	vpalignr	$4,%ymm7,%ymm7,%ymm7
 	vpalignr	$8,%ymm11,%ymm11,%ymm11
 	vpalignr	$12,%ymm15,%ymm15,%ymm15
 	vpalignr	$4,%ymm6,%ymm6,%ymm6
-	vpalignr	$8,%ymm10,%ymm10,%ymm10
-	vpalignr	$12,%ymm14,%ymm14,%ymm14
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
 	adcq	%r11,%r15
 	adcq	$0,%r9
 	imulq	%r12,%rdx
+	vpalignr	$8,%ymm10,%ymm10,%ymm10
+	vpalignr	$12,%ymm14,%ymm14,%ymm14
 	vpalignr	$4,%ymm5,%ymm5,%ymm5
 	vpalignr	$8,%ymm9,%ymm9,%ymm9
 	vpalignr	$12,%ymm13,%ymm13,%ymm13
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpalignr	$8,%ymm8,%ymm8,%ymm8
 	vpalignr	$12,%ymm12,%ymm12,%ymm12
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
+	vmovdqa	%ymm8,128(%rbp)
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -6967,19 +6961,17 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm2,%ymm14,%ymm14
 	vpxor	%ymm1,%ymm13,%ymm13
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	%ymm8,%ymm15,%ymm15
-	vpshufb	%ymm8,%ymm14,%ymm14
 	addq	%rax,%r15
 	adcq	%rdx,%r9
+	vpshufb	%ymm8,%ymm15,%ymm15
+	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
-	vpxor	%ymm11,%ymm7,%ymm7
-	vpxor	%ymm10,%ymm6,%ymm6
-	vpxor	%ymm9,%ymm5,%ymm5
+	vpaddd	%ymm12,%ymm8,%ymm8
 	movq	%r13,%r10
 	movq	%r14,%r11
 	movq	%r15,%r12
@@ -6989,31 +6981,35 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
+	vpxor	%ymm11,%ymm7,%ymm7
+	vpxor	%ymm10,%ymm6,%ymm6
+	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$20,%ymm7,%ymm8
 	vpslld	$32-20,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
-	vpsrld	$20,%ymm6,%ymm8
-	vpslld	$32-20,%ymm6,%ymm6
-	vpxor	%ymm8,%ymm6,%ymm6
-	addq	0+32(%rdi),%r10
+	addq	32(%rdi),%r10
 	adcq	8+32(%rdi),%r11
 	adcq	$1,%r12
 
 	leaq	48(%rdi),%rdi
+	vpsrld	$20,%ymm6,%ymm8
+	vpslld	$32-20,%ymm6,%ymm6
+	vpxor	%ymm8,%ymm6,%ymm6
 	vpsrld	$20,%ymm5,%ymm8
 	vpslld	$32-20,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm5,%ymm5
 	vpsrld	$20,%ymm4,%ymm8
 	vpslld	$32-20,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
+	vmovdqa	.rol8(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -7022,48 +7018,49 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm2,%ymm14,%ymm14
 	vpxor	%ymm1,%ymm13,%ymm13
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	%ymm8,%ymm15,%ymm15
-	vpshufb	%ymm8,%ymm14,%ymm14
-	vpshufb	%ymm8,%ymm13,%ymm13
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
+	vpshufb	%ymm8,%ymm15,%ymm15
+	vpshufb	%ymm8,%ymm14,%ymm14
+	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
-	vpxor	%ymm11,%ymm7,%ymm7
-	vpxor	%ymm10,%ymm6,%ymm6
-	vpxor	%ymm9,%ymm5,%ymm5
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
 	adcq	%r11,%r15
 	adcq	$0,%r9
 	imulq	%r12,%rdx
+	vpaddd	%ymm12,%ymm8,%ymm8
+	vpxor	%ymm11,%ymm7,%ymm7
+	vpxor	%ymm10,%ymm6,%ymm6
+	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$25,%ymm7,%ymm8
 	vpslld	$32-25,%ymm7,%ymm7
+	addq	%rax,%r15
+	adcq	%rdx,%r9
 	vpxor	%ymm8,%ymm7,%ymm7
 	vpsrld	$25,%ymm6,%ymm8
 	vpslld	$32-25,%ymm6,%ymm6
 	vpxor	%ymm8,%ymm6,%ymm6
-	addq	%rax,%r15
-	adcq	%rdx,%r9
 	vpsrld	$25,%ymm5,%ymm8
 	vpslld	$32-25,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm5,%ymm5
 	vpsrld	$25,%ymm4,%ymm8
 	vpslld	$32-25,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	0+128(%rbp),%ymm8
+	vmovdqa	128(%rbp),%ymm8
 	vpalignr	$12,%ymm7,%ymm7,%ymm7
 	vpalignr	$8,%ymm11,%ymm11,%ymm11
 	vpalignr	$4,%ymm15,%ymm15,%ymm15
@@ -7071,114 +7068,51 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$8,%ymm10,%ymm10,%ymm10
 	vpalignr	$4,%ymm14,%ymm14,%ymm14
 	vpalignr	$12,%ymm5,%ymm5,%ymm5
+	movq	%r13,%r10
+	movq	%r14,%r11
+	movq	%r15,%r12
+	andq	$3,%r12
+	movq	%r15,%r13
+	andq	$-4,%r13
+	movq	%r9,%r14
+	shrdq	$2,%r9,%r15
+	shrq	$2,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
+	addq	%r15,%r10
+	adcq	%r9,%r11
+	adcq	$0,%r12
 	vpalignr	$8,%ymm9,%ymm9,%ymm9
 	vpalignr	$4,%ymm13,%ymm13,%ymm13
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
 	vpalignr	$8,%ymm8,%ymm8,%ymm8
-	movq	%r13,%r10
-	movq	%r14,%r11
-	movq	%r15,%r12
-	andq	$3,%r12
-	movq	%r15,%r13
-	andq	$-4,%r13
-	movq	%r9,%r14
-	shrdq	$2,%r9,%r15
-	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
-	addq	%r15,%r10
-	adcq	%r9,%r11
-	adcq	$0,%r12
 	vpalignr	$4,%ymm12,%ymm12,%ymm12
 
 	decq	%rcx
-	jne	.Lseal_avx2_main_loop_rounds
-	vpaddd	.Lchacha20_consts(%rip),%ymm3,%ymm3
-	vpaddd	0+64(%rbp),%ymm7,%ymm7
-	vpaddd	0+96(%rbp),%ymm11,%ymm11
-	vpaddd	0+256(%rbp),%ymm15,%ymm15
-	vpaddd	.Lchacha20_consts(%rip),%ymm2,%ymm2
-	vpaddd	0+64(%rbp),%ymm6,%ymm6
-	vpaddd	0+96(%rbp),%ymm10,%ymm10
-	vpaddd	0+224(%rbp),%ymm14,%ymm14
-	vpaddd	.Lchacha20_consts(%rip),%ymm1,%ymm1
-	vpaddd	0+64(%rbp),%ymm5,%ymm5
-	vpaddd	0+96(%rbp),%ymm9,%ymm9
-	vpaddd	0+192(%rbp),%ymm13,%ymm13
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	0+64(%rbp),%ymm4,%ymm4
-	vpaddd	0+96(%rbp),%ymm8,%ymm8
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
-
-	vmovdqa	%ymm0,0+128(%rbp)
-	addq	0+0(%rdi),%r10
-	adcq	8+0(%rdi),%r11
-	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
-	movq	%rdx,%r15
-	mulxq	%r10,%r13,%r14
-	mulxq	%r11,%rax,%rdx
-	imulq	%r12,%r15
-	addq	%rax,%r14
-	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
-	mulxq	%r10,%r10,%rax
-	addq	%r10,%r14
-	mulxq	%r11,%r11,%r9
-	adcq	%r11,%r15
-	adcq	$0,%r9
-	imulq	%r12,%rdx
-	addq	%rax,%r15
-	adcq	%rdx,%r9
-	movq	%r13,%r10
-	movq	%r14,%r11
-	movq	%r15,%r12
-	andq	$3,%r12
-	movq	%r15,%r13
-	andq	$-4,%r13
-	movq	%r9,%r14
-	shrdq	$2,%r9,%r15
-	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
-	addq	%r15,%r10
-	adcq	%r9,%r11
-	adcq	$0,%r12
-	addq	0+16(%rdi),%r10
-	adcq	8+16(%rdi),%r11
-	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
-	movq	%rdx,%r15
-	mulxq	%r10,%r13,%r14
-	mulxq	%r11,%rax,%rdx
-	imulq	%r12,%r15
-	addq	%rax,%r14
-	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
-	mulxq	%r10,%r10,%rax
-	addq	%r10,%r14
-	mulxq	%r11,%r11,%r9
-	adcq	%r11,%r15
-	adcq	$0,%r9
-	imulq	%r12,%rdx
-	addq	%rax,%r15
-	adcq	%rdx,%r9
-	movq	%r13,%r10
-	movq	%r14,%r11
-	movq	%r15,%r12
-	andq	$3,%r12
-	movq	%r15,%r13
-	andq	$-4,%r13
-	movq	%r9,%r14
-	shrdq	$2,%r9,%r15
-	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
-	addq	%r15,%r10
-	adcq	%r9,%r11
-	adcq	$0,%r12
+	jne	2b
+	vpaddd	.chacha20_consts(%rip),%ymm3,%ymm3
+	vpaddd	64(%rbp),%ymm7,%ymm7
+	vpaddd	96(%rbp),%ymm11,%ymm11
+	vpaddd	256(%rbp),%ymm15,%ymm15
+	vpaddd	.chacha20_consts(%rip),%ymm2,%ymm2
+	vpaddd	64(%rbp),%ymm6,%ymm6
+	vpaddd	96(%rbp),%ymm10,%ymm10
+	vpaddd	224(%rbp),%ymm14,%ymm14
+	vpaddd	.chacha20_consts(%rip),%ymm1,%ymm1
+	vpaddd	64(%rbp),%ymm5,%ymm5
+	vpaddd	96(%rbp),%ymm9,%ymm9
+	vpaddd	192(%rbp),%ymm13,%ymm13
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	64(%rbp),%ymm4,%ymm4
+	vpaddd	96(%rbp),%ymm8,%ymm8
+	vpaddd	160(%rbp),%ymm12,%ymm12
 
 	leaq	32(%rdi),%rdi
+	vmovdqa	%ymm0,128(%rbp)
+	addq	-32(%rdi),%r10
+	adcq	8+-32(%rdi),%r11
+	adcq	$1,%r12
 	vperm2i128	$0x02,%ymm3,%ymm7,%ymm0
 	vperm2i128	$0x13,%ymm3,%ymm7,%ymm7
 	vperm2i128	$0x02,%ymm11,%ymm15,%ymm3
@@ -7192,7 +7126,45 @@ chacha20_poly1305_seal_avx2:
 	vmovdqu	%ymm7,64+0(%rdi)
 	vmovdqu	%ymm11,96+0(%rdi)
 
-	vmovdqa	0+128(%rbp),%ymm0
+	vmovdqa	128(%rbp),%ymm0
+	movq	0+0(%rbp),%rax
+	movq	%rax,%r15
+	mulq	%r10
+	movq	%rax,%r13
+	movq	%rdx,%r14
+	movq	0+0(%rbp),%rax
+	mulq	%r11
+	imulq	%r12,%r15
+	addq	%rax,%r14
+	adcq	%rdx,%r15
+	movq	8+0(%rbp),%rax
+	movq	%rax,%r9
+	mulq	%r10
+	addq	%rax,%r14
+	adcq	$0,%rdx
+	movq	%rdx,%r10
+	movq	8+0(%rbp),%rax
+	mulq	%r11
+	addq	%rax,%r15
+	adcq	$0,%rdx
+	imulq	%r12,%r9
+	addq	%r10,%r15
+	adcq	%rdx,%r9
+	movq	%r13,%r10
+	movq	%r14,%r11
+	movq	%r15,%r12
+	andq	$3,%r12
+	movq	%r15,%r13
+	andq	$-4,%r13
+	movq	%r9,%r14
+	shrdq	$2,%r9,%r15
+	shrq	$2,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
+	addq	%r15,%r10
+	adcq	%r9,%r11
+	adcq	$0,%r12
 	vperm2i128	$0x02,%ymm2,%ymm6,%ymm3
 	vperm2i128	$0x13,%ymm2,%ymm6,%ymm6
 	vperm2i128	$0x02,%ymm10,%ymm14,%ymm2
@@ -7205,6 +7177,9 @@ chacha20_poly1305_seal_avx2:
 	vmovdqu	%ymm2,32+128(%rdi)
 	vmovdqu	%ymm6,64+128(%rdi)
 	vmovdqu	%ymm10,96+128(%rdi)
+	addq	-16(%rdi),%r10
+	adcq	8+-16(%rdi),%r11
+	adcq	$1,%r12
 	vperm2i128	$0x02,%ymm1,%ymm5,%ymm3
 	vperm2i128	$0x13,%ymm1,%ymm5,%ymm5
 	vperm2i128	$0x02,%ymm9,%ymm13,%ymm1
@@ -7217,6 +7192,44 @@ chacha20_poly1305_seal_avx2:
 	vmovdqu	%ymm1,32+256(%rdi)
 	vmovdqu	%ymm5,64+256(%rdi)
 	vmovdqu	%ymm9,96+256(%rdi)
+	movq	0+0(%rbp),%rax
+	movq	%rax,%r15
+	mulq	%r10
+	movq	%rax,%r13
+	movq	%rdx,%r14
+	movq	0+0(%rbp),%rax
+	mulq	%r11
+	imulq	%r12,%r15
+	addq	%rax,%r14
+	adcq	%rdx,%r15
+	movq	8+0(%rbp),%rax
+	movq	%rax,%r9
+	mulq	%r10
+	addq	%rax,%r14
+	adcq	$0,%rdx
+	movq	%rdx,%r10
+	movq	8+0(%rbp),%rax
+	mulq	%r11
+	addq	%rax,%r15
+	adcq	$0,%rdx
+	imulq	%r12,%r9
+	addq	%r10,%r15
+	adcq	%rdx,%r9
+	movq	%r13,%r10
+	movq	%r14,%r11
+	movq	%r15,%r12
+	andq	$3,%r12
+	movq	%r15,%r13
+	andq	$-4,%r13
+	movq	%r9,%r14
+	shrdq	$2,%r9,%r15
+	shrq	$2,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
+	addq	%r15,%r10
+	adcq	%r9,%r11
+	adcq	$0,%r12
 	vperm2i128	$0x02,%ymm0,%ymm4,%ymm3
 	vperm2i128	$0x13,%ymm0,%ymm4,%ymm4
 	vperm2i128	$0x02,%ymm8,%ymm12,%ymm0
@@ -7233,287 +7246,27 @@ chacha20_poly1305_seal_avx2:
 	leaq	512(%rsi),%rsi
 	subq	$512,%rbx
 	cmpq	$512,%rbx
-	jg	.Lseal_avx2_main_loop
-
-	addq	0+0(%rdi),%r10
+	jg	1b
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
-	movq	%rdx,%r15
-	mulxq	%r10,%r13,%r14
-	mulxq	%r11,%rax,%rdx
-	imulq	%r12,%r15
-	addq	%rax,%r14
-	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
-	mulxq	%r10,%r10,%rax
-	addq	%r10,%r14
-	mulxq	%r11,%r11,%r9
-	adcq	%r11,%r15
-	adcq	$0,%r9
-	imulq	%r12,%rdx
-	addq	%rax,%r15
-	adcq	%rdx,%r9
-	movq	%r13,%r10
-	movq	%r14,%r11
-	movq	%r15,%r12
-	andq	$3,%r12
-	movq	%r15,%r13
-	andq	$-4,%r13
-	movq	%r9,%r14
-	shrdq	$2,%r9,%r15
-	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
-	addq	%r15,%r10
-	adcq	%r9,%r11
-	adcq	$0,%r12
-	addq	0+16(%rdi),%r10
-	adcq	8+16(%rdi),%r11
-	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
-	movq	%rdx,%r15
-	mulxq	%r10,%r13,%r14
-	mulxq	%r11,%rax,%rdx
-	imulq	%r12,%r15
-	addq	%rax,%r14
-	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
-	mulxq	%r10,%r10,%rax
-	addq	%r10,%r14
-	mulxq	%r11,%r11,%r9
-	adcq	%r11,%r15
-	adcq	$0,%r9
-	imulq	%r12,%rdx
-	addq	%rax,%r15
-	adcq	%rdx,%r9
-	movq	%r13,%r10
-	movq	%r14,%r11
-	movq	%r15,%r12
-	andq	$3,%r12
-	movq	%r15,%r13
-	andq	$-4,%r13
-	movq	%r9,%r14
-	shrdq	$2,%r9,%r15
-	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
-	addq	%r15,%r10
-	adcq	%r9,%r11
-	adcq	$0,%r12
-
-	leaq	32(%rdi),%rdi
-	movq	$10,%rcx
-	xorq	%r8,%r8
-
-	cmpq	$384,%rbx
-	ja	.Lseal_avx2_tail_512
-	cmpq	$256,%rbx
-	ja	.Lseal_avx2_tail_384
-	cmpq	$128,%rbx
-	ja	.Lseal_avx2_tail_256
-
-.Lseal_avx2_tail_128:
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
-	vmovdqa	0+64(%rbp),%ymm4
-	vmovdqa	0+96(%rbp),%ymm8
-	vmovdqa	.Lavx2_inc(%rip),%ymm12
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
-	vmovdqa	%ymm12,0+160(%rbp)
-
-.Lseal_avx2_tail_128_rounds_and_3xhash:
-	addq	0+0(%rdi),%r10
-	adcq	8+0(%rdi),%r11
-	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
-	movq	%rdx,%r15
-	mulxq	%r10,%r13,%r14
-	mulxq	%r11,%rax,%rdx
-	imulq	%r12,%r15
-	addq	%rax,%r14
-	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
-	mulxq	%r10,%r10,%rax
-	addq	%r10,%r14
-	mulxq	%r11,%r11,%r9
-	adcq	%r11,%r15
-	adcq	$0,%r9
-	imulq	%r12,%rdx
-	addq	%rax,%r15
-	adcq	%rdx,%r9
-	movq	%r13,%r10
-	movq	%r14,%r11
-	movq	%r15,%r12
-	andq	$3,%r12
-	movq	%r15,%r13
-	andq	$-4,%r13
-	movq	%r9,%r14
-	shrdq	$2,%r9,%r15
-	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
-	addq	%r15,%r10
-	adcq	%r9,%r11
-	adcq	$0,%r12
-
-	leaq	16(%rdi),%rdi
-.Lseal_avx2_tail_128_rounds_and_2xhash:
-	vpaddd	%ymm4,%ymm0,%ymm0
-	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
-	vpaddd	%ymm12,%ymm8,%ymm8
-	vpxor	%ymm8,%ymm4,%ymm4
-	vpsrld	$20,%ymm4,%ymm3
-	vpslld	$12,%ymm4,%ymm4
-	vpxor	%ymm3,%ymm4,%ymm4
-	vpaddd	%ymm4,%ymm0,%ymm0
-	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
-	vpaddd	%ymm12,%ymm8,%ymm8
-	vpxor	%ymm8,%ymm4,%ymm4
-	vpslld	$7,%ymm4,%ymm3
-	vpsrld	$25,%ymm4,%ymm4
-	vpxor	%ymm3,%ymm4,%ymm4
-	vpalignr	$12,%ymm12,%ymm12,%ymm12
-	vpalignr	$8,%ymm8,%ymm8,%ymm8
-	vpalignr	$4,%ymm4,%ymm4,%ymm4
-	addq	0+0(%rdi),%r10
-	adcq	8+0(%rdi),%r11
-	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
-	movq	%rdx,%r15
-	mulxq	%r10,%r13,%r14
-	mulxq	%r11,%rax,%rdx
-	imulq	%r12,%r15
-	addq	%rax,%r14
-	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
-	mulxq	%r10,%r10,%rax
-	addq	%r10,%r14
-	mulxq	%r11,%r11,%r9
-	adcq	%r11,%r15
-	adcq	$0,%r9
-	imulq	%r12,%rdx
-	addq	%rax,%r15
-	adcq	%rdx,%r9
-	movq	%r13,%r10
-	movq	%r14,%r11
-	movq	%r15,%r12
-	andq	$3,%r12
-	movq	%r15,%r13
-	andq	$-4,%r13
-	movq	%r9,%r14
-	shrdq	$2,%r9,%r15
-	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
-	addq	%r15,%r10
-	adcq	%r9,%r11
-	adcq	$0,%r12
-	vpaddd	%ymm4,%ymm0,%ymm0
-	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
-	vpaddd	%ymm12,%ymm8,%ymm8
-	vpxor	%ymm8,%ymm4,%ymm4
-	vpsrld	$20,%ymm4,%ymm3
-	vpslld	$12,%ymm4,%ymm4
-	vpxor	%ymm3,%ymm4,%ymm4
-	vpaddd	%ymm4,%ymm0,%ymm0
-	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
-	vpaddd	%ymm12,%ymm8,%ymm8
-	vpxor	%ymm8,%ymm4,%ymm4
-	vpslld	$7,%ymm4,%ymm3
-	vpsrld	$25,%ymm4,%ymm4
-	vpxor	%ymm3,%ymm4,%ymm4
-	vpalignr	$4,%ymm12,%ymm12,%ymm12
-	vpalignr	$8,%ymm8,%ymm8,%ymm8
-	vpalignr	$12,%ymm4,%ymm4,%ymm4
-	addq	0+16(%rdi),%r10
-	adcq	8+16(%rdi),%r11
-	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
-	movq	%rdx,%r15
-	mulxq	%r10,%r13,%r14
-	mulxq	%r11,%rax,%rdx
-	imulq	%r12,%r15
-	addq	%rax,%r14
-	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
-	mulxq	%r10,%r10,%rax
-	addq	%r10,%r14
-	mulxq	%r11,%r11,%r9
-	adcq	%r11,%r15
-	adcq	$0,%r9
-	imulq	%r12,%rdx
-	addq	%rax,%r15
-	adcq	%rdx,%r9
-	movq	%r13,%r10
-	movq	%r14,%r11
-	movq	%r15,%r12
-	andq	$3,%r12
-	movq	%r15,%r13
-	andq	$-4,%r13
-	movq	%r9,%r14
-	shrdq	$2,%r9,%r15
-	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
-	addq	%r15,%r10
-	adcq	%r9,%r11
-	adcq	$0,%r12
-
-	leaq	32(%rdi),%rdi
-	decq	%rcx
-	jg	.Lseal_avx2_tail_128_rounds_and_3xhash
-	decq	%r8
-	jge	.Lseal_avx2_tail_128_rounds_and_2xhash
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	0+64(%rbp),%ymm4,%ymm4
-	vpaddd	0+96(%rbp),%ymm8,%ymm8
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
-	vperm2i128	$0x13,%ymm0,%ymm4,%ymm3
-	vperm2i128	$0x02,%ymm0,%ymm4,%ymm0
-	vperm2i128	$0x02,%ymm8,%ymm12,%ymm4
-	vperm2i128	$0x13,%ymm8,%ymm12,%ymm12
-	vmovdqa	%ymm3,%ymm8
-
-	jmp	.Lseal_avx2_short_loop
-
-.Lseal_avx2_tail_256:
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
-	vmovdqa	0+64(%rbp),%ymm4
-	vmovdqa	0+96(%rbp),%ymm8
-	vmovdqa	%ymm0,%ymm1
-	vmovdqa	%ymm4,%ymm5
-	vmovdqa	%ymm8,%ymm9
-	vmovdqa	.Lavx2_inc(%rip),%ymm12
-	vpaddd	0+160(%rbp),%ymm12,%ymm13
-	vpaddd	%ymm13,%ymm12,%ymm12
-	vmovdqa	%ymm12,0+160(%rbp)
-	vmovdqa	%ymm13,0+192(%rbp)
-
-.Lseal_avx2_tail_256_rounds_and_3xhash:
-	addq	0+0(%rdi),%r10
-	adcq	8+0(%rdi),%r11
-	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -7529,17 +7282,116 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
+	addq	%r15,%r10
+	adcq	%r9,%r11
+	adcq	$0,%r12
+	addq	16(%rdi),%r10
+	adcq	8+16(%rdi),%r11
+	adcq	$1,%r12
+	movq	0+0(%rbp),%rax
+	movq	%rax,%r15
+	mulq	%r10
+	movq	%rax,%r13
+	movq	%rdx,%r14
+	movq	0+0(%rbp),%rax
+	mulq	%r11
+	imulq	%r12,%r15
+	addq	%rax,%r14
+	adcq	%rdx,%r15
+	movq	8+0(%rbp),%rax
+	movq	%rax,%r9
+	mulq	%r10
+	addq	%rax,%r14
+	adcq	$0,%rdx
+	movq	%rdx,%r10
+	movq	8+0(%rbp),%rax
+	mulq	%r11
+	addq	%rax,%r15
+	adcq	$0,%rdx
+	imulq	%r12,%r9
+	addq	%r10,%r15
+	adcq	%rdx,%r9
+	movq	%r13,%r10
+	movq	%r14,%r11
+	movq	%r15,%r12
+	andq	$3,%r12
+	movq	%r15,%r13
+	andq	$-4,%r13
+	movq	%r9,%r14
+	shrdq	$2,%r9,%r15
+	shrq	$2,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
+	addq	%r15,%r10
+	adcq	%r9,%r11
+	adcq	$0,%r12
+
+	leaq	32(%rdi),%rdi
+	movq	$10,%rcx
+	xorq	%r8,%r8
+	cmpq	$128,%rbx
+	ja	3f
+
+seal_avx2_tail_128:
+	vmovdqa	.chacha20_consts(%rip),%ymm0
+	vmovdqa	64(%rbp),%ymm4
+	vmovdqa	96(%rbp),%ymm8
+	vmovdqa	.avx2_inc(%rip),%ymm12
+	vpaddd	160(%rbp),%ymm12,%ymm12
+	vmovdqa	%ymm12,160(%rbp)
+
+1:
+	addq	0(%rdi),%r10
+	adcq	8+0(%rdi),%r11
+	adcq	$1,%r12
+	movq	0+0(%rbp),%rax
+	movq	%rax,%r15
+	mulq	%r10
+	movq	%rax,%r13
+	movq	%rdx,%r14
+	movq	0+0(%rbp),%rax
+	mulq	%r11
+	imulq	%r12,%r15
+	addq	%rax,%r14
+	adcq	%rdx,%r15
+	movq	8+0(%rbp),%rax
+	movq	%rax,%r9
+	mulq	%r10
+	addq	%rax,%r14
+	adcq	$0,%rdx
+	movq	%rdx,%r10
+	movq	8+0(%rbp),%rax
+	mulq	%r11
+	addq	%rax,%r15
+	adcq	$0,%rdx
+	imulq	%r12,%r9
+	addq	%r10,%r15
+	adcq	%rdx,%r9
+	movq	%r13,%r10
+	movq	%r14,%r11
+	movq	%r15,%r12
+	andq	$3,%r12
+	movq	%r15,%r13
+	andq	$-4,%r13
+	movq	%r9,%r14
+	shrdq	$2,%r9,%r15
+	shrq	$2,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rdi),%rdi
-.Lseal_avx2_tail_256_rounds_and_2xhash:
+2:
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -7547,7 +7399,206 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
+	vpaddd	%ymm12,%ymm8,%ymm8
+	vpxor	%ymm8,%ymm4,%ymm4
+	vpslld	$7,%ymm4,%ymm3
+	vpsrld	$25,%ymm4,%ymm4
+	vpxor	%ymm3,%ymm4,%ymm4
+	vpalignr	$12,%ymm12,%ymm12,%ymm12
+	vpalignr	$8,%ymm8,%ymm8,%ymm8
+	vpalignr	$4,%ymm4,%ymm4,%ymm4
+	addq	0(%rdi),%r10
+	adcq	8+0(%rdi),%r11
+	adcq	$1,%r12
+	movq	0+0(%rbp),%rax
+	movq	%rax,%r15
+	mulq	%r10
+	movq	%rax,%r13
+	movq	%rdx,%r14
+	movq	0+0(%rbp),%rax
+	mulq	%r11
+	imulq	%r12,%r15
+	addq	%rax,%r14
+	adcq	%rdx,%r15
+	movq	8+0(%rbp),%rax
+	movq	%rax,%r9
+	mulq	%r10
+	addq	%rax,%r14
+	adcq	$0,%rdx
+	movq	%rdx,%r10
+	movq	8+0(%rbp),%rax
+	mulq	%r11
+	addq	%rax,%r15
+	adcq	$0,%rdx
+	imulq	%r12,%r9
+	addq	%r10,%r15
+	adcq	%rdx,%r9
+	movq	%r13,%r10
+	movq	%r14,%r11
+	movq	%r15,%r12
+	andq	$3,%r12
+	movq	%r15,%r13
+	andq	$-4,%r13
+	movq	%r9,%r14
+	shrdq	$2,%r9,%r15
+	shrq	$2,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
+	addq	%r15,%r10
+	adcq	%r9,%r11
+	adcq	$0,%r12
+	vpaddd	%ymm4,%ymm0,%ymm0
+	vpxor	%ymm0,%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
+	vpaddd	%ymm12,%ymm8,%ymm8
+	vpxor	%ymm8,%ymm4,%ymm4
+	vpsrld	$20,%ymm4,%ymm3
+	vpslld	$12,%ymm4,%ymm4
+	vpxor	%ymm3,%ymm4,%ymm4
+	vpaddd	%ymm4,%ymm0,%ymm0
+	vpxor	%ymm0,%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
+	vpaddd	%ymm12,%ymm8,%ymm8
+	vpxor	%ymm8,%ymm4,%ymm4
+	vpslld	$7,%ymm4,%ymm3
+	vpsrld	$25,%ymm4,%ymm4
+	vpxor	%ymm3,%ymm4,%ymm4
+	vpalignr	$4,%ymm12,%ymm12,%ymm12
+	vpalignr	$8,%ymm8,%ymm8,%ymm8
+	vpalignr	$12,%ymm4,%ymm4,%ymm4
+	addq	16(%rdi),%r10
+	adcq	8+16(%rdi),%r11
+	adcq	$1,%r12
+	movq	0+0(%rbp),%rax
+	movq	%rax,%r15
+	mulq	%r10
+	movq	%rax,%r13
+	movq	%rdx,%r14
+	movq	0+0(%rbp),%rax
+	mulq	%r11
+	imulq	%r12,%r15
+	addq	%rax,%r14
+	adcq	%rdx,%r15
+	movq	8+0(%rbp),%rax
+	movq	%rax,%r9
+	mulq	%r10
+	addq	%rax,%r14
+	adcq	$0,%rdx
+	movq	%rdx,%r10
+	movq	8+0(%rbp),%rax
+	mulq	%r11
+	addq	%rax,%r15
+	adcq	$0,%rdx
+	imulq	%r12,%r9
+	addq	%r10,%r15
+	adcq	%rdx,%r9
+	movq	%r13,%r10
+	movq	%r14,%r11
+	movq	%r15,%r12
+	andq	$3,%r12
+	movq	%r15,%r13
+	andq	$-4,%r13
+	movq	%r9,%r14
+	shrdq	$2,%r9,%r15
+	shrq	$2,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
+	addq	%r15,%r10
+	adcq	%r9,%r11
+	adcq	$0,%r12
+
+	leaq	32(%rdi),%rdi
+	decq	%rcx
+	jg	1b
+	decq	%r8
+	jge	2b
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	64(%rbp),%ymm4,%ymm4
+	vpaddd	96(%rbp),%ymm8,%ymm8
+	vpaddd	160(%rbp),%ymm12,%ymm12
+	vperm2i128	$0x13,%ymm0,%ymm4,%ymm3
+	vperm2i128	$0x02,%ymm0,%ymm4,%ymm0
+	vperm2i128	$0x02,%ymm8,%ymm12,%ymm4
+	vperm2i128	$0x13,%ymm8,%ymm12,%ymm12
+	vmovdqa	%ymm3,%ymm8
+
+	jmp	seal_avx2_short_loop
+3:
+	cmpq	$256,%rbx
+	ja	3f
+
+seal_avx2_tail_256:
+	vmovdqa	.chacha20_consts(%rip),%ymm0
+	vmovdqa	64(%rbp),%ymm4
+	vmovdqa	96(%rbp),%ymm8
+	vmovdqa	%ymm0,%ymm1
+	vmovdqa	%ymm4,%ymm5
+	vmovdqa	%ymm8,%ymm9
+	vmovdqa	.avx2_inc(%rip),%ymm12
+	vpaddd	160(%rbp),%ymm12,%ymm13
+	vpaddd	%ymm13,%ymm12,%ymm12
+	vmovdqa	%ymm12,160(%rbp)
+	vmovdqa	%ymm13,192(%rbp)
+
+1:
+	addq	0(%rdi),%r10
+	adcq	8+0(%rdi),%r11
+	adcq	$1,%r12
+	movq	0+0(%rbp),%rax
+	movq	%rax,%r15
+	mulq	%r10
+	movq	%rax,%r13
+	movq	%rdx,%r14
+	movq	0+0(%rbp),%rax
+	mulq	%r11
+	imulq	%r12,%r15
+	addq	%rax,%r14
+	adcq	%rdx,%r15
+	movq	8+0(%rbp),%rax
+	movq	%rax,%r9
+	mulq	%r10
+	addq	%rax,%r14
+	adcq	$0,%rdx
+	movq	%rdx,%r10
+	movq	8+0(%rbp),%rax
+	mulq	%r11
+	addq	%rax,%r15
+	adcq	$0,%rdx
+	imulq	%r12,%r9
+	addq	%r10,%r15
+	adcq	%rdx,%r9
+	movq	%r13,%r10
+	movq	%r14,%r11
+	movq	%r15,%r12
+	andq	$3,%r12
+	movq	%r15,%r13
+	andq	$-4,%r13
+	movq	%r9,%r14
+	shrdq	$2,%r9,%r15
+	shrq	$2,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
+	addq	%r15,%r10
+	adcq	%r9,%r11
+	adcq	$0,%r12
+
+	leaq	16(%rdi),%rdi
+2:
+	vpaddd	%ymm4,%ymm0,%ymm0
+	vpxor	%ymm0,%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
+	vpaddd	%ymm12,%ymm8,%ymm8
+	vpxor	%ymm8,%ymm4,%ymm4
+	vpsrld	$20,%ymm4,%ymm3
+	vpslld	$12,%ymm4,%ymm4
+	vpxor	%ymm3,%ymm4,%ymm4
+	vpaddd	%ymm4,%ymm0,%ymm0
+	vpxor	%ymm0,%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -7558,7 +7609,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -7566,7 +7617,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -7575,26 +7626,26 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$12,%ymm13,%ymm13,%ymm13
 	vpalignr	$8,%ymm9,%ymm9,%ymm9
 	vpalignr	$4,%ymm5,%ymm5,%ymm5
-	addq	0+0(%rdi),%r10
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -7610,14 +7661,15 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -7625,7 +7677,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -7636,7 +7688,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -7644,7 +7696,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -7653,26 +7705,26 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm13,%ymm13,%ymm13
 	vpalignr	$8,%ymm9,%ymm9,%ymm9
 	vpalignr	$12,%ymm5,%ymm5,%ymm5
-	addq	0+16(%rdi),%r10
+	addq	16(%rdi),%r10
 	adcq	8+16(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -7688,25 +7740,26 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	32(%rdi),%rdi
 	decq	%rcx
-	jg	.Lseal_avx2_tail_256_rounds_and_3xhash
+	jg	1b
 	decq	%r8
-	jge	.Lseal_avx2_tail_256_rounds_and_2xhash
-	vpaddd	.Lchacha20_consts(%rip),%ymm1,%ymm1
-	vpaddd	0+64(%rbp),%ymm5,%ymm5
-	vpaddd	0+96(%rbp),%ymm9,%ymm9
-	vpaddd	0+192(%rbp),%ymm13,%ymm13
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	0+64(%rbp),%ymm4,%ymm4
-	vpaddd	0+96(%rbp),%ymm8,%ymm8
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
+	jge	2b
+	vpaddd	.chacha20_consts(%rip),%ymm1,%ymm1
+	vpaddd	64(%rbp),%ymm5,%ymm5
+	vpaddd	96(%rbp),%ymm9,%ymm9
+	vpaddd	192(%rbp),%ymm13,%ymm13
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	64(%rbp),%ymm4,%ymm4
+	vpaddd	96(%rbp),%ymm8,%ymm8
+	vpaddd	160(%rbp),%ymm12,%ymm12
 	vperm2i128	$0x02,%ymm1,%ymm5,%ymm3
 	vperm2i128	$0x13,%ymm1,%ymm5,%ymm5
 	vperm2i128	$0x02,%ymm9,%ymm13,%ymm1
@@ -7728,47 +7781,50 @@ chacha20_poly1305_seal_avx2:
 	movq	$128,%rcx
 	leaq	128(%rsi),%rsi
 	subq	$128,%rbx
-	jmp	.Lseal_avx2_short_hash_remainder
+	jmp	seal_avx2_hash
+3:
+	cmpq	$384,%rbx
+	ja	seal_avx2_tail_512
 
-.Lseal_avx2_tail_384:
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
-	vmovdqa	0+64(%rbp),%ymm4
-	vmovdqa	0+96(%rbp),%ymm8
+seal_avx2_tail_384:
+	vmovdqa	.chacha20_consts(%rip),%ymm0
+	vmovdqa	64(%rbp),%ymm4
+	vmovdqa	96(%rbp),%ymm8
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm8,%ymm9
 	vmovdqa	%ymm0,%ymm2
 	vmovdqa	%ymm4,%ymm6
 	vmovdqa	%ymm8,%ymm10
-	vmovdqa	.Lavx2_inc(%rip),%ymm12
-	vpaddd	0+160(%rbp),%ymm12,%ymm14
+	vmovdqa	.avx2_inc(%rip),%ymm12
+	vpaddd	160(%rbp),%ymm12,%ymm14
 	vpaddd	%ymm14,%ymm12,%ymm13
 	vpaddd	%ymm13,%ymm12,%ymm12
-	vmovdqa	%ymm12,0+160(%rbp)
-	vmovdqa	%ymm13,0+192(%rbp)
-	vmovdqa	%ymm14,0+224(%rbp)
+	vmovdqa	%ymm12,160(%rbp)
+	vmovdqa	%ymm13,192(%rbp)
+	vmovdqa	%ymm14,224(%rbp)
 
-.Lseal_avx2_tail_384_rounds_and_3xhash:
-	addq	0+0(%rdi),%r10
+1:
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -7784,17 +7840,18 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rdi),%rdi
-.Lseal_avx2_tail_384_rounds_and_2xhash:
+2:
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -7802,7 +7859,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -7813,7 +7870,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -7821,7 +7878,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -7830,26 +7887,26 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$12,%ymm13,%ymm13,%ymm13
 	vpalignr	$8,%ymm9,%ymm9,%ymm9
 	vpalignr	$4,%ymm5,%ymm5,%ymm5
-	addq	0+0(%rdi),%r10
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -7865,14 +7922,15 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol16(%rip),%ymm14,%ymm14
+	vpshufb	.rol16(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpsrld	$20,%ymm6,%ymm3
@@ -7880,7 +7938,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm6,%ymm6
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol8(%rip),%ymm14,%ymm14
+	vpshufb	.rol8(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpslld	$7,%ymm6,%ymm3
@@ -7891,7 +7949,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm6,%ymm6,%ymm6
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -7899,7 +7957,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -7908,26 +7966,26 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm12,%ymm12,%ymm12
 	vpalignr	$8,%ymm8,%ymm8,%ymm8
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
-	addq	0+16(%rdi),%r10
+	addq	16(%rdi),%r10
 	adcq	8+16(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -7943,14 +8001,15 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -7958,7 +8017,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -7969,7 +8028,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$12,%ymm5,%ymm5,%ymm5
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol16(%rip),%ymm14,%ymm14
+	vpshufb	.rol16(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpsrld	$20,%ymm6,%ymm3
@@ -7977,7 +8036,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm6,%ymm6
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol8(%rip),%ymm14,%ymm14
+	vpshufb	.rol8(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpslld	$7,%ymm6,%ymm3
@@ -7989,21 +8048,21 @@ chacha20_poly1305_seal_avx2:
 
 	leaq	32(%rdi),%rdi
 	decq	%rcx
-	jg	.Lseal_avx2_tail_384_rounds_and_3xhash
+	jg	1b
 	decq	%r8
-	jge	.Lseal_avx2_tail_384_rounds_and_2xhash
-	vpaddd	.Lchacha20_consts(%rip),%ymm2,%ymm2
-	vpaddd	0+64(%rbp),%ymm6,%ymm6
-	vpaddd	0+96(%rbp),%ymm10,%ymm10
-	vpaddd	0+224(%rbp),%ymm14,%ymm14
-	vpaddd	.Lchacha20_consts(%rip),%ymm1,%ymm1
-	vpaddd	0+64(%rbp),%ymm5,%ymm5
-	vpaddd	0+96(%rbp),%ymm9,%ymm9
-	vpaddd	0+192(%rbp),%ymm13,%ymm13
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	0+64(%rbp),%ymm4,%ymm4
-	vpaddd	0+96(%rbp),%ymm8,%ymm8
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
+	jge	2b
+	vpaddd	.chacha20_consts(%rip),%ymm2,%ymm2
+	vpaddd	64(%rbp),%ymm6,%ymm6
+	vpaddd	96(%rbp),%ymm10,%ymm10
+	vpaddd	224(%rbp),%ymm14,%ymm14
+	vpaddd	.chacha20_consts(%rip),%ymm1,%ymm1
+	vpaddd	64(%rbp),%ymm5,%ymm5
+	vpaddd	96(%rbp),%ymm9,%ymm9
+	vpaddd	192(%rbp),%ymm13,%ymm13
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	64(%rbp),%ymm4,%ymm4
+	vpaddd	96(%rbp),%ymm8,%ymm8
+	vpaddd	160(%rbp),%ymm12,%ymm12
 	vperm2i128	$0x02,%ymm2,%ymm6,%ymm3
 	vperm2i128	$0x13,%ymm2,%ymm6,%ymm6
 	vperm2i128	$0x02,%ymm10,%ymm14,%ymm2
@@ -8037,12 +8096,12 @@ chacha20_poly1305_seal_avx2:
 	movq	$256,%rcx
 	leaq	256(%rsi),%rsi
 	subq	$256,%rbx
-	jmp	.Lseal_avx2_short_hash_remainder
+	jmp	seal_avx2_hash
 
-.Lseal_avx2_tail_512:
-	vmovdqa	.Lchacha20_consts(%rip),%ymm0
-	vmovdqa	0+64(%rbp),%ymm4
-	vmovdqa	0+96(%rbp),%ymm8
+seal_avx2_tail_512:
+	vmovdqa	.chacha20_consts(%rip),%ymm0
+	vmovdqa	64(%rbp),%ymm4
+	vmovdqa	96(%rbp),%ymm8
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm8,%ymm9
@@ -8052,28 +8111,28 @@ chacha20_poly1305_seal_avx2:
 	vmovdqa	%ymm0,%ymm3
 	vmovdqa	%ymm4,%ymm7
 	vmovdqa	%ymm8,%ymm11
-	vmovdqa	.Lavx2_inc(%rip),%ymm12
-	vpaddd	0+160(%rbp),%ymm12,%ymm15
+	vmovdqa	.avx2_inc(%rip),%ymm12
+	vpaddd	160(%rbp),%ymm12,%ymm15
 	vpaddd	%ymm15,%ymm12,%ymm14
 	vpaddd	%ymm14,%ymm12,%ymm13
 	vpaddd	%ymm13,%ymm12,%ymm12
-	vmovdqa	%ymm15,0+256(%rbp)
-	vmovdqa	%ymm14,0+224(%rbp)
-	vmovdqa	%ymm13,0+192(%rbp)
-	vmovdqa	%ymm12,0+160(%rbp)
+	vmovdqa	%ymm15,256(%rbp)
+	vmovdqa	%ymm14,224(%rbp)
+	vmovdqa	%ymm13,192(%rbp)
+	vmovdqa	%ymm12,160(%rbp)
 
-.Lseal_avx2_tail_512_rounds_and_3xhash:
-	addq	0+0(%rdi),%r10
+1:
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
@@ -8091,16 +8150,17 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rdi),%rdi
-.Lseal_avx2_tail_512_rounds_and_2xhash:
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
+2:
+	vmovdqa	%ymm8,128(%rbp)
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -8113,18 +8173,19 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
-	vpxor	%ymm10,%ymm6,%ymm6
-	addq	0+0(%rdi),%r10
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
+	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$20,%ymm7,%ymm8
 	vpslld	$32-20,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -8137,18 +8198,18 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$20,%ymm4,%ymm8
 	vpslld	$32-20,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
+	vmovdqa	.rol8(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
-	vpaddd	%ymm4,%ymm0,%ymm0
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
+	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm3,%ymm15,%ymm15
 	vpxor	%ymm2,%ymm14,%ymm14
 	vpxor	%ymm1,%ymm13,%ymm13
@@ -8157,25 +8218,26 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$25,%ymm7,%ymm8
-	vpslld	$32-25,%ymm7,%ymm7
-	vpxor	%ymm8,%ymm7,%ymm7
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
 	adcq	%r11,%r15
 	adcq	$0,%r9
 	imulq	%r12,%rdx
+	vpslld	$32-25,%ymm7,%ymm7
+	vpxor	%ymm8,%ymm7,%ymm7
 	vpsrld	$25,%ymm6,%ymm8
 	vpslld	$32-25,%ymm6,%ymm6
 	vpxor	%ymm8,%ymm6,%ymm6
@@ -8185,7 +8247,7 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$25,%ymm4,%ymm8
 	vpslld	$32-25,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	0+128(%rbp),%ymm8
+	vmovdqa	128(%rbp),%ymm8
 	vpalignr	$4,%ymm7,%ymm7,%ymm7
 	vpalignr	$8,%ymm11,%ymm11,%ymm11
 	vpalignr	$12,%ymm15,%ymm15,%ymm15
@@ -8194,14 +8256,14 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$12,%ymm14,%ymm14,%ymm14
 	vpalignr	$4,%ymm5,%ymm5,%ymm5
 	vpalignr	$8,%ymm9,%ymm9,%ymm9
-	vpalignr	$12,%ymm13,%ymm13,%ymm13
-	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	addq	%rax,%r15
 	adcq	%rdx,%r9
+	vpalignr	$12,%ymm13,%ymm13,%ymm13
+	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpalignr	$8,%ymm8,%ymm8,%ymm8
 	vpalignr	$12,%ymm12,%ymm12,%ymm12
-	vmovdqa	%ymm8,0+128(%rbp)
-	vmovdqa	.Lrol16(%rip),%ymm8
+	vmovdqa	%ymm8,128(%rbp)
+	vmovdqa	.rol16(%rip),%ymm8
 	vpaddd	%ymm7,%ymm3,%ymm3
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
@@ -8214,10 +8276,8 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
-	vpaddd	%ymm14,%ymm10,%ymm10
-	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
 	movq	%r13,%r10
 	movq	%r14,%r11
 	movq	%r15,%r12
@@ -8227,16 +8287,20 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
+	vpaddd	%ymm14,%ymm10,%ymm10
+	vpaddd	%ymm13,%ymm9,%ymm9
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
+	vmovdqa	%ymm8,128(%rbp)
 	vpsrld	$20,%ymm7,%ymm8
 	vpslld	$32-20,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
@@ -8249,12 +8313,12 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$20,%ymm4,%ymm8
 	vpslld	$32-20,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	.Lrol8(%rip),%ymm8
-	vpaddd	%ymm7,%ymm3,%ymm3
-	vpaddd	%ymm6,%ymm2,%ymm2
-	addq	0+16(%rdi),%r10
+	addq	16(%rdi),%r10
 	adcq	8+16(%rdi),%r11
 	adcq	$1,%r12
+	vmovdqa	.rol8(%rip),%ymm8
+	vpaddd	%ymm7,%ymm3,%ymm3
+	vpaddd	%ymm6,%ymm2,%ymm2
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm3,%ymm15,%ymm15
@@ -8265,23 +8329,24 @@ chacha20_poly1305_seal_avx2:
 	vpshufb	%ymm8,%ymm14,%ymm14
 	vpshufb	%ymm8,%ymm13,%ymm13
 	vpshufb	%ymm8,%ymm12,%ymm12
+	vmovdqa	128(%rbp),%ymm8
 	vpaddd	%ymm15,%ymm11,%ymm11
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpaddd	%ymm13,%ymm9,%ymm9
-	vpaddd	0+128(%rbp),%ymm12,%ymm8
+	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm11,%ymm7,%ymm7
 	vpxor	%ymm10,%ymm6,%ymm6
-	vpxor	%ymm9,%ymm5,%ymm5
-	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	%ymm8,0+128(%rbp)
-	vpsrld	$25,%ymm7,%ymm8
-	movq	0+0+0(%rbp),%rdx
+	movq	0+0(%rbp),%rdx
 	movq	%rdx,%r15
 	mulxq	%r10,%r13,%r14
 	mulxq	%r11,%rax,%rdx
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
+	vpxor	%ymm9,%ymm5,%ymm5
+	vpxor	%ymm8,%ymm4,%ymm4
+	vmovdqa	%ymm8,128(%rbp)
+	vpsrld	$25,%ymm7,%ymm8
 	vpslld	$32-25,%ymm7,%ymm7
 	vpxor	%ymm8,%ymm7,%ymm7
 	vpsrld	$25,%ymm6,%ymm8
@@ -8293,22 +8358,22 @@ chacha20_poly1305_seal_avx2:
 	vpsrld	$25,%ymm4,%ymm8
 	vpslld	$32-25,%ymm4,%ymm4
 	vpxor	%ymm8,%ymm4,%ymm4
-	vmovdqa	0+128(%rbp),%ymm8
+	vmovdqa	128(%rbp),%ymm8
 	vpalignr	$12,%ymm7,%ymm7,%ymm7
 	vpalignr	$8,%ymm11,%ymm11,%ymm11
 	vpalignr	$4,%ymm15,%ymm15,%ymm15
 	vpalignr	$12,%ymm6,%ymm6,%ymm6
-	vpalignr	$8,%ymm10,%ymm10,%ymm10
-	vpalignr	$4,%ymm14,%ymm14,%ymm14
-	vpalignr	$12,%ymm5,%ymm5,%ymm5
-	vpalignr	$8,%ymm9,%ymm9,%ymm9
-	movq	8+0+0(%rbp),%rdx
+	movq	8+0(%rbp),%rdx
 	mulxq	%r10,%r10,%rax
 	addq	%r10,%r14
 	mulxq	%r11,%r11,%r9
 	adcq	%r11,%r15
 	adcq	$0,%r9
 	imulq	%r12,%rdx
+	vpalignr	$8,%ymm10,%ymm10,%ymm10
+	vpalignr	$4,%ymm14,%ymm14,%ymm14
+	vpalignr	$12,%ymm5,%ymm5,%ymm5
+	vpalignr	$8,%ymm9,%ymm9,%ymm9
 	vpalignr	$4,%ymm13,%ymm13,%ymm13
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
 	vpalignr	$8,%ymm8,%ymm8,%ymm8
@@ -8325,10 +8390,6 @@ chacha20_poly1305_seal_avx2:
 
 
 
-
-
-
-
 	addq	%rax,%r15
 	adcq	%rdx,%r9
 
@@ -8360,35 +8421,36 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	32(%rdi),%rdi
 	decq	%rcx
-	jg	.Lseal_avx2_tail_512_rounds_and_3xhash
+	jg	1b
 	decq	%r8
-	jge	.Lseal_avx2_tail_512_rounds_and_2xhash
-	vpaddd	.Lchacha20_consts(%rip),%ymm3,%ymm3
-	vpaddd	0+64(%rbp),%ymm7,%ymm7
-	vpaddd	0+96(%rbp),%ymm11,%ymm11
-	vpaddd	0+256(%rbp),%ymm15,%ymm15
-	vpaddd	.Lchacha20_consts(%rip),%ymm2,%ymm2
-	vpaddd	0+64(%rbp),%ymm6,%ymm6
-	vpaddd	0+96(%rbp),%ymm10,%ymm10
-	vpaddd	0+224(%rbp),%ymm14,%ymm14
-	vpaddd	.Lchacha20_consts(%rip),%ymm1,%ymm1
-	vpaddd	0+64(%rbp),%ymm5,%ymm5
-	vpaddd	0+96(%rbp),%ymm9,%ymm9
-	vpaddd	0+192(%rbp),%ymm13,%ymm13
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	0+64(%rbp),%ymm4,%ymm4
-	vpaddd	0+96(%rbp),%ymm8,%ymm8
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
+	jge	2b
+	vpaddd	.chacha20_consts(%rip),%ymm3,%ymm3
+	vpaddd	64(%rbp),%ymm7,%ymm7
+	vpaddd	96(%rbp),%ymm11,%ymm11
+	vpaddd	256(%rbp),%ymm15,%ymm15
+	vpaddd	.chacha20_consts(%rip),%ymm2,%ymm2
+	vpaddd	64(%rbp),%ymm6,%ymm6
+	vpaddd	96(%rbp),%ymm10,%ymm10
+	vpaddd	224(%rbp),%ymm14,%ymm14
+	vpaddd	.chacha20_consts(%rip),%ymm1,%ymm1
+	vpaddd	64(%rbp),%ymm5,%ymm5
+	vpaddd	96(%rbp),%ymm9,%ymm9
+	vpaddd	192(%rbp),%ymm13,%ymm13
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	64(%rbp),%ymm4,%ymm4
+	vpaddd	96(%rbp),%ymm8,%ymm8
+	vpaddd	160(%rbp),%ymm12,%ymm12
 
-	vmovdqa	%ymm0,0+128(%rbp)
+	vmovdqa	%ymm0,128(%rbp)
 	vperm2i128	$0x02,%ymm3,%ymm7,%ymm0
 	vperm2i128	$0x13,%ymm3,%ymm7,%ymm7
 	vperm2i128	$0x02,%ymm11,%ymm15,%ymm3
@@ -8402,7 +8464,7 @@ chacha20_poly1305_seal_avx2:
 	vmovdqu	%ymm7,64+0(%rdi)
 	vmovdqu	%ymm11,96+0(%rdi)
 
-	vmovdqa	0+128(%rbp),%ymm0
+	vmovdqa	128(%rbp),%ymm0
 	vperm2i128	$0x02,%ymm2,%ymm6,%ymm3
 	vperm2i128	$0x13,%ymm2,%ymm6,%ymm6
 	vperm2i128	$0x02,%ymm10,%ymm14,%ymm2
@@ -8436,27 +8498,27 @@ chacha20_poly1305_seal_avx2:
 	movq	$384,%rcx
 	leaq	384(%rsi),%rsi
 	subq	$384,%rbx
-	jmp	.Lseal_avx2_short_hash_remainder
+	jmp	seal_avx2_hash
 
-.Lseal_avx2_320:
+seal_avx2_320:
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm0,%ymm2
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm4,%ymm6
 	vmovdqa	%ymm8,%ymm9
 	vmovdqa	%ymm8,%ymm10
-	vpaddd	.Lavx2_inc(%rip),%ymm12,%ymm13
-	vpaddd	.Lavx2_inc(%rip),%ymm13,%ymm14
+	vpaddd	.avx2_inc(%rip),%ymm12,%ymm13
+	vpaddd	.avx2_inc(%rip),%ymm13,%ymm14
 	vmovdqa	%ymm4,%ymm7
 	vmovdqa	%ymm8,%ymm11
-	vmovdqa	%ymm12,0+160(%rbp)
-	vmovdqa	%ymm13,0+192(%rbp)
-	vmovdqa	%ymm14,0+224(%rbp)
+	vmovdqa	%ymm12,160(%rbp)
+	vmovdqa	%ymm13,192(%rbp)
+	vmovdqa	%ymm14,224(%rbp)
 	movq	$10,%r10
-.Lseal_avx2_320_rounds:
+1:
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -8464,7 +8526,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -8475,7 +8537,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -8483,7 +8545,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -8494,7 +8556,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm5,%ymm5,%ymm5
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol16(%rip),%ymm14,%ymm14
+	vpshufb	.rol16(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpsrld	$20,%ymm6,%ymm3
@@ -8502,7 +8564,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm6,%ymm6
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol8(%rip),%ymm14,%ymm14
+	vpshufb	.rol8(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpslld	$7,%ymm6,%ymm3
@@ -8513,7 +8575,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm6,%ymm6,%ymm6
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -8521,7 +8583,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -8532,7 +8594,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -8540,7 +8602,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -8551,7 +8613,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$12,%ymm5,%ymm5,%ymm5
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol16(%rip),%ymm14,%ymm14
+	vpshufb	.rol16(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpsrld	$20,%ymm6,%ymm3
@@ -8559,7 +8621,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm6,%ymm6
 	vpaddd	%ymm6,%ymm2,%ymm2
 	vpxor	%ymm2,%ymm14,%ymm14
-	vpshufb	.Lrol8(%rip),%ymm14,%ymm14
+	vpshufb	.rol8(%rip),%ymm14,%ymm14
 	vpaddd	%ymm14,%ymm10,%ymm10
 	vpxor	%ymm10,%ymm6,%ymm6
 	vpslld	$7,%ymm6,%ymm3
@@ -8570,23 +8632,23 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$12,%ymm6,%ymm6,%ymm6
 
 	decq	%r10
-	jne	.Lseal_avx2_320_rounds
-	vpaddd	.Lchacha20_consts(%rip),%ymm0,%ymm0
-	vpaddd	.Lchacha20_consts(%rip),%ymm1,%ymm1
-	vpaddd	.Lchacha20_consts(%rip),%ymm2,%ymm2
+	jne	1b
+	vpaddd	.chacha20_consts(%rip),%ymm0,%ymm0
+	vpaddd	.chacha20_consts(%rip),%ymm1,%ymm1
+	vpaddd	.chacha20_consts(%rip),%ymm2,%ymm2
 	vpaddd	%ymm7,%ymm4,%ymm4
 	vpaddd	%ymm7,%ymm5,%ymm5
 	vpaddd	%ymm7,%ymm6,%ymm6
 	vpaddd	%ymm11,%ymm8,%ymm8
 	vpaddd	%ymm11,%ymm9,%ymm9
 	vpaddd	%ymm11,%ymm10,%ymm10
-	vpaddd	0+160(%rbp),%ymm12,%ymm12
-	vpaddd	0+192(%rbp),%ymm13,%ymm13
-	vpaddd	0+224(%rbp),%ymm14,%ymm14
+	vpaddd	160(%rbp),%ymm12,%ymm12
+	vpaddd	192(%rbp),%ymm13,%ymm13
+	vpaddd	224(%rbp),%ymm14,%ymm14
 	vperm2i128	$0x02,%ymm0,%ymm4,%ymm3
 
-	vpand	.Lclamp(%rip),%ymm3,%ymm3
-	vmovdqa	%ymm3,0+0(%rbp)
+	vpand	.clamp(%rip),%ymm3,%ymm3
+	vmovdqa	%ymm3,0(%rbp)
 
 	vperm2i128	$0x13,%ymm0,%ymm4,%ymm0
 	vperm2i128	$0x13,%ymm8,%ymm12,%ymm4
@@ -8598,23 +8660,23 @@ chacha20_poly1305_seal_avx2:
 	vperm2i128	$0x02,%ymm10,%ymm14,%ymm13
 	vperm2i128	$0x13,%ymm2,%ymm6,%ymm2
 	vperm2i128	$0x13,%ymm10,%ymm14,%ymm6
-	jmp	.Lseal_avx2_short
+	jmp	seal_avx2_short
 
-.Lseal_avx2_192:
+seal_avx2_192:
 	vmovdqa	%ymm0,%ymm1
 	vmovdqa	%ymm0,%ymm2
 	vmovdqa	%ymm4,%ymm5
 	vmovdqa	%ymm4,%ymm6
 	vmovdqa	%ymm8,%ymm9
 	vmovdqa	%ymm8,%ymm10
-	vpaddd	.Lavx2_inc(%rip),%ymm12,%ymm13
+	vpaddd	.avx2_inc(%rip),%ymm12,%ymm13
 	vmovdqa	%ymm12,%ymm11
 	vmovdqa	%ymm13,%ymm15
 	movq	$10,%r10
-.Lseal_avx2_192_rounds:
+1:
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -8622,7 +8684,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -8633,7 +8695,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -8641,7 +8703,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -8652,7 +8714,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$4,%ymm5,%ymm5,%ymm5
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol16(%rip),%ymm12,%ymm12
+	vpshufb	.rol16(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpsrld	$20,%ymm4,%ymm3
@@ -8660,7 +8722,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm4,%ymm4
 	vpaddd	%ymm4,%ymm0,%ymm0
 	vpxor	%ymm0,%ymm12,%ymm12
-	vpshufb	.Lrol8(%rip),%ymm12,%ymm12
+	vpshufb	.rol8(%rip),%ymm12,%ymm12
 	vpaddd	%ymm12,%ymm8,%ymm8
 	vpxor	%ymm8,%ymm4,%ymm4
 	vpslld	$7,%ymm4,%ymm3
@@ -8671,7 +8733,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$12,%ymm4,%ymm4,%ymm4
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol16(%rip),%ymm13,%ymm13
+	vpshufb	.rol16(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpsrld	$20,%ymm5,%ymm3
@@ -8679,7 +8741,7 @@ chacha20_poly1305_seal_avx2:
 	vpxor	%ymm3,%ymm5,%ymm5
 	vpaddd	%ymm5,%ymm1,%ymm1
 	vpxor	%ymm1,%ymm13,%ymm13
-	vpshufb	.Lrol8(%rip),%ymm13,%ymm13
+	vpshufb	.rol8(%rip),%ymm13,%ymm13
 	vpaddd	%ymm13,%ymm9,%ymm9
 	vpxor	%ymm9,%ymm5,%ymm5
 	vpslld	$7,%ymm5,%ymm3
@@ -8690,7 +8752,7 @@ chacha20_poly1305_seal_avx2:
 	vpalignr	$12,%ymm5,%ymm5,%ymm5
 
 	decq	%r10
-	jne	.Lseal_avx2_192_rounds
+	jne	1b
 	vpaddd	%ymm2,%ymm0,%ymm0
 	vpaddd	%ymm2,%ymm1,%ymm1
 	vpaddd	%ymm6,%ymm4,%ymm4
@@ -8701,8 +8763,8 @@ chacha20_poly1305_seal_avx2:
 	vpaddd	%ymm15,%ymm13,%ymm13
 	vperm2i128	$0x02,%ymm0,%ymm4,%ymm3
 
-	vpand	.Lclamp(%rip),%ymm3,%ymm3
-	vmovdqa	%ymm3,0+0(%rbp)
+	vpand	.clamp(%rip),%ymm3,%ymm3
+	vmovdqa	%ymm3,0(%rbp)
 
 	vperm2i128	$0x13,%ymm0,%ymm4,%ymm0
 	vperm2i128	$0x13,%ymm8,%ymm12,%ymm4
@@ -8710,33 +8772,33 @@ chacha20_poly1305_seal_avx2:
 	vperm2i128	$0x02,%ymm9,%ymm13,%ymm12
 	vperm2i128	$0x13,%ymm1,%ymm5,%ymm1
 	vperm2i128	$0x13,%ymm9,%ymm13,%ymm5
-.Lseal_avx2_short:
+seal_avx2_short:
 	movq	%r8,%r8
 	call	poly_hash_ad_internal
 	xorq	%rcx,%rcx
-.Lseal_avx2_short_hash_remainder:
+seal_avx2_hash:
 	cmpq	$16,%rcx
-	jb	.Lseal_avx2_short_loop
-	addq	0+0(%rdi),%r10
+	jb	seal_avx2_short_loop
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -8752,44 +8814,45 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	subq	$16,%rcx
 	addq	$16,%rdi
-	jmp	.Lseal_avx2_short_hash_remainder
-.Lseal_avx2_short_loop:
+	jmp	seal_avx2_hash
+seal_avx2_short_loop:
 	cmpq	$32,%rbx
-	jb	.Lseal_avx2_short_tail
+	jb	seal_avx2_short_tail
 	subq	$32,%rbx
 
 	vpxor	(%rsi),%ymm0,%ymm0
 	vmovdqu	%ymm0,(%rdi)
 	leaq	32(%rsi),%rsi
 
-	addq	0+0(%rdi),%r10
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -8805,31 +8868,32 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
-	addq	0+16(%rdi),%r10
+	addq	16(%rdi),%r10
 	adcq	8+16(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -8845,8 +8909,9 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
@@ -8862,34 +8927,34 @@ chacha20_poly1305_seal_avx2:
 	vmovdqa	%ymm13,%ymm9
 	vmovdqa	%ymm2,%ymm13
 	vmovdqa	%ymm6,%ymm2
-	jmp	.Lseal_avx2_short_loop
-.Lseal_avx2_short_tail:
+	jmp	seal_avx2_short_loop
+seal_avx2_short_tail:
 	cmpq	$16,%rbx
-	jb	.Lseal_avx2_exit
+	jb	1f
 	subq	$16,%rbx
 	vpxor	(%rsi),%xmm0,%xmm3
 	vmovdqu	%xmm3,(%rdi)
 	leaq	16(%rsi),%rsi
-	addq	0+0(%rdi),%r10
+	addq	0(%rdi),%r10
 	adcq	8+0(%rdi),%r11
 	adcq	$1,%r12
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	movq	%rax,%r15
 	mulq	%r10
 	movq	%rax,%r13
 	movq	%rdx,%r14
-	movq	0+0+0(%rbp),%rax
+	movq	0+0(%rbp),%rax
 	mulq	%r11
 	imulq	%r12,%r15
 	addq	%rax,%r14
 	adcq	%rdx,%r15
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	movq	%rax,%r9
 	mulq	%r10
 	addq	%rax,%r14
 	adcq	$0,%rdx
 	movq	%rdx,%r10
-	movq	8+0+0(%rbp),%rax
+	movq	8+0(%rbp),%rax
 	mulq	%r11
 	addq	%rax,%r15
 	adcq	$0,%rdx
@@ -8905,18 +8970,18 @@ chacha20_poly1305_seal_avx2:
 	movq	%r9,%r14
 	shrdq	$2,%r9,%r15
 	shrq	$2,%r9
-	addq	%r13,%r15
-	adcq	%r14,%r9
+	addq	%r13,%r10
+	adcq	%r14,%r11
+	adcq	$0,%r12
 	addq	%r15,%r10
 	adcq	%r9,%r11
 	adcq	$0,%r12
 
 	leaq	16(%rdi),%rdi
 	vextracti128	$1,%ymm0,%xmm0
-.Lseal_avx2_exit:
+1:
 	vzeroupper
-	jmp	.Lseal_sse_tail_16
+	jmp	seal_sse_tail_16
 .cfi_endproc	
-.size	chacha20_poly1305_seal_avx2, .-chacha20_poly1305_seal_avx2
 #endif
 .section	.note.GNU-stack,"",@progbits

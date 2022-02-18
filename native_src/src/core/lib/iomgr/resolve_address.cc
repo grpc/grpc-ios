@@ -15,22 +15,36 @@
  * limitations under the License.
  *
  */
+
 #include <grpc/support/port_platform.h>
 
+#include <grpc/support/alloc.h>
 #include "src/core/lib/iomgr/resolve_address.h"
 
-#include <grpc/event_engine/event_engine.h>
-#include <grpc/support/alloc.h>
+grpc_address_resolver_vtable* grpc_resolve_address_impl;
 
-namespace grpc_core {
-const char* kDefaultSecurePort = "https";
-
-namespace {
-DNSResolver* g_dns_resolver;
+void grpc_set_resolver_impl(grpc_address_resolver_vtable* vtable) {
+  grpc_resolve_address_impl = vtable;
 }
 
-void SetDNSResolver(DNSResolver* resolver) { g_dns_resolver = resolver; }
+void grpc_resolve_address(const char* addr, const char* default_port,
+                          grpc_pollset_set* interested_parties,
+                          grpc_closure* on_done,
+                          grpc_resolved_addresses** addresses) {
+  grpc_resolve_address_impl->resolve_address(
+      addr, default_port, interested_parties, on_done, addresses);
+}
 
-DNSResolver* GetDNSResolver() { return g_dns_resolver; }
+void grpc_resolved_addresses_destroy(grpc_resolved_addresses* addrs) {
+  if (addrs != nullptr) {
+    gpr_free(addrs->addrs);
+  }
+  gpr_free(addrs);
+}
 
-}  // namespace grpc_core
+grpc_error* grpc_blocking_resolve_address(const char* name,
+                                          const char* default_port,
+                                          grpc_resolved_addresses** addresses) {
+  return grpc_resolve_address_impl->blocking_resolve_address(name, default_port,
+                                                             addresses);
+}

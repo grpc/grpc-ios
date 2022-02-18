@@ -17,6 +17,7 @@ FROM grpc/clang:latest
 RUN apt-get update && apt-get install -y \
   autoconf \
   libtool \
+  libgflags-dev \
   libgtest-dev \
   && apt-get clean
 

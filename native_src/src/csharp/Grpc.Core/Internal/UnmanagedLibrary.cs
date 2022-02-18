@@ -120,7 +120,7 @@ namespace Grpc.Core.Internal
             {
                 throw new MissingMethodException(string.Format("The native method \"{0}\" does not exist", methodName));
             }
-#if NETSTANDARD
+#if NETSTANDARD1_5 || NETSTANDARD2_0
             return Marshal.GetDelegateForFunctionPointer<T>(ptr);  // non-generic version is obsolete
 #else
             return Marshal.GetDelegateForFunctionPointer(ptr, typeof(T)) as T;  // generic version not available in .NET45
@@ -134,19 +134,9 @@ namespace Grpc.Core.Internal
         {
             if (PlatformApis.IsWindows)
             {
+                // TODO(jtattermusch): populate the error on Windows
                 errorMsg = null;
-                var handle = Windows.LoadLibrary(libraryPath);
-                if (handle == IntPtr.Zero)
-                {
-                    int win32Error = Marshal.GetLastWin32Error();
-                    errorMsg = $"LoadLibrary failed with error {win32Error}";
-                    // add extra info for the most common error ERROR_MOD_NOT_FOUND
-                    if (win32Error == 126)
-                    {
-                        errorMsg += ": The specified module could not be found.";
-                    }
-                }
-                return handle;
+                return Windows.LoadLibrary(libraryPath);
             }
             if (PlatformApis.IsLinux)
             {
@@ -189,13 +179,13 @@ namespace Grpc.Core.Internal
                 }
             }
             throw new FileNotFoundException(
-                String.Format("Error loading native library. Not found in any of the possible locations: {0}",
+                String.Format("Error loading native library. Not found in any of the possible locations: {0}", 
                     string.Join(",", libraryPathAlternatives)));
         }
 
         private static class Windows
         {
-            [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+            [DllImport("kernel32.dll")]
             internal static extern IntPtr LoadLibrary(string filename);
 
             [DllImport("kernel32.dll")]
@@ -227,7 +217,7 @@ namespace Grpc.Core.Internal
         }
 
         /// <summary>
-        /// On Linux systems, using dlopen and dlsym results in
+        /// On Linux systems, using using dlopen and dlsym results in
         /// DllNotFoundException("libdl.so not found") if libc6-dev
         /// is not installed. As a workaround, we load symbols for
         /// dlopen and dlsym from the current process as on Linux

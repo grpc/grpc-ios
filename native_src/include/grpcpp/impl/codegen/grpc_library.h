@@ -19,8 +19,6 @@
 #ifndef GRPCPP_IMPL_CODEGEN_GRPC_LIBRARY_H
 #define GRPCPP_IMPL_CODEGEN_GRPC_LIBRARY_H
 
-// IWYU pragma: private, include <grpcpp/impl/grpc_library.h>
-
 #include <grpcpp/impl/codegen/core_codegen_interface.h>
 
 namespace grpc {
@@ -39,8 +37,7 @@ extern GrpcLibraryInterface* g_glip;
 /// Classes that require gRPC to be initialized should inherit from this class.
 class GrpcLibraryCodegen {
  public:
-  explicit GrpcLibraryCodegen(bool call_grpc_init = true)
-      : grpc_init_called_(false) {
+  GrpcLibraryCodegen(bool call_grpc_init = true) : grpc_init_called_(false) {
     if (call_grpc_init) {
       GPR_CODEGEN_ASSERT(g_glip &&
                          "gRPC library not initialized. See "

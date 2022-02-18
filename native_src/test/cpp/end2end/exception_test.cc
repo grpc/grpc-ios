@@ -16,13 +16,10 @@
  *
  */
 
-#include <grpc/impl/codegen/port_platform.h>
-
 #include <exception>
 #include <memory>
 
-#include <gtest/gtest.h>
-
+#include <grpc/impl/codegen/port_platform.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/server.h>
@@ -31,6 +28,8 @@
 
 #include "src/proto/grpc/testing/echo.grpc.pb.h"
 #include "test/core/util/test_config.h"
+
+#include <gtest/gtest.h>
 
 namespace grpc {
 namespace testing {
@@ -42,7 +41,7 @@ class ExceptingServiceImpl : public ::grpc::testing::EchoTestService::Service {
  public:
   Status Echo(ServerContext* /*server_context*/, const EchoRequest* /*request*/,
               EchoResponse* /*response*/) override {
-    throw -1;
+    throw - 1;
   }
   Status RequestStream(ServerContext* /*context*/,
                        ServerReader<EchoRequest>* /*reader*/,

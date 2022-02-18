@@ -16,36 +16,37 @@ use Google\Protobuf\Internal\GPBUtil;
 class SimpleRequest extends \Google\Protobuf\Internal\Message
 {
     /**
+     * DEPRECATED, don't use. To be removed shortly.
      * Desired payload type in the response from the server.
      * If response_type is RANDOM, server randomly chooses one from other formats.
      *
      * Generated from protobuf field <code>.grpc.testing.PayloadType response_type = 1;</code>
      */
-    protected $response_type = 0;
+    private $response_type = 0;
     /**
      * Desired payload size in the response from the server.
      *
      * Generated from protobuf field <code>int32 response_size = 2;</code>
      */
-    protected $response_size = 0;
+    private $response_size = 0;
     /**
      * Optional input payload sent along with the request.
      *
      * Generated from protobuf field <code>.grpc.testing.Payload payload = 3;</code>
      */
-    protected $payload = null;
+    private $payload = null;
     /**
      * Whether SimpleResponse should include username.
      *
      * Generated from protobuf field <code>bool fill_username = 4;</code>
      */
-    protected $fill_username = false;
+    private $fill_username = false;
     /**
      * Whether SimpleResponse should include OAuth scope.
      *
      * Generated from protobuf field <code>bool fill_oauth_scope = 5;</code>
      */
-    protected $fill_oauth_scope = false;
+    private $fill_oauth_scope = false;
     /**
      * Whether to request the server to compress the response. This field is
      * "nullable" in order to interoperate seamlessly with clients not able to
@@ -54,70 +55,27 @@ class SimpleRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.grpc.testing.BoolValue response_compressed = 6;</code>
      */
-    protected $response_compressed = null;
+    private $response_compressed = null;
     /**
      * Whether server should return a given status
      *
      * Generated from protobuf field <code>.grpc.testing.EchoStatus response_status = 7;</code>
      */
-    protected $response_status = null;
+    private $response_status = null;
     /**
      * Whether the server should expect this request to be compressed.
      *
      * Generated from protobuf field <code>.grpc.testing.BoolValue expect_compressed = 8;</code>
      */
-    protected $expect_compressed = null;
-    /**
-     * Whether SimpleResponse should include server_id.
-     *
-     * Generated from protobuf field <code>bool fill_server_id = 9;</code>
-     */
-    protected $fill_server_id = false;
-    /**
-     * Whether SimpleResponse should include grpclb_route_type.
-     *
-     * Generated from protobuf field <code>bool fill_grpclb_route_type = 10;</code>
-     */
-    protected $fill_grpclb_route_type = false;
+    private $expect_compressed = null;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type int $response_type
-     *           Desired payload type in the response from the server.
-     *           If response_type is RANDOM, server randomly chooses one from other formats.
-     *     @type int $response_size
-     *           Desired payload size in the response from the server.
-     *     @type \Grpc\Testing\Payload $payload
-     *           Optional input payload sent along with the request.
-     *     @type bool $fill_username
-     *           Whether SimpleResponse should include username.
-     *     @type bool $fill_oauth_scope
-     *           Whether SimpleResponse should include OAuth scope.
-     *     @type \Grpc\Testing\BoolValue $response_compressed
-     *           Whether to request the server to compress the response. This field is
-     *           "nullable" in order to interoperate seamlessly with clients not able to
-     *           implement the full compression tests by introspecting the call to verify
-     *           the response's compression status.
-     *     @type \Grpc\Testing\EchoStatus $response_status
-     *           Whether server should return a given status
-     *     @type \Grpc\Testing\BoolValue $expect_compressed
-     *           Whether the server should expect this request to be compressed.
-     *     @type bool $fill_server_id
-     *           Whether SimpleResponse should include server_id.
-     *     @type bool $fill_grpclb_route_type
-     *           Whether SimpleResponse should include grpclb_route_type.
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Messages::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**
+     * DEPRECATED, don't use. To be removed shortly.
      * Desired payload type in the response from the server.
      * If response_type is RANDOM, server randomly chooses one from other formats.
      *
@@ -130,6 +88,7 @@ class SimpleRequest extends \Google\Protobuf\Internal\Message
     }
 
     /**
+     * DEPRECATED, don't use. To be removed shortly.
      * Desired payload type in the response from the server.
      * If response_type is RANDOM, server randomly chooses one from other formats.
      *
@@ -329,58 +288,6 @@ class SimpleRequest extends \Google\Protobuf\Internal\Message
     {
         GPBUtil::checkMessage($var, \Grpc\Testing\BoolValue::class);
         $this->expect_compressed = $var;
-
-        return $this;
-    }
-
-    /**
-     * Whether SimpleResponse should include server_id.
-     *
-     * Generated from protobuf field <code>bool fill_server_id = 9;</code>
-     * @return bool
-     */
-    public function getFillServerId()
-    {
-        return $this->fill_server_id;
-    }
-
-    /**
-     * Whether SimpleResponse should include server_id.
-     *
-     * Generated from protobuf field <code>bool fill_server_id = 9;</code>
-     * @param bool $var
-     * @return $this
-     */
-    public function setFillServerId($var)
-    {
-        GPBUtil::checkBool($var);
-        $this->fill_server_id = $var;
-
-        return $this;
-    }
-
-    /**
-     * Whether SimpleResponse should include grpclb_route_type.
-     *
-     * Generated from protobuf field <code>bool fill_grpclb_route_type = 10;</code>
-     * @return bool
-     */
-    public function getFillGrpclbRouteType()
-    {
-        return $this->fill_grpclb_route_type;
-    }
-
-    /**
-     * Whether SimpleResponse should include grpclb_route_type.
-     *
-     * Generated from protobuf field <code>bool fill_grpclb_route_type = 10;</code>
-     * @param bool $var
-     * @return $this
-     */
-    public function setFillGrpclbRouteType($var)
-    {
-        GPBUtil::checkBool($var);
-        $this->fill_grpclb_route_type = $var;
 
         return $this;
     }

@@ -3,35 +3,23 @@ package goshared
 const mapTpl = `
 	{{ $f := .Field }}{{ $r := .Rules }}
 
-	{{ if $r.GetIgnoreEmpty }}
-		if len({{ accessor . }}) > 0 {
-	{{ end }}
-
 	{{ if $r.GetMinPairs }}
 		{{ if eq $r.GetMinPairs $r.GetMaxPairs }}
 			if len({{ accessor . }}) != {{ $r.GetMinPairs }} {
-				err := {{ err . "value must contain exactly " $r.GetMinPairs " pair(s)" }}
-				if !all { return err }
-				errors = append(errors, err)
+				return {{ err . "value must contain exactly " $r.GetMinPairs " pair(s)" }}
 			}
 		{{ else if $r.MaxPairs }}
 			if l := len({{ accessor . }}); l < {{ $r.GetMinPairs }} || l > {{ $r.GetMaxPairs }} {
-				err := {{ err . "value must contain between " $r.GetMinPairs " and " $r.GetMaxPairs " pairs, inclusive" }}
-				if !all { return err }
-				errors = append(errors, err)
+			 	return {{ err . "value must contain between " $r.GetMinPairs " and " $r.GetMaxPairs " pairs, inclusive" }}
 			}
 		{{ else }}
 			if len({{ accessor . }}) < {{ $r.GetMinPairs }} {
-				err := {{ err . "value must contain at least " $r.GetMinPairs " pair(s)" }}
-				if !all { return err }
-				errors = append(errors, err)
+				return {{ err . "value must contain at least " $r.GetMinPairs " pair(s)" }}
 			}
 		{{ end }}
 	{{ else if $r.MaxPairs }}
 		if len({{ accessor . }}) > {{ $r.GetMaxPairs }} {
-			err := {{ err . "value must contain no more than " $r.GetMaxPairs " pair(s)" }}
-			if !all { return err }
-			errors = append(errors, err)
+			return {{ err . "value must contain no more than " $r.GetMaxPairs " pair(s)" }}
 		}
 	{{ end }}
 
@@ -41,9 +29,7 @@ const mapTpl = `
 
 			{{ if $r.GetNoSparse }}
 				if val == nil {
-					err := {{ errIdx . "key" "value cannot be sparse, all pairs must be non-nil" }}
-					if !all { return err }
-					errors = append(errors, err)
+					return {{ errIdx . "key" "value cannot be sparse, all pairs must be non-nil" }}
 				}
 			{{ end }}
 
@@ -52,9 +38,4 @@ const mapTpl = `
 			{{ render (.Elem "val" "key") }}
 		}
 	{{ end }}
-
-	{{ if $r.GetIgnoreEmpty }}
-		}
-	{{ end }}
-
 `

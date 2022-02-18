@@ -25,8 +25,8 @@
 #import "../../GRPCClient/private/GRPCCore/GRPCCompletionQueue.h"
 #import "../../GRPCClient/private/GRPCCore/GRPCWrappedCall.h"
 
-static NSString *kPhonyHost = @"phony.host";
-static NSString *kPhonyPath = @"/phony/path";
+static NSString *kDummyHost = @"dummy.host";
+static NSString *kDummyPath = @"/dummy/path";
 
 @interface ChannelTests : XCTestCase
 
@@ -40,13 +40,12 @@ static NSString *kPhonyPath = @"/phony/path";
 
 - (void)testPooledChannelCreatingChannel {
   GRPCCallOptions *options = [[GRPCCallOptions alloc] init];
-  GRPCChannelConfiguration *config = [[GRPCChannelConfiguration alloc] initWithHost:kPhonyHost
-                                                                        callOptions:options];
+  GRPCChannelConfiguration *config =
+      [[GRPCChannelConfiguration alloc] initWithHost:kDummyHost callOptions:options];
   GRPCPooledChannel *channel = [[GRPCPooledChannel alloc] initWithChannelConfiguration:config];
   GRPCCompletionQueue *cq = [GRPCCompletionQueue completionQueue];
-  GRPCWrappedCall *wrappedCall = [channel wrappedCallWithPath:kPhonyPath
-                                              completionQueue:cq
-                                                  callOptions:options];
+  GRPCWrappedCall *wrappedCall =
+      [channel wrappedCallWithPath:kDummyPath completionQueue:cq callOptions:options];
   XCTAssertNotNil(channel.wrappedChannel);
   (void)wrappedCall;
 }
@@ -54,22 +53,22 @@ static NSString *kPhonyPath = @"/phony/path";
 - (void)testTimedDestroyChannel {
   const NSTimeInterval kDestroyDelay = 1.0;
   GRPCCallOptions *options = [[GRPCCallOptions alloc] init];
-  GRPCChannelConfiguration *config = [[GRPCChannelConfiguration alloc] initWithHost:kPhonyHost
-                                                                        callOptions:options];
+  GRPCChannelConfiguration *config =
+      [[GRPCChannelConfiguration alloc] initWithHost:kDummyHost callOptions:options];
   GRPCPooledChannel *channel =
       [[GRPCPooledChannel alloc] initWithChannelConfiguration:config destroyDelay:kDestroyDelay];
   GRPCCompletionQueue *cq = [GRPCCompletionQueue completionQueue];
   GRPCWrappedCall *wrappedCall;
   GRPCChannel *wrappedChannel;
   @autoreleasepool {
-    wrappedCall = [channel wrappedCallWithPath:kPhonyPath completionQueue:cq callOptions:options];
+    wrappedCall = [channel wrappedCallWithPath:kDummyPath completionQueue:cq callOptions:options];
     XCTAssertNotNil(channel.wrappedChannel);
 
     // Unref and ref channel immediately; expect using the same raw channel.
     wrappedChannel = channel.wrappedChannel;
 
     wrappedCall = nil;
-    wrappedCall = [channel wrappedCallWithPath:kPhonyPath completionQueue:cq callOptions:options];
+    wrappedCall = [channel wrappedCallWithPath:kDummyPath completionQueue:cq callOptions:options];
     XCTAssertEqual(channel.wrappedChannel, wrappedChannel);
 
     // Unref and ref channel after destroy delay; expect a new raw channel.
@@ -77,21 +76,20 @@ static NSString *kPhonyPath = @"/phony/path";
   }
   sleep(kDestroyDelay + 1);
   XCTAssertNil(channel.wrappedChannel);
-  wrappedCall = [channel wrappedCallWithPath:kPhonyPath completionQueue:cq callOptions:options];
+  wrappedCall = [channel wrappedCallWithPath:kDummyPath completionQueue:cq callOptions:options];
   XCTAssertNotEqual(channel.wrappedChannel, wrappedChannel);
 }
 
 - (void)testDisconnect {
   const NSTimeInterval kDestroyDelay = 1.0;
   GRPCCallOptions *options = [[GRPCCallOptions alloc] init];
-  GRPCChannelConfiguration *config = [[GRPCChannelConfiguration alloc] initWithHost:kPhonyHost
-                                                                        callOptions:options];
+  GRPCChannelConfiguration *config =
+      [[GRPCChannelConfiguration alloc] initWithHost:kDummyHost callOptions:options];
   GRPCPooledChannel *channel =
       [[GRPCPooledChannel alloc] initWithChannelConfiguration:config destroyDelay:kDestroyDelay];
   GRPCCompletionQueue *cq = [GRPCCompletionQueue completionQueue];
-  GRPCWrappedCall *wrappedCall = [channel wrappedCallWithPath:kPhonyPath
-                                              completionQueue:cq
-                                                  callOptions:options];
+  GRPCWrappedCall *wrappedCall =
+      [channel wrappedCallWithPath:kDummyPath completionQueue:cq callOptions:options];
   XCTAssertNotNil(channel.wrappedChannel);
 
   // Disconnect; expect wrapped channel to be dropped
@@ -100,9 +98,8 @@ static NSString *kPhonyPath = @"/phony/path";
 
   // Create a new call and unref the old call; confirm that destroy of the old call does not make
   // the channel disconnect, even after the destroy delay.
-  GRPCWrappedCall *wrappedCall2 = [channel wrappedCallWithPath:kPhonyPath
-                                               completionQueue:cq
-                                                   callOptions:options];
+  GRPCWrappedCall *wrappedCall2 =
+      [channel wrappedCallWithPath:kDummyPath completionQueue:cq callOptions:options];
   XCTAssertNotNil(channel.wrappedChannel);
   GRPCChannel *wrappedChannel = channel.wrappedChannel;
   wrappedCall = nil;

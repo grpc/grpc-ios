@@ -16,25 +16,15 @@ class Bucket extends \Google\Protobuf\Internal\Message
     /**
      * Generated from protobuf field <code>double start = 1;</code>
      */
-    protected $start = 0.0;
+    private $start = 0.0;
     /**
      * Generated from protobuf field <code>uint64 count = 2;</code>
      */
-    protected $count = 0;
+    private $count = 0;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type float $start
-     *     @type int|string $count
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Core\Stats::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

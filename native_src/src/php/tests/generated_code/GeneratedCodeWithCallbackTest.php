@@ -20,13 +20,11 @@ require_once dirname(__FILE__).'/AbstractGeneratedCodeTest.php';
 
 class GeneratedCodeWithCallbackTest extends AbstractGeneratedCodeTest
 {
-    public function setUp(): void
+    public function setUp()
     {
         self::$client = new Math\MathClient(
         getenv('GRPC_TEST_HOST'),
-        ['credentials' => Grpc\ChannelCredentials::createSsl(
-            file_get_contents(dirname(__FILE__).'/../data/ca.pem')),
-         'grpc.ssl_target_name_override' => 'foo.test.google.fr',
+        ['credentials' => Grpc\ChannelCredentials::createInsecure(),
          'update_metadata' => function ($a_hash,
                                         $client = []) {
                                 $a_copy = $a_hash;
@@ -34,11 +32,10 @@ class GeneratedCodeWithCallbackTest extends AbstractGeneratedCodeTest
 
                                 return $a_copy;
                               },
-            ] + self::$clientOptions
-        );
+         ]);
     }
 
-    public function tearDown(): void
+    public function tearDown()
     {
         self::$client->close();
     }

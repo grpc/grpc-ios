@@ -21,10 +21,7 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <string>
-
-#include "absl/container/inlined_vector.h"
-
+#include "src/core/lib/gprpp/inlined_vector.h"
 #include "src/core/lib/gprpp/ref_counted_ptr.h"
 #include "src/core/lib/security/credentials/credentials.h"
 
@@ -63,13 +60,6 @@ class grpc_composite_channel_credentials : public grpc_channel_credentials {
   grpc_call_credentials* mutable_call_creds() { return call_creds_.get(); }
 
  private:
-  int cmp_impl(const grpc_channel_credentials* other) const override {
-    auto* o = static_cast<const grpc_composite_channel_credentials*>(other);
-    int r = inner_creds_->cmp(o->inner_creds_.get());
-    if (r != 0) return r;
-    return call_creds_->cmp(o->call_creds_.get());
-  }
-
   grpc_core::RefCountedPtr<grpc_channel_credentials> inner_creds_;
   grpc_core::RefCountedPtr<grpc_call_credentials> call_creds_;
 };
@@ -79,7 +69,8 @@ class grpc_composite_channel_credentials : public grpc_channel_credentials {
 class grpc_composite_call_credentials : public grpc_call_credentials {
  public:
   using CallCredentialsList =
-      absl::InlinedVector<grpc_core::RefCountedPtr<grpc_call_credentials>, 2>;
+      grpc_core::InlinedVector<grpc_core::RefCountedPtr<grpc_call_credentials>,
+                               2>;
 
   grpc_composite_call_credentials(
       grpc_core::RefCountedPtr<grpc_call_credentials> creds1,
@@ -88,28 +79,20 @@ class grpc_composite_call_credentials : public grpc_call_credentials {
 
   bool get_request_metadata(grpc_polling_entity* pollent,
                             grpc_auth_metadata_context context,
-                            grpc_core::CredentialsMetadataArray* md_array,
+                            grpc_credentials_mdelem_array* md_array,
                             grpc_closure* on_request_metadata,
-                            grpc_error_handle* error) override;
+                            grpc_error** error) override;
 
-  void cancel_get_request_metadata(
-      grpc_core::CredentialsMetadataArray* md_array,
-      grpc_error_handle error) override;
+  void cancel_get_request_metadata(grpc_credentials_mdelem_array* md_array,
+                                   grpc_error* error) override;
 
   grpc_security_level min_security_level() const override {
     return min_security_level_;
   }
 
   const CallCredentialsList& inner() const { return inner_; }
-  std::string debug_string() override;
 
  private:
-  int cmp_impl(const grpc_call_credentials* other) const override {
-    // TODO(yashykt): Check if we can do something better here
-    return grpc_core::QsortCompare(
-        static_cast<const grpc_call_credentials*>(this), other);
-  }
-
   void push_to_inner(grpc_core::RefCountedPtr<grpc_call_credentials> creds,
                      bool is_composite);
   grpc_security_level min_security_level_;

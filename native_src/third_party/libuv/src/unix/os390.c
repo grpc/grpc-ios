@@ -923,7 +923,7 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
         continue;
 
       ep = loop->ep;
-      if (pe->is_msg) {
+      if (fd == ep->msg_queue) {
         os390_message_queue_handler(ep);
         continue;
       }

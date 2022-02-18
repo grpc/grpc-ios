@@ -231,9 +231,8 @@ const FileDescriptor* Importer::Import(const std::string& filename) {
   return pool_.FindFileByName(filename);
 }
 
-void Importer::AddUnusedImportTrackFile(const std::string& file_name,
-                                        bool is_error) {
-  pool_.AddUnusedImportTrackFile(file_name, is_error);
+void Importer::AddUnusedImportTrackFile(const std::string& file_name) {
+  pool_.AddUnusedImportTrackFile(file_name);
 }
 
 void Importer::ClearUnusedImportTrackFiles() {
@@ -290,11 +289,11 @@ static std::string CanonicalizePath(std::string path) {
   std::vector<std::string> canonical_parts;
   std::vector<std::string> parts = Split(
       path, "/", true);  // Note:  Removes empty parts.
-  for (const std::string& part : parts) {
-    if (part == ".") {
+  for (int i = 0; i < parts.size(); i++) {
+    if (parts[i] == ".") {
       // Ignore.
     } else {
-      canonical_parts.push_back(part);
+      canonical_parts.push_back(parts[i]);
     }
   }
   std::string result = Join(canonical_parts, "/");
@@ -464,10 +463,10 @@ io::ZeroCopyInputStream* DiskSourceTree::OpenVirtualFile(
     return NULL;
   }
 
-  for (const auto& mapping : mappings_) {
+  for (int i = 0; i < mappings_.size(); i++) {
     std::string temp_disk_file;
-    if (ApplyMapping(virtual_file, mapping.virtual_path, mapping.disk_path,
-                     &temp_disk_file)) {
+    if (ApplyMapping(virtual_file, mappings_[i].virtual_path,
+                     mappings_[i].disk_path, &temp_disk_file)) {
       io::ZeroCopyInputStream* stream = OpenDiskFile(temp_disk_file);
       if (stream != NULL) {
         if (disk_file != NULL) {
@@ -490,22 +489,6 @@ io::ZeroCopyInputStream* DiskSourceTree::OpenVirtualFile(
 
 io::ZeroCopyInputStream* DiskSourceTree::OpenDiskFile(
     const std::string& filename) {
-  struct stat sb;
-  int ret = 0;
-  do {
-    ret = stat(filename.c_str(), &sb);
-  } while (ret != 0 && errno == EINTR);
-#if defined(_WIN32)
-  if (ret == 0 && sb.st_mode & S_IFDIR) {
-    last_error_message_ = "Input file is a directory.";
-    return NULL;
-  }
-#else
-  if (ret == 0 && S_ISDIR(sb.st_mode)) {
-    last_error_message_ = "Input file is a directory.";
-    return NULL;
-  }
-#endif
   int file_descriptor;
   do {
     file_descriptor = open(filename.c_str(), O_RDONLY);

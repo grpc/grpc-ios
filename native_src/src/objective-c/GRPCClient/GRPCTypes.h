@@ -16,8 +16,6 @@
  *
  */
 
-#import <Foundation/Foundation.h>
-
 /**
  * gRPC error codes.
  * Note that a few of these are never produced by the gRPC libraries, but are of
@@ -192,6 +190,3 @@ typedef char* _Nonnull GRPCTransportID;
 - (void)getTokenWithHandler:(void (^_Nonnull)(NSString* _Nullable token))handler;
 
 @end
-
-/** gRPC metadata dictionary typedef */
-typedef NSDictionary<NSString*, id> GRPCMetadataDictionary;

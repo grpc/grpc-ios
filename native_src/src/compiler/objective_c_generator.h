@@ -29,8 +29,9 @@ struct Parameters {
 };
 
 using ::grpc::protobuf::FileDescriptor;
+using ::grpc::protobuf::FileDescriptor;
 using ::grpc::protobuf::ServiceDescriptor;
-using ::std::string;
+using ::grpc::string;
 
 // Returns forward declaration of classes in the generated header file.
 string GetAllMessageClasses(const FileDescriptor* file);

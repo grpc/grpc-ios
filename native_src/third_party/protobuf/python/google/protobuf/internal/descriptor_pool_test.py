@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+#
 # Protocol Buffers - Google's data interchange format
 # Copyright 2008 Google Inc.  All rights reserved.
 # https://developers.google.com/protocol-buffers/
@@ -34,8 +36,11 @@ __author__ = 'matthewtoia@google.com (Matt Toia)'
 
 import copy
 import os
-import unittest
-import warnings
+
+try:
+  import unittest2 as unittest  #PY26
+except ImportError:
+  import unittest
 
 from google.protobuf import unittest_import_pb2
 from google.protobuf import unittest_import_public_pb2
@@ -56,9 +61,6 @@ from google.protobuf import descriptor_pool
 from google.protobuf import message_factory
 from google.protobuf import symbol_database
 
-
-
-warnings.simplefilter('error', DeprecationWarning)
 
 
 class DescriptorPoolTestBase(object):
@@ -334,10 +336,12 @@ class DescriptorPoolTestBase(object):
         'google.protobuf.python.internal.Factory2Message')
     # An extension defined in a message.
     one_more_field = factory2_message.extensions_by_name['one_more_field']
+    self.pool.AddExtensionDescriptor(one_more_field)
     # An extension defined at file scope.
     factory_test2 = self.pool.FindFileByName(
         'google/protobuf/internal/factory_test2.proto')
     another_field = factory_test2.extensions_by_name['another_field']
+    self.pool.AddExtensionDescriptor(another_field)
 
     extensions = self.pool.FindAllExtensions(factory1_message)
     expected_extension_numbers = set([one_more_field, another_field])
@@ -352,9 +356,16 @@ class DescriptorPoolTestBase(object):
   def testFindExtensionByNumber(self):
     factory1_message = self.pool.FindMessageTypeByName(
         'google.protobuf.python.internal.Factory1Message')
-    # Build factory_test2.proto which will put extensions to the pool
-    self.pool.FindFileByName(
+    factory2_message = self.pool.FindMessageTypeByName(
+        'google.protobuf.python.internal.Factory2Message')
+    # An extension defined in a message.
+    one_more_field = factory2_message.extensions_by_name['one_more_field']
+    self.pool.AddExtensionDescriptor(one_more_field)
+    # An extension defined at file scope.
+    factory_test2 = self.pool.FindFileByName(
         'google/protobuf/internal/factory_test2.proto')
+    another_field = factory_test2.extensions_by_name['another_field']
+    self.pool.AddExtensionDescriptor(another_field)
 
     # An extension defined in a message.
     extension = self.pool.FindExtensionByNumber(factory1_message, 1001)
@@ -401,19 +412,9 @@ class DescriptorPoolTestBase(object):
         # TODO(jieluo): Fix python and cpp extension diff.
         return
     self.pool = descriptor_pool.DescriptorPool()
-    file1 = self.pool.AddSerializedFile(
-        self.factory_test1_fd.SerializeToString())
-    file2 = self.pool.AddSerializedFile(
-        self.factory_test2_fd.SerializeToString())
-    self.assertEqual(file1.name,
-                     'google/protobuf/internal/factory_test1.proto')
-    self.assertEqual(file2.name,
-                     'google/protobuf/internal/factory_test2.proto')
+    self.pool.AddSerializedFile(self.factory_test1_fd.SerializeToString())
+    self.pool.AddSerializedFile(self.factory_test2_fd.SerializeToString())
     self.testFindMessageTypeByName()
-    file_json = self.pool.AddSerializedFile(
-        more_messages_pb2.DESCRIPTOR.serialized_pb)
-    field = file_json.message_types_by_name['class'].fields_by_name['int_field']
-    self.assertEqual(field.json_name, 'json_int')
 
 
   def testEnumDefaultValue(self):
@@ -532,13 +533,13 @@ class DescriptorPoolTestBase(object):
     else:
       pool = copy.deepcopy(self.pool)
       file_descriptor = unittest_pb2.DESCRIPTOR
-      pool._AddDescriptor(
+      pool.AddDescriptor(
           file_descriptor.message_types_by_name['TestAllTypes'])
-      pool._AddEnumDescriptor(
+      pool.AddEnumDescriptor(
           file_descriptor.enum_types_by_name['ForeignEnum'])
-      pool._AddServiceDescriptor(
+      pool.AddServiceDescriptor(
           file_descriptor.services_by_name['TestService'])
-      pool._AddExtensionDescriptor(
+      pool.AddExtensionDescriptor(
           file_descriptor.extensions_by_name['optional_int32_extension'])
       pool.Add(unittest_fd)
       pool.Add(conflict_fd)
@@ -872,7 +873,7 @@ class AddDescriptorTest(unittest.TestCase):
 
   def _TestMessage(self, prefix):
     pool = descriptor_pool.DescriptorPool()
-    pool._AddDescriptor(unittest_pb2.TestAllTypes.DESCRIPTOR)
+    pool.AddDescriptor(unittest_pb2.TestAllTypes.DESCRIPTOR)
     self.assertEqual(
         'protobuf_unittest.TestAllTypes',
         pool.FindMessageTypeByName(
@@ -883,7 +884,7 @@ class AddDescriptorTest(unittest.TestCase):
       pool.FindMessageTypeByName(
           prefix + 'protobuf_unittest.TestAllTypes.NestedMessage')
 
-    pool._AddDescriptor(unittest_pb2.TestAllTypes.NestedMessage.DESCRIPTOR)
+    pool.AddDescriptor(unittest_pb2.TestAllTypes.NestedMessage.DESCRIPTOR)
     self.assertEqual(
         'protobuf_unittest.TestAllTypes.NestedMessage',
         pool.FindMessageTypeByName(
@@ -908,10 +909,7 @@ class AddDescriptorTest(unittest.TestCase):
 
   def _TestEnum(self, prefix):
     pool = descriptor_pool.DescriptorPool()
-    if api_implementation.Type() == 'cpp':
-      pool.AddEnumDescriptor(unittest_pb2.ForeignEnum.DESCRIPTOR)
-    else:
-      pool._AddEnumDescriptor(unittest_pb2.ForeignEnum.DESCRIPTOR)
+    pool.AddEnumDescriptor(unittest_pb2.ForeignEnum.DESCRIPTOR)
     self.assertEqual(
         'protobuf_unittest.ForeignEnum',
         pool.FindEnumTypeByName(
@@ -922,10 +920,7 @@ class AddDescriptorTest(unittest.TestCase):
       pool.FindEnumTypeByName(
           prefix + 'protobuf_unittest.ForeignEnum.NestedEnum')
 
-    if api_implementation.Type() == 'cpp':
-      pool.AddEnumDescriptor(unittest_pb2.TestAllTypes.NestedEnum.DESCRIPTOR)
-    else:
-      pool._AddEnumDescriptor(unittest_pb2.TestAllTypes.NestedEnum.DESCRIPTOR)
+    pool.AddEnumDescriptor(unittest_pb2.TestAllTypes.NestedEnum.DESCRIPTOR)
     self.assertEqual(
         'protobuf_unittest.TestAllTypes.NestedEnum',
         pool.FindEnumTypeByName(
@@ -954,7 +949,7 @@ class AddDescriptorTest(unittest.TestCase):
     pool = descriptor_pool.DescriptorPool()
     with self.assertRaises(KeyError):
       pool.FindServiceByName('protobuf_unittest.TestService')
-    pool._AddServiceDescriptor(unittest_pb2._TESTSERVICE)
+    pool.AddServiceDescriptor(unittest_pb2._TESTSERVICE)
     self.assertEqual(
         'protobuf_unittest.TestService',
         pool.FindServiceByName('protobuf_unittest.TestService').full_name)
@@ -963,7 +958,7 @@ class AddDescriptorTest(unittest.TestCase):
                    'With the cpp implementation, Add() must be called first')
   def testFile(self):
     pool = descriptor_pool.DescriptorPool()
-    pool._AddFileDescriptor(unittest_pb2.DESCRIPTOR)
+    pool.AddFileDescriptor(unittest_pb2.DESCRIPTOR)
     self.assertEqual(
         'google/protobuf/unittest.proto',
         pool.FindFileByName(
@@ -1037,28 +1032,16 @@ class AddDescriptorTest(unittest.TestCase):
 
   def testAddTypeError(self):
     pool = descriptor_pool.DescriptorPool()
-    if api_implementation.Type() == 'cpp':
-      with self.assertRaises(TypeError):
-        pool.AddDescriptor(0)
-      with self.assertRaises(TypeError):
-        pool.AddEnumDescriptor(0)
-      with self.assertRaises(TypeError):
-        pool.AddServiceDescriptor(0)
-      with self.assertRaises(TypeError):
-        pool.AddExtensionDescriptor(0)
-      with self.assertRaises(TypeError):
-        pool.AddFileDescriptor(0)
-    else:
-      with self.assertRaises(TypeError):
-        pool._AddDescriptor(0)
-      with self.assertRaises(TypeError):
-        pool._AddEnumDescriptor(0)
-      with self.assertRaises(TypeError):
-        pool._AddServiceDescriptor(0)
-      with self.assertRaises(TypeError):
-        pool._AddExtensionDescriptor(0)
-      with self.assertRaises(TypeError):
-        pool._AddFileDescriptor(0)
+    with self.assertRaises(TypeError):
+      pool.AddDescriptor(0)
+    with self.assertRaises(TypeError):
+      pool.AddEnumDescriptor(0)
+    with self.assertRaises(TypeError):
+      pool.AddServiceDescriptor(0)
+    with self.assertRaises(TypeError):
+      pool.AddExtensionDescriptor(0)
+    with self.assertRaises(TypeError):
+      pool.AddFileDescriptor(0)
 
 
 TEST1_FILE = ProtoFile(

@@ -34,7 +34,7 @@
 #include "test/core/util/subprocess.h"
 #include "test/core/util/test_config.h"
 
-static void* tag(intptr_t t) { return reinterpret_cast<void*>(t); }
+static void* tag(intptr_t t) { return (void*)t; }
 
 static void run_test(const char* target, size_t nops) {
   grpc_channel_credentials* ssl_creds =
@@ -66,7 +66,7 @@ static void run_test(const char* target, size_t nops) {
   grpc_metadata_array_init(&initial_metadata_recv);
   grpc_metadata_array_init(&trailing_metadata_recv);
 
-  channel = grpc_channel_create(target, ssl_creds, &args);
+  channel = grpc_secure_channel_create(ssl_creds, target, &args, nullptr);
   grpc_slice host = grpc_slice_from_static_string("foo.test.google.fr:1234");
   c = grpc_channel_create_call(channel, nullptr, GRPC_PROPAGATE_DEFAULTS, cq,
                                grpc_slice_from_static_string("/foo"), &host,
@@ -145,15 +145,16 @@ int main(int argc, char** argv) {
   gpr_asprintf(&args[0], "%s/bad_ssl_%s_server%s", root, test,
                gpr_subprocess_binary_extension());
   args[1] = const_cast<char*>("--bind");
-  std::string joined = grpc_core::JoinHostPort("::", port);
-  args[2] = const_cast<char*>(joined.c_str());
-  svr = gpr_subprocess_create(4, const_cast<const char**>(args));
+  grpc_core::UniquePtr<char> joined;
+  grpc_core::JoinHostPort(&joined, "::", port);
+  args[2] = joined.get();
+  svr = gpr_subprocess_create(4, (const char**)args);
   gpr_free(args[0]);
 
   for (i = 3; i <= 4; i++) {
     grpc_init();
     run_test(args[2], i);
-    grpc_shutdown();
+    grpc_shutdown_blocking();
   }
 
   gpr_subprocess_interrupt(svr);

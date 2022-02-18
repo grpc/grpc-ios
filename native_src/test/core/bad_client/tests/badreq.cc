@@ -16,12 +16,13 @@
  *
  */
 
+#include "test/core/bad_client/bad_client.h"
+
 #include <string.h>
 
 #include <grpc/grpc.h>
 
 #include "src/core/lib/surface/server.h"
-#include "test/core/bad_client/bad_client.h"
 #include "test/core/end2end/cq_verifier.h"
 
 #define PFX_STR                      \
@@ -30,7 +31,7 @@
 
 static void verifier(grpc_server* server, grpc_completion_queue* cq,
                      void* /*registered_method*/) {
-  while (grpc_core::Server::FromC(server)->HasOpenConnections()) {
+  while (grpc_server_has_open_connections(server)) {
     GPR_ASSERT(grpc_completion_queue_next(
                    cq, grpc_timeout_milliseconds_to_deadline(20), nullptr)
                    .type == GRPC_QUEUE_TIMEOUT);

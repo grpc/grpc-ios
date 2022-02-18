@@ -16,117 +16,73 @@ class RequestParams extends \Google\Protobuf\Internal\Message
     /**
      * Generated from protobuf field <code>bool echo_deadline = 1;</code>
      */
-    protected $echo_deadline = false;
+    private $echo_deadline = false;
     /**
      * Generated from protobuf field <code>int32 client_cancel_after_us = 2;</code>
      */
-    protected $client_cancel_after_us = 0;
+    private $client_cancel_after_us = 0;
     /**
      * Generated from protobuf field <code>int32 server_cancel_after_us = 3;</code>
      */
-    protected $server_cancel_after_us = 0;
+    private $server_cancel_after_us = 0;
     /**
      * Generated from protobuf field <code>bool echo_metadata = 4;</code>
      */
-    protected $echo_metadata = false;
+    private $echo_metadata = false;
     /**
      * Generated from protobuf field <code>bool check_auth_context = 5;</code>
      */
-    protected $check_auth_context = false;
+    private $check_auth_context = false;
     /**
      * Generated from protobuf field <code>int32 response_message_length = 6;</code>
      */
-    protected $response_message_length = 0;
+    private $response_message_length = 0;
     /**
      * Generated from protobuf field <code>bool echo_peer = 7;</code>
      */
-    protected $echo_peer = false;
+    private $echo_peer = false;
     /**
      * will force check_auth_context.
      *
      * Generated from protobuf field <code>string expected_client_identity = 8;</code>
      */
-    protected $expected_client_identity = '';
+    private $expected_client_identity = '';
     /**
      * Generated from protobuf field <code>bool skip_cancelled_check = 9;</code>
      */
-    protected $skip_cancelled_check = false;
+    private $skip_cancelled_check = false;
     /**
      * Generated from protobuf field <code>string expected_transport_security_type = 10;</code>
      */
-    protected $expected_transport_security_type = '';
+    private $expected_transport_security_type = '';
     /**
      * Generated from protobuf field <code>.grpc.testing.DebugInfo debug_info = 11;</code>
      */
-    protected $debug_info = null;
+    private $debug_info = null;
     /**
      * Server should not see a request with this set.
      *
      * Generated from protobuf field <code>bool server_die = 12;</code>
      */
-    protected $server_die = false;
+    private $server_die = false;
     /**
      * Generated from protobuf field <code>string binary_error_details = 13;</code>
      */
-    protected $binary_error_details = '';
+    private $binary_error_details = '';
     /**
      * Generated from protobuf field <code>.grpc.testing.ErrorStatus expected_error = 14;</code>
      */
-    protected $expected_error = null;
+    private $expected_error = null;
     /**
-     * sleep when invoking server for deadline tests
+     * Amount to sleep when invoking server
      *
      * Generated from protobuf field <code>int32 server_sleep_us = 15;</code>
      */
-    protected $server_sleep_us = 0;
-    /**
-     * which backend to send request to
-     *
-     * Generated from protobuf field <code>int32 backend_channel_idx = 16;</code>
-     */
-    protected $backend_channel_idx = 0;
-    /**
-     * Generated from protobuf field <code>bool echo_metadata_initially = 17;</code>
-     */
-    protected $echo_metadata_initially = false;
-    /**
-     * Generated from protobuf field <code>bool server_notify_client_when_started = 18;</code>
-     */
-    protected $server_notify_client_when_started = false;
+    private $server_sleep_us = 0;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type bool $echo_deadline
-     *     @type int $client_cancel_after_us
-     *     @type int $server_cancel_after_us
-     *     @type bool $echo_metadata
-     *     @type bool $check_auth_context
-     *     @type int $response_message_length
-     *     @type bool $echo_peer
-     *     @type string $expected_client_identity
-     *           will force check_auth_context.
-     *     @type bool $skip_cancelled_check
-     *     @type string $expected_transport_security_type
-     *     @type \Grpc\Testing\DebugInfo $debug_info
-     *     @type bool $server_die
-     *           Server should not see a request with this set.
-     *     @type string $binary_error_details
-     *     @type \Grpc\Testing\ErrorStatus $expected_error
-     *     @type int $server_sleep_us
-     *           sleep when invoking server for deadline tests
-     *     @type int $backend_channel_idx
-     *           which backend to send request to
-     *     @type bool $echo_metadata_initially
-     *     @type bool $server_notify_client_when_started
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\EchoMessages::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**
@@ -446,7 +402,7 @@ class RequestParams extends \Google\Protobuf\Internal\Message
     }
 
     /**
-     * sleep when invoking server for deadline tests
+     * Amount to sleep when invoking server
      *
      * Generated from protobuf field <code>int32 server_sleep_us = 15;</code>
      * @return int
@@ -457,7 +413,7 @@ class RequestParams extends \Google\Protobuf\Internal\Message
     }
 
     /**
-     * sleep when invoking server for deadline tests
+     * Amount to sleep when invoking server
      *
      * Generated from protobuf field <code>int32 server_sleep_us = 15;</code>
      * @param int $var
@@ -467,76 +423,6 @@ class RequestParams extends \Google\Protobuf\Internal\Message
     {
         GPBUtil::checkInt32($var);
         $this->server_sleep_us = $var;
-
-        return $this;
-    }
-
-    /**
-     * which backend to send request to
-     *
-     * Generated from protobuf field <code>int32 backend_channel_idx = 16;</code>
-     * @return int
-     */
-    public function getBackendChannelIdx()
-    {
-        return $this->backend_channel_idx;
-    }
-
-    /**
-     * which backend to send request to
-     *
-     * Generated from protobuf field <code>int32 backend_channel_idx = 16;</code>
-     * @param int $var
-     * @return $this
-     */
-    public function setBackendChannelIdx($var)
-    {
-        GPBUtil::checkInt32($var);
-        $this->backend_channel_idx = $var;
-
-        return $this;
-    }
-
-    /**
-     * Generated from protobuf field <code>bool echo_metadata_initially = 17;</code>
-     * @return bool
-     */
-    public function getEchoMetadataInitially()
-    {
-        return $this->echo_metadata_initially;
-    }
-
-    /**
-     * Generated from protobuf field <code>bool echo_metadata_initially = 17;</code>
-     * @param bool $var
-     * @return $this
-     */
-    public function setEchoMetadataInitially($var)
-    {
-        GPBUtil::checkBool($var);
-        $this->echo_metadata_initially = $var;
-
-        return $this;
-    }
-
-    /**
-     * Generated from protobuf field <code>bool server_notify_client_when_started = 18;</code>
-     * @return bool
-     */
-    public function getServerNotifyClientWhenStarted()
-    {
-        return $this->server_notify_client_when_started;
-    }
-
-    /**
-     * Generated from protobuf field <code>bool server_notify_client_when_started = 18;</code>
-     * @param bool $var
-     * @return $this
-     */
-    public function setServerNotifyClientWhenStarted($var)
-    {
-        GPBUtil::checkBool($var);
-        $this->server_notify_client_when_started = $var;
 
         return $this;
     }

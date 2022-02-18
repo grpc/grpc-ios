@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load(
     "//absl:copts/configure_copts.bzl",
     "ABSL_DEFAULT_COPTS",
@@ -23,7 +24,7 @@ load(
 
 package(default_visibility = ["//visibility:public"])
 
-licenses(["notice"])
+licenses(["notice"])  # Apache 2.0
 
 cc_library(
     name = "bind_front",
@@ -59,7 +60,6 @@ cc_library(
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         "//absl/base:base_internal",
-        "//absl/base:core_headers",
         "//absl/meta:type_traits",
     ],
 )

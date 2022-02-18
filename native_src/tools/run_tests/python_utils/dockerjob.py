@@ -15,15 +15,13 @@
 
 from __future__ import print_function
 
-import json
-import os
-import subprocess
-import sys
 import tempfile
 import time
 import uuid
+import os
+import subprocess
+import json
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import jobset
 
 _DEVNULL = open(os.devnull, 'w')
@@ -49,7 +47,7 @@ def docker_mapped_port(cid, port, timeout_seconds=15):
         try:
             output = subprocess.check_output('docker port %s %s' % (cid, port),
                                              stderr=_DEVNULL,
-                                             shell=True).decode()
+                                             shell=True)
             return int(output.split(':', 2)[1])
         except subprocess.CalledProcessError as e:
             pass
@@ -63,8 +61,7 @@ def docker_ip_address(cid, timeout_seconds=15):
     while time.time() - started < timeout_seconds:
         cmd = 'docker inspect %s' % cid
         try:
-            output = subprocess.check_output(cmd, stderr=_DEVNULL,
-                                             shell=True).decode()
+            output = subprocess.check_output(cmd, stderr=_DEVNULL, shell=True)
             json_info = json.loads(output)
             assert len(json_info) == 1
             out = json_info[0]['NetworkSettings']['IPAddress']
@@ -85,7 +82,7 @@ def wait_for_healthy(cid, shortname, timeout_seconds):
             output = subprocess.check_output([
                 'docker', 'inspect', '--format="{{.State.Health.Status}}"', cid
             ],
-                                             stderr=_DEVNULL).decode()
+                                             stderr=_DEVNULL)
             if output.strip('\n') == 'healthy':
                 return
         except subprocess.CalledProcessError as e:

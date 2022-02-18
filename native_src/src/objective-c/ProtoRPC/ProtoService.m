@@ -69,9 +69,8 @@
                     responseHandler:(id<GRPCProtoResponseHandler>)handler
                         callOptions:(GRPCCallOptions *)callOptions
                       responseClass:(Class)responseClass {
-  GRPCProtoMethod *methodName = [[GRPCProtoMethod alloc] initWithPackage:_packageName
-                                                                 service:_serviceName
-                                                                  method:method];
+  GRPCProtoMethod *methodName =
+      [[GRPCProtoMethod alloc] initWithPackage:_packageName service:_serviceName method:method];
   GRPCRequestOptions *requestOptions =
       [[GRPCRequestOptions alloc] initWithHost:_host
                                           path:methodName.HTTPPath
@@ -87,9 +86,8 @@
                         responseHandler:(id<GRPCProtoResponseHandler>)handler
                             callOptions:(GRPCCallOptions *)callOptions
                           responseClass:(Class)responseClass {
-  GRPCProtoMethod *methodName = [[GRPCProtoMethod alloc] initWithPackage:_packageName
-                                                                 service:_serviceName
-                                                                  method:method];
+  GRPCProtoMethod *methodName =
+      [[GRPCProtoMethod alloc] initWithPackage:_packageName service:_serviceName method:method];
   GRPCRequestOptions *requestOptions =
       [[GRPCRequestOptions alloc] initWithHost:_host
                                           path:methodName.HTTPPath

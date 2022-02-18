@@ -19,8 +19,9 @@
 #ifndef GRPC_INTERNAL_CPP_UTIL_CORE_STATS_H
 #define GRPC_INTERNAL_CPP_UTIL_CORE_STATS_H
 
-#include "src/core/lib/debug/stats.h"
 #include "src/proto/grpc/core/stats.pb.h"
+
+#include "src/core/lib/debug/stats.h"
 
 namespace grpc {
 

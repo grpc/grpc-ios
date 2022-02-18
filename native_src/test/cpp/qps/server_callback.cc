@@ -31,22 +31,22 @@ namespace grpc {
 namespace testing {
 
 class BenchmarkCallbackServiceImpl final
-    : public BenchmarkService::CallbackService {
+    : public BenchmarkService::ExperimentalCallbackService {
  public:
-  ::grpc::ServerUnaryReactor* UnaryCall(::grpc::CallbackServerContext* context,
-                                        const SimpleRequest* request,
-                                        SimpleResponse* response) override {
+  ::grpc::experimental::ServerUnaryReactor* UnaryCall(
+      ::grpc::experimental::CallbackServerContext* context,
+      const SimpleRequest* request, SimpleResponse* response) override {
     auto* reactor = context->DefaultReactor();
     reactor->Finish(SetResponse(request, response));
     return reactor;
   }
 
-  ::grpc::ServerBidiReactor<::grpc::testing::SimpleRequest,
-                            ::grpc::testing::SimpleResponse>*
-  StreamingCall(::grpc::CallbackServerContext*) override {
+  ::grpc::experimental::ServerBidiReactor<::grpc::testing::SimpleRequest,
+                                          ::grpc::testing::SimpleResponse>*
+  StreamingCall(::grpc::experimental::CallbackServerContext*) override {
     class Reactor
-        : public ::grpc::ServerBidiReactor<::grpc::testing::SimpleRequest,
-                                           ::grpc::testing::SimpleResponse> {
+        : public ::grpc::experimental::ServerBidiReactor<
+              ::grpc::testing::SimpleRequest, ::grpc::testing::SimpleResponse> {
      public:
       Reactor() { StartRead(&request_); }
 
@@ -102,10 +102,10 @@ class CallbackServer final : public grpc::testing::Server {
     auto port_num = port();
     // Negative port number means inproc server, so no listen port needed
     if (port_num >= 0) {
-      std::string server_address = grpc_core::JoinHostPort("::", port_num);
-      builder->AddListeningPort(server_address.c_str(),
-                                Server::CreateServerCredentials(config),
-                                &port_num);
+      grpc_core::UniquePtr<char> server_address;
+      grpc_core::JoinHostPort(&server_address, "::", port_num);
+      builder->AddListeningPort(server_address.get(),
+                                Server::CreateServerCredentials(config));
     }
 
     ApplyConfigToBuilder(config, builder.get());
@@ -113,11 +113,6 @@ class CallbackServer final : public grpc::testing::Server {
     builder->RegisterService(&service_);
 
     impl_ = builder->BuildAndStart();
-    if (impl_ == nullptr) {
-      gpr_log(GPR_ERROR, "Server: Fail to BuildAndStart(port=%d)", port_num);
-    } else {
-      gpr_log(GPR_INFO, "Server: BuildAndStart(port=%d)", port_num);
-    }
   }
 
   std::shared_ptr<Channel> InProcessChannel(

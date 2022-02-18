@@ -55,31 +55,23 @@ namespace Grpc.Testing {
 
   }
   #region Messages
-  public sealed partial class ServerStats : pb::IMessage<ServerStats>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      , pb::IBufferMessage
-  #endif
-  {
+  public sealed partial class ServerStats : pb::IMessage<ServerStats> {
     private static readonly pb::MessageParser<ServerStats> _parser = new pb::MessageParser<ServerStats>(() => new ServerStats());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<ServerStats> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.StatsReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ServerStats() {
       OnConstruction();
     }
@@ -87,7 +79,6 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ServerStats(ServerStats other) : this() {
       timeElapsed_ = other.timeElapsed_;
       timeUser_ = other.timeUser_;
@@ -100,7 +91,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ServerStats Clone() {
       return new ServerStats(this);
     }
@@ -112,7 +102,6 @@ namespace Grpc.Testing {
     /// wall clock time change in seconds since last reset
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double TimeElapsed {
       get { return timeElapsed_; }
       set {
@@ -127,7 +116,6 @@ namespace Grpc.Testing {
     /// change in user time (in seconds) used by the server since last reset
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double TimeUser {
       get { return timeUser_; }
       set {
@@ -143,7 +131,6 @@ namespace Grpc.Testing {
     /// threads since last reset
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double TimeSystem {
       get { return timeSystem_; }
       set {
@@ -158,7 +145,6 @@ namespace Grpc.Testing {
     /// change in total cpu time of the server (data from proc/stat)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ulong TotalCpuTime {
       get { return totalCpuTime_; }
       set {
@@ -173,7 +159,6 @@ namespace Grpc.Testing {
     /// change in idle time of the server (data from proc/stat)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ulong IdleCpuTime {
       get { return idleCpuTime_; }
       set {
@@ -188,7 +173,6 @@ namespace Grpc.Testing {
     /// Number of polls called inside completion queue
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ulong CqPollCount {
       get { return cqPollCount_; }
       set {
@@ -203,7 +187,6 @@ namespace Grpc.Testing {
     /// Core library stats
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Core.Stats CoreStats {
       get { return coreStats_; }
       set {
@@ -212,13 +195,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as ServerStats);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(ServerStats other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -237,7 +218,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (TimeElapsed != 0D) hash ^= pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.GetHashCode(TimeElapsed);
@@ -254,17 +234,12 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      output.WriteRawMessage(this);
-    #else
       if (TimeElapsed != 0D) {
         output.WriteRawTag(9);
         output.WriteDouble(TimeElapsed);
@@ -296,49 +271,9 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
-    #endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (TimeElapsed != 0D) {
-        output.WriteRawTag(9);
-        output.WriteDouble(TimeElapsed);
-      }
-      if (TimeUser != 0D) {
-        output.WriteRawTag(17);
-        output.WriteDouble(TimeUser);
-      }
-      if (TimeSystem != 0D) {
-        output.WriteRawTag(25);
-        output.WriteDouble(TimeSystem);
-      }
-      if (TotalCpuTime != 0UL) {
-        output.WriteRawTag(32);
-        output.WriteUInt64(TotalCpuTime);
-      }
-      if (IdleCpuTime != 0UL) {
-        output.WriteRawTag(40);
-        output.WriteUInt64(IdleCpuTime);
-      }
-      if (CqPollCount != 0UL) {
-        output.WriteRawTag(48);
-        output.WriteUInt64(CqPollCount);
-      }
-      if (coreStats_ != null) {
-        output.WriteRawTag(58);
-        output.WriteMessage(CoreStats);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(ref output);
-      }
-    }
-    #endif
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (TimeElapsed != 0D) {
@@ -369,7 +304,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(ServerStats other) {
       if (other == null) {
         return;
@@ -402,11 +336,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      input.ReadRawMessage(this);
-    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -446,85 +376,30 @@ namespace Grpc.Testing {
           }
         }
       }
-    #endif
     }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
-            break;
-          case 9: {
-            TimeElapsed = input.ReadDouble();
-            break;
-          }
-          case 17: {
-            TimeUser = input.ReadDouble();
-            break;
-          }
-          case 25: {
-            TimeSystem = input.ReadDouble();
-            break;
-          }
-          case 32: {
-            TotalCpuTime = input.ReadUInt64();
-            break;
-          }
-          case 40: {
-            IdleCpuTime = input.ReadUInt64();
-            break;
-          }
-          case 48: {
-            CqPollCount = input.ReadUInt64();
-            break;
-          }
-          case 58: {
-            if (coreStats_ == null) {
-              CoreStats = new global::Grpc.Core.Stats();
-            }
-            input.ReadMessage(CoreStats);
-            break;
-          }
-        }
-      }
-    }
-    #endif
 
   }
 
   /// <summary>
   /// Histogram params based on grpc/support/histogram.c
   /// </summary>
-  public sealed partial class HistogramParams : pb::IMessage<HistogramParams>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      , pb::IBufferMessage
-  #endif
-  {
+  public sealed partial class HistogramParams : pb::IMessage<HistogramParams> {
     private static readonly pb::MessageParser<HistogramParams> _parser = new pb::MessageParser<HistogramParams>(() => new HistogramParams());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<HistogramParams> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.StatsReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public HistogramParams() {
       OnConstruction();
     }
@@ -532,7 +407,6 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public HistogramParams(HistogramParams other) : this() {
       resolution_ = other.resolution_;
       maxPossible_ = other.maxPossible_;
@@ -540,7 +414,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public HistogramParams Clone() {
       return new HistogramParams(this);
     }
@@ -552,7 +425,6 @@ namespace Grpc.Testing {
     /// first bucket is [0, 1 + resolution)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double Resolution {
       get { return resolution_; }
       set {
@@ -567,7 +439,6 @@ namespace Grpc.Testing {
     /// use enough buckets to allow this value
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double MaxPossible {
       get { return maxPossible_; }
       set {
@@ -576,13 +447,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as HistogramParams);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(HistogramParams other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -596,7 +465,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (Resolution != 0D) hash ^= pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.GetHashCode(Resolution);
@@ -608,17 +476,12 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      output.WriteRawMessage(this);
-    #else
       if (Resolution != 0D) {
         output.WriteRawTag(9);
         output.WriteDouble(Resolution);
@@ -630,29 +493,9 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
-    #endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Resolution != 0D) {
-        output.WriteRawTag(9);
-        output.WriteDouble(Resolution);
-      }
-      if (MaxPossible != 0D) {
-        output.WriteRawTag(17);
-        output.WriteDouble(MaxPossible);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(ref output);
-      }
-    }
-    #endif
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (Resolution != 0D) {
@@ -668,7 +511,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(HistogramParams other) {
       if (other == null) {
         return;
@@ -683,11 +525,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      input.ReadRawMessage(this);
-    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -704,62 +542,30 @@ namespace Grpc.Testing {
           }
         }
       }
-    #endif
     }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
-            break;
-          case 9: {
-            Resolution = input.ReadDouble();
-            break;
-          }
-          case 17: {
-            MaxPossible = input.ReadDouble();
-            break;
-          }
-        }
-      }
-    }
-    #endif
 
   }
 
   /// <summary>
   /// Histogram data based on grpc/support/histogram.c
   /// </summary>
-  public sealed partial class HistogramData : pb::IMessage<HistogramData>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      , pb::IBufferMessage
-  #endif
-  {
+  public sealed partial class HistogramData : pb::IMessage<HistogramData> {
     private static readonly pb::MessageParser<HistogramData> _parser = new pb::MessageParser<HistogramData>(() => new HistogramData());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<HistogramData> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.StatsReflection.Descriptor.MessageTypes[2]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public HistogramData() {
       OnConstruction();
     }
@@ -767,7 +573,6 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public HistogramData(HistogramData other) : this() {
       bucket_ = other.bucket_.Clone();
       minSeen_ = other.minSeen_;
@@ -779,7 +584,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public HistogramData Clone() {
       return new HistogramData(this);
     }
@@ -790,7 +594,6 @@ namespace Grpc.Testing {
         = pb::FieldCodec.ForUInt32(10);
     private readonly pbc::RepeatedField<uint> bucket_ = new pbc::RepeatedField<uint>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<uint> Bucket {
       get { return bucket_; }
     }
@@ -799,7 +602,6 @@ namespace Grpc.Testing {
     public const int MinSeenFieldNumber = 2;
     private double minSeen_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double MinSeen {
       get { return minSeen_; }
       set {
@@ -811,7 +613,6 @@ namespace Grpc.Testing {
     public const int MaxSeenFieldNumber = 3;
     private double maxSeen_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double MaxSeen {
       get { return maxSeen_; }
       set {
@@ -823,7 +624,6 @@ namespace Grpc.Testing {
     public const int SumFieldNumber = 4;
     private double sum_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double Sum {
       get { return sum_; }
       set {
@@ -835,7 +635,6 @@ namespace Grpc.Testing {
     public const int SumOfSquaresFieldNumber = 5;
     private double sumOfSquares_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double SumOfSquares {
       get { return sumOfSquares_; }
       set {
@@ -847,7 +646,6 @@ namespace Grpc.Testing {
     public const int CountFieldNumber = 6;
     private double count_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double Count {
       get { return count_; }
       set {
@@ -856,13 +654,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as HistogramData);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(HistogramData other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -880,7 +676,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       hash ^= bucket_.GetHashCode();
@@ -896,17 +691,12 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      output.WriteRawMessage(this);
-    #else
       bucket_.WriteTo(output, _repeated_bucket_codec);
       if (MinSeen != 0D) {
         output.WriteRawTag(17);
@@ -931,42 +721,9 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
-    #endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      bucket_.WriteTo(ref output, _repeated_bucket_codec);
-      if (MinSeen != 0D) {
-        output.WriteRawTag(17);
-        output.WriteDouble(MinSeen);
-      }
-      if (MaxSeen != 0D) {
-        output.WriteRawTag(25);
-        output.WriteDouble(MaxSeen);
-      }
-      if (Sum != 0D) {
-        output.WriteRawTag(33);
-        output.WriteDouble(Sum);
-      }
-      if (SumOfSquares != 0D) {
-        output.WriteRawTag(41);
-        output.WriteDouble(SumOfSquares);
-      }
-      if (Count != 0D) {
-        output.WriteRawTag(49);
-        output.WriteDouble(Count);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(ref output);
-      }
-    }
-    #endif
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       size += bucket_.CalculateSize(_repeated_bucket_codec);
@@ -992,7 +749,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(HistogramData other) {
       if (other == null) {
         return;
@@ -1017,11 +773,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      input.ReadRawMessage(this);
-    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -1055,76 +807,27 @@ namespace Grpc.Testing {
           }
         }
       }
-    #endif
     }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
-            break;
-          case 10:
-          case 8: {
-            bucket_.AddEntriesFrom(ref input, _repeated_bucket_codec);
-            break;
-          }
-          case 17: {
-            MinSeen = input.ReadDouble();
-            break;
-          }
-          case 25: {
-            MaxSeen = input.ReadDouble();
-            break;
-          }
-          case 33: {
-            Sum = input.ReadDouble();
-            break;
-          }
-          case 41: {
-            SumOfSquares = input.ReadDouble();
-            break;
-          }
-          case 49: {
-            Count = input.ReadDouble();
-            break;
-          }
-        }
-      }
-    }
-    #endif
 
   }
 
-  public sealed partial class RequestResultCount : pb::IMessage<RequestResultCount>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      , pb::IBufferMessage
-  #endif
-  {
+  public sealed partial class RequestResultCount : pb::IMessage<RequestResultCount> {
     private static readonly pb::MessageParser<RequestResultCount> _parser = new pb::MessageParser<RequestResultCount>(() => new RequestResultCount());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<RequestResultCount> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.StatsReflection.Descriptor.MessageTypes[3]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public RequestResultCount() {
       OnConstruction();
     }
@@ -1132,7 +835,6 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public RequestResultCount(RequestResultCount other) : this() {
       statusCode_ = other.statusCode_;
       count_ = other.count_;
@@ -1140,7 +842,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public RequestResultCount Clone() {
       return new RequestResultCount(this);
     }
@@ -1149,7 +850,6 @@ namespace Grpc.Testing {
     public const int StatusCodeFieldNumber = 1;
     private int statusCode_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int StatusCode {
       get { return statusCode_; }
       set {
@@ -1161,7 +861,6 @@ namespace Grpc.Testing {
     public const int CountFieldNumber = 2;
     private long count_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long Count {
       get { return count_; }
       set {
@@ -1170,13 +869,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as RequestResultCount);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(RequestResultCount other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -1190,7 +887,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (StatusCode != 0) hash ^= StatusCode.GetHashCode();
@@ -1202,17 +898,12 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      output.WriteRawMessage(this);
-    #else
       if (StatusCode != 0) {
         output.WriteRawTag(8);
         output.WriteInt32(StatusCode);
@@ -1224,29 +915,9 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
-    #endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (StatusCode != 0) {
-        output.WriteRawTag(8);
-        output.WriteInt32(StatusCode);
-      }
-      if (Count != 0L) {
-        output.WriteRawTag(16);
-        output.WriteInt64(Count);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(ref output);
-      }
-    }
-    #endif
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (StatusCode != 0) {
@@ -1262,7 +933,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(RequestResultCount other) {
       if (other == null) {
         return;
@@ -1277,11 +947,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      input.ReadRawMessage(this);
-    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -1298,59 +964,27 @@ namespace Grpc.Testing {
           }
         }
       }
-    #endif
     }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
-            break;
-          case 8: {
-            StatusCode = input.ReadInt32();
-            break;
-          }
-          case 16: {
-            Count = input.ReadInt64();
-            break;
-          }
-        }
-      }
-    }
-    #endif
 
   }
 
-  public sealed partial class ClientStats : pb::IMessage<ClientStats>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      , pb::IBufferMessage
-  #endif
-  {
+  public sealed partial class ClientStats : pb::IMessage<ClientStats> {
     private static readonly pb::MessageParser<ClientStats> _parser = new pb::MessageParser<ClientStats>(() => new ClientStats());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<ClientStats> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
       get { return global::Grpc.Testing.StatsReflection.Descriptor.MessageTypes[4]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     pbr::MessageDescriptor pb::IMessage.Descriptor {
       get { return Descriptor; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClientStats() {
       OnConstruction();
     }
@@ -1358,7 +992,6 @@ namespace Grpc.Testing {
     partial void OnConstruction();
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClientStats(ClientStats other) : this() {
       latencies_ = other.latencies_ != null ? other.latencies_.Clone() : null;
       timeElapsed_ = other.timeElapsed_;
@@ -1371,7 +1004,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ClientStats Clone() {
       return new ClientStats(this);
     }
@@ -1383,7 +1015,6 @@ namespace Grpc.Testing {
     /// Latency histogram. Data points are in nanoseconds.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Testing.HistogramData Latencies {
       get { return latencies_; }
       set {
@@ -1398,7 +1029,6 @@ namespace Grpc.Testing {
     /// See ServerStats for details.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double TimeElapsed {
       get { return timeElapsed_; }
       set {
@@ -1410,7 +1040,6 @@ namespace Grpc.Testing {
     public const int TimeUserFieldNumber = 3;
     private double timeUser_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double TimeUser {
       get { return timeUser_; }
       set {
@@ -1422,7 +1051,6 @@ namespace Grpc.Testing {
     public const int TimeSystemFieldNumber = 4;
     private double timeSystem_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public double TimeSystem {
       get { return timeSystem_; }
       set {
@@ -1439,7 +1067,6 @@ namespace Grpc.Testing {
     /// Number of failed requests (one row per status code seen)
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<global::Grpc.Testing.RequestResultCount> RequestResults {
       get { return requestResults_; }
     }
@@ -1451,7 +1078,6 @@ namespace Grpc.Testing {
     /// Number of polls called inside completion queue
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ulong CqPollCount {
       get { return cqPollCount_; }
       set {
@@ -1466,7 +1092,6 @@ namespace Grpc.Testing {
     /// Core library stats
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Grpc.Core.Stats CoreStats {
       get { return coreStats_; }
       set {
@@ -1475,13 +1100,11 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
       return Equals(other as ClientStats);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Equals(ClientStats other) {
       if (ReferenceEquals(other, null)) {
         return false;
@@ -1500,7 +1123,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
       if (latencies_ != null) hash ^= Latencies.GetHashCode();
@@ -1517,17 +1139,12 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override string ToString() {
       return pb::JsonFormatter.ToDiagnosticString(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      output.WriteRawMessage(this);
-    #else
       if (latencies_ != null) {
         output.WriteRawTag(10);
         output.WriteMessage(Latencies);
@@ -1556,46 +1173,9 @@ namespace Grpc.Testing {
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
-    #endif
     }
 
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (latencies_ != null) {
-        output.WriteRawTag(10);
-        output.WriteMessage(Latencies);
-      }
-      if (TimeElapsed != 0D) {
-        output.WriteRawTag(17);
-        output.WriteDouble(TimeElapsed);
-      }
-      if (TimeUser != 0D) {
-        output.WriteRawTag(25);
-        output.WriteDouble(TimeUser);
-      }
-      if (TimeSystem != 0D) {
-        output.WriteRawTag(33);
-        output.WriteDouble(TimeSystem);
-      }
-      requestResults_.WriteTo(ref output, _repeated_requestResults_codec);
-      if (CqPollCount != 0UL) {
-        output.WriteRawTag(48);
-        output.WriteUInt64(CqPollCount);
-      }
-      if (coreStats_ != null) {
-        output.WriteRawTag(58);
-        output.WriteMessage(CoreStats);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(ref output);
-      }
-    }
-    #endif
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
       if (latencies_ != null) {
@@ -1624,7 +1204,6 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(ClientStats other) {
       if (other == null) {
         return;
@@ -1658,11 +1237,7 @@ namespace Grpc.Testing {
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      input.ReadRawMessage(this);
-    #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
         switch(tag) {
@@ -1705,57 +1280,7 @@ namespace Grpc.Testing {
           }
         }
       }
-    #endif
     }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
-            break;
-          case 10: {
-            if (latencies_ == null) {
-              Latencies = new global::Grpc.Testing.HistogramData();
-            }
-            input.ReadMessage(Latencies);
-            break;
-          }
-          case 17: {
-            TimeElapsed = input.ReadDouble();
-            break;
-          }
-          case 25: {
-            TimeUser = input.ReadDouble();
-            break;
-          }
-          case 33: {
-            TimeSystem = input.ReadDouble();
-            break;
-          }
-          case 42: {
-            requestResults_.AddEntriesFrom(ref input, _repeated_requestResults_codec);
-            break;
-          }
-          case 48: {
-            CqPollCount = input.ReadUInt64();
-            break;
-          }
-          case 58: {
-            if (coreStats_ == null) {
-              CoreStats = new global::Grpc.Core.Stats();
-            }
-            input.ReadMessage(CoreStats);
-            break;
-          }
-        }
-      }
-    }
-    #endif
 
   }
 

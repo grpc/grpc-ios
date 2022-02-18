@@ -19,28 +19,21 @@
 /* Benchmark arenas */
 
 #include <benchmark/benchmark.h>
-
-#include "src/core/lib/resource_quota/arena.h"
-#include "src/core/lib/resource_quota/resource_quota.h"
-#include "test/core/util/test_config.h"
+#include "src/core/lib/gprpp/arena.h"
 #include "test/cpp/microbenchmarks/helpers.h"
 #include "test/cpp/util/test_config.h"
 
 using grpc_core::Arena;
 
-static auto* g_memory_allocator = new grpc_core::MemoryAllocator(
-    grpc_core::ResourceQuota::Default()->memory_quota()->CreateMemoryAllocator(
-        "test"));
-
 static void BM_Arena_NoOp(benchmark::State& state) {
   for (auto _ : state) {
-    Arena::Create(state.range(0), g_memory_allocator)->Destroy();
+    Arena::Create(state.range(0))->Destroy();
   }
 }
 BENCHMARK(BM_Arena_NoOp)->Range(1, 1024 * 1024);
 
 static void BM_Arena_ManyAlloc(benchmark::State& state) {
-  Arena* a = Arena::Create(state.range(0), g_memory_allocator);
+  Arena* a = Arena::Create(state.range(0));
   const size_t realloc_after =
       1024 * 1024 * 1024 / ((state.range(1) + 15) & 0xffffff0u);
   while (state.KeepRunning()) {
@@ -48,7 +41,7 @@ static void BM_Arena_ManyAlloc(benchmark::State& state) {
     // periodically recreate arena to avoid OOM
     if (state.iterations() % realloc_after == 0) {
       a->Destroy();
-      a = Arena::Create(state.range(0), g_memory_allocator);
+      a = Arena::Create(state.range(0));
     }
   }
   a->Destroy();
@@ -57,7 +50,7 @@ BENCHMARK(BM_Arena_ManyAlloc)->Ranges({{1, 1024 * 1024}, {1, 32 * 1024}});
 
 static void BM_Arena_Batch(benchmark::State& state) {
   for (auto _ : state) {
-    Arena* a = Arena::Create(state.range(0), g_memory_allocator);
+    Arena* a = Arena::Create(state.range(0));
     for (int i = 0; i < state.range(1); i++) {
       a->Alloc(state.range(2));
     }
@@ -73,7 +66,6 @@ void RunTheBenchmarksNamespaced() { RunSpecifiedBenchmarks(); }
 }  // namespace benchmark
 
 int main(int argc, char** argv) {
-  grpc::testing::TestEnvironment env(argc, argv);
   ::benchmark::Initialize(&argc, argv);
   ::grpc::testing::InitTest(&argc, &argv, false);
   benchmark::RunTheBenchmarksNamespaced();

@@ -13,10 +13,9 @@
 # limitations under the License.
 """Test of RPCs made using local credentials."""
 
-from concurrent.futures import ThreadPoolExecutor
-import os
 import unittest
-
+import os
+from concurrent.futures import ThreadPoolExecutor
 import grpc
 
 

@@ -14,10 +14,11 @@
 """Objects for use in testing gRPC Python-using application code."""
 
 import abc
+import six
 
 from google.protobuf import descriptor
+
 import grpc
-import six
 
 
 class UnaryUnaryChannelRpc(six.with_metaclass(abc.ABCMeta)):

@@ -22,7 +22,7 @@
 
 #include "src/cpp/server/load_reporter/load_reporting_service_server_builder_plugin.h"
 
-namespace grpc {
+namespace grpc_impl {
 namespace load_reporter {
 namespace experimental {
 
@@ -39,4 +39,4 @@ void LoadReportingServiceServerBuilderOption::UpdatePlugins(
 
 }  // namespace experimental
 }  // namespace load_reporter
-}  // namespace grpc
+}  // namespace grpc_impl

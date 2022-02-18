@@ -16,6 +16,7 @@ use Google\Protobuf\Internal\GPBUtil;
 class StreamingOutputCallRequest extends \Google\Protobuf\Internal\Message
 {
     /**
+     * DEPRECATED, don't use. To be removed shortly.
      * Desired payload type in the response from the server.
      * If response_type is RANDOM, the payload from each response in the stream
      * might be of different types. This is to simulate a mixed type of payload
@@ -23,7 +24,7 @@ class StreamingOutputCallRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.grpc.testing.PayloadType response_type = 1;</code>
      */
-    protected $response_type = 0;
+    private $response_type = 0;
     /**
      * Configuration for each expected response message.
      *
@@ -35,39 +36,21 @@ class StreamingOutputCallRequest extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.grpc.testing.Payload payload = 3;</code>
      */
-    protected $payload = null;
+    private $payload = null;
     /**
      * Whether server should return a given status
      *
      * Generated from protobuf field <code>.grpc.testing.EchoStatus response_status = 7;</code>
      */
-    protected $response_status = null;
+    private $response_status = null;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type int $response_type
-     *           Desired payload type in the response from the server.
-     *           If response_type is RANDOM, the payload from each response in the stream
-     *           might be of different types. This is to simulate a mixed type of payload
-     *           stream.
-     *     @type \Grpc\Testing\ResponseParameters[]|\Google\Protobuf\Internal\RepeatedField $response_parameters
-     *           Configuration for each expected response message.
-     *     @type \Grpc\Testing\Payload $payload
-     *           Optional input payload sent along with the request.
-     *     @type \Grpc\Testing\EchoStatus $response_status
-     *           Whether server should return a given status
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Messages::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**
+     * DEPRECATED, don't use. To be removed shortly.
      * Desired payload type in the response from the server.
      * If response_type is RANDOM, the payload from each response in the stream
      * might be of different types. This is to simulate a mixed type of payload
@@ -82,6 +65,7 @@ class StreamingOutputCallRequest extends \Google\Protobuf\Internal\Message
     }
 
     /**
+     * DEPRECATED, don't use. To be removed shortly.
      * Desired payload type in the response from the server.
      * If response_type is RANDOM, the payload from each response in the stream
      * might be of different types. This is to simulate a mixed type of payload

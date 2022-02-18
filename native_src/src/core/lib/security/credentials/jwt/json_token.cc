@@ -18,13 +18,10 @@
 
 #include <grpc/support/port_platform.h>
 
+#include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/security/credentials/jwt/json_token.h"
 
 #include <string.h>
-
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
 
 #include <grpc/grpc_security.h>
 #include <grpc/support/alloc.h>
@@ -33,9 +30,14 @@
 #include <grpc/support/time.h>
 
 #include "src/core/lib/gpr/string.h"
-#include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/security/util/json_util.h"
 #include "src/core/lib/slice/b64.h"
+
+extern "C" {
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+}
 
 using grpc_core::Json;
 
@@ -62,7 +64,7 @@ static grpc_jwt_encode_and_sign_override g_jwt_encode_and_sign_override =
 
 int grpc_auth_json_key_is_valid(const grpc_auth_json_key* json_key) {
   return (json_key != nullptr) &&
-         strcmp(json_key->type, GRPC_AUTH_JSON_TYPE_INVALID) != 0;
+         strcmp(json_key->type, GRPC_AUTH_JSON_TYPE_INVALID);
 }
 
 grpc_auth_json_key grpc_auth_json_key_create_from_json(const Json& json) {
@@ -70,7 +72,7 @@ grpc_auth_json_key grpc_auth_json_key_create_from_json(const Json& json) {
   BIO* bio = nullptr;
   const char* prop_value;
   int success = 0;
-  grpc_error_handle error = GRPC_ERROR_NONE;
+  grpc_error* error = GRPC_ERROR_NONE;
 
   memset(&result, 0, sizeof(grpc_auth_json_key));
   result.type = GRPC_AUTH_JSON_TYPE_INVALID;
@@ -82,7 +84,7 @@ grpc_auth_json_key grpc_auth_json_key_create_from_json(const Json& json) {
   prop_value = grpc_json_get_string_property(json, "type", &error);
   GRPC_LOG_IF_ERROR("JSON key parsing", error);
   if (prop_value == nullptr ||
-      strcmp(prop_value, GRPC_AUTH_JSON_TYPE_SERVICE_ACCOUNT) != 0) {
+      strcmp(prop_value, GRPC_AUTH_JSON_TYPE_SERVICE_ACCOUNT)) {
     goto end;
   }
   result.type = GRPC_AUTH_JSON_TYPE_SERVICE_ACCOUNT;
@@ -107,7 +109,7 @@ grpc_auth_json_key grpc_auth_json_key_create_from_json(const Json& json) {
     goto end;
   }
   result.private_key =
-      PEM_read_bio_RSAPrivateKey(bio, nullptr, nullptr, const_cast<char*>(""));
+      PEM_read_bio_RSAPrivateKey(bio, nullptr, nullptr, (void*)"");
   if (result.private_key == nullptr) {
     gpr_log(GPR_ERROR, "Could not deserialize private key.");
     goto end;
@@ -122,10 +124,10 @@ end:
 
 grpc_auth_json_key grpc_auth_json_key_create_from_string(
     const char* json_string) {
-  grpc_error_handle error = GRPC_ERROR_NONE;
+  grpc_error* error = GRPC_ERROR_NONE;
   Json json = Json::Parse(json_string, &error);
   GRPC_LOG_IF_ERROR("JSON key parsing", error);
-  return grpc_auth_json_key_create_from_json(json);
+  return grpc_auth_json_key_create_from_json(std::move(json));
 }
 
 void grpc_auth_json_key_destruct(grpc_auth_json_key* json_key) {

@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-
 import http2_base_server
+import logging
 import messages_pb2
 
 # Set the number of padding bytes per data frame to be very large

@@ -11,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests of grpc_status.
-
-isort:skip_file
-"""
+"""Tests of grpc_status."""
 
 # NOTE(lidiz) This module only exists in Bazel BUILD file, for more details
 # please refer to comments in the "bazel_namespace_package_hack" module.
@@ -28,7 +25,6 @@ import unittest
 
 import logging
 import traceback
-import sys
 
 import grpc
 from grpc_status import rpc_status
@@ -114,8 +110,6 @@ class _GenericHandler(grpc.GenericRpcHandler):
             return None
 
 
-@unittest.skipIf(sys.version_info[0] < 3,
-                 'ProtoBuf descriptor has moved on from Python2')
 class StatusTest(unittest.TestCase):
 
     def setUp(self):

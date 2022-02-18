@@ -21,8 +21,6 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <string.h>
-
 #include "src/core/lib/security/credentials/credentials.h"
 
 #define GRPC_ARG_FAKE_SECURITY_EXPECTED_TARGETS \
@@ -63,31 +61,22 @@ class grpc_md_only_test_credentials : public grpc_call_credentials {
                                 bool is_async)
       : grpc_call_credentials(GRPC_CALL_CREDENTIALS_TYPE_OAUTH2,
                               GRPC_SECURITY_NONE),
-        key_(grpc_core::Slice::FromCopiedString(md_key)),
-        value_(grpc_core::Slice::FromCopiedString(md_value)),
+        md_(grpc_mdelem_from_slices(grpc_slice_from_copied_string(md_key),
+                                    grpc_slice_from_copied_string(md_value))),
         is_async_(is_async) {}
+  ~grpc_md_only_test_credentials() override { GRPC_MDELEM_UNREF(md_); }
 
   bool get_request_metadata(grpc_polling_entity* pollent,
                             grpc_auth_metadata_context context,
-                            grpc_core::CredentialsMetadataArray* md_array,
+                            grpc_credentials_mdelem_array* md_array,
                             grpc_closure* on_request_metadata,
-                            grpc_error_handle* error) override;
+                            grpc_error** error) override;
 
-  void cancel_get_request_metadata(
-      grpc_core::CredentialsMetadataArray* md_array,
-      grpc_error_handle error) override;
-
-  std::string debug_string() override { return "MD only Test Credentials"; };
+  void cancel_get_request_metadata(grpc_credentials_mdelem_array* md_array,
+                                   grpc_error* error) override;
 
  private:
-  int cmp_impl(const grpc_call_credentials* other) const override {
-    // TODO(yashykt): Check if we can do something better here
-    return grpc_core::QsortCompare(
-        static_cast<const grpc_call_credentials*>(this), other);
-  }
-
-  grpc_core::Slice key_;
-  grpc_core::Slice value_;
+  grpc_mdelem md_;
   bool is_async_;
 };
 

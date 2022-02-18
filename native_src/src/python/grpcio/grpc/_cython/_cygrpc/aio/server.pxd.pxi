@@ -33,31 +33,12 @@ cdef class RPCState(GrpcCallWrapper):
     cdef tuple trailing_metadata
     cdef object compression_algorithm
     cdef bint disable_next_compression
-    cdef object callbacks
 
     cdef bytes method(self)
     cdef tuple invocation_metadata(self)
     cdef void raise_for_termination(self) except *
     cdef int get_write_flag(self)
     cdef Operation create_send_initial_metadata_op_if_not_sent(self)
-
-
-cdef class _ServicerContext:
-    cdef RPCState _rpc_state
-    cdef object _loop  # asyncio.AbstractEventLoop
-    cdef object _request_deserializer  # Callable[[bytes], Any]
-    cdef object _response_serializer  # Callable[[Any], bytes]
-
-
-cdef class _SyncServicerContext:
-    cdef _ServicerContext _context
-    cdef list _callbacks
-    cdef object _loop  # asyncio.AbstractEventLoop
-
-
-cdef class _MessageReceiver:
-    cdef _ServicerContext _servicer_context
-    cdef object _agen
 
 
 cdef enum AioServerStatus:
@@ -68,15 +49,9 @@ cdef enum AioServerStatus:
     AIO_SERVER_STATUS_STOPPING
 
 
-cdef class _ConcurrentRpcLimiter:
-    cdef int _maximum_concurrent_rpcs
-    cdef int _active_rpcs
-    cdef object _active_rpcs_condition # asyncio.Condition
-    cdef object _loop  # asyncio.EventLoop
-
-
 cdef class AioServer:
     cdef Server _server
+    cdef CallbackCompletionQueue _cq
     cdef list _generic_handlers
     cdef AioServerStatus _status
     cdef object _loop  # asyncio.EventLoop
@@ -85,8 +60,4 @@ cdef class AioServer:
     cdef object _shutdown_completed  # asyncio.Future
     cdef CallbackWrapper _shutdown_callback_wrapper
     cdef object _crash_exception  # Exception
-    cdef tuple _interceptors
-    cdef object _thread_pool  # concurrent.futures.ThreadPoolExecutor
-    cdef _ConcurrentRpcLimiter _limiter
-
-    cdef thread_pool(self)
+    cdef set _ongoing_rpc_tasks

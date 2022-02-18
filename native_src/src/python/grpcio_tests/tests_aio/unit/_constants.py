@@ -12,8 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# If we use an unreachable IP, depending on the network stack, we might not get
-# with an RST fast enough. This used to cause tests to flake under different
-# platforms.
-UNREACHABLE_TARGET = 'foo/bar'
+UNREACHABLE_TARGET = '0.0.0.1:1111'
 UNARY_CALL_WITH_SLEEP_VALUE = 0.2

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2.7
 
 # Copyright 2016 gRPC authors.
 #
@@ -19,7 +19,6 @@ import fnmatch
 import os
 import re
 import sys
-
 import yaml
 
 _RE_API = r'(?:GPRAPI|GRPCAPI|CENSUSAPI)([^;]*);'
@@ -65,6 +64,4 @@ def mako_plugin(dictionary):
 
 
 if __name__ == '__main__':
-    print(
-        (yaml.dump([api for api in list_c_apis(headers_under('include/grpc'))
-                   ])))
+    print yaml.dump([api for api in list_c_apis(headers_under('include/grpc'))])

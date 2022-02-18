@@ -30,7 +30,6 @@
 
 #include <cstdint>
 
-#include "absl/base/config.h"
 #include "absl/base/port.h"
 
 namespace absl {
@@ -59,13 +58,6 @@ int NumCPUs();
 using pid_t = uint32_t;
 #endif
 pid_t GetTID();
-
-// Like GetTID(), but caches the result in thread-local storage in order
-// to avoid unnecessary system calls. Note that there are some cases where
-// one must call through to GetTID directly, which is why this exists as a
-// separate function. For example, GetCachedTID() is not safe to call in
-// an asynchronous signal-handling context nor right after a call to fork().
-pid_t GetCachedTID();
 
 }  // namespace base_internal
 ABSL_NAMESPACE_END

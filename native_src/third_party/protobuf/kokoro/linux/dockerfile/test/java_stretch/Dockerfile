@@ -1,6 +1,6 @@
 FROM debian:stretch
 
-# Install dependencies.  We start with the basic ones required to build protoc
+# Install dependencies.  We start with the basic ones require to build protoc
 # and the C++ build
 RUN apt-get update && apt-get install -y \
   autoconf \
@@ -20,11 +20,12 @@ RUN apt-get update && apt-get install -y \
   parallel \
   time \
   wget \
-  # Java dependencies
+  && apt-get clean
+
+# Java dependencies
+RUN apt-get install -y \
+  # -- For all Java builds -- \
   maven \
+  # -- For java_linkage_monitor \
   openjdk-8-jdk \
-  # Python dependencies
-  python3-setuptools \
-  python3-pip \
-  virtualenv \
   && apt-get clean

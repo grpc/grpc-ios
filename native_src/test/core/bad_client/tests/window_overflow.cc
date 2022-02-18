@@ -16,13 +16,14 @@
  *
  */
 
+#include "test/core/bad_client/bad_client.h"
+
 #include <string.h>
 
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
 
 #include "src/core/lib/surface/server.h"
-#include "test/core/bad_client/bad_client.h"
 
 #define PFX_STR                                                            \
   "\x00\x00\x00\x04\x01\x00\x00\x00\x00"                                   \
@@ -43,7 +44,7 @@
 
 static void verifier(grpc_server* server, grpc_completion_queue* cq,
                      void* /*registered_method*/) {
-  while (grpc_core::Server::FromC(server)->HasOpenConnections()) {
+  while (grpc_server_has_open_connections(server)) {
     GPR_ASSERT(grpc_completion_queue_next(
                    cq, grpc_timeout_milliseconds_to_deadline(20), nullptr)
                    .type == GRPC_QUEUE_TIMEOUT);
@@ -56,7 +57,7 @@ size_t g_count = 0;
 
 static void addbuf(const void* data, size_t len) {
   if (g_count + len > g_cap) {
-    g_cap = std::max(g_count + len, g_cap * 2);
+    g_cap = GPR_MAX(g_count + len, g_cap * 2);
     g_buffer = static_cast<char*>(gpr_realloc(g_buffer, g_cap));
   }
   memcpy(g_buffer + g_count, data, len);

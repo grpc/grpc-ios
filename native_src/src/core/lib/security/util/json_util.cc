@@ -18,20 +18,17 @@
 
 #include <grpc/support/port_platform.h>
 
+#include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/security/util/json_util.h"
 
 #include <string.h>
 
-#include "absl/strings/str_cat.h"
-
 #include <grpc/support/log.h>
 #include <grpc/support/string_util.h>
 
-#include "src/core/lib/iomgr/error.h"
-
 const char* grpc_json_get_string_property(const grpc_core::Json& json,
                                           const char* prop_name,
-                                          grpc_error_handle* error) {
+                                          grpc_error** error) {
   if (json.type() != grpc_core::Json::Type::OBJECT) {
     if (error != nullptr) {
       *error =
@@ -42,15 +39,21 @@ const char* grpc_json_get_string_property(const grpc_core::Json& json,
   auto it = json.object_value().find(prop_name);
   if (it == json.object_value().end()) {
     if (error != nullptr) {
-      *error = GRPC_ERROR_CREATE_FROM_CPP_STRING(
-          absl::StrCat("Property ", prop_name, " not found in JSON object."));
+      char* error_msg;
+      gpr_asprintf(&error_msg, "Property %s not found in JSON object.",
+                   prop_name);
+      *error = GRPC_ERROR_CREATE_FROM_COPIED_STRING(error_msg);
+      gpr_free(error_msg);
     }
     return nullptr;
   }
   if (it->second.type() != grpc_core::Json::Type::STRING) {
     if (error != nullptr) {
-      *error = GRPC_ERROR_CREATE_FROM_CPP_STRING(absl::StrCat(
-          "Property ", prop_name, " n JSON object is not a string."));
+      char* error_msg;
+      gpr_asprintf(&error_msg, "Property %s in JSON object is not a string.",
+                   prop_name);
+      *error = GRPC_ERROR_CREATE_FROM_COPIED_STRING(error_msg);
+      gpr_free(error_msg);
     }
     return nullptr;
   }
@@ -60,7 +63,7 @@ const char* grpc_json_get_string_property(const grpc_core::Json& json,
 bool grpc_copy_json_string_property(const grpc_core::Json& json,
                                     const char* prop_name,
                                     char** copied_value) {
-  grpc_error_handle error = GRPC_ERROR_NONE;
+  grpc_error* error = GRPC_ERROR_NONE;
   const char* prop_value =
       grpc_json_get_string_property(json, prop_name, &error);
   GRPC_LOG_IF_ERROR("Could not copy JSON property", error);

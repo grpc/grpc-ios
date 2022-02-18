@@ -28,59 +28,59 @@ message Layer {
     // Default value for unsupported/missing directive.
     DIRECTIVE_UNSPECIFIED = 0;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#maintainer
     MAINTAINER = 1;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#run
     RUN = 2;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#cmd
     CMD = 3;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#label
     LABEL = 4;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#expose
     EXPOSE = 5;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#env
     ENV = 6;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#add
     ADD = 7;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#copy
     COPY = 8;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#entrypoint
     ENTRYPOINT = 9;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#volume
     VOLUME = 10;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#user
     USER = 11;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#workdir
     WORKDIR = 12;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#arg
     ARG = 13;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#onbuild
     ONBUILD = 14;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#stopsignal
     STOPSIGNAL = 15;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#healthcheck
     HEALTHCHECK = 16;
 
-    // https://docs.docker.com/engine/reference/builder/
+    // https://docs.docker.com/reference/builder/#shell
     SHELL = 17;
   }
 
-  // Required. The recovered Dockerfile directive used to construct this layer.
+  // The recovered Dockerfile directive used to construct this layer.
   Directive directive = 1;
 
   // The recovered arguments to the Dockerfile directive.
@@ -89,11 +89,10 @@ message Layer {
 
 // A set of properties that uniquely identify a given Docker image.
 message Fingerprint {
-  // Required. The layer ID of the final layer in the Docker image's v1
-  // representation.
+  // The layer-id of the final layer in the Docker image's v1 representation.
   string v1_name = 1;
 
-  // Required. The ordered list of v2 blobs that represent a given image.
+  // The ordered list of v2 blobs that represent a given image.
   repeated string v2_blob = 2;
 
   // Output only. The name of the image's v2 blobs computed via:
@@ -109,17 +108,17 @@ message Fingerprint {
 //   FROM <Basis.resource_url>
 // Or an equivalent reference, e.g. a tag of the resource_url.
 message Basis {
-  // Required. Immutable. The resource_url for the resource representing the
-  // basis of associated occurrence images.
+  // The resource_url for the resource representing the basis of
+  // associated occurrence images.
   string resource_url = 1;
 
-  // Required. Immutable. The fingerprint of the base image.
+  // The fingerprint of the base image.
   Fingerprint fingerprint = 2;
 }
 
 // Details of an image occurrence.
 message Details {
-  // Required. Immutable. The child image derived from the base image.
+  // The child image derived from the base image.
   Derived derived_image = 1;
 }
 
@@ -127,7 +126,7 @@ message Details {
 // relationship. This image would be produced from a Dockerfile with FROM
 // <DockerImage.Basis in attached Note>.
 message Derived {
-  // Required. The fingerprint of the derived image.
+  // The fingerprint of the derived image.
   Fingerprint fingerprint = 1;
 
   // Output only. The number of layers by which this image differs from the

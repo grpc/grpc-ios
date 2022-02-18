@@ -20,20 +20,19 @@
 
 #if defined(GPR_ABSEIL_SYNC) && !defined(GPR_CUSTOM_SYNC)
 
+#include <grpc/support/alloc.h>
+
 #include <errno.h>
+#include <grpc/support/log.h>
+#include <grpc/support/sync.h>
+#include <grpc/support/time.h>
 #include <time.h>
+#include "src/core/lib/profiling/timers.h"
 
 #include "absl/base/call_once.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-
-#include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
-#include <grpc/support/sync.h>
-#include <grpc/support/time.h>
-
-#include "src/core/lib/profiling/timers.h"
 
 #ifdef GPR_LOW_LEVEL_COUNTERS
 gpr_atm gpr_mu_locks = 0;
@@ -63,7 +62,8 @@ void gpr_mu_unlock(gpr_mu* mu) ABSL_NO_THREAD_SAFETY_ANALYSIS {
 
 int gpr_mu_trylock(gpr_mu* mu) {
   GPR_TIMER_SCOPE("gpr_mu_trylock", 0);
-  return reinterpret_cast<absl::Mutex*>(mu)->TryLock();
+  int ret = reinterpret_cast<absl::Mutex*>(mu)->TryLock() == true;
+  return ret;
 }
 
 /*----------------------------------------*/
@@ -89,8 +89,10 @@ int gpr_cv_wait(gpr_cv* cv, gpr_mu* mu, gpr_timespec abs_deadline) {
   abs_deadline = gpr_convert_clock_type(abs_deadline, GPR_CLOCK_REALTIME);
   timespec ts = {static_cast<decltype(ts.tv_sec)>(abs_deadline.tv_sec),
                  static_cast<decltype(ts.tv_nsec)>(abs_deadline.tv_nsec)};
-  return reinterpret_cast<absl::CondVar*>(cv)->WaitWithDeadline(
-      reinterpret_cast<absl::Mutex*>(mu), absl::TimeFromTimespec(ts));
+  int ret = reinterpret_cast<absl::CondVar*>(cv)->WaitWithDeadline(
+                reinterpret_cast<absl::Mutex*>(mu),
+                absl::TimeFromTimespec(ts)) == true;
+  return ret;
 }
 
 void gpr_cv_signal(gpr_cv* cv) {
@@ -106,8 +108,6 @@ void gpr_cv_broadcast(gpr_cv* cv) {
 /*----------------------------------------*/
 
 void gpr_once_init(gpr_once* once, void (*init_function)(void)) {
-  static_assert(sizeof(gpr_once) == sizeof(absl::once_flag),
-                "gpr_once and absl::once_flag must be the same size");
   absl::call_once(*reinterpret_cast<absl::once_flag*>(once), init_function);
 }
 

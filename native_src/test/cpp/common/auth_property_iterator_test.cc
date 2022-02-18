@@ -16,14 +16,13 @@
  *
  */
 
-#include <gtest/gtest.h>
-
 #include <grpc/grpc_security.h>
 #include <grpcpp/security/auth_context.h>
-
-#include "src/core/lib/security/context/security_context.h"
+#include <gtest/gtest.h>
 #include "src/cpp/common/secure_auth_context.h"
 #include "test/cpp/util/string_ref_helper.h"
+
+#include "src/core/lib/security/context/security_context.h"
 
 using ::grpc::testing::ToString;
 

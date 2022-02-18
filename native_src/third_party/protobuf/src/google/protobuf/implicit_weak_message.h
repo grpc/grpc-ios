@@ -56,16 +56,19 @@ namespace internal {
 // message type does not get linked into the binary.
 class PROTOBUF_EXPORT ImplicitWeakMessage : public MessageLite {
  public:
-  ImplicitWeakMessage() {}
-  explicit ImplicitWeakMessage(Arena* arena) : MessageLite(arena) {}
+  ImplicitWeakMessage() : arena_(NULL) {}
+  explicit ImplicitWeakMessage(Arena* arena) : arena_(arena) {}
 
   static const ImplicitWeakMessage* default_instance();
 
   std::string GetTypeName() const override { return ""; }
 
+  MessageLite* New() const override { return new ImplicitWeakMessage; }
   MessageLite* New(Arena* arena) const override {
     return Arena::CreateMessage<ImplicitWeakMessage>(arena);
   }
+
+  Arena* GetArena() const override { return arena_; }
 
   void Clear() override { data_.clear(); }
 
@@ -79,8 +82,8 @@ class PROTOBUF_EXPORT ImplicitWeakMessage : public MessageLite {
 
   size_t ByteSizeLong() const override { return data_.size(); }
 
-  uint8_t* _InternalSerialize(uint8_t* target,
-                              io::EpsCopyOutputStream* stream) const final {
+  uint8* _InternalSerialize(uint8* target,
+                            io::EpsCopyOutputStream* stream) const final {
     return stream->WriteRaw(data_.data(), static_cast<int>(data_.size()),
                             target);
   }
@@ -90,6 +93,7 @@ class PROTOBUF_EXPORT ImplicitWeakMessage : public MessageLite {
   typedef void InternalArenaConstructable_;
 
  private:
+  Arena* const arena_;
   std::string data_;
   GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(ImplicitWeakMessage);
 };
@@ -99,19 +103,22 @@ template <typename ImplicitWeakType>
 class ImplicitWeakTypeHandler {
  public:
   typedef MessageLite Type;
-  static constexpr bool Moveable = false;
+  static const bool Moveable = false;
 
   static inline MessageLite* NewFromPrototype(const MessageLite* prototype,
-                                              Arena* arena = nullptr) {
+                                              Arena* arena = NULL) {
     return prototype->New(arena);
   }
 
   static inline void Delete(MessageLite* value, Arena* arena) {
-    if (arena == nullptr) {
+    if (arena == NULL) {
       delete value;
     }
   }
   static inline Arena* GetArena(MessageLite* value) {
+    return value->GetArena();
+  }
+  static inline void* GetMaybeArenaPointer(MessageLite* value) {
     return value->GetArena();
   }
   static inline void Clear(MessageLite* value) { value->Clear(); }
@@ -125,7 +132,7 @@ class ImplicitWeakTypeHandler {
 template <typename T>
 struct WeakRepeatedPtrField {
   using TypeHandler = internal::ImplicitWeakTypeHandler<T>;
-  constexpr WeakRepeatedPtrField() : weak() {}
+  WeakRepeatedPtrField() : weak() {}
   explicit WeakRepeatedPtrField(Arena* arena) : weak(arena) {}
   ~WeakRepeatedPtrField() { weak.template Destroy<TypeHandler>(); }
 

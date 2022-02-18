@@ -41,7 +41,8 @@ void ThreadPoolWorker::Run() {
       break;
     }
     // Runs closure
-    auto* closure = static_cast<grpc_completion_queue_functor*>(elem);
+    auto* closure =
+        static_cast<grpc_experimental_completion_queue_functor*>(elem);
     closure->functor_run(closure, closure->internal_success);
   }
 }
@@ -72,7 +73,7 @@ size_t ThreadPool::DefaultStackSize() {
 
 void ThreadPool::AssertHasNotBeenShutDown() {
   // For debug checking purpose, using RELAXED order is sufficient.
-  GPR_DEBUG_ASSERT(!shut_down_.load(std::memory_order_relaxed));
+  GPR_DEBUG_ASSERT(!shut_down_.Load(MemoryOrder::RELAXED));
 }
 
 ThreadPool::ThreadPool(int num_threads) : num_threads_(num_threads) {
@@ -102,7 +103,7 @@ ThreadPool::ThreadPool(int num_threads, const char* thd_name,
 
 ThreadPool::~ThreadPool() {
   // For debug checking purpose, using RELAXED order is sufficient.
-  shut_down_.store(true, std::memory_order_relaxed);
+  shut_down_.Store(true, MemoryOrder::RELAXED);
 
   for (int i = 0; i < num_threads_; ++i) {
     queue_->Put(nullptr);
@@ -119,7 +120,7 @@ ThreadPool::~ThreadPool() {
   delete queue_;
 }
 
-void ThreadPool::Add(grpc_completion_queue_functor* closure) {
+void ThreadPool::Add(grpc_experimental_completion_queue_functor* closure) {
   AssertHasNotBeenShutDown();
   queue_->Put(static_cast<void*>(closure));
 }

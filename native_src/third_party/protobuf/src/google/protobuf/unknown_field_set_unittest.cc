@@ -37,8 +37,6 @@
 
 #include <google/protobuf/unknown_field_set.h>
 
-#include <unordered_set>
-
 #include <google/protobuf/stubs/callback.h>
 #include <google/protobuf/stubs/common.h>
 #include <google/protobuf/stubs/logging.h>
@@ -52,7 +50,6 @@
 #include <google/protobuf/wire_format.h>
 #include <google/protobuf/testing/googletest.h>
 #include <gtest/gtest.h>
-#include <google/protobuf/stubs/time.h>
 #include <google/protobuf/stubs/stl_util.h>
 
 namespace google {
@@ -72,13 +69,13 @@ class UnknownFieldSetTest : public testing::Test {
 
   const UnknownField* GetField(const std::string& name) {
     const FieldDescriptor* field = descriptor_->FindFieldByName(name);
-    if (field == nullptr) return nullptr;
+    if (field == NULL) return NULL;
     for (int i = 0; i < unknown_fields_->field_count(); i++) {
       if (unknown_fields_->field(i).number() == field->number()) {
         return &unknown_fields_->field(i);
       }
     }
-    return nullptr;
+    return NULL;
   }
 
   // Constructs a protocol buffer which contains fields with all the same
@@ -115,37 +112,35 @@ class UnknownFieldSetTest : public testing::Test {
 namespace {
 
 TEST_F(UnknownFieldSetTest, AllFieldsPresent) {
-  // Verifies the following:
-  // --all unknown tags belong to TestAllTypes.
-  // --all fields in TestAllTypes is present in UnknownFieldSet except unset
-  //   oneof fields.
-  //
-  // Should handle repeated fields that may appear multiple times in
-  // UnknownFieldSet.
+  // All fields of TestAllTypes should be present, in numeric order (because
+  // that's the order we parsed them in).  Fields that are not valid field
+  // numbers of TestAllTypes should NOT be present.
 
-  int non_oneof_count = 0;
-  for (int i = 0; i < descriptor_->field_count(); i++) {
-    if (!descriptor_->field(i)->containing_oneof()) {
-      non_oneof_count++;
+  int pos = 0;
+
+  for (int i = 0; i < 1000; i++) {
+    const FieldDescriptor* field = descriptor_->FindFieldByNumber(i);
+    if (field != NULL) {
+      ASSERT_LT(pos, unknown_fields_->field_count());
+      // Do not check oneof field if it is not set.
+      if (field->containing_oneof() == NULL) {
+        EXPECT_EQ(i, unknown_fields_->field(pos++).number());
+      } else if (i == unknown_fields_->field(pos).number()) {
+        pos++;
+      }
+      if (field->is_repeated()) {
+        // Should have a second instance.
+        ASSERT_LT(pos, unknown_fields_->field_count());
+        EXPECT_EQ(i, unknown_fields_->field(pos++).number());
+      }
     }
   }
-
-  std::unordered_set<uint32> unknown_tags;
-  for (int i = 0; i < unknown_fields_->field_count(); i++) {
-    unknown_tags.insert(unknown_fields_->field(i).number());
-  }
-
-  for (uint32 t : unknown_tags) {
-    EXPECT_NE(descriptor_->FindFieldByNumber(t), nullptr);
-  }
-
-  EXPECT_EQ(non_oneof_count + descriptor_->oneof_decl_count(),
-            unknown_tags.size());
+  EXPECT_EQ(unknown_fields_->field_count(), pos);
 }
 
 TEST_F(UnknownFieldSetTest, Varint) {
   const UnknownField* field = GetField("optional_int32");
-  ASSERT_TRUE(field != nullptr);
+  ASSERT_TRUE(field != NULL);
 
   ASSERT_EQ(UnknownField::TYPE_VARINT, field->type());
   EXPECT_EQ(all_fields_.optional_int32(), field->varint());
@@ -153,7 +148,7 @@ TEST_F(UnknownFieldSetTest, Varint) {
 
 TEST_F(UnknownFieldSetTest, Fixed32) {
   const UnknownField* field = GetField("optional_fixed32");
-  ASSERT_TRUE(field != nullptr);
+  ASSERT_TRUE(field != NULL);
 
   ASSERT_EQ(UnknownField::TYPE_FIXED32, field->type());
   EXPECT_EQ(all_fields_.optional_fixed32(), field->fixed32());
@@ -161,7 +156,7 @@ TEST_F(UnknownFieldSetTest, Fixed32) {
 
 TEST_F(UnknownFieldSetTest, Fixed64) {
   const UnknownField* field = GetField("optional_fixed64");
-  ASSERT_TRUE(field != nullptr);
+  ASSERT_TRUE(field != NULL);
 
   ASSERT_EQ(UnknownField::TYPE_FIXED64, field->type());
   EXPECT_EQ(all_fields_.optional_fixed64(), field->fixed64());
@@ -169,7 +164,7 @@ TEST_F(UnknownFieldSetTest, Fixed64) {
 
 TEST_F(UnknownFieldSetTest, LengthDelimited) {
   const UnknownField* field = GetField("optional_string");
-  ASSERT_TRUE(field != nullptr);
+  ASSERT_TRUE(field != NULL);
 
   ASSERT_EQ(UnknownField::TYPE_LENGTH_DELIMITED, field->type());
   EXPECT_EQ(all_fields_.optional_string(), field->length_delimited());
@@ -177,7 +172,7 @@ TEST_F(UnknownFieldSetTest, LengthDelimited) {
 
 TEST_F(UnknownFieldSetTest, Group) {
   const UnknownField* field = GetField("optionalgroup");
-  ASSERT_TRUE(field != nullptr);
+  ASSERT_TRUE(field != NULL);
 
   ASSERT_EQ(UnknownField::TYPE_GROUP, field->type());
   ASSERT_EQ(1, field->group().field_count());
@@ -185,7 +180,7 @@ TEST_F(UnknownFieldSetTest, Group) {
   const UnknownField& nested_field = field->group().field(0);
   const FieldDescriptor* nested_field_descriptor =
       unittest::TestAllTypes::OptionalGroup::descriptor()->FindFieldByName("a");
-  ASSERT_TRUE(nested_field_descriptor != nullptr);
+  ASSERT_TRUE(nested_field_descriptor != NULL);
 
   EXPECT_EQ(nested_field_descriptor->number(), nested_field.number());
   ASSERT_EQ(UnknownField::TYPE_VARINT, nested_field.type());
@@ -250,7 +245,7 @@ TEST_F(UnknownFieldSetTest, SerializeViaReflection) {
   {
     io::StringOutputStream raw_output(&data);
     io::CodedOutputStream output(&raw_output);
-    size_t size = WireFormat::ByteSize(empty_message_);
+    int size = WireFormat::ByteSize(empty_message_);
     WireFormat::SerializeWithCachedSizes(empty_message_, size, &output);
     ASSERT_FALSE(output.HadError());
   }
@@ -456,8 +451,8 @@ TEST_F(UnknownFieldSetTest, UnknownEnumValue) {
       TestAllTypes::descriptor()->FindFieldByName("optional_nested_enum");
   const FieldDescriptor* repeated_field =
       TestAllTypes::descriptor()->FindFieldByName("repeated_nested_enum");
-  ASSERT_TRUE(singular_field != nullptr);
-  ASSERT_TRUE(repeated_field != nullptr);
+  ASSERT_TRUE(singular_field != NULL);
+  ASSERT_TRUE(repeated_field != NULL);
 
   std::string data;
 
@@ -540,29 +535,29 @@ TEST_F(UnknownFieldSetTest, SpaceUsed) {
 
   // Make sure an unknown field set has zero space used until a field is
   // actually added.
-  size_t base_size = empty_message.SpaceUsedLong();
+  int base_size = empty_message.SpaceUsed();
   UnknownFieldSet* unknown_fields = empty_message.mutable_unknown_fields();
-  EXPECT_EQ(base_size, empty_message.SpaceUsedLong());
+  EXPECT_EQ(base_size, empty_message.SpaceUsed());
 
-  // Make sure each thing we add to the set increases the SpaceUsedLong().
+  // Make sure each thing we add to the set increases the SpaceUsed().
   unknown_fields->AddVarint(1, 0);
-  EXPECT_LT(base_size, empty_message.SpaceUsedLong());
-  base_size = empty_message.SpaceUsedLong();
+  EXPECT_LT(base_size, empty_message.SpaceUsed());
+  base_size = empty_message.SpaceUsed();
 
   std::string* str = unknown_fields->AddLengthDelimited(1);
-  EXPECT_LT(base_size, empty_message.SpaceUsedLong());
-  base_size = empty_message.SpaceUsedLong();
+  EXPECT_LT(base_size, empty_message.SpaceUsed());
+  base_size = empty_message.SpaceUsed();
 
   str->assign(sizeof(std::string) + 1, 'x');
-  EXPECT_LT(base_size, empty_message.SpaceUsedLong());
-  base_size = empty_message.SpaceUsedLong();
+  EXPECT_LT(base_size, empty_message.SpaceUsed());
+  base_size = empty_message.SpaceUsed();
 
   UnknownFieldSet* group = unknown_fields->AddGroup(1);
-  EXPECT_LT(base_size, empty_message.SpaceUsedLong());
-  base_size = empty_message.SpaceUsedLong();
+  EXPECT_LT(base_size, empty_message.SpaceUsed());
+  base_size = empty_message.SpaceUsed();
 
   group->AddVarint(1, 0);
-  EXPECT_LT(base_size, empty_message.SpaceUsedLong());
+  EXPECT_LT(base_size, empty_message.SpaceUsed());
 }
 
 

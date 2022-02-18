@@ -19,11 +19,10 @@
 require_relative './end2end_common'
 
 def main
-  parent_controller_port = ''
   server_port = ''
   OptionParser.new do |opts|
-    opts.on('--parent_controller_port=P', String) do |p|
-      parent_controller_port = p
+    opts.on('--client_control_port=P', String) do
+      STDERR.puts 'client control port not used'
     end
     opts.on('--server_port=P', String) do |p|
       server_port = p
@@ -45,11 +44,9 @@ def main
     Process.kill('SIGKILL', p)
     Process.wait(p)
     raise 'Timed out waiting for client process. ' \
-      'It likely freezes when using gRPC after loading it and then forking'
+      'It likely hangs when using gRPC after loading it and then forking'
   end
-  # don't report the port until now so as to not use grpc before forking
-  report_controller_port_to_parent(parent_controller_port, 0)
-  # check exit status of forked process
+
   client_exit_code = $CHILD_STATUS
   fail "forked process failed #{client_exit_code}" if client_exit_code != 0
 end

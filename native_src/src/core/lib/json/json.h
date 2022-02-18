@@ -27,8 +27,7 @@
 #include <string>
 #include <vector>
 
-#include "absl/strings/string_view.h"
-
+#include "src/core/lib/gprpp/string_view.h"
 #include "src/core/lib/iomgr/error.h"
 
 namespace grpc_core {
@@ -56,7 +55,7 @@ class Json {
   using Array = std::vector<Json>;
 
   // Parses JSON string from json_str.  On error, sets *error.
-  static Json Parse(absl::string_view json_str, grpc_error_handle* error);
+  static Json Parse(StringView json_str, grpc_error** error);
 
   Json() = default;
 
@@ -68,15 +67,14 @@ class Json {
   }
 
   // Moveable.
-  Json(Json&& other) noexcept { MoveFrom(std::move(other)); }
-  Json& operator=(Json&& other) noexcept {
+  Json(Json&& other) { MoveFrom(std::move(other)); }
+  Json& operator=(Json&& other) {
     MoveFrom(std::move(other));
     return *this;
   }
 
   // Construct from copying a string.
   // If is_number is true, the type will be NUMBER instead of STRING.
-  // NOLINTNEXTLINE(google-explicit-constructor)
   Json(const std::string& string, bool is_number = false)
       : type_(is_number ? Type::NUMBER : Type::STRING), string_value_(string) {}
   Json& operator=(const std::string& string) {
@@ -86,14 +84,12 @@ class Json {
   }
 
   // Same thing for C-style strings, both const and mutable.
-  // NOLINTNEXTLINE(google-explicit-constructor)
   Json(const char* string, bool is_number = false)
       : Json(std::string(string), is_number) {}
   Json& operator=(const char* string) {
     *this = std::string(string);
     return *this;
   }
-  // NOLINTNEXTLINE(google-explicit-constructor)
   Json(char* string, bool is_number = false)
       : Json(std::string(string), is_number) {}
   Json& operator=(char* string) {
@@ -102,7 +98,6 @@ class Json {
   }
 
   // Construct by moving a string.
-  // NOLINTNEXTLINE(google-explicit-constructor)
   Json(std::string&& string)
       : type_(Type::STRING), string_value_(std::move(string)) {}
   Json& operator=(std::string&& string) {
@@ -112,7 +107,6 @@ class Json {
   }
 
   // Construct from bool.
-  // NOLINTNEXTLINE(google-explicit-constructor)
   Json(bool b) : type_(b ? Type::JSON_TRUE : Type::JSON_FALSE) {}
   Json& operator=(bool b) {
     type_ = b ? Type::JSON_TRUE : Type::JSON_FALSE;
@@ -121,7 +115,6 @@ class Json {
 
   // Construct from any numeric type.
   template <typename NumericType>
-  // NOLINTNEXTLINE(google-explicit-constructor)
   Json(NumericType number)
       : type_(Type::NUMBER), string_value_(std::to_string(number)) {}
   template <typename NumericType>
@@ -132,7 +125,6 @@ class Json {
   }
 
   // Construct by copying object.
-  // NOLINTNEXTLINE(google-explicit-constructor)
   Json(const Object& object) : type_(Type::OBJECT), object_value_(object) {}
   Json& operator=(const Object& object) {
     type_ = Type::OBJECT;
@@ -141,7 +133,6 @@ class Json {
   }
 
   // Construct by moving object.
-  // NOLINTNEXTLINE(google-explicit-constructor)
   Json(Object&& object)
       : type_(Type::OBJECT), object_value_(std::move(object)) {}
   Json& operator=(Object&& object) {
@@ -151,7 +142,6 @@ class Json {
   }
 
   // Construct by copying array.
-  // NOLINTNEXTLINE(google-explicit-constructor)
   Json(const Array& array) : type_(Type::ARRAY), array_value_(array) {}
   Json& operator=(const Array& array) {
     type_ = Type::ARRAY;
@@ -160,7 +150,6 @@ class Json {
   }
 
   // Construct by moving array.
-  // NOLINTNEXTLINE(google-explicit-constructor)
   Json(Array&& array) : type_(Type::ARRAY), array_value_(std::move(array)) {}
   Json& operator=(Array&& array) {
     type_ = Type::ARRAY;

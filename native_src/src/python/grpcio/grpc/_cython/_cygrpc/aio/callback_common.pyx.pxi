@@ -32,10 +32,9 @@ cdef class CallbackFailureHandler:
 
 cdef class CallbackWrapper:
 
-    def __cinit__(self, object future, object loop, CallbackFailureHandler failure_handler):
+    def __cinit__(self, object future, CallbackFailureHandler failure_handler):
         self.context.functor.functor_run = self.functor_run
         self.context.waiter = <cpython.PyObject*>future
-        self.context.loop = <cpython.PyObject*>loop
         self.context.failure_handler = <cpython.PyObject*>failure_handler
         self.context.callback_wrapper = <cpython.PyObject*>self
         # NOTE(lidiz) Not using a list here, because this class is critical in
@@ -49,7 +48,7 @@ cdef class CallbackWrapper:
 
     @staticmethod
     cdef void functor_run(
-            grpc_completion_queue_functor* functor,
+            grpc_experimental_completion_queue_functor* functor,
             int success):
         cdef CallbackContext *context = <CallbackContext *>functor
         cdef object waiter = <object>context.waiter
@@ -60,7 +59,7 @@ cdef class CallbackWrapper:
                 waiter.set_result(None)
         cpython.Py_DECREF(<object>context.callback_wrapper)
 
-    cdef grpc_completion_queue_functor *c_functor(self):
+    cdef grpc_experimental_completion_queue_functor *c_functor(self):
         return &self.context.functor
 
 
@@ -70,8 +69,28 @@ cdef CallbackFailureHandler CQ_SHUTDOWN_FAILURE_HANDLER = CallbackFailureHandler
     InternalError)
 
 
-class ExecuteBatchError(InternalError):
-    """Raised when execute batch returns a failure from Core."""
+cdef class CallbackCompletionQueue:
+
+    def __cinit__(self):
+        self._shutdown_completed = asyncio.get_event_loop().create_future()
+        self._wrapper = CallbackWrapper(
+            self._shutdown_completed,
+            CQ_SHUTDOWN_FAILURE_HANDLER)
+        self._cq = grpc_completion_queue_create_for_callback(
+            self._wrapper.c_functor(),
+            NULL
+        )
+
+    cdef grpc_completion_queue* c_ptr(self):
+        return self._cq
+
+    async def shutdown(self):
+        grpc_completion_queue_shutdown(self._cq)
+        await self._shutdown_completed
+        grpc_completion_queue_destroy(self._cq)
+
+
+class ExecuteBatchError(Exception): pass
 
 
 async def execute_batch(GrpcCallWrapper grpc_call_wrapper,
@@ -84,7 +103,6 @@ async def execute_batch(GrpcCallWrapper grpc_call_wrapper,
     cdef object future = loop.create_future()
     cdef CallbackWrapper wrapper = CallbackWrapper(
         future,
-        loop,
         CallbackFailureHandler('execute_batch', operations, ExecuteBatchError))
     cdef grpc_call_error error = grpc_call_start_batch(
         grpc_call_wrapper.call,
@@ -129,9 +147,7 @@ async def _receive_message(GrpcCallWrapper grpc_call_wrapper,
         # the callback (e.g. cancelled).
         #
         # Since they all indicates finish, they are better be merged.
-        _LOGGER.debug('Failed to receive any message from Core')
-    # NOTE(lidiz) The returned message might be an empty bytes (aka. b'').
-    # Please explicitly check if it is None or falsey string object!
+        _LOGGER.debug(e)
     return receive_op.message()
 
 

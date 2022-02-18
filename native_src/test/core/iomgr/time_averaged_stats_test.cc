@@ -21,7 +21,6 @@
 #include <math.h>
 
 #include <grpc/support/log.h>
-
 #include "test/core/util/test_config.h"
 
 #define EXPECT_EQ(a, b) GPR_ASSERT((a) == (b))

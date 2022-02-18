@@ -19,8 +19,6 @@
 #ifndef GRPCPP_IMPL_CODEGEN_CLIENT_INTERCEPTOR_H
 #define GRPCPP_IMPL_CODEGEN_CLIENT_INTERCEPTOR_H
 
-// IWYU pragma: private, include <grpcpp/support/client_interceptor.h>
-
 #include <memory>
 #include <vector>
 
@@ -28,10 +26,13 @@
 #include <grpcpp/impl/codegen/rpc_method.h>
 #include <grpcpp/impl/codegen/string_ref.h>
 
-namespace grpc {
+namespace grpc_impl {
 
 class Channel;
 class ClientContext;
+}  // namespace grpc_impl
+
+namespace grpc {
 
 namespace internal {
 class InterceptorBatchMethodsImpl;
@@ -89,16 +90,12 @@ class ClientRpcInfo {
   /// Return the fully-specified method name
   const char* method() const { return method_; }
 
-  /// Return an identifying suffix for the client stub, or nullptr if one wasn't
-  /// specified.
-  const char* suffix_for_stats() const { return suffix_for_stats_; }
-
   /// Return a pointer to the channel on which the RPC is being sent
   ChannelInterface* channel() { return channel_; }
 
   /// Return a pointer to the underlying ClientContext structure associated
   /// with the RPC to support features that apply to it
-  grpc::ClientContext* client_context() { return ctx_; }
+  grpc_impl::ClientContext* client_context() { return ctx_; }
 
   /// Return the type of the RPC (unary or a streaming flavor)
   Type type() const { return type_; }
@@ -121,13 +118,12 @@ class ClientRpcInfo {
   ClientRpcInfo() = default;
 
   // Constructor will only be called from ClientContext
-  ClientRpcInfo(grpc::ClientContext* ctx, internal::RpcMethod::RpcType type,
-                const char* method, const char* suffix_for_stats,
+  ClientRpcInfo(grpc_impl::ClientContext* ctx,
+                internal::RpcMethod::RpcType type, const char* method,
                 grpc::ChannelInterface* channel)
       : ctx_(ctx),
         type_(static_cast<Type>(type)),
         method_(method),
-        suffix_for_stats_(suffix_for_stats),
         channel_(channel) {}
 
   // Move assignment should only be used by ClientContext
@@ -166,18 +162,17 @@ class ClientRpcInfo {
     }
   }
 
-  grpc::ClientContext* ctx_ = nullptr;
+  grpc_impl::ClientContext* ctx_ = nullptr;
   // TODO(yashykt): make type_ const once move-assignment is deleted
   Type type_{Type::UNKNOWN};
   const char* method_ = nullptr;
-  const char* suffix_for_stats_ = nullptr;
   grpc::ChannelInterface* channel_ = nullptr;
   std::vector<std::unique_ptr<experimental::Interceptor>> interceptors_;
   bool hijacked_ = false;
   size_t hijacked_interceptor_ = 0;
 
   friend class internal::InterceptorBatchMethodsImpl;
-  friend class grpc::ClientContext;
+  friend class grpc_impl::ClientContext;
 };
 
 // PLEASE DO NOT USE THIS. ALWAYS PREFER PER CHANNEL INTERCEPTORS OVER A GLOBAL

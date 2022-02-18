@@ -203,7 +203,6 @@ enum ssl_private_key_result_t ssl_private_key_sign(
   SSL *const ssl = hs->ssl;
   const SSL_PRIVATE_KEY_METHOD *key_method = hs->config->cert->key_method;
   EVP_PKEY *privatekey = hs->config->cert->privatekey.get();
-  assert(!hs->can_release_private_key);
   if (ssl_signing_with_dc(hs)) {
     key_method = hs->config->cert->dc_key_method;
     privatekey = hs->config->cert->dc_privatekey.get();
@@ -255,7 +254,6 @@ enum ssl_private_key_result_t ssl_private_key_decrypt(SSL_HANDSHAKE *hs,
                                                       size_t max_out,
                                                       Span<const uint8_t> in) {
   SSL *const ssl = hs->ssl;
-  assert(!hs->can_release_private_key);
   if (hs->config->cert->key_method != NULL) {
     enum ssl_private_key_result_t ret;
     if (hs->pending_private_key_op) {
@@ -793,8 +791,7 @@ int SSL_CTX_set1_sigalgs_list(SSL_CTX *ctx, const char *str) {
 
   if (!SSL_CTX_set_signing_algorithm_prefs(ctx, sigalgs.data(),
                                            sigalgs.size()) ||
-      !SSL_CTX_set_verify_algorithm_prefs(ctx, sigalgs.data(),
-                                          sigalgs.size())) {
+      !ctx->verify_sigalgs.CopyFrom(sigalgs)) {
     return 0;
   }
 
@@ -814,7 +811,7 @@ int SSL_set1_sigalgs_list(SSL *ssl, const char *str) {
   }
 
   if (!SSL_set_signing_algorithm_prefs(ssl, sigalgs.data(), sigalgs.size()) ||
-      !SSL_set_verify_algorithm_prefs(ssl, sigalgs.data(), sigalgs.size())) {
+      !ssl->config->verify_sigalgs.CopyFrom(sigalgs)) {
     return 0;
   }
 
@@ -824,14 +821,4 @@ int SSL_set1_sigalgs_list(SSL *ssl, const char *str) {
 int SSL_CTX_set_verify_algorithm_prefs(SSL_CTX *ctx, const uint16_t *prefs,
                                        size_t num_prefs) {
   return ctx->verify_sigalgs.CopyFrom(MakeConstSpan(prefs, num_prefs));
-}
-
-int SSL_set_verify_algorithm_prefs(SSL *ssl, const uint16_t *prefs,
-                                   size_t num_prefs) {
-  if (!ssl->config) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_SHOULD_NOT_HAVE_BEEN_CALLED);
-    return 0;
-  }
-
-  return ssl->config->verify_sigalgs.CopyFrom(MakeConstSpan(prefs, num_prefs));
 }

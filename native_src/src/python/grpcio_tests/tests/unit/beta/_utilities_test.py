@@ -20,7 +20,6 @@ import unittest
 from grpc.beta import implementations
 from grpc.beta import utilities
 from grpc.framework.foundation import future
-
 from tests.unit.framework.common import test_constants
 
 

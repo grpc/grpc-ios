@@ -24,7 +24,7 @@ SMOKETEST = 'smoketest'
 SCALABLE = 'scalable'
 INPROC = 'inproc'
 SWEEP = 'sweep'
-DEFAULT_CATEGORIES = (SCALABLE, SMOKETEST)
+DEFAULT_CATEGORIES = [SCALABLE, SMOKETEST]
 
 SECURE_SECARGS = {
     'use_test_ca': True,
@@ -53,11 +53,8 @@ def _get_secargs(is_secure):
 
 
 def remove_nonproto_fields(scenario):
-    """Removes special-purpose fields that don't belong in the protobuf.
-
-    This function removes additional information about the scenario that is not
-    included in the ScenarioConfig protobuf message.
-    """
+    """Remove special-purpose that contains some extra info about the scenario
+  but don't belong to the ScenarioConfig protobuf message"""
     scenario.pop('CATEGORIES', None)
     scenario.pop('CLIENT_LANGUAGE', None)
     scenario.pop('SERVER_LANGUAGE', None)
@@ -127,13 +124,13 @@ def _ping_pong_scenario(name,
                         server_threads_per_cq=0,
                         client_threads_per_cq=0,
                         warmup_seconds=WARMUP_SECONDS,
-                        categories=None,
+                        categories=DEFAULT_CATEGORIES,
                         channels=None,
                         outstanding=None,
                         num_clients=None,
                         resource_quota_size=None,
                         messages_per_stream=None,
-                        excluded_poll_engines=None,
+                        excluded_poll_engines=[],
                         minimal_stack=False,
                         offered_load=None):
     """Creates a basic ping pong scenario."""
@@ -162,9 +159,7 @@ def _ping_pong_scenario(name,
             'channel_args': [],
         },
         'warmup_seconds': warmup_seconds,
-        'benchmark_seconds': BENCHMARK_SECONDS,
-        'CATEGORIES': list(DEFAULT_CATEGORIES),
-        'EXCLUDED_POLL_ENGINES': [],
+        'benchmark_seconds': BENCHMARK_SECONDS
     }
     if resource_quota_size:
         scenario['server_config']['resource_quota_size'] = resource_quota_size
@@ -234,18 +229,10 @@ def _ping_pong_scenario(name,
     return scenario
 
 
-class Language(object):
+class CXXLanguage:
 
-    @property
-    def safename(self):
-        return str(self)
-
-
-class CXXLanguage(Language):
-
-    @property
-    def safename(self):
-        return 'cxx'
+    def __init__(self):
+        self.safename = 'cxx'
 
     def worker_cmdline(self):
         return ['cmake/build/qps_worker']
@@ -267,7 +254,7 @@ class CXXLanguage(Language):
             channels=1,
             num_clients=1,
             secure=False,
-            categories=[SWEEP])
+            categories=[INPROC] + [SCALABLE])
 
         yield _ping_pong_scenario(
             'cpp_protobuf_async_streaming_from_client_1channel_1MB',
@@ -281,10 +268,8 @@ class CXXLanguage(Language):
             channels=1,
             num_clients=1,
             secure=False,
-            categories=[SWEEP])
+            categories=[SMOKETEST] + [INPROC] + [SCALABLE])
 
-        # Scenario was added in https://github.com/grpc/grpc/pull/12987, but its purpose is unclear
-        # (beyond excercising some params that other scenarios don't)
         yield _ping_pong_scenario(
             'cpp_protobuf_async_unary_75Kqps_600channel_60Krpcs_300Breq_50Bresp',
             rpc_type='UNARY',
@@ -325,13 +310,11 @@ class CXXLanguage(Language):
                 unconstrained_client='async',
                 use_generic_payload=True,
                 secure=secure,
-                client_threads_per_cq=2,
-                server_threads_per_cq=2,
                 minimal_stack=not secure,
                 categories=smoketest_categories + inproc_categories +
                 [SCALABLE])
 
-            for mps in geometric_progression(10, 20, 10):
+            for mps in geometric_progression(1, 20, 10):
                 yield _ping_pong_scenario(
                     'cpp_generic_async_streaming_qps_unconstrained_%smps_%s' %
                     (mps, secstr),
@@ -399,7 +382,21 @@ class CXXLanguage(Language):
                 secure=secure,
                 client_threads_per_cq=1000000,
                 server_threads_per_cq=1000000,
-                categories=[SWEEP])
+                categories=smoketest_categories + inproc_categories +
+                [SCALABLE])
+
+            yield _ping_pong_scenario(
+                'cpp_generic_async_streaming_qps_unconstrained_2waysharedcq_%s'
+                % secstr,
+                rpc_type='STREAMING',
+                client_type='ASYNC_CLIENT',
+                server_type='ASYNC_GENERIC_SERVER',
+                unconstrained_client='async',
+                use_generic_payload=True,
+                secure=secure,
+                client_threads_per_cq=2,
+                server_threads_per_cq=2,
+                categories=inproc_categories + [SCALABLE])
 
             yield _ping_pong_scenario(
                 'cpp_protobuf_async_streaming_qps_unconstrained_1cq_%s' %
@@ -414,6 +411,18 @@ class CXXLanguage(Language):
                 categories=inproc_categories + [SCALABLE])
 
             yield _ping_pong_scenario(
+                'cpp_protobuf_async_streaming_qps_unconstrained_2waysharedcq_%s'
+                % secstr,
+                rpc_type='STREAMING',
+                client_type='ASYNC_CLIENT',
+                server_type='ASYNC_SERVER',
+                unconstrained_client='async',
+                secure=secure,
+                client_threads_per_cq=2,
+                server_threads_per_cq=2,
+                categories=inproc_categories + [SCALABLE])
+
+            yield _ping_pong_scenario(
                 'cpp_protobuf_async_unary_qps_unconstrained_1cq_%s' % secstr,
                 rpc_type='UNARY',
                 client_type='ASYNC_CLIENT',
@@ -422,6 +431,19 @@ class CXXLanguage(Language):
                 secure=secure,
                 client_threads_per_cq=1000000,
                 server_threads_per_cq=1000000,
+                categories=smoketest_categories + inproc_categories +
+                [SCALABLE])
+
+            yield _ping_pong_scenario(
+                'cpp_protobuf_async_unary_qps_unconstrained_2waysharedcq_%s' %
+                secstr,
+                rpc_type='UNARY',
+                client_type='ASYNC_CLIENT',
+                server_type='ASYNC_SERVER',
+                unconstrained_client='async',
+                secure=secure,
+                client_threads_per_cq=2,
+                server_threads_per_cq=2,
                 categories=inproc_categories + [SCALABLE])
 
             yield _ping_pong_scenario(
@@ -433,8 +455,7 @@ class CXXLanguage(Language):
                 use_generic_payload=True,
                 async_server_threads=1,
                 minimal_stack=not secure,
-                secure=secure,
-                categories=[SWEEP])
+                secure=secure)
 
             yield _ping_pong_scenario(
                 'cpp_protobuf_async_client_sync_server_unary_qps_unconstrained_%s'
@@ -471,7 +492,8 @@ class CXXLanguage(Language):
                 unconstrained_client='async',
                 secure=secure,
                 minimal_stack=not secure,
-                categories=[SWEEP])
+                categories=smoketest_categories + inproc_categories +
+                [SCALABLE])
 
             yield _ping_pong_scenario(
                 'cpp_protobuf_async_unary_ping_pong_%s_1MB' % secstr,
@@ -515,13 +537,6 @@ class CXXLanguage(Language):
                             minimal_stack=not secure,
                             categories=[SWEEP])
 
-                    maybe_scalable = [SCALABLE]
-                    if rpc_type == 'streaming_from_server' and synchronicity == 'async' and secure:
-                        # protobuf_async_streaming_from_server_qps_unconstrained_secure is very flaky
-                        # and has extremely high variance so running it isn't really useful.
-                        # see b/198275705
-                        maybe_scalable = [SWEEP]
-
                     yield _ping_pong_scenario(
                         'cpp_protobuf_%s_%s_qps_unconstrained_%s' %
                         (synchronicity, rpc_type, secstr),
@@ -531,9 +546,9 @@ class CXXLanguage(Language):
                         unconstrained_client=synchronicity,
                         secure=secure,
                         minimal_stack=not secure,
-                        server_threads_per_cq=2,
-                        client_threads_per_cq=2,
-                        categories=inproc_categories + maybe_scalable)
+                        server_threads_per_cq=3,
+                        client_threads_per_cq=3,
+                        categories=inproc_categories + [SCALABLE])
 
                     # TODO(vjpai): Re-enable this test. It has a lot of timeouts
                     # and hasn't yet been conclusively identified as a test failure
@@ -549,7 +564,7 @@ class CXXLanguage(Language):
                     #     resource_quota_size=500*1024)
 
                     if rpc_type == 'streaming':
-                        for mps in geometric_progression(10, 20, 10):
+                        for mps in geometric_progression(1, 20, 10):
                             yield _ping_pong_scenario(
                                 'cpp_protobuf_%s_%s_qps_unconstrained_%smps_%s'
                                 % (synchronicity, rpc_type, mps, secstr),
@@ -581,8 +596,7 @@ class CXXLanguage(Language):
                                 1, 200000, math.sqrt(10)):
                             if synchronicity == 'sync' and outstanding > 1200:
                                 continue
-                            if outstanding < channels:
-                                continue
+                            if outstanding < channels: continue
                             yield _ping_pong_scenario(
                                 'cpp_protobuf_%s_%s_qps_unconstrained_%s_%d_channels_%d_outstanding'
                                 % (synchronicity, rpc_type, secstr, channels,
@@ -601,7 +615,10 @@ class CXXLanguage(Language):
         return 'c++'
 
 
-class CSharpLanguage(Language):
+class CSharpLanguage:
+
+    def __init__(self):
+        self.safename = str(self)
 
     def worker_cmdline(self):
         return ['tools/run_tests/performance/run_worker_csharp.sh']
@@ -726,7 +743,10 @@ class CSharpLanguage(Language):
         return 'csharp'
 
 
-class PythonLanguage(Language):
+class PythonLanguage:
+
+    def __init__(self):
+        self.safename = 'python'
 
     def worker_cmdline(self):
         return ['tools/run_tests/performance/run_worker_python.sh']
@@ -800,7 +820,10 @@ class PythonLanguage(Language):
         return 'python'
 
 
-class PythonAsyncIOLanguage(Language):
+class PythonAsyncIOLanguage:
+
+    def __init__(self):
+        self.safename = 'python_asyncio'
 
     def worker_cmdline(self):
         return ['tools/run_tests/performance/run_worker_python_asyncio.sh']
@@ -945,7 +968,11 @@ class PythonAsyncIOLanguage(Language):
         return 'python_asyncio'
 
 
-class RubyLanguage(Language):
+class RubyLanguage:
+
+    def __init__(self):
+        pass
+        self.safename = str(self)
 
     def worker_cmdline(self):
         return ['tools/run_tests/performance/run_worker_ruby.sh']
@@ -1006,11 +1033,12 @@ class RubyLanguage(Language):
         return 'ruby'
 
 
-class Php7Language(Language):
+class Php7Language:
 
     def __init__(self, php7_protobuf_c=False):
-        super().__init__()
+        pass
         self.php7_protobuf_c = php7_protobuf_c
+        self.safename = str(self)
 
     def worker_cmdline(self):
         if self.php7_protobuf_c:
@@ -1076,7 +1104,11 @@ class Php7Language(Language):
         return 'php7'
 
 
-class JavaLanguage(Language):
+class JavaLanguage:
+
+    def __init__(self):
+        pass
+        self.safename = str(self)
 
     def worker_cmdline(self):
         return ['tools/run_tests/performance/run_worker_java.sh']
@@ -1176,7 +1208,11 @@ class JavaLanguage(Language):
         return 'java'
 
 
-class GoLanguage(Language):
+class GoLanguage:
+
+    def __init__(self):
+        pass
+        self.safename = str(self)
 
     def worker_cmdline(self):
         return ['tools/run_tests/performance/run_worker_go.sh']
@@ -1257,11 +1293,12 @@ class GoLanguage(Language):
         return 'go'
 
 
-class NodeLanguage(Language):
+class NodeLanguage:
 
     def __init__(self, node_purejs=False):
-        super().__init__()
+        pass
         self.node_purejs = node_purejs
+        self.safename = str(self)
 
     def worker_cmdline(self):
         fixture = 'native_js' if self.node_purejs else 'native_native'

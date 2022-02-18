@@ -20,7 +20,7 @@ powershell -Command "Add-Type -Assembly 'System.IO.Compression.FileSystem'; [Sys
 
 update_version.sh auto
 
-set NUGET=nuget
+set NUGET=C:\nuget\nuget.exe
 
 @rem TODO(jtattermusch): Get rid of this hack. See #8034
 @rem We can't do just "nuget restore" because restoring a .sln solution doesn't work

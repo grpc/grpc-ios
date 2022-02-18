@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2.7
 # Copyright 2017 gRPC authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,13 +35,13 @@ import dockerjob
 import jobset
 
 _IMAGE_BUILDER = 'tools/run_tests/dockerize/build_interop_image.sh'
-_LANGUAGES = list(client_matrix.LANG_RUNTIME_MATRIX.keys())
+_LANGUAGES = client_matrix.LANG_RUNTIME_MATRIX.keys()
 # All gRPC release tags, flattened, deduped and sorted.
 _RELEASES = sorted(
     list(
         set(release
-            for release_dict in list(client_matrix.LANG_RELEASE_MATRIX.values())
-            for release in list(release_dict.keys()))))
+            for release_dict in client_matrix.LANG_RELEASE_MATRIX.values()
+            for release in release_dict.keys())))
 
 # Destination directory inside docker image to keep extra info from build time.
 _BUILD_INFO = '/var/local/build_info'
@@ -147,7 +147,7 @@ def build_image_jobspec(runtime, env, gcr_tag, stack_base):
   """
     basename = 'grpc_interop_%s' % runtime
     tag = '%s/%s:%s' % (args.gcr_path, basename, gcr_tag)
-    build_env = {'INTEROP_IMAGE': tag, 'BASE_NAME': basename}
+    build_env = {'INTEROP_IMAGE': tag, 'BASE_NAME': basename, 'TTY_FLAG': '-t'}
     build_env.update(env)
     image_builder_path = _IMAGE_BUILDER
     if client_matrix.should_build_docker_interop_image_from_release_tag(lang):
@@ -325,21 +325,8 @@ def checkout_grpc_stack(lang, release):
                    '%s: %s' % (str(output), commit_log),
                    do_newline=True)
 
-    # git submodule update
-    jobset.message('START',
-                   'git submodule update --init at %s from %s' %
-                   (release, stack_base),
-                   do_newline=True)
-    subprocess.check_call(['git', 'submodule', 'update', '--init'],
-                          cwd=stack_base,
-                          stderr=subprocess.STDOUT)
-    jobset.message('SUCCESS',
-                   'git submodule update --init',
-                   '%s: %s' % (str(output), commit_log),
-                   do_newline=True)
-
     # Write git log to commit_log so it can be packaged with the docker image.
-    with open(os.path.join(stack_base, 'commit_log'), 'wb') as f:
+    with open(os.path.join(stack_base, 'commit_log'), 'w') as f:
         f.write(commit_log)
     return stack_base
 

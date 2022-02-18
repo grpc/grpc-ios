@@ -21,8 +21,6 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <string>
-
 #include "src/core/lib/gprpp/memory.h"
 #include "src/core/lib/gprpp/ref_counted.h"
 
@@ -34,7 +32,7 @@ class ServerRetryThrottleData : public RefCounted<ServerRetryThrottleData> {
  public:
   ServerRetryThrottleData(intptr_t max_milli_tokens, intptr_t milli_token_ratio,
                           ServerRetryThrottleData* old_throttle_data);
-  ~ServerRetryThrottleData() override;
+  ~ServerRetryThrottleData();
 
   /// Records a failure.  Returns true if it's okay to send a retry.
   bool RecordFailure();
@@ -69,7 +67,7 @@ class ServerRetryThrottleMap {
   /// Returns the failure data for \a server_name, creating a new entry if
   /// needed.
   static RefCountedPtr<ServerRetryThrottleData> GetDataForServer(
-      const std::string& server_name, intptr_t max_milli_tokens,
+      const char* server_name, intptr_t max_milli_tokens,
       intptr_t milli_token_ratio);
 };
 

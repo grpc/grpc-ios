@@ -13,8 +13,9 @@
 # limitations under the License.
 """A thread pool that logs exceptions raised by tasks executed within it."""
 
-from concurrent import futures
 import logging
+
+from concurrent import futures
 
 _LOGGER = logging.getLogger(__name__)
 

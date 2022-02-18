@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_proto//proto:defs.bzl", "proto_library")
+licenses(["notice"])  # Apache v2
 
-licenses(["notice"])
+load("@rules_proto//proto:defs.bzl", "proto_library")
 
 proto_library(
     name = "alts_handshaker_proto",

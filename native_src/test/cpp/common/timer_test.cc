@@ -16,16 +16,14 @@
  *
  */
 
-#include "src/core/lib/iomgr/timer.h"
-
-#include <gtest/gtest.h>
-
 #include <grpc/grpc.h>
 #include <grpc/support/log.h>
+#include <gtest/gtest.h>
 
 #include "src/core/lib/iomgr/closure.h"
 #include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
+#include "src/core/lib/iomgr/timer.h"
 #include "src/core/lib/iomgr/timer_manager.h"
 #include "test/core/util/test_config.h"
 
@@ -58,7 +56,7 @@ class TimerTest : public ::testing::Test {
     }
   }
 
-  void TearDown() override { grpc_shutdown(); }
+  void TearDown() override { grpc_shutdown_blocking(); }
 
   bool do_not_test_{false};
 };
@@ -86,7 +84,7 @@ TEST_F(TimerTest, OneTimerExpires) {
   int timer_fired = 0;
   grpc_timer_init(&timer, grpc_core::ExecCtx::Get()->Now() + 500,
                   GRPC_CLOSURE_CREATE(
-                      [](void* arg, grpc_error_handle) {
+                      [](void* arg, grpc_error*) {
                         int* timer_fired = static_cast<int*>(arg);
                         ++*timer_fired;
                       },
@@ -111,7 +109,7 @@ TEST_F(TimerTest, MultipleTimersExpire) {
   for (int i = 0; i < kNumTimers; ++i) {
     grpc_timer_init(&timers[i], grpc_core::ExecCtx::Get()->Now() + 500 + i,
                     GRPC_CLOSURE_CREATE(
-                        [](void* arg, grpc_error_handle) {
+                        [](void* arg, grpc_error*) {
                           int* timer_fired = static_cast<int*>(arg);
                           ++*timer_fired;
                         },
@@ -138,7 +136,7 @@ TEST_F(TimerTest, CancelSomeTimers) {
   for (int i = 0; i < kNumTimers; ++i) {
     grpc_timer_init(&timers[i], grpc_core::ExecCtx::Get()->Now() + 500 + i,
                     GRPC_CLOSURE_CREATE(
-                        [](void* arg, grpc_error_handle error) {
+                        [](void* arg, grpc_error* error) {
                           if (error == GRPC_ERROR_CANCELLED) {
                             return;
                           }
@@ -168,7 +166,7 @@ TEST_F(TimerTest, DISABLED_TimerNotCanceled) {
   grpc_core::ExecCtx exec_ctx;
   grpc_timer timer;
   grpc_timer_init(&timer, grpc_core::ExecCtx::Get()->Now() + 10000,
-                  GRPC_CLOSURE_CREATE([](void*, grpc_error_handle) {}, nullptr,
+                  GRPC_CLOSURE_CREATE([](void*, grpc_error*) {}, nullptr,
                                       grpc_schedule_on_exec_ctx));
 }
 
@@ -183,7 +181,7 @@ TEST_F(TimerTest, DISABLED_CancelRace) {
     grpc_timer* arg = (i != 0) ? &timers[i - 1] : nullptr;
     grpc_timer_init(&timers[i], grpc_core::ExecCtx::Get()->Now() + 100,
                     GRPC_CLOSURE_CREATE(
-                        [](void* arg, grpc_error_handle /*error*/) {
+                        [](void* arg, grpc_error* /*error*/) {
                           grpc_timer* timer = static_cast<grpc_timer*>(arg);
                           if (timer) {
                             grpc_timer_cancel(timer);
@@ -213,7 +211,7 @@ TEST_F(TimerTest, DISABLED_CancelNextTimer) {
     }
     grpc_timer_init(&timers[i], grpc_core::ExecCtx::Get()->Now() + 100,
                     GRPC_CLOSURE_CREATE(
-                        [](void* arg, grpc_error_handle /*error*/) {
+                        [](void* arg, grpc_error* /*error*/) {
                           grpc_timer* timer = static_cast<grpc_timer*>(arg);
                           if (timer) {
                             grpc_timer_cancel(timer);

@@ -20,18 +20,9 @@ class Scenarios extends \Google\Protobuf\Internal\Message
      */
     private $scenarios;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type \Grpc\Testing\Scenario[]|\Google\Protobuf\Internal\RepeatedField $scenarios
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Control::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

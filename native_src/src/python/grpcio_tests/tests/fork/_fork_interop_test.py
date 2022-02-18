@@ -13,19 +13,16 @@
 # limitations under the License.
 """Client-side fork interop tests as a unit test."""
 
+import six
 import subprocess
 import sys
-import tempfile
 import threading
 import unittest
-
 from grpc._cython import cygrpc
-import six
-
 from tests.fork import methods
 
 # New instance of multiprocessing.Process using fork without exec can and will
-# freeze if the Python process has any other threads running. This includes the
+# hang if the Python process has any other threads running. This includes the
 # additional thread spawned by our _runner.py class. So in order to test our
 # compatibility with multiprocessing, we first fork+exec a new process to ensure
 # we don't have any conflicting background threads.
@@ -72,23 +69,15 @@ class ForkInteropTest(unittest.TestCase):
             while True:
                 time.sleep(1)
         """
-        streams = tuple(tempfile.TemporaryFile() for _ in range(2))
         self._server_process = subprocess.Popen(
             [sys.executable, '-c', start_server_script],
-            stdout=streams[0],
-            stderr=streams[1])
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
         timer = threading.Timer(_SUBPROCESS_TIMEOUT_S,
                                 self._server_process.kill)
         try:
             timer.start()
-            while True:
-                streams[0].seek(0)
-                s = streams[0].readline()
-                if not s:
-                    continue
-                else:
-                    self._port = int(s)
-                    break
+            self._port = int(self._server_process.stdout.readline())
         except ValueError:
             raise Exception('Failed to get port from server')
         finally:
@@ -136,22 +125,26 @@ class ForkInteropTest(unittest.TestCase):
 
     def _verifyTestCase(self, test_case):
         script = _CLIENT_FORK_SCRIPT_TEMPLATE % (test_case.name, self._port)
-        streams = tuple(tempfile.TemporaryFile() for _ in range(2))
         process = subprocess.Popen([sys.executable, '-c', script],
-                                   stdout=streams[0],
-                                   stderr=streams[1])
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
         timer = threading.Timer(_SUBPROCESS_TIMEOUT_S, process.kill)
-        timer.start()
-        process.wait()
-        timer.cancel()
-        outputs = []
-        for stream in streams:
-            stream.seek(0)
-            outputs.append(stream.read())
+        try:
+            timer.start()
+            try:
+                out, err = process.communicate(timeout=_SUBPROCESS_TIMEOUT_S)
+            except TypeError:
+                # The timeout parameter was added in Python 3.3.
+                out, err = process.communicate()
+        except subprocess.TimeoutExpired:
+            process.kill()
+            raise RuntimeError('Process failed to terminate')
+        finally:
+            timer.cancel()
         self.assertEqual(
             0, process.returncode,
-            'process failed with exit code %d (stdout: "%s", stderr: "%s")' %
-            (process.returncode, outputs[0], outputs[1]))
+            'process failed with exit code %d (stdout: %s, stderr: %s)' %
+            (process.returncode, out, err))
 
 
 if __name__ == '__main__':

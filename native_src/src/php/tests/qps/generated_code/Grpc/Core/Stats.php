@@ -18,18 +18,9 @@ class Stats extends \Google\Protobuf\Internal\Message
      */
     private $metrics;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type \Grpc\Core\Metric[]|\Google\Protobuf\Internal\RepeatedField $metrics
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Core\Stats::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

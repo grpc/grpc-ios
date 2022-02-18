@@ -67,7 +67,7 @@ class RepeatedField implements \ArrayAccess, \IteratorAggregate, \Countable
     /**
      * Constructs an instance of RepeatedField.
      *
-     * @param integer $type Type of the stored element.
+     * @param long $type Type of the stored element.
      * @param string $klass Message/Enum class name (message/enum fields only).
      * @ignore
      */
@@ -116,7 +116,7 @@ class RepeatedField implements \ArrayAccess, \IteratorAggregate, \Countable
      *
      * This will also be called for: $ele = $arr[0]
      *
-     * @param integer $offset The index of the element to be fetched.
+     * @param long $offset The index of the element to be fetched.
      * @return object The stored element at given index.
      * @throws \ErrorException Invalid type for index.
      * @throws \ErrorException Non-existing index.
@@ -131,7 +131,7 @@ class RepeatedField implements \ArrayAccess, \IteratorAggregate, \Countable
      *
      * This will also be called for: $arr []= $ele and $arr[0] = ele
      *
-     * @param integer $offset The index of the element to be assigned.
+     * @param long $offset The index of the element to be assigned.
      * @param object $value The element to be assigned.
      * @return void
      * @throws \ErrorException Invalid type for index.
@@ -177,7 +177,8 @@ class RepeatedField implements \ArrayAccess, \IteratorAggregate, \Countable
                 break;
             case GPBType::MESSAGE:
                 if (is_null($value)) {
-                    throw new \TypeError("RepeatedField element cannot be null.");
+                  trigger_error("RepeatedField element cannot be null.",
+                                E_USER_ERROR);
                 }
                 GPBUtil::checkMessage($value, $this->klass);
                 break;
@@ -203,7 +204,7 @@ class RepeatedField implements \ArrayAccess, \IteratorAggregate, \Countable
      *
      * This will also be called for: unset($arr)
      *
-     * @param integer $offset The index of the element to be removed.
+     * @param long $offset The index of the element to be removed.
      * @return void
      * @throws \ErrorException Invalid type for index.
      * @throws \ErrorException The element to be removed is not at the end of the
@@ -226,7 +227,7 @@ class RepeatedField implements \ArrayAccess, \IteratorAggregate, \Countable
      *
      * This will also be called for: isset($arr)
      *
-     * @param integer $offset The index of the element to be removed.
+     * @param long $offset The index of the element to be removed.
      * @return bool True if the element at the given offset exists.
      * @throws \ErrorException Invalid type for index.
      */

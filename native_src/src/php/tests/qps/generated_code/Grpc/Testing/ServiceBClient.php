@@ -42,7 +42,6 @@ class ServiceBClient extends \Grpc\BaseStub {
      * @param \Grpc\Testing\Request $argument input argument
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\Response
      */
     public function MethodB1(\Grpc\Testing\Request $argument,
       $metadata = [], $options = []) {

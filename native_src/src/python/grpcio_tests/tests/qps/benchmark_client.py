@@ -14,15 +14,15 @@
 """Defines test client behaviors (UNARY/STREAMING) (SYNC/ASYNC)."""
 
 import abc
-from concurrent import futures
 import threading
 import time
 
-import grpc
+from concurrent import futures
 from six.moves import queue
 
-from src.proto.grpc.testing import benchmark_service_pb2_grpc
+import grpc
 from src.proto.grpc.testing import messages_pb2
+from src.proto.grpc.testing import benchmark_service_pb2_grpc
 from tests.unit import resources
 from tests.unit import test_common
 
@@ -34,8 +34,6 @@ class GenericStub(object):
     def __init__(self, channel):
         self.UnaryCall = channel.unary_unary(
             '/grpc.testing.BenchmarkService/UnaryCall')
-        self.StreamingFromServer = channel.unary_stream(
-            '/grpc.testing.BenchmarkService/StreamingFromServer')
         self.StreamingCall = channel.stream_stream(
             '/grpc.testing.BenchmarkService/StreamingCall')
 
@@ -63,16 +61,14 @@ class BenchmarkClient:
             self._stub = benchmark_service_pb2_grpc.BenchmarkServiceStub(
                 channel)
             payload = messages_pb2.Payload(
-                body=bytes(b'\0' *
-                           config.payload_config.simple_params.req_size))
+                body='\0' * config.payload_config.simple_params.req_size)
             self._request = messages_pb2.SimpleRequest(
                 payload=payload,
                 response_size=config.payload_config.simple_params.resp_size)
         else:
             self._generic = True
             self._stub = GenericStub(channel)
-            self._request = bytes(b'\0' *
-                                  config.payload_config.bytebuf_params.req_size)
+            self._request = '\0' * config.payload_config.bytebuf_params.req_size
 
         self._hist = hist
         self._response_callbacks = []
@@ -201,44 +197,4 @@ class StreamingSyncBenchmarkClient(BenchmarkClient):
         for stream in self._streams:
             stream.stop()
         self._pool.shutdown(wait=True)
-        self._stub = None
-
-
-class ServerStreamingSyncBenchmarkClient(BenchmarkClient):
-
-    def __init__(self, server, config, hist):
-        super(ServerStreamingSyncBenchmarkClient,
-              self).__init__(server, config, hist)
-        if config.outstanding_rpcs_per_channel == 1:
-            self._pool = None
-        else:
-            self._pool = futures.ThreadPoolExecutor(
-                max_workers=config.outstanding_rpcs_per_channel)
-        self._rpcs = []
-        self._sender = None
-
-    def send_request(self):
-        if self._pool is None:
-            self._sender = threading.Thread(
-                target=self._one_stream_streaming_rpc, daemon=True)
-            self._sender.start()
-        else:
-            self._pool.submit(self._one_stream_streaming_rpc)
-
-    def _one_stream_streaming_rpc(self):
-        response_stream = self._stub.StreamingFromServer(
-            self._request, _TIMEOUT)
-        self._rpcs.append(response_stream)
-        start_time = time.time()
-        for _ in response_stream:
-            self._handle_response(self, time.time() - start_time)
-            start_time = time.time()
-
-    def stop(self):
-        for call in self._rpcs:
-            call.cancel()
-        if self._sender is not None:
-            self._sender.join()
-        if self._pool is not None:
-            self._pool.shutdown(wait=False)
         self._stub = None

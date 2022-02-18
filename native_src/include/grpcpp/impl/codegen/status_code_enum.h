@@ -19,8 +19,6 @@
 #ifndef GRPCPP_IMPL_CODEGEN_STATUS_CODE_ENUM_H
 #define GRPCPP_IMPL_CODEGEN_STATUS_CODE_ENUM_H
 
-// IWYU pragma: private, include <grpcpp/support/status_code_enum.h>
-
 namespace grpc {
 
 enum StatusCode {

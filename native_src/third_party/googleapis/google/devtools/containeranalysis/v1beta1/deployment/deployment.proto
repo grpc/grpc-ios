@@ -16,22 +16,22 @@ syntax = "proto3";
 
 package grafeas.v1beta1.deployment;
 
-import "google/protobuf/timestamp.proto";
-
 option go_package = "google.golang.org/genproto/googleapis/devtools/containeranalysis/v1beta1/deployment;deployment";
 option java_multiple_files = true;
 option java_package = "io.grafeas.v1beta1.deployment";
 option objc_class_prefix = "GRA";
 
+import "google/protobuf/timestamp.proto";
+
 // An artifact that can be deployed in some runtime.
 message Deployable {
-  // Required. Resource URI for the artifact being deployed.
+  // Resource URI for the artifact being deployed.
   repeated string resource_uri = 1;
 }
 
 // Details of a deployment occurrence.
 message Details {
-  // Required. Deployment history for the resource.
+  // Deployment history for the resource.
   Deployment deployment = 1;
 }
 
@@ -40,7 +40,7 @@ message Deployment {
   // Identity of the user that triggered this deployment.
   string user_email = 1;
 
-  // Required. Beginning of the lifetime of this deployment.
+  // Beginning of the lifetime of this deployment.
   google.protobuf.Timestamp deploy_time = 2;
 
   // End of the lifetime of this deployment.

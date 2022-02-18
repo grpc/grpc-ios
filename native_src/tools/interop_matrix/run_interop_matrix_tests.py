@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2.7
 # Copyright 2017 gRPC authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,13 +40,13 @@ import upload_test_results
 _TEST_TIMEOUT_SECONDS = 60
 _PULL_IMAGE_TIMEOUT_SECONDS = 15 * 60
 _MAX_PARALLEL_DOWNLOADS = 6
-_LANGUAGES = list(client_matrix.LANG_RUNTIME_MATRIX.keys())
+_LANGUAGES = client_matrix.LANG_RUNTIME_MATRIX.keys()
 # All gRPC release tags, flattened, deduped and sorted.
 _RELEASES = sorted(
     list(
         set(release
-            for release_dict in list(client_matrix.LANG_RELEASE_MATRIX.values())
-            for release in list(release_dict.keys()))))
+            for release_dict in client_matrix.LANG_RELEASE_MATRIX.values()
+            for release in release_dict.keys())))
 
 argp = argparse.ArgumentParser(description='Run interop tests.')
 argp.add_argument('-j', '--jobs', default=multiprocessing.cpu_count(), type=int)
@@ -117,7 +117,7 @@ def _get_test_images_for_lang(lang, release_arg, image_path_prefix):
                                                     tag)
             image_tuple = (tag, image_name)
 
-            if runtime not in images:
+            if not images.has_key(runtime):
                 images[runtime] = []
             images[runtime].append(image_tuple)
     return images
@@ -166,7 +166,6 @@ def _generate_test_case_jobspecs(lang, runtime, release, suite_name):
 
     job_spec_list = []
     for line in testcase_lines:
-        print("Creating jobspec with cmdline '{}'".format(line))
         # TODO(jtattermusch): revisit the logic for updating test case commands
         # what it currently being done seems fragile.
 
@@ -204,29 +203,69 @@ def _generate_test_case_jobspecs(lang, runtime, release, suite_name):
     return job_spec_list
 
 
-def _pull_image_for_lang(lang, image, release):
-    """Pull an image for a given language form the image registry."""
-    cmdline = [
-        'time gcloud docker -- pull %s && time docker run --rm=true %s /bin/true'
-        % (image, image)
-    ]
-    return jobset.JobSpec(cmdline=cmdline,
-                          shortname='pull_image_{}'.format(image),
-                          timeout_seconds=_PULL_IMAGE_TIMEOUT_SECONDS,
-                          shell=True,
-                          flake_retries=2)
-
-
-def _test_release(lang, runtime, release, image, xml_report_tree, skip_tests):
-    total_num_failures = 0
-    suite_name = '%s__%s_%s' % (lang, runtime, release)
-    job_spec_list = _generate_test_case_jobspecs(lang, runtime, release,
-                                                 suite_name)
-
-    if not job_spec_list:
-        jobset.message('FAILED', 'No test cases were found.', do_newline=True)
-        total_num_failures += 1
+def _pull_images_for_lang(lang, images):
+    """Pull all images for given lang from container registry."""
+    jobset.message('START',
+                   'Downloading images for language "%s"' % lang,
+                   do_newline=True)
+    download_specs = []
+    for release, image in images:
+        # Pull the image and warm it up.
+        # First time we use an image with "docker run", it takes time to unpack
+        # the image and later this delay would fail our test cases.
+        cmdline = [
+            'time gcloud docker -- pull %s && time docker run --rm=true %s /bin/true'
+            % (image, image)
+        ]
+        spec = jobset.JobSpec(cmdline=cmdline,
+                              shortname='pull_image_%s' % (image),
+                              timeout_seconds=_PULL_IMAGE_TIMEOUT_SECONDS,
+                              shell=True,
+                              flake_retries=2)
+        download_specs.append(spec)
+    # too many image downloads at once tend to get stuck
+    max_pull_jobs = min(args.jobs, _MAX_PARALLEL_DOWNLOADS)
+    num_failures, resultset = jobset.run(download_specs,
+                                         newline_on_success=True,
+                                         maxjobs=max_pull_jobs)
+    if num_failures:
+        jobset.message('FAILED',
+                       'Failed to download some images',
+                       do_newline=True)
+        return False
     else:
+        jobset.message('SUCCESS',
+                       'All images downloaded successfully.',
+                       do_newline=True)
+        return True
+
+
+def _run_tests_for_lang(lang, runtime, images, xml_report_tree):
+    """Find and run all test cases for a language.
+
+  images is a list of (<release-tag>, <image-full-path>) tuple.
+  """
+    skip_tests = False
+    if not _pull_images_for_lang(lang, images):
+        jobset.message(
+            'FAILED',
+            'Image download failed. Skipping tests for language "%s"' % lang,
+            do_newline=True)
+        skip_tests = True
+
+    total_num_failures = 0
+    for release, image in images:
+        suite_name = '%s__%s_%s' % (lang, runtime, release)
+        job_spec_list = _generate_test_case_jobspecs(lang, runtime, release,
+                                                     suite_name)
+
+        if not job_spec_list:
+            jobset.message('FAILED',
+                           'No test cases were found.',
+                           do_newline=True)
+            total_num_failures += 1
+            continue
+
         num_failures, resultset = jobset.run(job_spec_list,
                                              newline_on_success=True,
                                              add_env={'docker_image': image},
@@ -238,62 +277,20 @@ def _test_release(lang, runtime, release, image, xml_report_tree, skip_tests):
         if skip_tests:
             jobset.message('FAILED', 'Tests were skipped', do_newline=True)
             total_num_failures += 1
-        if num_failures:
+        elif num_failures:
+            jobset.message('FAILED', 'Some tests failed', do_newline=True)
             total_num_failures += num_failures
+        else:
+            jobset.message('SUCCESS', 'All tests passed', do_newline=True)
 
         report_utils.append_junit_xml_results(xml_report_tree, resultset,
                                               'grpc_interop_matrix', suite_name,
                                               str(uuid.uuid4()))
-    return total_num_failures
 
-
-def _run_tests_for_lang(lang, runtime, images, xml_report_tree):
-    """Find and run all test cases for a language.
-
-  images is a list of (<release-tag>, <image-full-path>) tuple.
-  """
-    skip_tests = False
-    total_num_failures = 0
-
-    max_pull_jobs = min(args.jobs, _MAX_PARALLEL_DOWNLOADS)
-    max_chunk_size = max_pull_jobs
-    chunk_count = (len(images) + max_chunk_size) // max_chunk_size
-
-    for chunk_index in range(chunk_count):
-        chunk_start = chunk_index * max_chunk_size
-        chunk_size = min(max_chunk_size, len(images) - chunk_start)
-        chunk_end = chunk_start + chunk_size
-        pull_specs = []
-        if not skip_tests:
-            for release, image in images[chunk_start:chunk_end]:
-                pull_specs.append(_pull_image_for_lang(lang, image, release))
-
-        # NOTE(rbellevi): We batch docker pull operations to maximize
-        # parallelism, without letting the disk usage grow unbounded.
-        pull_failures, _ = jobset.run(pull_specs,
-                                      newline_on_success=True,
-                                      maxjobs=max_pull_jobs)
-        if pull_failures:
-            jobset.message(
-                'FAILED',
-                'Image download failed. Skipping tests for language "%s"' %
-                lang,
-                do_newline=True)
-            skip_tests = True
-        for release, image in images[chunk_start:chunk_end]:
-            total_num_failures += _test_release(lang, runtime, release, image,
-                                                xml_report_tree, skip_tests)
+    # cleanup all downloaded docker images
+    for _, image in images:
         if not args.keep:
-            for _, image in images[chunk_start:chunk_end]:
-                _cleanup_docker_image(image)
-    if not total_num_failures:
-        jobset.message('SUCCESS',
-                       'All {} tests passed'.format(lang),
-                       do_newline=True)
-    else:
-        jobset.message('FAILED',
-                       'Some {} tests failed'.format(lang),
-                       do_newline=True)
+            _cleanup_docker_image(image)
 
     return total_num_failures
 

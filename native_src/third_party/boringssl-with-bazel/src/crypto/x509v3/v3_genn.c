@@ -72,9 +72,8 @@ ASN1_SEQUENCE(OTHERNAME) = {
 IMPLEMENT_ASN1_FUNCTIONS(OTHERNAME)
 
 ASN1_SEQUENCE(EDIPARTYNAME) = {
-        /* DirectoryString is a CHOICE type, so use explicit tagging. */
-        ASN1_EXP_OPT(EDIPARTYNAME, nameAssigner, DIRECTORYSTRING, 0),
-        ASN1_EXP(EDIPARTYNAME, partyName, DIRECTORYSTRING, 1)
+        ASN1_IMP_OPT(EDIPARTYNAME, nameAssigner, DIRECTORYSTRING, 0),
+        ASN1_IMP_OPT(EDIPARTYNAME, partyName, DIRECTORYSTRING, 1)
 } ASN1_SEQUENCE_END(EDIPARTYNAME)
 
 IMPLEMENT_ASN1_FUNCTIONS(EDIPARTYNAME)
@@ -103,56 +102,42 @@ IMPLEMENT_ASN1_FUNCTIONS(GENERAL_NAMES)
 
 IMPLEMENT_ASN1_DUP_FUNCTION(GENERAL_NAME)
 
-static int edipartyname_cmp(const EDIPARTYNAME *a, const EDIPARTYNAME *b)
-{
-    /* nameAssigner is optional and may be NULL. */
-    if (a->nameAssigner == NULL) {
-        if (b->nameAssigner != NULL) {
-            return -1;
-        }
-    } else {
-        if (b->nameAssigner == NULL ||
-            ASN1_STRING_cmp(a->nameAssigner, b->nameAssigner) != 0) {
-            return -1;
-        }
-    }
-
-    /* partyName may not be NULL. */
-    return ASN1_STRING_cmp(a->partyName, b->partyName);
-}
-
 /* Returns 0 if they are equal, != 0 otherwise. */
-int GENERAL_NAME_cmp(const GENERAL_NAME *a, const GENERAL_NAME *b)
+int GENERAL_NAME_cmp(GENERAL_NAME *a, GENERAL_NAME *b)
 {
+    int result = -1;
+
     if (!a || !b || a->type != b->type)
         return -1;
-
     switch (a->type) {
     case GEN_X400:
-        return ASN1_TYPE_cmp(a->d.x400Address, b->d.x400Address);
-
     case GEN_EDIPARTY:
-        return edipartyname_cmp(a->d.ediPartyName, b->d.ediPartyName);
+        result = ASN1_TYPE_cmp(a->d.other, b->d.other);
+        break;
 
     case GEN_OTHERNAME:
-        return OTHERNAME_cmp(a->d.otherName, b->d.otherName);
+        result = OTHERNAME_cmp(a->d.otherName, b->d.otherName);
+        break;
 
     case GEN_EMAIL:
     case GEN_DNS:
     case GEN_URI:
-        return ASN1_STRING_cmp(a->d.ia5, b->d.ia5);
+        result = ASN1_STRING_cmp(a->d.ia5, b->d.ia5);
+        break;
 
     case GEN_DIRNAME:
-        return X509_NAME_cmp(a->d.dirn, b->d.dirn);
+        result = X509_NAME_cmp(a->d.dirn, b->d.dirn);
+        break;
 
     case GEN_IPADD:
-        return ASN1_OCTET_STRING_cmp(a->d.ip, b->d.ip);
+        result = ASN1_OCTET_STRING_cmp(a->d.ip, b->d.ip);
+        break;
 
     case GEN_RID:
-        return OBJ_cmp(a->d.rid, b->d.rid);
+        result = OBJ_cmp(a->d.rid, b->d.rid);
+        break;
     }
-
-    return -1;
+    return result;
 }
 
 /* Returns 0 if they are equal, != 0 otherwise. */
@@ -174,11 +159,8 @@ void GENERAL_NAME_set0_value(GENERAL_NAME *a, int type, void *value)
 {
     switch (type) {
     case GEN_X400:
-        a->d.x400Address = value;
-        break;
-
     case GEN_EDIPARTY:
-        a->d.ediPartyName = value;
+        a->d.other = value;
         break;
 
     case GEN_OTHERNAME:
@@ -206,16 +188,14 @@ void GENERAL_NAME_set0_value(GENERAL_NAME *a, int type, void *value)
     a->type = type;
 }
 
-void *GENERAL_NAME_get0_value(const GENERAL_NAME *a, int *ptype)
+void *GENERAL_NAME_get0_value(GENERAL_NAME *a, int *ptype)
 {
     if (ptype)
         *ptype = a->type;
     switch (a->type) {
     case GEN_X400:
-        return a->d.x400Address;
-
     case GEN_EDIPARTY:
-        return a->d.ediPartyName;
+        return a->d.other;
 
     case GEN_OTHERNAME:
         return a->d.otherName;
@@ -253,7 +233,7 @@ int GENERAL_NAME_set0_othername(GENERAL_NAME *gen,
     return 1;
 }
 
-int GENERAL_NAME_get0_otherName(const GENERAL_NAME *gen,
+int GENERAL_NAME_get0_otherName(GENERAL_NAME *gen,
                                 ASN1_OBJECT **poid, ASN1_TYPE **pvalue)
 {
     if (gen->type != GEN_OTHERNAME)

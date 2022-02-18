@@ -27,7 +27,7 @@
 #import <GRPCClient/GRPCCallOptions.h>
 #import <ProtoRPC/ProtoRPC.h>
 
-@interface InterfaceController () <GRPCProtoResponseHandler>
+@interface InterfaceController ()<GRPCProtoResponseHandler>
 
 @end
 
@@ -51,9 +51,8 @@
 - (IBAction)makeCall {
   RMTSimpleRequest *request = [RMTSimpleRequest message];
   request.responseSize = 100;
-  GRPCUnaryProtoCall *call = [_service unaryCallWithMessage:request
-                                            responseHandler:self
-                                                callOptions:nil];
+  GRPCUnaryProtoCall *call =
+      [_service unaryCallWithMessage:request responseHandler:self callOptions:nil];
   [call start];
 }
 

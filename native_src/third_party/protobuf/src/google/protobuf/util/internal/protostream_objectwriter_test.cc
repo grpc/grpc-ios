@@ -34,7 +34,6 @@
 
 #include <google/protobuf/field_mask.pb.h>
 #include <google/protobuf/timestamp.pb.h>
-#include <google/protobuf/type.pb.h>
 #include <google/protobuf/wrappers.pb.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include <google/protobuf/descriptor.pb.h>
@@ -54,7 +53,6 @@
 #include <google/protobuf/util/internal/type_info_test_helper.h>
 #include <google/protobuf/util/internal/constants.h>
 #include <google/protobuf/util/message_differencer.h>
-#include <google/protobuf/util/type_resolver_util.h>
 #include <google/protobuf/stubs/bytestream.h>
 #include <google/protobuf/stubs/strutil.h>
 #include <gtest/gtest.h>
@@ -64,7 +62,6 @@ namespace google {
 namespace protobuf {
 namespace util {
 namespace converter {
-
 
 using proto_util_converter::testing::AnyM;
 using proto_util_converter::testing::AnyOut;
@@ -92,6 +89,12 @@ std::string GetTypeUrl(const Descriptor* descriptor) {
   return std::string(kTypeServiceBaseUrl) + "/" + descriptor->full_name();
 }
 }  // namespace
+
+#if __cplusplus >= 201103L
+using std::get;
+#else
+using std::tr1::get;
+#endif
 
 class BaseProtoStreamObjectWriterTest
     : public ::testing::TestWithParam<testing::TypeInfoSource> {
@@ -165,8 +168,8 @@ class BaseProtoStreamObjectWriterTest
 
 MATCHER_P(HasObjectLocation, expected,
           "Verifies the expected object location") {
-  std::string actual = std::get<0>(arg).ToString();
-  if (actual == expected) return true;
+  std::string actual = get<0>(arg).ToString();
+  if (actual.compare(expected) == 0) return true;
   *result_listener << "actual location is: " << actual;
   return false;
 }
@@ -274,7 +277,6 @@ TEST_P(ProtoStreamObjectWriterTest, ConflictingJsonName) {
   ow_->StartObject("")->RenderInt32("value", 12345)->EndObject();
   CheckOutput(message2);
 }
-
 
 TEST_P(ProtoStreamObjectWriterTest, IntEnumValuesAreAccepted) {
   Book book;
@@ -699,61 +701,6 @@ TEST_P(ProtoStreamObjectWriterTest, ImplicitMessageList) {
   CheckOutput(expected);
 }
 
-TEST_P(ProtoStreamObjectWriterTest, DisableImplicitMessageList) {
-  options_.disable_implicit_message_list = true;
-  options_.suppress_implicit_message_list_error = true;
-  ResetProtoWriter();
-
-  Book expected;
-  // The repeated friend field of the author is empty.
-  expected.mutable_author();
-
-  EXPECT_CALL(listener_, InvalidValue(_, _, _)).Times(0);
-
-  ow_->StartObject("")
-      ->StartObject("author")
-      ->StartObject("friend")
-      ->RenderString("name", "first")
-      ->EndObject()
-      ->StartObject("friend")
-      ->RenderString("name", "second")
-      ->EndObject()
-      ->EndObject()
-      ->EndObject();
-  CheckOutput(expected);
-}
-
-TEST_P(ProtoStreamObjectWriterTest,
-       DisableImplicitMessageListWithoutErrorSuppressed) {
-  options_.disable_implicit_message_list = true;
-  ResetProtoWriter();
-
-  Book expected;
-  // The repeated friend field of the author is empty.
-  expected.mutable_author();
-  EXPECT_CALL(
-      listener_,
-      InvalidValue(
-          _, StringPiece("friend"),
-          StringPiece(
-              "Starting an object in a repeated field but the parent object "
-              "is not a list")))
-      .With(Args<0>(HasObjectLocation("author")))
-      .Times(2);
-
-  ow_->StartObject("")
-      ->StartObject("author")
-      ->StartObject("friend")
-      ->RenderString("name", "first")
-      ->EndObject()
-      ->StartObject("friend")
-      ->RenderString("name", "second")
-      ->EndObject()
-      ->EndObject()
-      ->EndObject();
-  CheckOutput(expected);
-}
-
 TEST_P(ProtoStreamObjectWriterTest,
        LastWriteWinsOnNonRepeatedMessageFieldWithDuplicates) {
   Book expected;
@@ -1055,10 +1002,7 @@ TEST_P(ProtoStreamObjectWriterTest,
   Proto3Message expected;
   EXPECT_CALL(
       listener_,
-      InvalidValue(_,
-                   StringPiece(
-                       "type.googleapis.com/"
-                       "proto_util_converter.testing.Proto3Message.NestedEnum"),
+      InvalidValue(_, StringPiece("TYPE_ENUM"),
                    StringPiece("\"someunknownvalueyouwillneverknow\"")))
       .With(Args<0>(HasObjectLocation("enum_value")));
   ow_->StartObject("")
@@ -2593,7 +2537,7 @@ TEST_P(ProtoStreamObjectWriterFieldMaskTest, SimpleFieldMaskTest) {
   CheckOutput(expected);
 }
 
-TEST_P(ProtoStreamObjectWriterFieldMaskTest, MultipleMasksInCompactForm) {
+TEST_P(ProtoStreamObjectWriterFieldMaskTest, MutipleMasksInCompactForm) {
   FieldMaskTest expected;
   expected.set_id("1");
   expected.mutable_single_mask()->add_paths("camel_case1");

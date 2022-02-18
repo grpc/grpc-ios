@@ -16,35 +16,57 @@
 # Don't run this script standalone. Instead, run from the repository root:
 # ./tools/run_tests/run_tests.py -l objc
 
-set -ex
-set -o pipefail  # preserve xcodebuild exit code when piping output
+set -ev
+set -o pipefail
 
 cd "$(dirname "$0")"
 
-XCODEBUILD_FILTER_OUTPUT_SCRIPT="../../../../../src/objective-c/tests/xcodebuild_filter_output.sh"
+echo "TIME:  $(date)"
 
-time ./build_tests.sh
+./build_tests.sh
 
-time xcodebuild \
+echo "TIME:  $(date)"
+
+XCODEBUILD_FILTER='(^CompileC |^Ld |^ *[^ ]*clang |^ *cd |^ *export |^Libtool |^ *[^ ]*libtool |^CpHeader |^ *builtin-copy )'
+
+xcodebuild \
     -workspace CFStreamTests.xcworkspace \
     -scheme CFStreamTests \
     -destination name="iPhone 8" \
-    test | "${XCODEBUILD_FILTER_OUTPUT_SCRIPT}"
+    test \
+    | egrep -v "$XCODEBUILD_FILTER" \
+    | egrep -v '^$' \
+    | egrep -v "(GPBDictionary|GPBArray)" -
 
-time xcodebuild \
+echo "TIME:  $(date)"
+
+xcodebuild \
     -workspace CFStreamTests.xcworkspace \
     -scheme CFStreamTests_Asan \
     -destination name="iPhone 8" \
-    test | "${XCODEBUILD_FILTER_OUTPUT_SCRIPT}"
+    test \
+    | egrep -v "$XCODEBUILD_FILTER" \
+    | egrep -v '^$' \
+    | egrep -v "(GPBDictionary|GPBArray)" -
 
-time xcodebuild \
+echo "TIME:  $(date)"
+
+xcodebuild \
     -workspace CFStreamTests.xcworkspace \
     -scheme CFStreamTests_Tsan \
     -destination name="iPhone 8" \
-    test | "${XCODEBUILD_FILTER_OUTPUT_SCRIPT}"
+    test \
+    | egrep -v "$XCODEBUILD_FILTER" \
+    | egrep -v '^$' \
+    | egrep -v "(GPBDictionary|GPBArray)" -
 
-time xcodebuild \
+echo "TIME:  $(date)"
+
+xcodebuild \
     -workspace CFStreamTests.xcworkspace \
     -scheme CFStreamTests_Msan \
     -destination name="iPhone 8" \
-    test | "${XCODEBUILD_FILTER_OUTPUT_SCRIPT}"
+    test \
+    | egrep -v "$XCODEBUILD_FILTER" \
+    | egrep -v '^$' \
+    | egrep -v "(GPBDictionary|GPBArray)" -

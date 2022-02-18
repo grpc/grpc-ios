@@ -1,4 +1,4 @@
-// Copyright 2015 Google LLC
+// Copyright 2018 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,10 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 
 syntax = "proto3";
 
 package google.api;
+
+import "google/api/annotations.proto";
 
 option go_package = "google.golang.org/genproto/googleapis/api/serviceconfig;serviceconfig";
 option java_multiple_files = true;
@@ -22,10 +25,11 @@ option java_outer_classname = "QuotaProto";
 option java_package = "com.google.api";
 option objc_class_prefix = "GAPI";
 
+
 // Quota configuration helps to achieve fairness and budgeting in service
 // usage.
 //
-// The metric based quota configuration works this way:
+// The quota configuration works this way:
 // - The service configuration defines a set of metrics.
 // - For API calls, the quota.metric_rules maps methods to metrics with
 //   corresponding costs.
@@ -71,8 +75,6 @@ option objc_class_prefix = "GAPI";
 //        display_name: Write requests
 //        metric_kind: DELTA
 //        value_type: INT64
-//
-//
 message Quota {
   // List of `QuotaLimit` definitions for the service.
   repeated QuotaLimit limits = 3;
@@ -149,7 +151,10 @@ message QuotaLimit {
   // Used by group-based quotas only.
   int64 free_tier = 7;
 
-  // Duration of this limit in textual notation. Must be "100s" or "1d".
+  // Duration of this limit in textual notation. Example: "100s", "24h", "1d".
+  // For duration longer than a day, only multiple of days is supported. We
+  // support only "100s" and "1d" for now. Additional support will be added in
+  // the future. "0" indicates indefinite duration.
   //
   // Used by group-based quotas only.
   string duration = 5;

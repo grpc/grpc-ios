@@ -14,7 +14,7 @@
 
 load("//bazel:grpc_build_system.bzl", "grpc_cc_test", "grpc_package")
 
-licenses(["notice"])
+licenses(["notice"])  # Apache v2
 
 grpc_package(name = "test/core/tsi/alts/zero_copy_frame_protector")
 
@@ -23,9 +23,10 @@ grpc_cc_test(
     srcs = ["alts_grpc_record_protocol_test.cc"],
     language = "C++",
     deps = [
+        "//:alts_frame_protector",
         "//:gpr",
         "//:grpc",
-        "//:grpc_base",
+        "//:grpc_base_c",
         "//test/core/tsi/alts/crypt:alts_crypt_test_util",
         "//test/core/util:grpc_test_util",
     ],
@@ -36,6 +37,7 @@ grpc_cc_test(
     srcs = ["alts_iovec_record_protocol_test.cc"],
     language = "C++",
     deps = [
+        "//:alts_frame_protector",
         "//:gpr",
         "//:grpc",
         "//test/core/tsi/alts/crypt:alts_crypt_test_util",
@@ -48,9 +50,10 @@ grpc_cc_test(
     srcs = ["alts_zero_copy_grpc_protector_test.cc"],
     language = "C++",
     deps = [
+        "//:alts_frame_protector",
         "//:gpr",
         "//:grpc",
-        "//:grpc_base",
+        "//:grpc_base_c",
         "//test/core/tsi/alts/crypt:alts_crypt_test_util",
         "//test/core/util:grpc_test_util",
     ],

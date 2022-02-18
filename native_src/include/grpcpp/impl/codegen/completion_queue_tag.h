@@ -19,8 +19,6 @@
 #ifndef GRPCPP_IMPL_CODEGEN_COMPLETION_QUEUE_TAG_H
 #define GRPCPP_IMPL_CODEGEN_COMPLETION_QUEUE_TAG_H
 
-// IWYU pragma: private
-
 namespace grpc {
 
 namespace internal {

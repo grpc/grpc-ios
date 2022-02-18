@@ -157,11 +157,10 @@ int bn_lcm_consttime(BIGNUM *r, const BIGNUM *a, const BIGNUM *b, BN_CTX *ctx) {
   BN_CTX_start(ctx);
   unsigned shift;
   BIGNUM *gcd = BN_CTX_get(ctx);
-  int ret = gcd != NULL &&  //
+  int ret = gcd != NULL &&
             bn_mul_consttime(r, a, b, ctx) &&
             bn_gcd_consttime(gcd, &shift, a, b, ctx) &&
-            // |gcd| has a secret bit width.
-            bn_div_consttime(r, NULL, r, gcd, /*divisor_min_bits=*/0, ctx) &&
+            bn_div_consttime(r, NULL, r, gcd, ctx) &&
             bn_rshift_secret_shift(r, r, shift, ctx);
   BN_CTX_end(ctx);
   return ret;

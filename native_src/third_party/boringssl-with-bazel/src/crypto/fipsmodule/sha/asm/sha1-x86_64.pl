@@ -107,8 +107,16 @@ die "can't locate x86_64-xlate.pl";
 # In upstream, this is controlled by shelling out to the compiler to check
 # versions, but BoringSSL is intended to be used with pre-generated perlasm
 # output, so this isn't useful anyway.
-$avx = 2;
-$shaext=1;	### set to zero if compiling for 1.0.1
+#
+# TODO(davidben): Enable AVX2 code after testing by setting $avx to 2. Is it
+# necessary to disable AVX2 code when SHA Extensions code is disabled? Upstream
+# did not tie them together until after $shaext was added.
+$avx = 1;
+
+# TODO(davidben): Consider enabling the Intel SHA Extensions code once it's
+# been tested.
+$shaext=0;	### set to zero if compiling for 1.0.1
+$avx=1		if (!$shaext && $avx);
 
 open OUT,"| \"$^X\" \"$xlate\" $flavour \"$output\"";
 *STDOUT=*OUT;
@@ -453,8 +461,8 @@ $code.=<<___ if ($win64);
 .Lepilogue_shaext:
 ___
 $code.=<<___;
-	ret
 .cfi_endproc
+	ret
 .size	sha1_block_data_order_shaext,.-sha1_block_data_order_shaext
 ___
 }}}
@@ -2114,4 +2122,4 @@ foreach (split("\n",$code)) {
 
 	print $_,"\n";
 }
-close STDOUT or die "error closing STDOUT: $!";
+close STDOUT or die "error closing STDOUT";

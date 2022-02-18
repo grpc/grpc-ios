@@ -1,4 +1,4 @@
-// Copyright 2015 Google LLC
+// Copyright 2018 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 
 syntax = "proto3";
 
@@ -24,6 +25,7 @@ option java_multiple_files = true;
 option java_outer_classname = "HttpBodyProto";
 option java_package = "com.google.api";
 option objc_class_prefix = "GAPI";
+
 
 // Message that represents an arbitrary HTTP body. It should only be used for
 // payload formats that can't be represented as JSON, such as raw binary or
@@ -49,8 +51,7 @@ option objc_class_prefix = "GAPI";
 //
 //     service ResourceService {
 //       rpc GetResource(GetResourceRequest) returns (google.api.HttpBody);
-//       rpc UpdateResource(google.api.HttpBody) returns
-//       (google.protobuf.Empty);
+//       rpc UpdateResource(google.api.HttpBody) returns (google.protobuf.Empty);
 //     }
 //
 // Example with streaming methods:
@@ -65,10 +66,10 @@ option objc_class_prefix = "GAPI";
 // Use of this type only changes how the request and response bodies are
 // handled, all other features will continue to work unchanged.
 message HttpBody {
-  // The HTTP Content-Type header value specifying the content type of the body.
+  // The HTTP Content-Type string representing the content type of the body.
   string content_type = 1;
 
-  // The HTTP request/response body as raw binary.
+  // HTTP body binary data.
   bytes data = 2;
 
   // Application specific response metadata. Must be set in the first response

@@ -16,8 +16,6 @@
  *
  */
 
-#include <gtest/gtest.h>
-
 #include <grpc/support/log.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/create_channel.h>
@@ -26,6 +24,7 @@
 #include <grpcpp/security/server_credentials.h>
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
+#include <gtest/gtest.h>
 
 #include "src/core/ext/transport/chttp2/transport/chttp2_transport.h"
 #include "src/core/lib/channel/channel_args.h"
@@ -36,10 +35,11 @@
 #include "src/core/lib/surface/channel.h"
 #include "src/core/lib/surface/completion_queue.h"
 #include "src/core/lib/surface/server.h"
-#include "src/cpp/client/create_channel_internal.h"
-#include "src/proto/grpc/testing/echo.grpc.pb.h"
 #include "test/core/util/passthru_endpoint.h"
 #include "test/core/util/port.h"
+
+#include "src/cpp/client/create_channel_internal.h"
+#include "src/proto/grpc/testing/echo.grpc.pb.h"
 #include "test/core/util/test_config.h"
 
 namespace grpc {
@@ -55,7 +55,6 @@ static void ApplyCommonServerBuilderConfig(ServerBuilder* b) {
 static void ApplyCommonChannelArguments(ChannelArguments* c) {
   c->SetInt(GRPC_ARG_MAX_RECEIVE_MESSAGE_LENGTH, INT_MAX);
   c->SetInt(GRPC_ARG_MAX_SEND_MESSAGE_LENGTH, INT_MAX);
-  c->SetResourceQuota(ResourceQuota());
 }
 
 class EndpointPairFixture {
@@ -71,19 +70,22 @@ class EndpointPairFixture {
 
     /* add server endpoint to server_ */
     {
-      grpc_core::Server* core_server =
-          grpc_core::Server::FromC(server_->c_server());
-      const grpc_channel_args* server_args = core_server->channel_args();
+      const grpc_channel_args* server_args =
+          grpc_server_get_channel_args(server_->c_server());
       grpc_transport* transport = grpc_create_chttp2_transport(
           server_args, endpoints.server, false /* is_client */);
-      for (grpc_pollset* pollset : core_server->pollsets()) {
-        grpc_endpoint_add_to_pollset(endpoints.server, pollset);
+
+      grpc_pollset** pollsets;
+      size_t num_pollsets = 0;
+      grpc_server_get_pollsets(server_->c_server(), &pollsets, &num_pollsets);
+
+      for (size_t i = 0; i < num_pollsets; i++) {
+        grpc_endpoint_add_to_pollset(endpoints.server, pollsets[i]);
       }
 
-      GPR_ASSERT(GRPC_LOG_IF_ERROR(
-          "SetupTransport", core_server->SetupTransport(transport, nullptr,
-                                                        server_args, nullptr)));
-      grpc_chttp2_transport_start_reading(transport, nullptr, nullptr, nullptr);
+      grpc_server_setup_transport(server_->c_server(), transport, nullptr,
+                                  server_args, nullptr);
+      grpc_chttp2_transport_start_reading(transport, nullptr, nullptr);
     }
 
     /* create channel */
@@ -96,9 +98,9 @@ class EndpointPairFixture {
       grpc_transport* transport =
           grpc_create_chttp2_transport(&c_args, endpoints.client, true);
       GPR_ASSERT(transport);
-      grpc_channel* channel = grpc_channel_create_internal(
-          "target", &c_args, GRPC_CLIENT_DIRECT_CHANNEL, transport, nullptr);
-      grpc_chttp2_transport_start_reading(transport, nullptr, nullptr, nullptr);
+      grpc_channel* channel = grpc_channel_create(
+          "target", &c_args, GRPC_CLIENT_DIRECT_CHANNEL, transport);
+      grpc_chttp2_transport_start_reading(transport, nullptr, nullptr);
 
       channel_ = ::grpc::CreateChannelInternal(
           "", channel,
@@ -130,7 +132,7 @@ class InProcessCHTTP2 : public EndpointPairFixture {
   InProcessCHTTP2(Service* service, grpc_passthru_endpoint_stats* stats)
       : EndpointPairFixture(service, MakeEndpoints(stats)), stats_(stats) {}
 
-  ~InProcessCHTTP2() override {
+  virtual ~InProcessCHTTP2() {
     if (stats_ != nullptr) {
       grpc_passthru_endpoint_stats_destroy(stats_);
     }
@@ -142,8 +144,9 @@ class InProcessCHTTP2 : public EndpointPairFixture {
   grpc_passthru_endpoint_stats* stats_;
 
   static grpc_endpoint_pair MakeEndpoints(grpc_passthru_endpoint_stats* stats) {
+    static grpc_resource_quota* rq = grpc_resource_quota_create("bm");
     grpc_endpoint_pair p;
-    grpc_passthru_endpoint_create(&p.client, &p.server, stats);
+    grpc_passthru_endpoint_create(&p.client, &p.server, rq, stats);
     return p;
   }
 };

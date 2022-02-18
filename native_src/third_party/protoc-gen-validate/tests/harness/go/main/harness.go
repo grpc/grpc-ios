@@ -1,16 +1,15 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 
-	"github.com/envoyproxy/protoc-gen-validate/tests/harness/cases/go"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	_ "github.com/envoyproxy/protoc-gen-validate/tests/harness/cases/go"
 	_ "github.com/envoyproxy/protoc-gen-validate/tests/harness/cases/other_package/go"
-	"github.com/envoyproxy/protoc-gen-validate/tests/harness/go"
-	"google.golang.org/protobuf/proto"
+	harness "github.com/envoyproxy/protoc-gen-validate/tests/harness/go"
 )
 
 func main() {
@@ -20,91 +19,22 @@ func main() {
 	tc := new(harness.TestCase)
 	checkErr(proto.Unmarshal(b, tc))
 
-	msg, err := tc.Message.UnmarshalNew()
-	checkErr(err)
+	da := new(ptypes.DynamicAny)
+	checkErr(ptypes.UnmarshalAny(tc.Message, da))
 
-	_, isIgnored := msg.(*cases.MessageIgnored)
-
-	vMsg, hasValidate := msg.(interface {
+	msg := da.Message.(interface {
 		Validate() error
 	})
+	checkValid(msg.Validate())
 
-	vAllMsg, hasValidateAll := msg.(interface {
-		ValidateAll() error
-	})
-
-	var multierr error
-	if isIgnored {
-		// confirm that ignored messages don't have a validate method
-		if hasValidate {
-			checkErr(fmt.Errorf("ignored message %T has Validate() method", msg))
-		}
-		if hasValidateAll {
-			checkErr(fmt.Errorf("ignored message %T has ValidateAll() method", msg))
-		}
-	} else if !hasValidate {
-		checkErr(fmt.Errorf("non-ignored message %T is missing Validate()", msg))
-	} else if !hasValidateAll {
-		checkErr(fmt.Errorf("non-ignored message %T is missing ValidateAll()", msg))
-	} else {
-		err = vMsg.Validate()
-		multierr = vAllMsg.ValidateAll()
-	}
-	checkValid(err, multierr)
 }
 
-type hasAllErrors interface{ AllErrors() []error }
-type hasCause interface{ Cause() error }
-
-func checkValid(err, multierr error) {
-	if err == nil && multierr == nil {
+func checkValid(err error) {
+	if err == nil {
 		resp(&harness.TestResult{Valid: true})
-		return
+	} else {
+		resp(&harness.TestResult{Reason: err.Error()})
 	}
-	if (err != nil) != (multierr != nil) {
-		checkErr(fmt.Errorf("different verdict of Validate() [%v] vs. ValidateAll() [%v]", err, multierr))
-		return
-	}
-
-	// Extract the message from "lazy" Validate(), for comparison with ValidateAll()
-	rootCause := err
-	for {
-		caused, ok := rootCause.(hasCause)
-		if !ok || caused.Cause() == nil {
-			break
-		}
-		rootCause = caused.Cause()
-	}
-
-	// Retrieve the messages from "extensive" ValidateAll() and compare first one with the "lazy" message
-	m, ok := multierr.(hasAllErrors)
-	if !ok {
-		checkErr(fmt.Errorf("ValidateAll() returned error without AllErrors() method: %#v", multierr))
-		return
-	}
-	reasons := mergeReasons(nil, m)
-	if rootCause.Error() != reasons[0] {
-		checkErr(fmt.Errorf("different first message, Validate()==%q, ValidateAll()==%q", rootCause.Error(), reasons[0]))
-		return
-	}
-
-	resp(&harness.TestResult{Reasons: reasons})
-}
-
-func mergeReasons(reasons []string, multi hasAllErrors) []string {
-	for _, err := range multi.AllErrors() {
-		caused, ok := err.(hasCause)
-		if ok && caused.Cause() != nil {
-			err = caused.Cause()
-		}
-		multi, ok := err.(hasAllErrors)
-		if ok {
-			reasons = mergeReasons(reasons, multi)
-		} else {
-			reasons = append(reasons, err.Error())
-		}
-	}
-	return reasons
 }
 
 func checkErr(err error) {
@@ -113,8 +43,8 @@ func checkErr(err error) {
 	}
 
 	resp(&harness.TestResult{
-		Error:   true,
-		Reasons: []string{err.Error()},
+		Error:  true,
+		Reason: err.Error(),
 	})
 }
 

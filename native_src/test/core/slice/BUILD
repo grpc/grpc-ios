@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//bazel:grpc_build_system.bzl", "grpc_cc_test", "grpc_package")
-load("//test/core/util:grpc_fuzzer.bzl", "grpc_fuzzer")
+load("//bazel:grpc_build_system.bzl", "grpc_cc_binary", "grpc_cc_library", "grpc_cc_test", "grpc_package")
 
 grpc_package(name = "test/core/slice")
 
-licenses(["notice"])
+licenses(["notice"])  # Apache v2
+
+load("//test/core/util:grpc_fuzzer.bzl", "grpc_fuzzer")
 
 grpc_fuzzer(
     name = "b64_encode_fuzzer",
@@ -82,34 +83,18 @@ grpc_cc_test(
 grpc_cc_test(
     name = "slice_test",
     srcs = ["slice_test.cc"],
-    external_deps = [
-        "gtest",
-    ],
     language = "C++",
     uses_polling = False,
     deps = [
         "//:gpr",
-        "//:slice",
-        "//test/core/util:build",
-        "//test/core/util:grpc_suppressions",
+        "//:grpc",
+        "//test/core/util:grpc_test_util",
     ],
 )
 
 grpc_cc_test(
     name = "slice_string_helpers_test",
     srcs = ["slice_string_helpers_test.cc"],
-    language = "C++",
-    uses_polling = False,
-    deps = [
-        "//:gpr",
-        "//:slice",
-        "//test/core/util:grpc_suppressions",
-    ],
-)
-
-grpc_cc_test(
-    name = "slice_split_test",
-    srcs = ["slice_split_test.cc"],
     language = "C++",
     uses_polling = False,
     deps = [
@@ -122,6 +107,36 @@ grpc_cc_test(
 grpc_cc_test(
     name = "slice_buffer_test",
     srcs = ["slice_buffer_test.cc"],
+    language = "C++",
+    uses_polling = False,
+    deps = [
+        "//:gpr",
+        "//:grpc",
+        "//test/core/util:grpc_test_util",
+    ],
+)
+
+grpc_cc_test(
+    name = "slice_hash_table_test",
+    srcs = ["slice_hash_table_test.cc"],
+    external_deps = [
+        "gtest",
+    ],
+    language = "C++",
+    uses_polling = False,
+    deps = [
+        "//:gpr",
+        "//:grpc",
+        "//test/core/util:grpc_test_util",
+    ],
+)
+
+grpc_cc_test(
+    name = "slice_weak_hash_table_test",
+    srcs = ["slice_weak_hash_table_test.cc"],
+    external_deps = [
+        "gtest",
+    ],
     language = "C++",
     uses_polling = False,
     deps = [

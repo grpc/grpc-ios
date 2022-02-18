@@ -22,7 +22,6 @@
 #include <grpc/support/port_platform.h>
 
 #include <grpc/grpc.h>
-
 #include "src/core/lib/surface/completion_queue.h"
 
 typedef struct grpc_completion_queue_factory_vtable {

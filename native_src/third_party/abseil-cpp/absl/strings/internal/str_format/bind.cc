@@ -1,17 +1,3 @@
-// Copyright 2020 The Abseil Authors.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include "absl/strings/internal/str_format/bind.h"
 
 #include <cerrno>
@@ -58,7 +44,7 @@ inline bool ArgContext::Bind(const UnboundConversion* unbound,
   if (static_cast<size_t>(arg_position - 1) >= pack_.size()) return false;
   arg = &pack_[arg_position - 1];  // 1-based
 
-  if (unbound->flags != Flags::kBasic) {
+  if (!unbound->flags.basic) {
     int width = unbound->width.value();
     bool force_left = false;
     if (unbound->width.is_from_arg()) {
@@ -84,8 +70,9 @@ inline bool ArgContext::Bind(const UnboundConversion* unbound,
     FormatConversionSpecImplFriend::SetPrecision(precision, bound);
 
     if (force_left) {
-      FormatConversionSpecImplFriend::SetFlags(unbound->flags | Flags::kLeft,
-                                               bound);
+      Flags flags = unbound->flags;
+      flags.left = true;
+      FormatConversionSpecImplFriend::SetFlags(flags, bound);
     } else {
       FormatConversionSpecImplFriend::SetFlags(unbound->flags, bound);
     }
@@ -160,7 +147,7 @@ class SummarizingConverter {
        << FormatConversionSpecImplFriend::FlagsToString(bound);
     if (bound.width() >= 0) ss << bound.width();
     if (bound.precision() >= 0) ss << "." << bound.precision();
-    ss << bound.conversion_char() << "}";
+    ss << bound.conv() << "}";
     Append(ss.str());
     return true;
   }
@@ -234,7 +221,7 @@ int FprintF(std::FILE* output, const UntypedFormatSpecImpl format,
     errno = sink.error();
     return -1;
   }
-  if (sink.count() > static_cast<size_t>(std::numeric_limits<int>::max())) {
+  if (sink.count() > std::numeric_limits<int>::max()) {
     errno = EFBIG;
     return -1;
   }

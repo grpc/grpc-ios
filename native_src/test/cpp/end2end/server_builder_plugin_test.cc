@@ -18,10 +18,6 @@
 
 #include <thread>
 
-#include <gtest/gtest.h>
-
-#include "absl/memory/memory.h"
-
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
@@ -40,6 +36,8 @@
 #include "test/core/util/test_config.h"
 #include "test/cpp/end2end/test_service_impl.h"
 
+#include <gtest/gtest.h>
+
 #define PLUGIN_NAME "TestServerBuilderPlugin"
 
 namespace grpc {
@@ -54,7 +52,7 @@ class TestServerBuilderPlugin : public ServerBuilderPlugin {
     register_service_ = false;
   }
 
-  std::string name() override { return PLUGIN_NAME; }
+  grpc::string name() override { return PLUGIN_NAME; }
 
   void InitServer(ServerInitializer* si) override {
     init_server_is_called_ = true;
@@ -65,7 +63,7 @@ class TestServerBuilderPlugin : public ServerBuilderPlugin {
 
   void Finish(ServerInitializer* /*si*/) override { finish_is_called_ = true; }
 
-  void ChangeArguments(const std::string& /*name*/, void* /*value*/) override {
+  void ChangeArguments(const grpc::string& /*name*/, void* /*value*/) override {
     change_arguments_is_called_ = true;
   }
 
@@ -123,12 +121,17 @@ std::unique_ptr<ServerBuilderPlugin> CreateTestServerBuilderPlugin() {
   return std::unique_ptr<ServerBuilderPlugin>(new TestServerBuilderPlugin());
 }
 
+void AddTestServerBuilderPlugin() {
+  static bool already_here = false;
+  if (already_here) return;
+  already_here = true;
+  ::grpc::ServerBuilder::InternalAddPluginFactory(
+      &CreateTestServerBuilderPlugin);
+}
+
 // Force AddServerBuilderPlugin() to be called at static initialization time.
 struct StaticTestPluginInitializer {
-  StaticTestPluginInitializer() {
-    ::grpc::ServerBuilder::InternalAddPluginFactory(
-        &CreateTestServerBuilderPlugin);
-  }
+  StaticTestPluginInitializer() { AddTestServerBuilderPlugin(); }
 } static_plugin_initializer_test_;
 
 // When the param boolean is true, the ServerBuilder plugin will be added at the
@@ -140,7 +143,7 @@ class ServerBuilderPluginTest : public ::testing::TestWithParam<bool> {
 
   void SetUp() override {
     port_ = grpc_pick_unused_port_or_die();
-    builder_ = absl::make_unique<ServerBuilder>();
+    builder_.reset(new ServerBuilder());
   }
 
   void InsertPlugin() {
@@ -170,7 +173,7 @@ class ServerBuilderPluginTest : public ::testing::TestWithParam<bool> {
   }
 
   void StartServer() {
-    std::string server_address = "localhost:" + to_string(port_);
+    grpc::string server_address = "localhost:" + to_string(port_);
     builder_->AddListeningPort(server_address, InsecureServerCredentials());
     // we run some tests without a service, and for those we need to supply a
     // frequently polled completion queue
@@ -229,8 +232,8 @@ class ServerBuilderPluginTest : public ::testing::TestWithParam<bool> {
   void RunCQ() {
     void* tag;
     bool ok;
-    while (cq_->Next(&tag, &ok)) {
-    }
+    while (cq_->Next(&tag, &ok))
+      ;
   }
 };
 

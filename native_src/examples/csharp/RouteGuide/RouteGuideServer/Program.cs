@@ -25,9 +25,9 @@ namespace Routeguide
     {
         static void Main(string[] args)
         {
-            const int Port = 30052;
+            const int Port = 50052;
 
-            var features = RouteGuideUtil.LoadFeatures();
+            var features = RouteGuideUtil.ParseFeatures(RouteGuideUtil.DefaultFeaturesFile);
 
             Server server = new Server
             {

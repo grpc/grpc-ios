@@ -36,7 +36,7 @@
     },
     'target_defaults': {
       'configurations': {
-        % for name, args in configs.items():
+        % for name, args in configs.iteritems():
         %  if name in ['dbg', 'opt']:
         '${{'dbg':'Debug', 'opt': 'Release'}[name]}': {
           % for arg, prop in [('CPPFLAGS', 'cflags'), ('DEFINES', 'defines')]:
@@ -145,9 +145,7 @@
         'type': 'static_library',
         'dependencies': [
           % for dep in getattr(lib, 'deps', []):
-          %  if dep != 'libssl':
           '${dep}',
-          %  endif
           % endfor
         ],
         'sources': [

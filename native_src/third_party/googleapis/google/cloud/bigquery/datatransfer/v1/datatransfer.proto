@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2018 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,9 +17,6 @@ syntax = "proto3";
 package google.cloud.bigquery.datatransfer.v1;
 
 import "google/api/annotations.proto";
-import "google/api/client.proto";
-import "google/api/field_behavior.proto";
-import "google/api/resource.proto";
 import "google/cloud/bigquery/datatransfer/v1/transfer.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
@@ -33,16 +30,13 @@ option java_multiple_files = true;
 option java_outer_classname = "DataTransferProto";
 option java_package = "com.google.cloud.bigquery.datatransfer.v1";
 option php_namespace = "Google\\Cloud\\BigQuery\\DataTransfer\\V1";
-option ruby_package = "Google::Cloud::Bigquery::DataTransfer::V1";
+
 
 // The Google BigQuery Data Transfer Service API enables BigQuery users to
-// configure the transfer of their data from other Google Products into
-// BigQuery. This service contains methods that are end user exposed. It backs
-// up the frontend.
+// configure the transfer of their data from other Google Products into BigQuery.
+// This service contains methods that are end user exposed. It backs up the
+// frontend.
 service DataTransferService {
-  option (google.api.default_host) = "bigquerydatatransfer.googleapis.com";
-  option (google.api.oauth_scopes) = "https://www.googleapis.com/auth/cloud-platform";
-
   // Retrieves a supported data source and returns its settings,
   // which can be used for UI rendering.
   rpc GetDataSource(GetDataSourceRequest) returns (DataSource) {
@@ -52,7 +46,6 @@ service DataTransferService {
         get: "/v1/{name=projects/*/dataSources/*}"
       }
     };
-    option (google.api.method_signature) = "name";
   }
 
   // Lists supported data sources and returns their settings,
@@ -64,7 +57,6 @@ service DataTransferService {
         get: "/v1/{parent=projects/*}/dataSources"
       }
     };
-    option (google.api.method_signature) = "parent";
   }
 
   // Creates a new data transfer configuration.
@@ -77,7 +69,6 @@ service DataTransferService {
         body: "transfer_config"
       }
     };
-    option (google.api.method_signature) = "parent,transfer_config";
   }
 
   // Updates a data transfer configuration.
@@ -91,7 +82,6 @@ service DataTransferService {
         body: "transfer_config"
       }
     };
-    option (google.api.method_signature) = "transfer_config,update_mask";
   }
 
   // Deletes a data transfer configuration,
@@ -103,7 +93,6 @@ service DataTransferService {
         delete: "/v1/{name=projects/*/transferConfigs/*}"
       }
     };
-    option (google.api.method_signature) = "name";
   }
 
   // Returns information about a data transfer config.
@@ -114,7 +103,6 @@ service DataTransferService {
         get: "/v1/{name=projects/*/transferConfigs/*}"
       }
     };
-    option (google.api.method_signature) = "name";
   }
 
   // Returns information about all data transfers in the project.
@@ -125,37 +113,18 @@ service DataTransferService {
         get: "/v1/{parent=projects/*}/transferConfigs"
       }
     };
-    option (google.api.method_signature) = "parent";
   }
 
   // Creates transfer runs for a time range [start_time, end_time].
   // For each date - or whatever granularity the data source supports - in the
   // range, one transfer run is created.
   // Note that runs are created per UTC time in the time range.
-  // DEPRECATED: use StartManualTransferRuns instead.
   rpc ScheduleTransferRuns(ScheduleTransferRunsRequest) returns (ScheduleTransferRunsResponse) {
-    option deprecated = true;
     option (google.api.http) = {
       post: "/v1/{parent=projects/*/locations/*/transferConfigs/*}:scheduleRuns"
       body: "*"
       additional_bindings {
         post: "/v1/{parent=projects/*/transferConfigs/*}:scheduleRuns"
-        body: "*"
-      }
-    };
-    option (google.api.method_signature) = "parent,start_time,end_time";
-  }
-
-  // Start manual transfer runs to be executed now with schedule_time equal to
-  // current time. The transfer runs can be created for a time range where the
-  // run_time is between start_time (inclusive) and end_time (exclusive), or for
-  // a specific run_time.
-  rpc StartManualTransferRuns(StartManualTransferRunsRequest) returns (StartManualTransferRunsResponse) {
-    option (google.api.http) = {
-      post: "/v1/{parent=projects/*/locations/*/transferConfigs/*}:startManualRuns"
-      body: "*"
-      additional_bindings {
-        post: "/v1/{parent=projects/*/transferConfigs/*}:startManualRuns"
         body: "*"
       }
     };
@@ -169,7 +138,6 @@ service DataTransferService {
         get: "/v1/{name=projects/*/transferConfigs/*/runs/*}"
       }
     };
-    option (google.api.method_signature) = "name";
   }
 
   // Deletes the specified transfer run.
@@ -180,7 +148,6 @@ service DataTransferService {
         delete: "/v1/{name=projects/*/transferConfigs/*/runs/*}"
       }
     };
-    option (google.api.method_signature) = "name";
   }
 
   // Returns information about running and completed jobs.
@@ -191,7 +158,6 @@ service DataTransferService {
         get: "/v1/{parent=projects/*/transferConfigs/*}/runs"
       }
     };
-    option (google.api.method_signature) = "parent";
   }
 
   // Returns user facing log messages for the data transfer run.
@@ -202,7 +168,6 @@ service DataTransferService {
         get: "/v1/{parent=projects/*/transferConfigs/*/runs/*}/transferLogs"
       }
     };
-    option (google.api.method_signature) = "parent";
   }
 
   // Returns true if valid credentials exist for the given data source and
@@ -220,7 +185,6 @@ service DataTransferService {
         body: "*"
       }
     };
-    option (google.api.method_signature) = "name";
   }
 }
 
@@ -249,7 +213,7 @@ message DataSourceParameter {
     // Boolean parameter.
     BOOLEAN = 4;
 
-    // Deprecated. This field has no effect.
+    // Record parameter.
     RECORD = 5;
 
     // Page ID for a Google+ Page.
@@ -271,7 +235,7 @@ message DataSourceParameter {
   // Is parameter required.
   bool required = 5;
 
-  // Deprecated. This field has no effect.
+  // Can parameter have multiple values.
   bool repeated = 6;
 
   // Regular expression which can be used for parameter validation.
@@ -286,7 +250,7 @@ message DataSourceParameter {
   // For integer and double values specifies maxminum allowed value.
   google.protobuf.DoubleValue max_value = 10;
 
-  // Deprecated. This field has no effect.
+  // When parameter is a record, describes child fields.
   repeated DataSourceParameter fields = 11;
 
   // Description of the requirements for this field, in case the user input does
@@ -299,23 +263,14 @@ message DataSourceParameter {
   // Cannot be changed after initial creation.
   bool immutable = 14;
 
-  // Deprecated. This field has no effect.
+  // If set to true, schema should be taken from the parent with the same
+  // parameter_id. Only applicable when parameter type is RECORD.
   bool recurse = 15;
-
-  // If true, it should not be used in new transfers, and it should not be
-  // visible to users.
-  bool deprecated = 20;
 }
 
 // Represents data source metadata. Metadata is sufficient to
 // render UI and request proper OAuth tokens.
 message DataSource {
-  option (google.api.resource) = {
-    type: "bigquerydatatransfer.googleapis.com/DataSource"
-    pattern: "projects/{project}/dataSources/{data_source}"
-    pattern: "projects/{project}/locations/{location}/dataSources/{data_source}"
-  };
-
   // The type of authorization needed for this data source.
   enum AuthorizationType {
     // Type unspecified.
@@ -328,11 +283,6 @@ message DataSource {
     // Return an authorization code for a given Google+ page that can then be
     // exchanged for a refresh token on the backend.
     GOOGLE_PLUS_AUTHORIZATION_CODE = 2;
-
-    // Use First Party Client OAuth. First Party Client OAuth doesn't require a
-    // refresh token to get an offline access token. Instead, it uses a
-    // client-signed JWT assertion to retrieve an access token.
-    FIRST_PARTY_OAUTH = 3;
   }
 
   // Represents how the data source supports data auto refresh.
@@ -352,7 +302,7 @@ message DataSource {
   }
 
   // Output only. Data source resource name.
-  string name = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string name = 1;
 
   // Data source id.
   string data_source_id = 2;
@@ -364,21 +314,24 @@ message DataSource {
   string description = 4;
 
   // Data source client id which should be used to receive refresh token.
+  // When not supplied, no offline credentials are populated for data transfer.
   string client_id = 5;
 
-  // Api auth scopes for which refresh token needs to be obtained. These are
-  // scopes needed by a data source to prepare data and ingest them into
-  // BigQuery, e.g., https://www.googleapis.com/auth/bigquery
+  // Api auth scopes for which refresh token needs to be obtained. Only valid
+  // when `client_id` is specified. Ignored otherwise. These are scopes needed
+  // by a data source to prepare data and ingest them into BigQuery,
+  // e.g., https://www.googleapis.com/auth/bigquery
   repeated string scopes = 6;
 
   // Deprecated. This field has no effect.
-  TransferType transfer_type = 7 [deprecated = true];
+  TransferType transfer_type = 7;
 
-  // Deprecated. This field has no effect.
-  bool supports_multiple_transfers = 8 [deprecated = true];
+  // Indicates whether the data source supports multiple transfers
+  // to different BigQuery targets.
+  bool supports_multiple_transfers = 8;
 
   // The number of seconds to wait for an update from the data source
-  // before the Data Transfer Service marks the transfer as FAILED.
+  // before BigQuery marks the transfer as failed.
   int32 update_deadline_seconds = 9;
 
   // Default data transfer schedule.
@@ -422,28 +375,16 @@ message DataSource {
 
 // A request to get data source info.
 message GetDataSourceRequest {
-  // Required. The field will contain name of the resource requested, for example:
-  // `projects/{project_id}/dataSources/{data_source_id}` or
-  // `projects/{project_id}/locations/{location_id}/dataSources/{data_source_id}`
-  string name = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      type: "bigquerydatatransfer.googleapis.com/DataSource"
-    }
-  ];
+  // The field will contain name of the resource requested, for example:
+  // `projects/{project_id}/dataSources/{data_source_id}`
+  string name = 1;
 }
 
 // Request to list supported data sources and their data transfer settings.
 message ListDataSourcesRequest {
-  // Required. The BigQuery project id for which data sources should be returned.
-  // Must be in the form: `projects/{project_id}` or
-  // `projects/{project_id}/locations/{location_id}
-  string parent = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      child_type: "bigquerydatatransfer.googleapis.com/DataSource"
-    }
-  ];
+  // The BigQuery project id for which data sources should be returned.
+  // Must be in the form: `projects/{project_id}`
+  string parent = 1;
 
   // Pagination token, which can be used to request a specific page
   // of `ListDataSourcesRequest` list results. For multiple-page
@@ -465,7 +406,7 @@ message ListDataSourcesResponse {
   // this token can be used as the
   // `ListDataSourcesRequest.page_token`
   // to request the next page of list results.
-  string next_page_token = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string next_page_token = 2;
 }
 
 // A request to create a data transfer configuration. If new credentials are
@@ -475,19 +416,14 @@ message ListDataSourcesResponse {
 // authorization code. Otherwise, the transfer configuration will be associated
 // with the calling user.
 message CreateTransferConfigRequest {
-  // Required. The BigQuery project id where the transfer configuration should be created.
-  // Must be in the format projects/{project_id}/locations/{location_id} or
-  // projects/{project_id}. If specified location and location of the
-  // destination bigquery dataset do not match - the request will fail.
-  string parent = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      child_type: "bigquerydatatransfer.googleapis.com/TransferConfig"
-    }
-  ];
+  // The BigQuery project id where the transfer configuration should be created.
+  // Must be in the format /projects/{project_id}/locations/{location_id}
+  // If specified location and location of the destination bigquery dataset
+  // do not match - the request will fail.
+  string parent = 1;
 
-  // Required. Data transfer configuration to create.
-  TransferConfig transfer_config = 2 [(google.api.field_behavior) = REQUIRED];
+  // Data transfer configuration to create.
+  TransferConfig transfer_config = 2;
 
   // Optional OAuth2 authorization code to use with this transfer configuration.
   // This is required if new credentials are needed, as indicated by
@@ -506,27 +442,13 @@ message CreateTransferConfigRequest {
   //   returned in the title bar of the browser, with the page text prompting
   //   the user to copy the code and paste it in the application.
   string authorization_code = 3;
-
-  // Optional version info. If users want to find a very recent access token,
-  // that is, immediately after approving access, users have to set the
-  // version_info claim in the token request. To obtain the version_info, users
-  // must use the "none+gsession" response type. which be return a
-  // version_info back in the authorization response which be be put in a JWT
-  // claim in the token request.
-  string version_info = 5;
-
-  // Optional service account name. If this field is set, transfer config will
-  // be created with this service account credentials. It requires that
-  // requesting user calling this API has permissions to act as this service
-  // account.
-  string service_account_name = 6;
 }
 
 // A request to update a transfer configuration. To update the user id of the
 // transfer configuration, an authorization code needs to be provided.
 message UpdateTransferConfigRequest {
-  // Required. Data transfer configuration to create.
-  TransferConfig transfer_config = 1 [(google.api.field_behavior) = REQUIRED];
+  // Data transfer configuration to create.
+  TransferConfig transfer_config = 1;
 
   // Optional OAuth2 authorization code to use with this transfer configuration.
   // If it is provided, the transfer configuration will be associated with the
@@ -546,89 +468,44 @@ message UpdateTransferConfigRequest {
   //   the user to copy the code and paste it in the application.
   string authorization_code = 3;
 
-  // Required. Required list of fields to be updated in this request.
-  google.protobuf.FieldMask update_mask = 4 [(google.api.field_behavior) = REQUIRED];
-
-  // Optional version info. If users want to find a very recent access token,
-  // that is, immediately after approving access, users have to set the
-  // version_info claim in the token request. To obtain the version_info, users
-  // must use the "none+gsession" response type. which be return a
-  // version_info back in the authorization response which be be put in a JWT
-  // claim in the token request.
-  string version_info = 5;
-
-  // Optional service account name. If this field is set and
-  // "service_account_name" is set in update_mask, transfer config will be
-  // updated to use this service account credentials. It requires that
-  // requesting user calling this API has permissions to act as this service
-  // account.
-  string service_account_name = 6;
+  // Required list of fields to be updated in this request.
+  google.protobuf.FieldMask update_mask = 4;
 }
 
 // A request to get data transfer information.
 message GetTransferConfigRequest {
-  // Required. The field will contain name of the resource requested, for example:
-  // `projects/{project_id}/transferConfigs/{config_id}` or
-  // `projects/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
-  string name = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      type: "bigquerydatatransfer.googleapis.com/TransferConfig"
-    }
-  ];
+  // The field will contain name of the resource requested, for example:
+  // `projects/{project_id}/transferConfigs/{config_id}`
+  string name = 1;
 }
 
 // A request to delete data transfer information. All associated transfer runs
 // and log messages will be deleted as well.
 message DeleteTransferConfigRequest {
-  // Required. The field will contain name of the resource requested, for example:
-  // `projects/{project_id}/transferConfigs/{config_id}` or
-  // `projects/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
-  string name = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      type: "bigquerydatatransfer.googleapis.com/TransferConfig"
-    }
-  ];
+  // The field will contain name of the resource requested, for example:
+  // `projects/{project_id}/transferConfigs/{config_id}`
+  string name = 1;
 }
 
 // A request to get data transfer run information.
 message GetTransferRunRequest {
-  // Required. The field will contain name of the resource requested, for example:
-  // `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` or
-  // `projects/{project_id}/locations/{location_id}/transferConfigs/{config_id}/runs/{run_id}`
-  string name = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      type: "bigquerydatatransfer.googleapis.com/Run"
-    }
-  ];
+  // The field will contain name of the resource requested, for example:
+  // `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}`
+  string name = 1;
 }
 
 // A request to delete data transfer run information.
 message DeleteTransferRunRequest {
-  // Required. The field will contain name of the resource requested, for example:
-  // `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` or
-  // `projects/{project_id}/locations/{location_id}/transferConfigs/{config_id}/runs/{run_id}`
-  string name = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      type: "bigquerydatatransfer.googleapis.com/Run"
-    }
-  ];
+  // The field will contain name of the resource requested, for example:
+  // `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}`
+  string name = 1;
 }
 
 // A request to list data transfers configured for a BigQuery project.
 message ListTransferConfigsRequest {
-  // Required. The BigQuery project id for which data sources
-  // should be returned: `projects/{project_id}` or
-  // `projects/{project_id}/locations/{location_id}`
-  string parent = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      child_type: "bigquerydatatransfer.googleapis.com/TransferConfig"
-    }
-  ];
+  // The BigQuery project id for which data sources
+  // should be returned: `projects/{project_id}`.
+  string parent = 1;
 
   // When specified, only configurations of requested data sources are returned.
   repeated string data_source_ids = 2;
@@ -647,13 +524,13 @@ message ListTransferConfigsRequest {
 // The returned list of pipelines in the project.
 message ListTransferConfigsResponse {
   // Output only. The stored pipeline transfer configurations.
-  repeated TransferConfig transfer_configs = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  repeated TransferConfig transfer_configs = 1;
 
   // Output only. The next-pagination token. For multiple-page list results,
   // this token can be used as the
   // `ListTransferConfigsRequest.page_token`
   // to request the next page of list results.
-  string next_page_token = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string next_page_token = 2;
 }
 
 // A request to list data transfer runs. UI can use this method to show/filter
@@ -669,16 +546,10 @@ message ListTransferRunsRequest {
     LATEST = 1;
   }
 
-  // Required. Name of transfer configuration for which transfer runs should be retrieved.
+  // Name of transfer configuration for which transfer runs should be retrieved.
   // Format of transfer configuration resource name is:
-  // `projects/{project_id}/transferConfigs/{config_id}` or
-  // `projects/{project_id}/locations/{location_id}/transferConfigs/{config_id}`.
-  string parent = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      child_type: "bigquerydatatransfer.googleapis.com/Run"
-    }
-  ];
+  // `projects/{project_id}/transferConfigs/{config_id}`.
+  string parent = 1;
 
   // When specified, only transfer runs with requested states are returned.
   repeated TransferState states = 2;
@@ -700,26 +571,20 @@ message ListTransferRunsRequest {
 // The returned list of pipelines in the project.
 message ListTransferRunsResponse {
   // Output only. The stored pipeline transfer runs.
-  repeated TransferRun transfer_runs = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  repeated TransferRun transfer_runs = 1;
 
   // Output only. The next-pagination token. For multiple-page list results,
   // this token can be used as the
   // `ListTransferRunsRequest.page_token`
   // to request the next page of list results.
-  string next_page_token = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string next_page_token = 2;
 }
 
 // A request to get user facing log messages associated with data transfer run.
 message ListTransferLogsRequest {
-  // Required. Transfer run name in the form:
-  // `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` or
-  // `projects/{project_id}/locations/{location_id}/transferConfigs/{config_id}/runs/{run_id}`
-  string parent = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      type: "bigquerydatatransfer.googleapis.com/Run"
-    }
-  ];
+  // Transfer run name in the form:
+  // `projects/{project_id}/transferConfigs/{config_Id}/runs/{run_id}`.
+  string parent = 1;
 
   // Pagination token, which can be used to request a specific page
   // of `ListTransferLogsRequest` list results. For multiple-page
@@ -739,13 +604,13 @@ message ListTransferLogsRequest {
 // The returned list transfer run messages.
 message ListTransferLogsResponse {
   // Output only. The stored pipeline transfer messages.
-  repeated TransferMessage transfer_messages = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  repeated TransferMessage transfer_messages = 1;
 
   // Output only. The next-pagination token. For multiple-page list results,
   // this token can be used as the
   // `GetTransferRunLogRequest.page_token`
   // to request the next page of list results.
-  string next_page_token = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string next_page_token = 2;
 }
 
 // A request to determine whether the user has valid credentials. This method
@@ -755,15 +620,9 @@ message ListTransferLogsResponse {
 // returns false, as it cannot be determined whether the credentials are
 // already valid merely based on the user id.
 message CheckValidCredsRequest {
-  // Required. The data source in the form:
-  // `projects/{project_id}/dataSources/{data_source_id}` or
-  // `projects/{project_id}/locations/{location_id}/dataSources/{data_source_id}`.
-  string name = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      type: "bigquerydatatransfer.googleapis.com/DataSource"
-    }
-  ];
+  // The data source in the form:
+  // `projects/{project_id}/dataSources/{data_source_id}`
+  string name = 1;
 }
 
 // A response indicating whether the credentials exist and are valid.
@@ -774,70 +633,21 @@ message CheckValidCredsResponse {
 
 // A request to schedule transfer runs for a time range.
 message ScheduleTransferRunsRequest {
-  // Required. Transfer configuration name in the form:
-  // `projects/{project_id}/transferConfigs/{config_id}` or
-  // `projects/{project_id}/locations/{location_id}/transferConfigs/{config_id}`.
-  string parent = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      type: "bigquerydatatransfer.googleapis.com/TransferConfig"
-    }
-  ];
+  // Transfer configuration name in the form:
+  // `projects/{project_id}/transferConfigs/{config_id}`.
+  string parent = 1;
 
-  // Required. Start time of the range of transfer runs. For example,
+  // Start time of the range of transfer runs. For example,
   // `"2017-05-25T00:00:00+00:00"`.
-  google.protobuf.Timestamp start_time = 2 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp start_time = 2;
 
-  // Required. End time of the range of transfer runs. For example,
+  // End time of the range of transfer runs. For example,
   // `"2017-05-30T00:00:00+00:00"`.
-  google.protobuf.Timestamp end_time = 3 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp end_time = 3;
 }
 
 // A response to schedule transfer runs for a time range.
 message ScheduleTransferRunsResponse {
   // The transfer runs that were scheduled.
-  repeated TransferRun runs = 1;
-}
-
-// A request to start manual transfer runs.
-message StartManualTransferRunsRequest {
-  // A specification for a time range, this will request transfer runs with
-  // run_time between start_time (inclusive) and end_time (exclusive).
-  message TimeRange {
-    // Start time of the range of transfer runs. For example,
-    // `"2017-05-25T00:00:00+00:00"`. The start_time must be strictly less than
-    // the end_time. Creates transfer runs where run_time is in the range betwen
-    // start_time (inclusive) and end_time (exlusive).
-    google.protobuf.Timestamp start_time = 1;
-
-    // End time of the range of transfer runs. For example,
-    // `"2017-05-30T00:00:00+00:00"`. The end_time must not be in the future.
-    // Creates transfer runs where run_time is in the range betwen start_time
-    // (inclusive) and end_time (exlusive).
-    google.protobuf.Timestamp end_time = 2;
-  }
-
-  // Transfer configuration name in the form:
-  // `projects/{project_id}/transferConfigs/{config_id}` or
-  // `projects/{project_id}/locations/{location_id}/transferConfigs/{config_id}`.
-  string parent = 1 [(google.api.resource_reference) = {
-                       type: "bigquerydatatransfer.googleapis.com/TransferConfig"
-                     }];
-
-  // The requested time specification - this can be a time range or a specific
-  // run_time.
-  oneof time {
-    // Time range for the transfer runs that should be started.
-    TimeRange requested_time_range = 3;
-
-    // Specific run_time for a transfer run to be started. The
-    // requested_run_time must not be in the future.
-    google.protobuf.Timestamp requested_run_time = 4;
-  }
-}
-
-// A response to start manual transfer runs.
-message StartManualTransferRunsResponse {
-  // The transfer runs that were created.
   repeated TransferRun runs = 1;
 }

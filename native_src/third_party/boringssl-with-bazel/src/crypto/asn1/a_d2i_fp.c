@@ -78,6 +78,7 @@ void *ASN1_item_d2i_bio(const ASN1_ITEM *it, BIO *in, void *x)
     return ret;
 }
 
+#ifndef OPENSSL_NO_FP_API
 void *ASN1_item_d2i_fp(const ASN1_ITEM *it, FILE *in, void *x)
 {
     BIO *b = BIO_new_fp(in, BIO_NOCLOSE);
@@ -89,3 +90,4 @@ void *ASN1_item_d2i_fp(const ASN1_ITEM *it, FILE *in, void *x)
     BIO_free(b);
     return ret;
 }
+#endif

@@ -27,6 +27,8 @@
 namespace absl {
 ABSL_NAMESPACE_BEGIN
 
+// The implementation was intentionally kept same as util::error::Code_Name()
+// to ease the migration.
 std::string StatusCodeToString(StatusCode code) {
   switch (code) {
     case StatusCode::kOk:
@@ -78,7 +80,7 @@ static int FindPayloadIndexByUrl(const Payloads* payloads,
                                  absl::string_view type_url) {
   if (payloads == nullptr) return -1;
 
-  for (size_t i = 0; i < payloads->size(); ++i) {
+  for (int i = 0; i < payloads->size(); ++i) {
     if ((*payloads)[i].type_url == type_url) return i;
   }
 
@@ -145,15 +147,7 @@ void Status::SetPayload(absl::string_view type_url, absl::Cord payload) {
 bool Status::ErasePayload(absl::string_view type_url) {
   int index = status_internal::FindPayloadIndexByUrl(GetPayloads(), type_url);
   if (index != -1) {
-    PrepareToModify();
     GetPayloads()->erase(GetPayloads()->begin() + index);
-    if (GetPayloads()->empty() && message().empty()) {
-      // Special case: If this can be represented inlined, it MUST be
-      // inlined (EqualsSlow depends on this behavior).
-      StatusCode c = static_cast<StatusCode>(raw_code());
-      Unref(rep_);
-      rep_ = CodeToInlinedRep(c);
-    }
     return true;
   }
 
@@ -161,21 +155,21 @@ bool Status::ErasePayload(absl::string_view type_url) {
 }
 
 void Status::ForEachPayload(
-    absl::FunctionRef<void(absl::string_view, const absl::Cord&)> visitor)
+    const std::function<void(absl::string_view, const absl::Cord&)>& visitor)
     const {
   if (auto* payloads = GetPayloads()) {
     bool in_reverse =
         payloads->size() > 1 && reinterpret_cast<uintptr_t>(payloads) % 13 > 6;
 
-    for (size_t index = 0; index < payloads->size(); ++index) {
+    for (int index = 0; index < payloads->size(); ++index) {
       const auto& elem =
           (*payloads)[in_reverse ? payloads->size() - 1 - index : index];
 
 #ifdef NDEBUG
       visitor(elem.type_url, elem.payload);
 #else
-      // In debug mode invalidate the type url to prevent users from relying on
-      // this string lifetime.
+      // In debug mode invaldiate the type url to prevent users from relying on
+      // this std::string lifetime.
 
       // NOLINTNEXTLINE intentional extra conversion to force temporary.
       visitor(std::string(elem.type_url), elem.payload);
@@ -207,10 +201,20 @@ void Status::UnrefNonInlined(uintptr_t rep) {
   }
 }
 
+uintptr_t Status::NewRep(absl::StatusCode code, absl::string_view msg,
+                         std::unique_ptr<status_internal::Payloads> payloads) {
+  status_internal::StatusRep* rep = new status_internal::StatusRep;
+  rep->ref.store(1, std::memory_order_relaxed);
+  rep->code = code;
+  rep->message.assign(msg.data(), msg.size());
+  rep->payloads = std::move(payloads);
+  return PointerToRep(rep);
+}
+
 Status::Status(absl::StatusCode code, absl::string_view msg)
     : rep_(CodeToInlinedRep(code)) {
   if (code != absl::StatusCode::kOk && !msg.empty()) {
-    rep_ = PointerToRep(new status_internal::StatusRep(code, msg, nullptr));
+    rep_ = NewRep(code, msg, nullptr);
   }
 }
 
@@ -229,9 +233,8 @@ absl::StatusCode Status::code() const {
 void Status::PrepareToModify() {
   ABSL_RAW_CHECK(!ok(), "PrepareToModify shouldn't be called on OK status.");
   if (IsInlined(rep_)) {
-    rep_ = PointerToRep(new status_internal::StatusRep(
-        static_cast<absl::StatusCode>(raw_code()), absl::string_view(),
-        nullptr));
+    rep_ = NewRep(static_cast<absl::StatusCode>(raw_code()),
+                  absl::string_view(), nullptr);
     return;
   }
 
@@ -242,9 +245,7 @@ void Status::PrepareToModify() {
     if (rep->payloads) {
       payloads = absl::make_unique<status_internal::Payloads>(*rep->payloads);
     }
-    status_internal::StatusRep* const new_rep = new status_internal::StatusRep(
-        rep->code, message(), std::move(payloads));
-    rep_ = PointerToRep(new_rep);
+    rep_ = NewRep(rep->code, message(), std::move(payloads));
     UnrefNonInlined(rep_i);
   }
 }
@@ -283,32 +284,26 @@ bool Status::EqualsSlow(const absl::Status& a, const absl::Status& b) {
   return true;
 }
 
-std::string Status::ToStringSlow(StatusToStringMode mode) const {
+std::string Status::ToStringSlow() const {
   std::string text;
   absl::StrAppend(&text, absl::StatusCodeToString(code()), ": ", message());
-
-  const bool with_payload = (mode & StatusToStringMode::kWithPayload) ==
-                      StatusToStringMode::kWithPayload;
-
-  if (with_payload) {
-    status_internal::StatusPayloadPrinter printer =
-        status_internal::GetStatusPayloadPrinter();
-    this->ForEachPayload([&](absl::string_view type_url,
-                             const absl::Cord& payload) {
-      absl::optional<std::string> result;
-      if (printer) result = printer(type_url, payload);
-      absl::StrAppend(
-          &text, " [", type_url, "='",
-          result.has_value() ? *result : absl::CHexEscape(std::string(payload)),
-          "']");
-    });
-  }
+  status_internal::StatusPayloadPrinter printer =
+      status_internal::GetStatusPayloadPrinter();
+  this->ForEachPayload([&](absl::string_view type_url,
+                           const absl::Cord& payload) {
+    absl::optional<std::string> result;
+    if (printer) result = printer(type_url, payload);
+    absl::StrAppend(
+        &text, " [", type_url, "='",
+        result.has_value() ? *result : absl::CHexEscape(std::string(payload)),
+        "']");
+  });
 
   return text;
 }
 
 std::ostream& operator<<(std::ostream& os, const Status& x) {
-  os << x.ToString(StatusToStringMode::kWithEverything);
+  os << x.ToString();
   return os;
 }
 

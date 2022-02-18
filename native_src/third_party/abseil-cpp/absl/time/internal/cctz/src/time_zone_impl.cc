@@ -15,7 +15,6 @@
 #include "time_zone_impl.h"
 
 #include <deque>
-#include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -49,16 +48,17 @@ std::mutex& TimeZoneMutex() {
 time_zone time_zone::Impl::UTC() { return time_zone(UTCImpl()); }
 
 bool time_zone::Impl::LoadTimeZone(const std::string& name, time_zone* tz) {
-  const Impl* const utc_impl = UTCImpl();
+  const time_zone::Impl* const utc_impl = UTCImpl();
 
-  // Check for UTC (which is never a key in time_zone_map).
+  // First check for UTC (which is never a key in time_zone_map).
   auto offset = seconds::zero();
   if (FixedOffsetFromName(name, &offset) && offset == seconds::zero()) {
     *tz = time_zone(utc_impl);
     return true;
   }
 
-  // Check whether the time zone has already been loaded.
+  // Then check, under a shared lock, whether the time zone has already
+  // been loaded. This is the common path. TODO: Move to shared_mutex.
   {
     std::lock_guard<std::mutex> lock(TimeZoneMutex());
     if (time_zone_map != nullptr) {
@@ -70,15 +70,20 @@ bool time_zone::Impl::LoadTimeZone(const std::string& name, time_zone* tz) {
     }
   }
 
-  // Load the new time zone (outside the lock).
-  std::unique_ptr<const Impl> new_impl(new Impl(name));
-
-  // Add the new time zone to the map.
+  // Now check again, under an exclusive lock.
   std::lock_guard<std::mutex> lock(TimeZoneMutex());
   if (time_zone_map == nullptr) time_zone_map = new TimeZoneImplByName;
   const Impl*& impl = (*time_zone_map)[name];
-  if (impl == nullptr) {  // this thread won any load race
-    impl = new_impl->zone_ ? new_impl.release() : utc_impl;
+  if (impl == nullptr) {
+    // The first thread in loads the new time zone.
+    Impl* new_impl = new Impl(name);
+    new_impl->zone_ = TimeZoneIf::Load(new_impl->name_);
+    if (new_impl->zone_ == nullptr) {
+      delete new_impl;  // free the nascent Impl
+      impl = utc_impl;  // and fallback to UTC
+    } else {
+      impl = new_impl;  // install new time zone
+    }
   }
   *tz = time_zone(impl);
   return impl != utc_impl;
@@ -99,11 +104,14 @@ void time_zone::Impl::ClearTimeZoneMapTestOnly() {
   }
 }
 
-time_zone::Impl::Impl(const std::string& name)
-    : name_(name), zone_(TimeZoneIf::Load(name_)) {}
+time_zone::Impl::Impl(const std::string& name) : name_(name) {}
 
 const time_zone::Impl* time_zone::Impl::UTCImpl() {
-  static const Impl* utc_impl = new Impl("UTC");  // never fails
+  static Impl* utc_impl = [] {
+    Impl* impl = new Impl("UTC");
+    impl->zone_ = TimeZoneIf::Load(impl->name_);  // never fails
+    return impl;
+  }();
   return utc_impl;
 }
 

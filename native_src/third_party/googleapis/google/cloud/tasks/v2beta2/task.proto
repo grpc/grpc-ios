@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,24 +16,19 @@ syntax = "proto3";
 
 package google.cloud.tasks.v2beta2;
 
-import "google/api/resource.proto";
+import "google/api/annotations.proto";
 import "google/cloud/tasks/v2beta2/target.proto";
 import "google/protobuf/timestamp.proto";
 import "google/rpc/status.proto";
-import "google/api/annotations.proto";
 
 option go_package = "google.golang.org/genproto/googleapis/cloud/tasks/v2beta2;tasks";
 option java_multiple_files = true;
 option java_outer_classname = "TaskProto";
 option java_package = "com.google.cloud.tasks.v2beta2";
 
+
 // A unit of scheduled work.
 message Task {
-  option (google.api.resource) = {
-    type: "cloudtasks.googleapis.com/Task"
-    pattern: "projects/{project}/locations/{location}/queues/{queue}/tasks/{task}"
-  };
-
   // The view specifies a subset of [Task][google.cloud.tasks.v2beta2.Task] data.
   //
   // When a task is returned in a response, not all
@@ -74,8 +69,7 @@ message Task {
   // * `PROJECT_ID` can contain letters ([A-Za-z]), numbers ([0-9]),
   //    hyphens (-), colons (:), or periods (.).
   //    For more information, see
-  //    [Identifying
-  //    projects](https://cloud.google.com/resource-manager/docs/creating-managing-projects#identifying_projects)
+  //    [Identifying projects](https://cloud.google.com/resource-manager/docs/creating-managing-projects#identifying_projects)
   // * `LOCATION_ID` is the canonical ID for the task's location.
   //    The list of available locations can be obtained by calling
   //    [ListLocations][google.cloud.location.Locations.ListLocations].
@@ -135,7 +129,7 @@ message Task {
 message TaskStatus {
   // Output only. The number of attempts dispatched.
   //
-  // This count includes attempts which have been dispatched but haven't
+  // This count includes tasks which have been dispatched but haven't
   // received a response.
   int32 attempt_dispatch_count = 1;
 

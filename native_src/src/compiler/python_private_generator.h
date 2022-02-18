@@ -42,7 +42,7 @@ struct PrivateGenerator {
   PrivateGenerator(const GeneratorConfiguration& config,
                    const grpc_generator::File* file);
 
-  std::pair<bool, std::string> GetGrpcServices();
+  std::pair<bool, grpc::string> GetGrpcServices();
 
  private:
   bool PrintPreamble(grpc_generator::Printer* out);
@@ -51,32 +51,32 @@ struct PrivateGenerator {
   bool PrintBetaServices(grpc_generator::Printer* out);
 
   bool PrintAddServicerToServer(
-      const std::string& package_qualified_service_name,
+      const grpc::string& package_qualified_service_name,
       const grpc_generator::Service* service, grpc_generator::Printer* out);
   bool PrintServicer(const grpc_generator::Service* service,
                      grpc_generator::Printer* out);
-  bool PrintStub(const std::string& package_qualified_service_name,
+  bool PrintStub(const grpc::string& package_qualified_service_name,
                  const grpc_generator::Service* service,
                  grpc_generator::Printer* out);
 
-  bool PrintServiceClass(const std::string& package_qualified_service_name,
+  bool PrintServiceClass(const grpc::string& package_qualified_service_name,
                          const grpc_generator::Service* service,
                          grpc_generator::Printer* out);
   bool PrintBetaServicer(const grpc_generator::Service* service,
                          grpc_generator::Printer* out);
-  bool PrintBetaServerFactory(const std::string& package_qualified_service_name,
-                              const grpc_generator::Service* service,
-                              grpc_generator::Printer* out);
+  bool PrintBetaServerFactory(
+      const grpc::string& package_qualified_service_name,
+      const grpc_generator::Service* service, grpc_generator::Printer* out);
   bool PrintBetaStub(const grpc_generator::Service* service,
                      grpc_generator::Printer* out);
-  bool PrintBetaStubFactory(const std::string& package_qualified_service_name,
+  bool PrintBetaStubFactory(const grpc::string& package_qualified_service_name,
                             const grpc_generator::Service* service,
                             grpc_generator::Printer* out);
 
   // Get all comments (leading, leading_detached, trailing) and print them as a
   // docstring. Any leading space of a line will be removed, but the line
   // wrapping will not be changed.
-  void PrintAllComments(std::vector<std::string> comments,
+  void PrintAllComments(std::vector<grpc::string> comments,
                         grpc_generator::Printer* out);
 };
 

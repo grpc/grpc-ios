@@ -67,34 +67,6 @@ namespace Grpc.Tools.Tests
             Assert.AreNotEqual(unsame1, unsame2);
         }
 
-        [Test]
-        public void GetOutputDirWithHash_IsSane()
-        {
-            StringAssert.IsMatch(@"^out[\\/][a-f0-9]{16}$",
-                DepFileUtil.GetOutputDirWithHash("out", "foo.proto"));
-            StringAssert.IsMatch(@"^[a-f0-9]{16}$",
-                DepFileUtil.GetOutputDirWithHash("", "foo.proto"));
-        }
-
-        [Test]
-        public void GetOutputDirWithHash_HashesDir()
-        {
-            string PickHash(string fname) => DepFileUtil.GetOutputDirWithHash("", fname);
-
-            string same1 = PickHash("dir1/dir2/foo.proto");
-            string same2 = PickHash("dir1/dir2/proto.foo");
-            string same3 = PickHash("dir1/dir2/proto");
-            string same4 = PickHash("dir1/dir2/.proto");
-            string unsame1 = PickHash("dir2/foo.proto");
-            string unsame2 = PickHash("/dir2/foo.proto");
-
-            Assert.AreEqual(same1, same2);
-            Assert.AreEqual(same1, same3);
-            Assert.AreEqual(same1, same4);
-            Assert.AreNotEqual(same1, unsame1);
-            Assert.AreNotEqual(unsame1, unsame2);
-        }
-
         //////////////////////////////////////////////////////////////////////////
         // Full file reading tests
 
@@ -146,17 +118,20 @@ obj\Release x64\net45\/FooGrpc.cs: C:/usr/include/google/protobuf/wrappers.proto
             Assert.Zero(deps.Length);
         }
 
+        // NB in our tests files are put into the temp directory but all have
+        // different names. Avoid adding files with the same directory path and
+        // name, or add reasonable handling for it if required. Tests are run in
+        // parallel and will collide otherwise.
         private string[] ReadDependencyInputFromFileData(string fileData, string protoName)
         {
-            string randomTempDir = Path.GetTempPath() + '/' + Path.GetRandomFileName();
-            Directory.CreateDirectory(randomTempDir);
-            string tempfile = DepFileUtil.GetDepFilenameForProto(randomTempDir, protoName);
+            string tempPath = Path.GetTempPath();
+            string tempfile = DepFileUtil.GetDepFilenameForProto(tempPath, protoName);
             try
             {
                 File.WriteAllText(tempfile, fileData);
                 var mockEng = new Moq.Mock<IBuildEngine>();
                 var log = new TaskLoggingHelper(mockEng.Object, "x");
-                return DepFileUtil.ReadDependencyInputs(randomTempDir, protoName, log);
+                return DepFileUtil.ReadDependencyInputs(tempPath, protoName, log);
             }
             finally
             {

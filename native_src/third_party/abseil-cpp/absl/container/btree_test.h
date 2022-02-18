@@ -25,7 +25,6 @@
 #include "absl/container/btree_map.h"
 #include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_set.h"
-#include "absl/strings/cord.h"
 #include "absl/time/time.h"
 
 namespace absl {
@@ -98,16 +97,6 @@ struct Generator<std::string> {
   std::string operator()(int i) const {
     char buf[16];
     return GenerateDigits(buf, i, maxval);
-  }
-};
-
-template <>
-struct Generator<Cord> {
-  int maxval;
-  explicit Generator(int m) : maxval(m) {}
-  Cord operator()(int i) const {
-    char buf[16];
-    return Cord(GenerateDigits(buf, i, maxval));
   }
 };
 

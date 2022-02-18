@@ -18,19 +18,20 @@
 
 #include <grpc/impl/codegen/port_platform.h>
 
+#include <grpcpp/ext/server_load_reporting.h>
+
 #include <cmath>
 
 #include <grpc/support/log.h>
-#include <grpcpp/ext/server_load_reporting.h>
 
-namespace grpc {
+namespace grpc_impl {
 namespace load_reporter {
 namespace experimental {
 
 void AddLoadReportingCost(grpc::ServerContext* ctx,
-                          const std::string& cost_name, double cost_value) {
+                          const grpc::string& cost_name, double cost_value) {
   if (std::isnormal(cost_value)) {
-    std::string buf;
+    grpc::string buf;
     buf.resize(sizeof(cost_value) + cost_name.size());
     memcpy(&(*buf.begin()), &cost_value, sizeof(cost_value));
     memcpy(&(*buf.begin()) + sizeof(cost_value), cost_name.data(),
@@ -43,4 +44,4 @@ void AddLoadReportingCost(grpc::ServerContext* ctx,
 
 }  // namespace experimental
 }  // namespace load_reporter
-}  // namespace grpc
+}  // namespace grpc_impl

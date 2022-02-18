@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2018 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,41 +23,3 @@ option java_multiple_files = true;
 option java_outer_classname = "SharedProto";
 option java_package = "com.google.cloud.dataproc.v1beta2";
 
-// Cluster components that can be activated.
-enum Component {
-  // Unspecified component. Specifying this will cause Cluster creation to fail.
-  COMPONENT_UNSPECIFIED = 0;
-
-  // The Anaconda python distribution.
-  ANACONDA = 5;
-
-  // The Druid query engine.
-  DRUID = 9;
-
-  // HBase.
-  HBASE = 11;
-
-  // The Hive Web HCatalog (the REST service for accessing HCatalog).
-  HIVE_WEBHCAT = 3;
-
-  // The Jupyter Notebook.
-  JUPYTER = 1;
-
-  // The Kerberos security feature.
-  KERBEROS = 7;
-
-  // The Presto query engine.
-  PRESTO = 6;
-
-  // The Ranger service.
-  RANGER = 12;
-
-  // The Solr service.
-  SOLR = 10;
-
-  // The Zeppelin notebook.
-  ZEPPELIN = 4;
-
-  // The Zookeeper service.
-  ZOOKEEPER = 8;
-}

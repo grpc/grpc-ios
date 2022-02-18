@@ -80,15 +80,14 @@ final class RawMessageInfo implements MessageInfo {
    *   <li>[1]: field type with extra bits:
    *       <ul>
    *         <li>v & 0xFF = field type as defined in the FieldType class
-   *         <li>v & 0x0100 = is required?
-   *         <li>v & 0x0200 = is checkUtf8?
-   *         <li>v & 0x0400 = needs isInitialized check?
-   *         <li>v & 0x0800 = is map field with proto2 enum value?
-   *         <li>v & 0x1000 = supports presence checking?
+   *         <li>v & 0x100 = is required?
+   *         <li>v & 0x200 = is checkUtf8?
+   *         <li>v & 0x400 = needs isInitialized check?
+   *         <li>v & 0x800 = is map field with proto2 enum value?
    *       </ul>
    * </ul>
    *
-   * If the (singular) field supports presence checking:
+   * If the file is proto2 and this is a singular field:
    *
    * <ul>
    *   <li>[2]: hasbits offset
@@ -97,7 +96,7 @@ final class RawMessageInfo implements MessageInfo {
    * If the field is in an oneof:
    *
    * <ul>
-   *   <li>[2]: oneof index
+   *   <li>[2]: oenof index
    * </ul>
    *
    * For other types, the field entry only has field number and field type.

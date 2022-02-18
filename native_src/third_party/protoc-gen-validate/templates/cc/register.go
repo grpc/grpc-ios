@@ -8,11 +8,12 @@ import (
 	"text/template"
 
 	"github.com/envoyproxy/protoc-gen-validate/templates/shared"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/iancoleman/strcase"
 	pgs "github.com/lyft/protoc-gen-star"
 	pgsgo "github.com/lyft/protoc-gen-star/lang/go"
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func RegisterModule(tpl *template.Template, params pgs.Parameters) {
@@ -200,12 +201,12 @@ func (fns CCFuncs) errIdxCause(ctx shared.RuleContext, idx, cause string, reason
 			errName, fns.lit(pgsgo.PGGUpperCamelCase(f.Name()))))
 
 	if idx != "" {
-		output = append(output, fmt.Sprintf(`msg << "[" << %s << "]";`, idx))
+		output = append(output, fmt.Sprintf(`msg << "[" << %s << "]";`, fns.lit(idx)))
 	} else if ctx.Index != "" {
-		output = append(output, fmt.Sprintf(`msg << "[" << %s << "]";`, ctx.Index))
+		output = append(output, fmt.Sprintf(`msg << "[" << %s << "]";`, fns.lit(ctx.Index)))
 	}
 
-	output = append(output, fmt.Sprintf(`msg << ": " << %q;`, fmt.Sprint(reason...)))
+	output = append(output, fmt.Sprintf(`msg << ": " << %s;`, fns.lit(fmt.Sprintf("%q", reason))))
 
 	if cause != "nil" && cause != "" {
 		output = append(output, fmt.Sprintf(`msg << " | caused by " << %s;`, cause))
@@ -279,7 +280,8 @@ func (fns CCFuncs) oneofTypeName(f pgs.Field) pgsgo.TypeName {
 	return pgsgo.TypeName(fmt.Sprintf("%s::%sCase::k%s",
 		fns.className(f.Message()),
 		pgsgo.PGGUpperCamelCase(f.OneOf().Name()),
-		strings.ReplaceAll(pgsgo.PGGUpperCamelCase(f.Name()).String(), "_", "")))
+		pgsgo.PGGUpperCamelCase(f.Name()),
+	))
 }
 
 func (fns CCFuncs) inType(f pgs.Field, x interface{}) string {
@@ -290,7 +292,7 @@ func (fns CCFuncs) inType(f pgs.Field, x interface{}) string {
 		switch x.(type) {
 		case []string:
 			return "string"
-		case []*durationpb.Duration:
+		case []*duration.Duration:
 			return "pgv::protobuf_wkt::Duration"
 		default:
 			return fns.className(f.Type().Element().Embed())
@@ -348,7 +350,7 @@ func (fns CCFuncs) inKey(f pgs.Field, x interface{}) string {
 		return fns.byteStr(x.([]byte))
 	case pgs.MessageT:
 		switch x := x.(type) {
-		case *durationpb.Duration:
+		case *duration.Duration:
 			return fns.durLit(x)
 		default:
 			return fns.lit(x)
@@ -360,40 +362,40 @@ func (fns CCFuncs) inKey(f pgs.Field, x interface{}) string {
 	}
 }
 
-func (fns CCFuncs) durLit(dur *durationpb.Duration) string {
+func (fns CCFuncs) durLit(dur *duration.Duration) string {
 	return fmt.Sprintf(
 		"pgv::protobuf::util::TimeUtil::SecondsToDuration(%d) + pgv::protobuf::util::TimeUtil::NanosecondsToDuration(%d)",
 		dur.GetSeconds(), dur.GetNanos())
 }
 
-func (fns CCFuncs) durStr(dur *durationpb.Duration) string {
-	d := dur.AsDuration()
+func (fns CCFuncs) durStr(dur *duration.Duration) string {
+	d, _ := ptypes.Duration(dur)
 	return d.String()
 }
 
-func (fns CCFuncs) durGt(a, b *durationpb.Duration) bool {
-	ad := a.AsDuration()
-	bd := b.AsDuration()
+func (fns CCFuncs) durGt(a, b *duration.Duration) bool {
+	ad, _ := ptypes.Duration(a)
+	bd, _ := ptypes.Duration(b)
 
 	return ad > bd
 }
 
-func (fns CCFuncs) tsLit(ts *timestamppb.Timestamp) string {
+func (fns CCFuncs) tsLit(ts *timestamp.Timestamp) string {
 	return fmt.Sprintf(
 		"time.Unix(%d, %d)",
 		ts.GetSeconds(), ts.GetNanos(),
 	)
 }
 
-func (fns CCFuncs) tsGt(a, b *timestamppb.Timestamp) bool {
-	at := a.AsTime()
-	bt := b.AsTime()
+func (fns CCFuncs) tsGt(a, b *timestamp.Timestamp) bool {
+	at, _ := ptypes.Timestamp(a)
+	bt, _ := ptypes.Timestamp(b)
 
 	return !bt.Before(at)
 }
 
-func (fns CCFuncs) tsStr(ts *timestamppb.Timestamp) string {
-	t := ts.AsTime()
+func (fns CCFuncs) tsStr(ts *timestamp.Timestamp) string {
+	t, _ := ptypes.Timestamp(ts)
 	return t.String()
 }
 

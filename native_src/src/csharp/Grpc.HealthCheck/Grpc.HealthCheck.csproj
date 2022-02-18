@@ -1,9 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\Grpc.Core\Common.csproj.include" />
+
   <PropertyGroup>
     <Authors>The gRPC Authors</Authors>
     <Copyright>Copyright 2015 The gRPC Authors</Copyright>
     <Description>gRPC C# Health Checking (for Grpc.Core)</Description>
-    <PackageIcon>packageIcon.png</PackageIcon>
+    <PackageIconUrl>https://github.com/grpc/grpc.github.io/raw/master/img/grpc_square_reverse_4x.png</PackageIconUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/grpc/grpc</PackageProjectUrl>
     <PackageTags>gRPC health check</PackageTags>
@@ -21,10 +24,6 @@
   </PropertyGroup>
 
   <Import Project="..\Grpc.Core\SourceLink.csproj.include" />
-
-  <ItemGroup>
-    <None Include="../packageIcon.png" Pack="true" PackagePath="\"/>
-  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\Grpc.Core.Api\Version.cs" />

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # Copyright 2017 gRPC authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
-import html
+import cgi
 import multiprocessing
 import os
 import subprocess
 import sys
+import argparse
 
 import python_utils.jobset as jobset
 import python_utils.start_port_server as start_port_server
@@ -41,8 +41,7 @@ def fnize(s):
     out = ''
     for c in s:
         if c in '<>, /':
-            if len(out) and out[-1] == '_':
-                continue
+            if len(out) and out[-1] == '_': continue
             out += '_'
         else:
             out += c
@@ -66,22 +65,13 @@ def heading(name):
 
 def link(txt, tgt):
     global index_html
-    index_html += "<p><a href=\"%s\">%s</a></p>\n" % (html.escape(
-        tgt, quote=True), html.escape(txt))
+    index_html += "<p><a href=\"%s\">%s</a></p>\n" % (cgi.escape(
+        tgt, quote=True), cgi.escape(txt))
 
 
 def text(txt):
     global index_html
-    index_html += "<p><pre>%s</pre></p>\n" % html.escape(txt)
-
-
-def _bazel_build_benchmark(bm_name, cfg):
-    """Build given benchmark with bazel"""
-    subprocess.check_call([
-        'tools/bazel', 'build',
-        '--config=%s' % cfg,
-        '//test/cpp/microbenchmarks:%s' % bm_name
-    ])
+    index_html += "<p><pre>%s</pre></p>\n" % cgi.escape(txt)
 
 
 def collect_latency(bm_name, args):
@@ -91,15 +81,16 @@ def collect_latency(bm_name, args):
     cleanup = []
 
     heading('Latency Profiles: %s' % bm_name)
-    _bazel_build_benchmark(bm_name, 'basicprof')
-    for line in subprocess.check_output([
-            'bazel-bin/test/cpp/microbenchmarks/%s' % bm_name,
-            '--benchmark_list_tests'
-    ]).decode('UTF-8').splitlines():
+    subprocess.check_call([
+        'make', bm_name, 'CONFIG=basicprof', '-j',
+        '%d' % multiprocessing.cpu_count()
+    ])
+    for line in subprocess.check_output(
+        ['bins/basicprof/%s' % bm_name, '--benchmark_list_tests']).splitlines():
         link(line, '%s.txt' % fnize(line))
         benchmarks.append(
             jobset.JobSpec([
-                'bazel-bin/test/cpp/microbenchmarks/%s' % bm_name,
+                'bins/basicprof/%s' % bm_name,
                 '--benchmark_filter=^%s$' % line, '--benchmark_min_time=0.05'
             ],
                            environ={
@@ -142,20 +133,21 @@ def collect_latency(bm_name, args):
 def collect_perf(bm_name, args):
     """generate flamegraphs"""
     heading('Flamegraphs: %s' % bm_name)
-    _bazel_build_benchmark(bm_name, 'mutrace')
+    subprocess.check_call([
+        'make', bm_name, 'CONFIG=mutrace', '-j',
+        '%d' % multiprocessing.cpu_count()
+    ])
     benchmarks = []
     profile_analysis = []
     cleanup = []
-    for line in subprocess.check_output([
-            'bazel-bin/test/cpp/microbenchmarks/%s' % bm_name,
-            '--benchmark_list_tests'
-    ]).decode('UTF-8').splitlines():
+    for line in subprocess.check_output(
+        ['bins/mutrace/%s' % bm_name, '--benchmark_list_tests']).splitlines():
         link(line, '%s.svg' % fnize(line))
         benchmarks.append(
             jobset.JobSpec([
                 'perf', 'record', '-o',
                 '%s-perf.data' % fnize(line), '-g', '-F', '997',
-                'bazel-bin/test/cpp/microbenchmarks/%s' % bm_name,
+                'bins/mutrace/%s' % bm_name,
                 '--benchmark_filter=^%s$' % line, '--benchmark_min_time=10'
             ],
                            shortname='perf-%s' % fnize(line)))
@@ -191,48 +183,38 @@ def collect_perf(bm_name, args):
 
 
 def run_summary(bm_name, cfg, base_json_name):
-    _bazel_build_benchmark(bm_name, cfg)
+    subprocess.check_call([
+        'make', bm_name,
+        'CONFIG=%s' % cfg, '-j',
+        '%d' % multiprocessing.cpu_count()
+    ])
     cmd = [
-        'bazel-bin/test/cpp/microbenchmarks/%s' % bm_name,
+        'bins/%s/%s' % (cfg, bm_name),
         '--benchmark_out=%s.%s.json' % (base_json_name, cfg),
         '--benchmark_out_format=json'
     ]
     if args.summary_time is not None:
         cmd += ['--benchmark_min_time=%d' % args.summary_time]
-    return subprocess.check_output(cmd).decode('UTF-8')
+    return subprocess.check_output(cmd)
 
 
 def collect_summary(bm_name, args):
-    # no counters, run microbenchmark and add summary
-    # both to HTML report and to console.
-    nocounters_heading = 'Summary: %s [no counters]' % bm_name
-    nocounters_summary = run_summary(bm_name, 'opt', bm_name)
-    heading(nocounters_heading)
-    text(nocounters_summary)
-    print(nocounters_heading)
-    print(nocounters_summary)
-
-    # with counters, run microbenchmark and add summary
-    # both to HTML report and to console.
-    counters_heading = 'Summary: %s [with counters]' % bm_name
-    counters_summary = run_summary(bm_name, 'counters', bm_name)
-    heading(counters_heading)
-    text(counters_summary)
-    print(counters_heading)
-    print(counters_summary)
-
-    if args.bq_result_table:
+    heading('Summary: %s [no counters]' % bm_name)
+    text(run_summary(bm_name, 'opt', bm_name))
+    heading('Summary: %s [with counters]' % bm_name)
+    text(run_summary(bm_name, 'counters', bm_name))
+    if args.bigquery_upload:
         with open('%s.csv' % bm_name, 'w') as f:
             f.write(
                 subprocess.check_output([
                     'tools/profiling/microbenchmarks/bm2bq.py',
                     '%s.counters.json' % bm_name,
                     '%s.opt.json' % bm_name
-                ]).decode('UTF-8'))
-        subprocess.check_call(
-            ['bq', 'load',
-             '%s' % args.bq_result_table,
-             '%s.csv' % bm_name])
+                ]))
+        subprocess.check_call([
+            'bq', 'load', 'microbenchmarks.microbenchmarks',
+            '%s.csv' % bm_name
+        ])
 
 
 collectors = {
@@ -255,12 +237,11 @@ argp.add_argument('-b',
                   nargs='+',
                   type=str,
                   help='Which microbenchmarks should be run')
-argp.add_argument(
-    '--bq_result_table',
-    default='',
-    type=str,
-    help='Upload results from summary collection to a specified bigquery table.'
-)
+argp.add_argument('--bigquery_upload',
+                  default=False,
+                  action='store_const',
+                  const=True,
+                  help='Upload results from summary collection to bigquery')
 argp.add_argument(
     '--summary_time',
     default=None,

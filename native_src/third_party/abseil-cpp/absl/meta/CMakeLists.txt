@@ -35,7 +35,7 @@ absl_cc_test(
     ${ABSL_TEST_COPTS}
   DEPS
     absl::type_traits
-    GTest::gmock_main
+    gmock_main
 )
 
 # component target

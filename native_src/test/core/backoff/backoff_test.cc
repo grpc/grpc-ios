@@ -20,11 +20,10 @@
 
 #include <algorithm>
 
-#include <gtest/gtest.h>
-
 #include <grpc/grpc.h>
 #include <grpc/support/log.h>
 
+#include <gtest/gtest.h>
 #include "test/core/util/test_config.h"
 
 namespace grpc {
@@ -138,6 +137,8 @@ TEST(BackOffTest, JitterBackOff) {
       .set_jitter(jitter)
       .set_max_backoff(max_backoff);
   BackOff backoff(options);
+
+  backoff.SetRandomSeed(0);  // force consistent PRNG
 
   grpc_core::ExecCtx exec_ctx;
   grpc_millis next = backoff.NextAttemptTime();

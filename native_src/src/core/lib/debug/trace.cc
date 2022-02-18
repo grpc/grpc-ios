@@ -21,7 +21,6 @@
 #include "src/core/lib/debug/trace.h"
 
 #include <string.h>
-
 #include <type_traits>
 
 #include <grpc/grpc.h>

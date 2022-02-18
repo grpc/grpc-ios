@@ -41,10 +41,8 @@ module GRPC
         channel_args['grpc.primary_user_agent'] += ' '
       end
       channel_args['grpc.primary_user_agent'] += "grpc-ruby/#{VERSION}"
-      unless creds.is_a?(Core::ChannelCredentials) ||
-             creds.is_a?(Core::XdsChannelCredentials) ||
-             creds.is_a?(Symbol)
-        fail(TypeError, 'creds is not a ChannelCredentials, XdsChannelCredentials, or Symbol')
+      unless creds.is_a?(Core::ChannelCredentials) || creds.is_a?(Symbol)
+        fail(TypeError, '!ChannelCredentials or Symbol')
       end
       Core::Channel.new(host, channel_args, creds)
     end
@@ -102,7 +100,7 @@ module GRPC
                    channel_args: {},
                    interceptors: [])
       @ch = ClientStub.setup_channel(channel_override, host, creds,
-                                     channel_args.dup)
+                                     channel_args)
       alt_host = channel_args[Core::Channel::SSL_TARGET]
       @host = alt_host.nil? ? host : alt_host
       @propagate_mask = propagate_mask

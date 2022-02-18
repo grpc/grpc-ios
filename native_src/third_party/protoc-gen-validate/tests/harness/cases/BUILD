@@ -1,14 +1,15 @@
-load("@rules_java//java:defs.bzl", "java_proto_library")
+# gazelle:exclude go
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
-load("@com_google_protobuf//:protobuf.bzl", "py_proto_library")
 load(
     "//bazel:pgv_proto_library.bzl",
     "pgv_cc_proto_library",
     "pgv_go_proto_library",
+    "pgv_gogo_proto_library",
     "pgv_java_proto_library",
+    "pgv_python_proto_library",
 )
-
-# gazelle:go_generate_proto false
 
 proto_library(
     name = "cases_proto",
@@ -24,7 +25,6 @@ proto_library(
         "oneofs.proto",
         "repeated.proto",
         "strings.proto",
-        "subdirectory/in_subdirectory.proto",
         "wkt_any.proto",
         "wkt_duration.proto",
         "wkt_timestamp.proto",
@@ -47,10 +47,25 @@ pgv_go_proto_library(
     proto = ":cases_proto",
     deps = [
         "//tests/harness/cases/other_package:go",
-        "@org_golang_google_protobuf//types/known/anypb:go_default_library",
-        "@org_golang_google_protobuf//types/known/durationpb:go_default_library",
-        "@org_golang_google_protobuf//types/known/timestamppb:go_default_library",
-        "@org_golang_google_protobuf//types/known/wrapperspb:go_default_library",
+        "@com_github_golang_protobuf//ptypes:go_default_library",
+        "@com_github_golang_protobuf//ptypes/any:go_default_library",
+        "@com_github_golang_protobuf//ptypes/duration:go_default_library",
+        "@com_github_golang_protobuf//ptypes/timestamp:go_default_library",
+        "@com_github_golang_protobuf//ptypes/wrappers:go_default_library",
+    ],
+)
+
+pgv_gogo_proto_library(
+    name = "gogo",
+    importpath = "github.com/envoyproxy/protoc-gen-validate/tests/harness/cases/gogo",
+    proto = ":cases_proto",
+    deps = [
+        "//tests/harness/cases/other_package:gogo",
+        "@com_github_golang_protobuf//ptypes:go_default_library",
+        "@com_github_golang_protobuf//ptypes/any:go_default_library",
+        "@com_github_golang_protobuf//ptypes/duration:go_default_library",
+        "@com_github_golang_protobuf//ptypes/timestamp:go_default_library",
+        "@com_github_golang_protobuf//ptypes/wrappers:go_default_library",
     ],
 )
 
@@ -79,31 +94,11 @@ pgv_java_proto_library(
     deps = [":cases_proto"],
 )
 
-# There is not currently a canonical implementation of py_proto_library in Bazel.
-# This py_proto_library implementation is from "github.com/protocolbuffers/protobuf" and works differently from other
-# languages' canonical implementations - for example, it doesn't take "proto_library" targets as input.
-py_proto_library(
-    name = "cases_py_proto",
-    srcs = [
-        "bool.proto",
-        "bytes.proto",
-        "enums.proto",
-        "kitchen_sink.proto",
-        "maps.proto",
-        "messages.proto",
-        "numbers.proto",
-        "oneofs.proto",
-        "repeated.proto",
-        "strings.proto",
-        "wkt_any.proto",
-        "wkt_duration.proto",
-        "wkt_timestamp.proto",
-        "wkt_wrappers.proto",
+pgv_python_proto_library(
+    name = "python",
+    python_deps = [
+        "//tests/harness/cases/other_package:python",
     ],
     visibility = ["//visibility:public"],
-    deps = [
-        "//validate:validate_py",
-        "//tests/harness/cases/other_package:embed_python_proto",
-        "@com_google_protobuf//:protobuf_python",
-    ],
+    deps = [":cases_proto"],
 )

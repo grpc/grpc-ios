@@ -16,14 +16,14 @@
  *
  */
 
+#include <grpc/grpc.h>
+#include <grpc/grpc_security.h>
+
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-#include <grpc/grpc.h>
-#include <grpc/grpc_security.h>
 #ifndef _WIN32
 /* This is for _exit() below, which is temporary. */
 #include <unistd.h>
@@ -59,7 +59,7 @@ static int was_cancelled = 2;
 static grpc_op unary_ops[6];
 static int got_sigint = 0;
 
-static void* tag(intptr_t t) { return reinterpret_cast<void*>(t); }
+static void* tag(intptr_t t) { return (void*)t; }
 
 typedef enum {
   FLING_SERVER_NEW_REQUEST = 1,
@@ -172,7 +172,7 @@ static void sigint_handler(int /*x*/) { _exit(0); }
 int main(int argc, char** argv) {
   grpc_event ev;
   call_state* s;
-  std::string addr_buf;
+  grpc_core::UniquePtr<char> addr_buf;
   gpr_cmdline* cl;
   grpc_completion_queue* shutdown_cq;
   int shutdown_started = 0;
@@ -199,29 +199,29 @@ int main(int argc, char** argv) {
   gpr_cmdline_destroy(cl);
 
   if (addr == nullptr) {
-    addr_buf = grpc_core::JoinHostPort("::", grpc_pick_unused_port_or_die());
-    addr = addr_buf.c_str();
+    grpc_core::JoinHostPort(&addr_buf, "::", grpc_pick_unused_port_or_die());
+    addr = addr_buf.get();
   }
   gpr_log(GPR_INFO, "creating server on: %s", addr);
 
   cq = grpc_completion_queue_create_for_next(nullptr);
-  grpc_server_credentials* creds;
   if (secure) {
     grpc_ssl_pem_key_cert_pair pem_key_cert_pair = {test_server1_key,
                                                     test_server1_cert};
-    creds = grpc_ssl_server_credentials_create(nullptr, &pem_key_cert_pair, 1,
-                                               0, nullptr);
+    grpc_server_credentials* ssl_creds = grpc_ssl_server_credentials_create(
+        nullptr, &pem_key_cert_pair, 1, 0, nullptr);
+    server = grpc_server_create(nullptr, nullptr);
+    GPR_ASSERT(grpc_server_add_secure_http2_port(server, addr, ssl_creds));
+    grpc_server_credentials_release(ssl_creds);
   } else {
-    creds = grpc_insecure_server_credentials_create();
+    server = grpc_server_create(nullptr, nullptr);
+    GPR_ASSERT(grpc_server_add_insecure_http2_port(server, addr));
   }
-  server = grpc_server_create(nullptr, nullptr);
-  GPR_ASSERT(grpc_server_add_http2_port(server, addr, creds));
-  grpc_server_credentials_release(creds);
   grpc_server_register_completion_queue(server, cq, nullptr);
   grpc_server_start(server);
 
   addr = nullptr;
-  addr_buf.clear();
+  addr_buf.reset();
 
   grpc_call_details_init(&call_details);
 
@@ -253,7 +253,7 @@ int main(int argc, char** argv) {
     s = static_cast<call_state*>(ev.tag);
     switch (ev.type) {
       case GRPC_OP_COMPLETE:
-        switch (reinterpret_cast<intptr_t>(s)) {
+        switch ((intptr_t)s) {
           case FLING_SERVER_NEW_REQUEST:
             if (call != nullptr) {
               if (0 == grpc_slice_str_cmp(call_details.method,

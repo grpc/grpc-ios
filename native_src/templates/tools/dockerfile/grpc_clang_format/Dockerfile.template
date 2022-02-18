@@ -13,9 +13,10 @@
   # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   # See the License for the specific language governing permissions and
   # limitations under the License.
-
-  FROM silkeh/clang:13
-
+  
+  <%include file="../debian_jessie_header.include"/>
+  
+  <%include file="../clang5.include"/>
   ADD clang_format_all_the_things.sh /
   
   # When running locally, we'll be impersonating the current user, so we need

@@ -37,15 +37,14 @@ typedef struct {
   grpc_polling_entity pops;
   bool is_done;
 
-  grpc_core::CredentialsMetadataArray md_array;
+  grpc_credentials_mdelem_array md_array;
   grpc_closure on_request_metadata;
 } synchronizer;
 
-static void on_metadata_response(void* arg, grpc_error_handle error) {
+static void on_metadata_response(void* arg, grpc_error* error) {
   synchronizer* sync = static_cast<synchronizer*>(arg);
   if (error != GRPC_ERROR_NONE) {
-    fprintf(stderr, "Fetching token failed: %s\n",
-            grpc_error_std_string(error).c_str());
+    fprintf(stderr, "Fetching token failed: %s\n", grpc_error_string(error));
     fflush(stderr);
   } else {
     char* token;
@@ -71,7 +70,7 @@ int main(int argc, char** argv) {
   grpc_auth_metadata_context context;
   gpr_cmdline* cl = gpr_cmdline_create("print_google_default_creds_token");
   grpc_pollset* pollset = nullptr;
-  grpc_error_handle error = GRPC_ERROR_NONE;
+  grpc_error* error = nullptr;
   gpr_cmdline_add_string(cl, "service_url",
                          "Service URL for the token request.", &service_url);
   gpr_cmdline_parse(cl, argc, argv);

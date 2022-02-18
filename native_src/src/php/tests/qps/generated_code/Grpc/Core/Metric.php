@@ -16,23 +16,12 @@ class Metric extends \Google\Protobuf\Internal\Message
     /**
      * Generated from protobuf field <code>string name = 1;</code>
      */
-    protected $name = '';
+    private $name = '';
     protected $value;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type string $name
-     *     @type int|string $count
-     *     @type \Grpc\Core\Histogram $histogram
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Core\Stats::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

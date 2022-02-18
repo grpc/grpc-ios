@@ -7,18 +7,36 @@ apis:
 - name: google.cloud.redis.v1.CloudRedis
 
 types:
-- name: google.cloud.redis.v1.LocationMetadata
 - name: google.cloud.redis.v1.OperationMetadata
+- name: google.cloud.redis.v1.LocationMetadata
 - name: google.cloud.redis.v1.ZoneMetadata
 
 documentation:
-  summary: Creates and manages Redis instances on the Google Cloud Platform.
+  summary: |-
+    The Google Cloud Memorystore for Redis API is used for creating and managing
+    Redis instances on the Google Cloud Platform.
 
 backend:
   rules:
-  - selector: 'google.cloud.redis.v1.CloudRedis.*'
+  - selector: google.longrunning.Operations.ListOperations
     deadline: 60.0
-  - selector: 'google.longrunning.Operations.*'
+  - selector: google.longrunning.Operations.GetOperation
+    deadline: 60.0
+  - selector: google.longrunning.Operations.DeleteOperation
+    deadline: 60.0
+  - selector: google.longrunning.Operations.CancelOperation
+    deadline: 60.0
+  - selector: google.longrunning.Operations.WaitOperation
+    deadline: 60.0
+  - selector: google.cloud.redis.v1.CloudRedis.ListInstances
+    deadline: 60.0
+  - selector: google.cloud.redis.v1.CloudRedis.GetInstance
+    deadline: 60.0
+  - selector: google.cloud.redis.v1.CloudRedis.CreateInstance
+    deadline: 60.0
+  - selector: google.cloud.redis.v1.CloudRedis.UpdateInstance
+    deadline: 60.0
+  - selector: google.cloud.redis.v1.CloudRedis.DeleteInstance
     deadline: 60.0
 
 http:
@@ -37,11 +55,7 @@ http:
 
 authentication:
   rules:
-  - selector: 'google.cloud.redis.v1.CloudRedis.*'
-    oauth:
-      canonical_scopes: |-
-        https://www.googleapis.com/auth/cloud-platform
-  - selector: 'google.longrunning.Operations.*'
+  - selector: '*'
     oauth:
       canonical_scopes: |-
         https://www.googleapis.com/auth/cloud-platform

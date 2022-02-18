@@ -46,7 +46,6 @@ cdef class _AioCall(GrpcCallWrapper):
 
     def __cinit__(self, AioChannel channel, object deadline,
                   bytes method, CallCredentials call_credentials, object wait_for_ready):
-        init_grpc_aio()
         self.call = NULL
         self._channel = channel
         self._loop = channel.loop
@@ -64,7 +63,6 @@ cdef class _AioCall(GrpcCallWrapper):
     def __dealloc__(self):
         if self.call:
             grpc_call_unref(self.call)
-        shutdown_grpc_aio()
 
     def _repr(self) -> str:
         """Assembles the RPC representation string."""
@@ -117,7 +115,7 @@ cdef class _AioCall(GrpcCallWrapper):
             self._channel.channel,
             NULL,
             _EMPTY_MASK,
-            global_completion_queue(),
+            self._channel.cq.c_ptr(),
             method_slice,
             NULL,
             c_deadline,
@@ -127,45 +125,44 @@ cdef class _AioCall(GrpcCallWrapper):
         if credentials is not None:
             set_credentials_error = grpc_call_set_credentials(self.call, credentials.c())
             if set_credentials_error != GRPC_CALL_OK:
-                raise InternalError("Credentials couldn't have been set: {0}".format(set_credentials_error))
+                raise Exception("Credentials couldn't have been set")
 
         grpc_slice_unref(method_slice)
 
     cdef void _set_status(self, AioRpcStatus status) except *:
         cdef list waiters
 
-        # No more waiters should be expected since status has been set.
         self._status = status
 
         if self._initial_metadata is None:
             self._set_initial_metadata(_IMMUTABLE_EMPTY_METADATA)
 
-        for waiter in self._waiters_status:
+        # No more waiters should be expected since status
+        # has been set.
+        waiters = self._waiters_status
+        self._waiters_status = None
+
+        for waiter in waiters:
             if not waiter.done():
                 waiter.set_result(None)
-        self._waiters_status = []
 
         for callback in self._done_callbacks:
             callback()
 
     cdef void _set_initial_metadata(self, tuple initial_metadata) except *:
-        if self._initial_metadata is not None:
-            # Some gRPC calls might end before the initial metadata arrived in
-            # the Call object. That causes this method to be invoked twice: 1.
-            # filled with an empty metadata; 2. updated with the actual user
-            # provided metadata.
-            return
-
         cdef list waiters
 
-        # No more waiters should be expected since initial metadata has been
-        # set.
         self._initial_metadata = initial_metadata
 
-        for waiter in self._waiters_initial_metadata:
+        # No more waiters should be expected since initial metadata
+        # has been set.
+        waiters = self._waiters_initial_metadata
+        self._waiters_initial_metadata = None
+
+        for waiter in waiters:
             if not waiter.done():
                 waiter.set_result(None)
-        self._waiters_initial_metadata = []
+
 
     def add_done_callback(self, callback):
         if self.done():
@@ -181,7 +178,7 @@ cdef class _AioCall(GrpcCallWrapper):
 
     def cancel(self, str details):
         """Cancels the RPC in Core with given RPC status.
-
+        
         Above abstractions must invoke this method to set Core objects into
         proper state.
         """
@@ -212,7 +209,7 @@ cdef class _AioCall(GrpcCallWrapper):
 
     def done(self):
         """Returns if the RPC call has finished.
-
+        
         Checks if the status has been provided, either
         because the RPC finished or because was cancelled..
 
@@ -223,7 +220,7 @@ cdef class _AioCall(GrpcCallWrapper):
 
     def cancelled(self):
         """Returns if the RPC was cancelled.
-
+        
         Returns:
             True if the RPC was cancelled.
         """
@@ -234,7 +231,7 @@ cdef class _AioCall(GrpcCallWrapper):
 
     async def status(self):
         """Returns the status of the RPC call.
-
+        
         It returns the finshed status of the RPC. If the RPC
         has not finished yet this function will wait until the RPC
         gets finished.
@@ -257,7 +254,7 @@ cdef class _AioCall(GrpcCallWrapper):
 
     async def initial_metadata(self):
         """Returns the initial metadata of the RPC call.
-
+        
         If the initial metadata has not been received yet this function will
         wait until the RPC gets finished.
 
@@ -289,7 +286,7 @@ cdef class _AioCall(GrpcCallWrapper):
                           bytes request,
                           tuple outbound_initial_metadata):
         """Performs a unary unary RPC.
-
+        
         Args:
           request: the serialized requests in bytes.
           outbound_initial_metadata: optional outbound metadata.
@@ -361,7 +358,7 @@ cdef class _AioCall(GrpcCallWrapper):
             self,
             self._loop
         )
-        if received_message is not None:
+        if received_message:
             return received_message
         else:
             return EOF
@@ -423,7 +420,7 @@ cdef class _AioCall(GrpcCallWrapper):
                            tuple outbound_initial_metadata,
                            object metadata_sent_observer):
         """Actual implementation of the complete unary-stream call.
-
+        
         Needs to pay extra attention to the raise mechanism. If we want to
         propagate the final status exception, then we have to raise it.
         Othersize, it would end normally and raise `StopAsyncIteration()`.
@@ -493,7 +490,7 @@ cdef class _AioCall(GrpcCallWrapper):
                                         outbound_initial_metadata,
                                         self._send_initial_metadata_flags,
                                         self._loop)
-            # Notify upper level that sending messages are allowed now.
+            # Notify upper level that sending messages are allowed now.   
             metadata_sent_observer()
 
             # Receives initial metadata.

@@ -35,7 +35,6 @@
 
 #include <google/protobuf/stubs/common.h>
 
-#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 namespace google {
 namespace protobuf {
@@ -78,7 +77,7 @@ class ScopedPythonPtr {
 
   PyObject* as_pyobject() const { return reinterpret_cast<PyObject*>(ptr_); }
 
-  // Increments the reference count of the current object.
+  // Increments the reference count fo the current object.
   // Should not be called when no object is held.
   void inc() const { Py_INCREF(ptr_); }
 

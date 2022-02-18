@@ -17,26 +17,23 @@
  */
 
 #include <ruby/ruby.h>
-
-#include "rb_channel.h"
-
 #include <ruby/thread.h>
 
 #include "rb_byte_buffer.h"
-#include "rb_call.h"
-#include "rb_channel_args.h"
-#include "rb_channel_credentials.h"
-#include "rb_completion_queue.h"
-#include "rb_grpc.h"
+#include "rb_channel.h"
 #include "rb_grpc_imports.generated.h"
-#include "rb_server.h"
-#include "rb_xds_channel_credentials.h"
 
 #include <grpc/grpc.h>
 #include <grpc/grpc_security.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/time.h>
+#include "rb_call.h"
+#include "rb_channel_args.h"
+#include "rb_channel_credentials.h"
+#include "rb_completion_queue.h"
+#include "rb_grpc.h"
+#include "rb_server.h"
 
 /* id_channel is the name of the hidden ivar that preserves a reference to the
  * channel on a call, so that calls are not GCed before their channel.  */
@@ -242,22 +239,11 @@ static VALUE grpc_rb_channel_init(int argc, VALUE* argv, VALUE self) {
                "bad creds symbol, want :this_channel_is_insecure");
       return Qnil;
     }
-    grpc_channel_credentials* insecure_creds =
-        grpc_insecure_credentials_create();
-    ch = grpc_channel_create(target_chars, insecure_creds, &args);
-    grpc_channel_credentials_release(insecure_creds);
+    ch = grpc_insecure_channel_create(target_chars, &args, NULL);
   } else {
     wrapper->credentials = credentials;
-    if (grpc_rb_is_channel_credentials(credentials)) {
-      creds = grpc_rb_get_wrapped_channel_credentials(credentials);
-    } else if (grpc_rb_is_xds_channel_credentials(credentials)) {
-      creds = grpc_rb_get_wrapped_xds_channel_credentials(credentials);
-    } else {
-      rb_raise(rb_eTypeError,
-               "bad creds, want ChannelCredentials or XdsChannelCredentials");
-      return Qnil;
-    }
-    ch = grpc_channel_create(target_chars, creds, &args);
+    creds = grpc_rb_get_wrapped_channel_credentials(credentials);
+    ch = grpc_secure_channel_create(creds, target_chars, &args, NULL);
   }
 
   GPR_ASSERT(ch);

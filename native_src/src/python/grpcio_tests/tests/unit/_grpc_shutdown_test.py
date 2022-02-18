@@ -13,10 +13,10 @@
 # limitations under the License.
 """Tests the gRPC Core shutdown path."""
 
-import datetime
-import threading
 import time
+import threading
 import unittest
+import datetime
 
 import grpc
 

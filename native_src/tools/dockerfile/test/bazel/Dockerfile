@@ -12,11 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Pinned version of the base image is used to avoid regressions caused
-# by rebuilding of this docker image. To see available versions, you can run
-# "gcloud container images list-tags gcr.io/oss-fuzz-base/base-builder"
-# Image(5eceb81f5759) is built on Jan 31, 2022
-FROM gcr.io/oss-fuzz-base/base-builder@sha256:5eceb81f57599d63ca7c9a70c8968b23b128119699626ca749017019eb0b523f
+FROM gcr.io/oss-fuzz-base/base-builder
 
 # -------------------------- WARNING --------------------------------------
 # If you are making changes to this file, consider changing
@@ -24,21 +20,61 @@ FROM gcr.io/oss-fuzz-base/base-builder@sha256:5eceb81f57599d63ca7c9a70c8968b23b1
 # accordingly.
 # -------------------------------------------------------------------------
 
-# Install basic packages
+# Install basic packages and Bazel dependencies.
+RUN apt-get update && apt-get install -y software-properties-common python-software-properties
+RUN add-apt-repository ppa:webupd8team/java
 RUN apt-get update && apt-get -y install \
   autoconf \
   build-essential \
   curl \
+  wget \
   libtool \
   make \
-  vim \
-  wget
+  openjdk-8-jdk \
+  vim
+
+#====================
+# Python dependencies
+
+# Install dependencies
+
+RUN apt-get update && apt-get install -y \
+    python-all-dev \
+    python3-all-dev \
+    python-pip
+
+# Install Python packages from PyPI
+RUN pip install --upgrade pip==19.3.1
+RUN pip install virtualenv==16.7.9
+RUN pip install futures==2.2.0 enum34==1.0.4 protobuf==3.5.2.post1 six==1.10.0 twisted==17.5.0
+
+
+#=================
+# Compile CPython 3.6.9 from source
+
+RUN apt-get update && apt-get install -y zlib1g-dev libssl-dev
+RUN apt-get update && apt-get install -y jq build-essential libffi-dev
+
+RUN cd /tmp && \
+    wget -q https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz && \
+    tar xzvf Python-3.6.9.tgz && \
+    cd Python-3.6.9 && \
+    ./configure && \
+    make install
+
+RUN cd /tmp && \
+    echo "ff7cdaef4846c89c1ec0d7b709bbd54d Python-3.6.9.tgz" > checksum.md5 && \
+    md5sum -c checksum.md5
+
+RUN python3.6 -m ensurepip && \
+    python3.6 -m pip install coverage
+
 
 #========================
 # Bazel installation
 
 # Must be in sync with tools/bazel
-ENV BAZEL_VERSION 4.2.1
+ENV BAZEL_VERSION 1.0.0
 
 # The correct bazel version is already preinstalled, no need to use //tools/bazel wrapper.
 ENV DISABLE_BAZEL_WRAPPER 1

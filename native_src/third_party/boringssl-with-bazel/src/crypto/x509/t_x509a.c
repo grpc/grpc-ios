@@ -60,9 +60,6 @@
 #include <openssl/obj.h>
 #include <openssl/x509.h>
 
-#include "internal.h"
-
-
 /* X509_CERT_AUX and string set routines */
 
 int X509_CERT_AUX_print(BIO *out, X509_CERT_AUX *aux, int indent)
@@ -102,10 +99,8 @@ int X509_CERT_AUX_print(BIO *out, X509_CERT_AUX *aux, int indent)
         BIO_puts(out, "\n");
     } else
         BIO_printf(out, "%*sNo Rejected Uses.\n", indent, "");
-    if (aux->alias) {
-        BIO_printf(out, "%*sAlias: %.*s\n", indent, "", aux->alias->length,
-                   aux->alias->data);
-    }
+    if (aux->alias)
+        BIO_printf(out, "%*sAlias: %s\n", indent, "", aux->alias->data);
     if (aux->keyid) {
         BIO_printf(out, "%*sKey Id: ", indent, "");
         for (j = 0; j < aux->keyid->length; j++)

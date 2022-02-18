@@ -16,18 +16,15 @@
  *
  */
 
-#include <dirent.h>
 #include <stdbool.h>
-#include <stdio.h>
-#include <sys/types.h>
 
-#include <gtest/gtest.h>
-
-#include "absl/flags/flag.h"
-
-#include <grpc/grpc.h>
+#include <dirent.h>
+#include <gflags/gflags.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <gtest/gtest.h>
+#include <stdio.h>
+#include <sys/types.h>
 
 #include "src/core/lib/gpr/env.h"
 #include "src/core/lib/iomgr/load_file.h"
@@ -38,65 +35,56 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
 extern bool squelch;
 extern bool leak_check;
 
-ABSL_FLAG(std::string, file, "", "Use this file as test data");
-ABSL_FLAG(std::string, directory, "", "Use this directory as test data");
+// In some distros, gflags is in the namespace google, and in some others,
+// in gflags. This hack is enabling us to find both.
+namespace google {}
+namespace gflags {}
+using namespace google;
+using namespace gflags;
+
+DEFINE_string(file, "", "Use this file as test data");
+DEFINE_string(directory, "", "Use this directory as test data");
 
 class FuzzerCorpusTest : public ::testing::TestWithParam<std::string> {};
 
 TEST_P(FuzzerCorpusTest, RunOneExample) {
-  // Need to call grpc_init() here to use a slice, but need to shut it
-  // down before calling LLVMFuzzerTestOneInput(), because most
-  // implementations of that function will initialize and shutdown gRPC
-  // internally.
-  grpc_init();
-  gpr_log(GPR_INFO, "Example file: %s", GetParam().c_str());
+  gpr_log(GPR_DEBUG, "Example file: %s", GetParam().c_str());
   grpc_slice buffer;
   squelch = false;
   leak_check = false;
   GPR_ASSERT(GRPC_LOG_IF_ERROR("load_file",
                                grpc_load_file(GetParam().c_str(), 0, &buffer)));
-  size_t length = GRPC_SLICE_LENGTH(buffer);
-  void* data = gpr_malloc(length);
-  if (length > 0) {
-    memcpy(data, GPR_SLICE_START_PTR(buffer), length);
-  }
+  LLVMFuzzerTestOneInput(GRPC_SLICE_START_PTR(buffer),
+                         GRPC_SLICE_LENGTH(buffer));
   grpc_slice_unref(buffer);
-  grpc_shutdown();
-  LLVMFuzzerTestOneInput(static_cast<uint8_t*>(data), length);
-  gpr_free(data);
 }
 
 class ExampleGenerator
     : public ::testing::internal::ParamGeneratorInterface<std::string> {
  public:
-  ::testing::internal::ParamIteratorInterface<std::string>* Begin()
-      const override;
-  ::testing::internal::ParamIteratorInterface<std::string>* End()
-      const override;
+  virtual ::testing::internal::ParamIteratorInterface<std::string>* Begin()
+      const;
+  virtual ::testing::internal::ParamIteratorInterface<std::string>* End() const;
 
  private:
   void Materialize() const {
     if (examples_.empty()) {
-      if (!absl::GetFlag(FLAGS_file).empty()) {
-        examples_.push_back(absl::GetFlag(FLAGS_file));
-      }
-      if (!absl::GetFlag(FLAGS_directory).empty()) {
+      if (!FLAGS_file.empty()) examples_.push_back(FLAGS_file);
+      if (!FLAGS_directory.empty()) {
         char* test_srcdir = gpr_getenv("TEST_SRCDIR");
-        gpr_log(GPR_DEBUG, "test_srcdir=\"%s\"", test_srcdir);
-        std::string directory = absl::GetFlag(FLAGS_directory);
         if (test_srcdir != nullptr) {
-          directory =
-              test_srcdir + std::string("/com_github_grpc_grpc/") + directory;
+          FLAGS_directory = test_srcdir +
+                            std::string("/com_github_grpc_grpc/") +
+                            FLAGS_directory;
         }
-        gpr_log(GPR_DEBUG, "Using corpus directory: %s", directory.c_str());
         DIR* dp;
         struct dirent* ep;
-        dp = opendir(directory.c_str());
+        dp = opendir(FLAGS_directory.c_str());
 
         if (dp != nullptr) {
           while ((ep = readdir(dp)) != nullptr) {
-            if (strcmp(ep->d_name, ".") != 0 && strcmp(ep->d_name, "..") != 0) {
-              examples_.push_back(directory + "/" + ep->d_name);
+            if (ep->d_type == DT_REG) {
+              examples_.push_back(FLAGS_directory + "/" + ep->d_name);
             }
           }
 
@@ -108,9 +96,6 @@ class ExampleGenerator
         gpr_free(test_srcdir);
       }
     }
-    // Make sure we don't succeed without doing anything, which caused
-    // us to be blind to our fuzzers not running for 9 months.
-    GPR_ASSERT(!examples_.empty());
   }
 
   mutable std::vector<std::string> examples_;
@@ -123,13 +108,13 @@ class ExampleIterator
                   std::vector<std::string>::const_iterator begin)
       : base_(base_), begin_(begin), current_(begin) {}
 
-  const ExampleGenerator* BaseGenerator() const override { return &base_; }
+  virtual const ExampleGenerator* BaseGenerator() const { return &base_; }
 
-  void Advance() override { current_++; }
-  ExampleIterator* Clone() const override { return new ExampleIterator(*this); }
-  const std::string* Current() const override { return &*current_; }
+  virtual void Advance() { current_++; }
+  virtual ExampleIterator* Clone() const { return new ExampleIterator(*this); }
+  virtual const std::string* Current() const { return &*current_; }
 
-  bool Equals(const ParamIteratorInterface<std::string>& other) const override {
+  virtual bool Equals(const ParamIteratorInterface<std::string>& other) const {
     return &base_ == other.BaseGenerator() &&
            current_ == dynamic_cast<const ExampleIterator*>(&other)->current_;
   }
@@ -161,8 +146,8 @@ INSTANTIATE_TEST_SUITE_P(
 
 int main(int argc, char** argv) {
   grpc::testing::TestEnvironment env(argc, argv);
-  grpc::testing::InitTest(&argc, &argv, true);
   ::testing::InitGoogleTest(&argc, argv);
+  grpc::testing::InitTest(&argc, &argv, true);
 
   return RUN_ALL_TESTS();
 }

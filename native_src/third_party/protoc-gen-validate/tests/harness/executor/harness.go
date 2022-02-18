@@ -8,30 +8,31 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"strings"
 	"sync"
 
+	"strings"
+
+	"github.com/golang/protobuf/proto"
 	harness "github.com/envoyproxy/protoc-gen-validate/tests/harness/go"
 	"golang.org/x/net/context"
-	"google.golang.org/protobuf/proto"
 )
 
-func Harnesses(goFlag, ccFlag, javaFlag, pythonFlag bool, externalHarnessFlag string) []Harness {
+func Harnesses(goFlag bool, gogoFlag bool, ccFlag bool, javaFlag bool, pythonFlag bool) []Harness {
 	harnesses := make([]Harness, 0)
 	if goFlag {
-		harnesses = append(harnesses, InitHarness("tests/harness/go/main/go-harness", "go"))
+		harnesses = append(harnesses, InitHarness("tests/harness/go/main/go-harness"))
+	}
+	if gogoFlag {
+		harnesses = append(harnesses, InitHarness("tests/harness/gogo/main/go-harness"))
 	}
 	if ccFlag {
-		harnesses = append(harnesses, InitHarness("tests/harness/cc/cc-harness", "cc"))
+		harnesses = append(harnesses, InitHarness("tests/harness/cc/cc-harness"))
 	}
 	if javaFlag {
-		harnesses = append(harnesses, InitHarness("tests/harness/java/java-harness", "java"))
+		harnesses = append(harnesses, InitHarness("tests/harness/java/java-harness"))
 	}
 	if pythonFlag {
-		harnesses = append(harnesses, InitHarness("tests/harness/python/python-harness", "python"))
-	}
-	if externalHarnessFlag != "" {
-		harnesses = append(harnesses, InitHarness(externalHarnessFlag, "external"))
+		harnesses = append(harnesses, InitHarness("tests/harness/python/python-harness"))
 	}
 	return harnesses
 }
@@ -41,7 +42,7 @@ type Harness struct {
 	Exec func(context.Context, io.Reader) (*harness.TestResult, error)
 }
 
-func InitHarness(cmd string, name string, args ...string) Harness {
+func InitHarness(cmd string, args ...string) Harness {
 	if runtime.GOOS == "windows" {
 		// Bazel runfiles are not symlinked in on windows,
 		// so we have to use the manifest instead. If the manifest
@@ -65,7 +66,7 @@ func InitHarness(cmd string, name string, args ...string) Harness {
 	}
 
 	return Harness{
-		Name: name,
+		Name: cmd,
 		Exec: initHarness(cmd, args...),
 	}
 }
@@ -83,9 +84,6 @@ func initHarness(cmd string, args ...string) func(context.Context, io.Reader) (*
 
 		if err := cmd.Run(); err != nil {
 			return nil, fmt.Errorf("[%s] failed execution (%v) - captured stderr:\n%s", cmdStr(cmd), err, errs.String())
-		}
-		if errs.Len() > 0 {
-			fmt.Printf("captured stderr:\n%s", errs.String())
 		}
 
 		res := new(harness.TestResult)

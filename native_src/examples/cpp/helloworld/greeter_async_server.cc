@@ -16,13 +16,13 @@
  *
  */
 
-#include <iostream>
 #include <memory>
+#include <iostream>
 #include <string>
 #include <thread>
 
-#include <grpc/support/log.h>
 #include <grpcpp/grpcpp.h>
+#include <grpc/support/log.h>
 
 #ifdef BAZEL_BUILD
 #include "examples/protos/helloworld.grpc.pb.h"
@@ -33,12 +33,12 @@
 using grpc::Server;
 using grpc::ServerAsyncResponseWriter;
 using grpc::ServerBuilder;
-using grpc::ServerCompletionQueue;
 using grpc::ServerContext;
+using grpc::ServerCompletionQueue;
 using grpc::Status;
-using helloworld::Greeter;
-using helloworld::HelloReply;
 using helloworld::HelloRequest;
+using helloworld::HelloReply;
+using helloworld::Greeter;
 
 class ServerImpl final {
  public:

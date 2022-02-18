@@ -31,9 +31,9 @@ namespace Grpc.Core
     public interface IAsyncStreamWriter<in T>
     {
         /// <summary>
-        /// Writes a message asynchronously. Only one write can be pending at a time.
+        /// Writes a single asynchronously. Only one write can be pending at a time.
         /// </summary>
-        /// <param name="message">The message to be written. Cannot be null.</param>
+        /// <param name="message">the message to be written. Cannot be null.</param>
         Task WriteAsync(T message);
 
         /// <summary>
@@ -42,6 +42,6 @@ namespace Grpc.Core
         /// Once set, this property maintains its value across subsequent
         /// writes.
         /// </summary>
-        WriteOptions? WriteOptions { get; set; }
+        WriteOptions WriteOptions { get; set; }
     }
 }

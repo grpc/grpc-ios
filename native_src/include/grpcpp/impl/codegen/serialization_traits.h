@@ -19,8 +19,6 @@
 #ifndef GRPCPP_IMPL_CODEGEN_SERIALIZATION_TRAITS_H
 #define GRPCPP_IMPL_CODEGEN_SERIALIZATION_TRAITS_H
 
-// IWYU pragma: private, include <grpcpp/impl/serialization_traits.h>
-
 namespace grpc {
 
 /// Defines how to serialize and deserialize some type.

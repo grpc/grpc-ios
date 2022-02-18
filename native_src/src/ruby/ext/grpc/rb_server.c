@@ -18,21 +18,19 @@
 
 #include <ruby/ruby.h>
 
-#include "rb_server.h"
-
-#include "rb_byte_buffer.h"
-#include "rb_call.h"
-#include "rb_channel_args.h"
-#include "rb_completion_queue.h"
-#include "rb_grpc.h"
 #include "rb_grpc_imports.generated.h"
-#include "rb_server_credentials.h"
-#include "rb_xds_server_credentials.h"
+#include "rb_server.h"
 
 #include <grpc/grpc.h>
 #include <grpc/grpc_security.h>
 #include <grpc/support/atm.h>
 #include <grpc/support/log.h>
+#include "rb_byte_buffer.h"
+#include "rb_call.h"
+#include "rb_channel_args.h"
+#include "rb_completion_queue.h"
+#include "rb_grpc.h"
+#include "rb_server_credentials.h"
 
 /* grpc_rb_cServer is the ruby class that proxies grpc_server. */
 static VALUE grpc_rb_cServer = Qnil;
@@ -320,31 +318,17 @@ static VALUE grpc_rb_server_add_http2_port(VALUE self, VALUE port,
       rb_raise(rb_eTypeError, "bad creds symbol, want :this_port_is_insecure");
       return Qnil;
     }
-    grpc_server_credentials* insecure_creds =
-        grpc_insecure_server_credentials_create();
-    recvd_port = grpc_server_add_http2_port(s->wrapped, StringValueCStr(port),
-                                            insecure_creds);
-    grpc_server_credentials_release(insecure_creds);
+    recvd_port =
+        grpc_server_add_insecure_http2_port(s->wrapped, StringValueCStr(port));
     if (recvd_port == 0) {
       rb_raise(rb_eRuntimeError,
                "could not add port %s to server, not sure why",
                StringValueCStr(port));
     }
   } else {
-    // TODO: create a common parent class for all server-side credentials,
-    // then we can have a single method to retrieve the underlying
-    // grpc_server_credentials object, and avoid the need for this reflection
-    if (grpc_rb_is_server_credentials(rb_creds)) {
-      creds = grpc_rb_get_wrapped_server_credentials(rb_creds);
-    } else if (grpc_rb_is_xds_server_credentials(rb_creds)) {
-      creds = grpc_rb_get_wrapped_xds_server_credentials(rb_creds);
-    } else {
-      rb_raise(rb_eTypeError,
-               "failed to create server because credentials parameter has an "
-               "invalid type, want ServerCredentials or XdsServerCredentials");
-    }
-    recvd_port =
-        grpc_server_add_http2_port(s->wrapped, StringValueCStr(port), creds);
+    creds = grpc_rb_get_wrapped_server_credentials(rb_creds);
+    recvd_port = grpc_server_add_secure_http2_port(
+        s->wrapped, StringValueCStr(port), creds);
     if (recvd_port == 0) {
       rb_raise(rb_eRuntimeError,
                "could not add secure port %s to server, not sure why",

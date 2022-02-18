@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2.7
 #
 # Copyright 2017 gRPC authors.
 #
@@ -19,8 +19,8 @@
 
 # usage: python error_ref_leak < logfile.txt
 
-import re
 import sys
+import re
 
 data = sys.stdin.readlines()
 
@@ -44,4 +44,4 @@ for line in data:
             assert (err in errs)
             errs.remove(err)
 
-print(("leaked:", errs))
+print "leaked:", errs

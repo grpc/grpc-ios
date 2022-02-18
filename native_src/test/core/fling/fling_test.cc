@@ -19,13 +19,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <string>
-
-#include "absl/strings/str_cat.h"
-
 #include <grpc/support/alloc.h>
+#include <grpc/support/string_util.h>
 
+#include "src/core/lib/gpr/string.h"
 #include "src/core/lib/gprpp/host_port.h"
+#include "src/core/lib/gprpp/memory.h"
 #include "test/core/util/port.h"
 #include "test/core/util/subprocess.h"
 
@@ -45,26 +44,27 @@ int main(int /*argc*/, const char** argv) {
     strcpy(root, ".");
   }
   /* start the server */
-  std::string command =
-      absl::StrCat(root, "/fling_server", gpr_subprocess_binary_extension());
-  args[0] = const_cast<char*>(command.c_str());
+  gpr_asprintf(&args[0], "%s/fling_server%s", root,
+               gpr_subprocess_binary_extension());
   args[1] = const_cast<char*>("--bind");
-  std::string joined = grpc_core::JoinHostPort("::", port);
-  args[2] = const_cast<char*>(joined.c_str());
+  grpc_core::UniquePtr<char> joined;
+  grpc_core::JoinHostPort(&joined, "::", port);
+  args[2] = joined.get();
   args[3] = const_cast<char*>("--no-secure");
-  svr = gpr_subprocess_create(4, const_cast<const char**>(args));
+  svr = gpr_subprocess_create(4, (const char**)args);
+  gpr_free(args[0]);
 
   /* start the client */
-  command =
-      absl::StrCat(root, "/fling_client", gpr_subprocess_binary_extension());
-  args[0] = const_cast<char*>(command.c_str());
+  gpr_asprintf(&args[0], "%s/fling_client%s", root,
+               gpr_subprocess_binary_extension());
   args[1] = const_cast<char*>("--target");
-  joined = grpc_core::JoinHostPort("127.0.0.1", port);
-  args[2] = const_cast<char*>(joined.c_str());
+  grpc_core::JoinHostPort(&joined, "127.0.0.1", port);
+  args[2] = joined.get();
   args[3] = const_cast<char*>("--scenario=ping-pong-request");
   args[4] = const_cast<char*>("--no-secure");
   args[5] = nullptr;
-  cli = gpr_subprocess_create(6, const_cast<const char**>(args));
+  cli = gpr_subprocess_create(6, (const char**)args);
+  gpr_free(args[0]);
 
   /* wait for completion */
   printf("waiting for client\n");

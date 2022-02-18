@@ -26,7 +26,7 @@
 #include <stdint.h> /* uintptr_t */
 
 #include <errno.h>
-#include <unistd.h> /* usleep */
+#include <unistd.h> /* readlink, usleep */
 #include <string.h> /* strdup */
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,12 +67,18 @@ void notify_parent_process(void) {
 
 
 /* Do platform-specific initialization. */
-void platform_init(int argc, char **argv) {
+int platform_init(int argc, char **argv) {
   /* Disable stdio output buffering. */
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
   signal(SIGPIPE, SIG_IGN);
-  snprintf(executable_path, sizeof(executable_path), "%s", argv[0]);
+
+  if (realpath(argv[0], executable_path) == NULL) {
+    perror("realpath");
+    return -1;
+  }
+
+  return 0;
 }
 
 
@@ -365,8 +371,8 @@ int process_copy_output(process_info_t* p, FILE* stream) {
   }
 
   /* TODO: what if the line is longer than buf */
-  while ((r = fread(buf, 1, sizeof(buf), p->stdout_file)) != 0)
-    print_lines(buf, r, stream);
+  while (fgets(buf, sizeof(buf), p->stdout_file) != NULL)
+    print_lines(buf, strlen(buf), stream);
 
   if (ferror(p->stdout_file)) {
     perror("read");
@@ -392,8 +398,7 @@ int process_read_last_line(process_info_t *p,
   buffer[0] = '\0';
 
   while (fgets(buffer, buffer_len, p->stdout_file) != NULL) {
-    for (ptr = buffer; *ptr && *ptr != '\r' && *ptr != '\n'; ptr++)
-      ;
+    for (ptr = buffer; *ptr && *ptr != '\r' && *ptr != '\n'; ptr++);
     *ptr = '\0';
   }
 

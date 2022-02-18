@@ -15,7 +15,6 @@
 
 import inspect
 import traceback
-import functools
 
 
 cdef int _EMPTY_FLAG = 0
@@ -45,7 +44,6 @@ class _ServerStoppedError(BaseError):
 cdef class RPCState:
 
     def __cinit__(self, AioServer server):
-        init_grpc_aio()
         self.call = NULL
         self.server = server
         grpc_metadata_array_init(&self.request_metadata)
@@ -59,7 +57,6 @@ cdef class RPCState:
         self.trailing_metadata = _IMMUTABLE_EMPTY_METADATA
         self.compression_algorithm = None
         self.disable_next_compression = False
-        self.callbacks = []
 
     cdef bytes method(self):
         return _slice_bytes(self.details.method)
@@ -108,10 +105,13 @@ cdef class RPCState:
         grpc_metadata_array_destroy(&self.request_metadata)
         if self.call:
             grpc_call_unref(self.call)
-        shutdown_grpc_aio()
 
 
 cdef class _ServicerContext:
+    cdef RPCState _rpc_state
+    cdef object _loop
+    cdef object _request_deserializer
+    cdef object _response_serializer
 
     def __cinit__(self,
                   RPCState rpc_state,
@@ -127,9 +127,9 @@ cdef class _ServicerContext:
         cdef bytes raw_message
         self._rpc_state.raise_for_termination()
 
+        if self._rpc_state.client_closed:
+            return EOF
         raw_message = await _receive_message(self._rpc_state, self._loop)
-        self._rpc_state.raise_for_termination()
-
         if raw_message is None:
             return EOF
         else:
@@ -146,7 +146,7 @@ cdef class _ServicerContext:
                             self._loop)
         self._rpc_state.metadata_sent = True
 
-    async def send_initial_metadata(self, object metadata):
+    async def send_initial_metadata(self, tuple metadata):
         self._rpc_state.raise_for_termination()
 
         if self._rpc_state.metadata_sent:
@@ -154,7 +154,7 @@ cdef class _ServicerContext:
         else:
             await _send_initial_metadata(
                 self._rpc_state,
-                _augment_metadata(tuple(metadata), self._rpc_state.compression_algorithm),
+                _augment_metadata(metadata, self._rpc_state.compression_algorithm),
                 _EMPTY_FLAG,
                 self._loop
             )
@@ -174,17 +174,11 @@ cdef class _ServicerContext:
 
             if trailing_metadata == _IMMUTABLE_EMPTY_METADATA and self._rpc_state.trailing_metadata:
                 trailing_metadata = self._rpc_state.trailing_metadata
-            else:
-                raise_if_not_valid_trailing_metadata(trailing_metadata)
-                self._rpc_state.trailing_metadata = trailing_metadata
 
             if details == '' and self._rpc_state.status_details:
                 details = self._rpc_state.status_details
-            else:
-                self._rpc_state.status_details = details
 
             actual_code = get_status_code(code)
-            self._rpc_state.status_code = actual_code
 
             self._rpc_state.status_sent = True
             await _send_error_status_from_server(
@@ -198,15 +192,8 @@ cdef class _ServicerContext:
 
             raise self._rpc_state.abort_exception
 
-    async def abort_with_status(self, object status):
-        await self.abort(status.code, status.details, status.trailing_metadata)
-
-    def set_trailing_metadata(self, object metadata):
-        raise_if_not_valid_trailing_metadata(metadata)
-        self._rpc_state.trailing_metadata = tuple(metadata)
-
-    def trailing_metadata(self):
-        return self._rpc_state.trailing_metadata
+    def set_trailing_metadata(self, tuple metadata):
+        self._rpc_state.trailing_metadata = metadata
 
     def invocation_metadata(self):
         return self._rpc_state.invocation_metadata()
@@ -214,14 +201,8 @@ cdef class _ServicerContext:
     def set_code(self, object code):
         self._rpc_state.status_code = get_status_code(code)
 
-    def code(self):
-        return self._rpc_state.status_code
-
     def set_details(self, str details):
         self._rpc_state.status_details = details
-
-    def details(self):
-        return self._rpc_state.status_details
 
     def set_compression(self, object compression):
         if self._rpc_state.metadata_sent:
@@ -232,155 +213,16 @@ cdef class _ServicerContext:
     def disable_next_message_compression(self):
         self._rpc_state.disable_next_compression = True
 
-    def peer(self):
-        cdef char *c_peer = NULL
-        c_peer = grpc_call_get_peer(self._rpc_state.call)
-        peer = (<bytes>c_peer).decode('utf8')
-        gpr_free(c_peer)
-        return peer
 
-    def peer_identities(self):
-        cdef Call query_call = Call()
-        query_call.c_call = self._rpc_state.call
-        identities = peer_identities(query_call)
-        query_call.c_call = NULL
-        return identities
-
-    def peer_identity_key(self):
-        cdef Call query_call = Call()
-        query_call.c_call = self._rpc_state.call
-        identity_key = peer_identity_key(query_call)
-        query_call.c_call = NULL
-        if identity_key:
-            return identity_key.decode('utf8')
-        else:
-            return None
-
-    def auth_context(self):
-        cdef Call query_call = Call()
-        query_call.c_call = self._rpc_state.call
-        bytes_ctx = auth_context(query_call)
-        query_call.c_call = NULL
-        if bytes_ctx:
-            ctx = {}
-            for key in bytes_ctx:
-                ctx[key.decode('utf8')] = bytes_ctx[key]
-            return ctx
-        else:
-            return {}
-
-    def time_remaining(self):
-        if self._rpc_state.details.deadline.seconds == _GPR_INF_FUTURE.seconds:
-            return None
-        else:
-            return max(_time_from_timespec(self._rpc_state.details.deadline) - time.time(), 0)
-
-    def add_done_callback(self, callback):
-        cb = functools.partial(callback, self)
-        self._rpc_state.callbacks.append(cb)
-
-    def done(self):
-        return self._rpc_state.status_sent
-
-    def cancelled(self):
-        return self._rpc_state.status_code == StatusCode.cancelled
-
-
-cdef class _SyncServicerContext:
-    """Sync servicer context for sync handler compatibility."""
-
-    def __cinit__(self,
-                  _ServicerContext context):
-        self._context = context
-        self._callbacks = []
-        self._loop = context._loop
-
-    def abort(self,
-              object code,
-              str details='',
-              tuple trailing_metadata=_IMMUTABLE_EMPTY_METADATA):
-        future = asyncio.run_coroutine_threadsafe(
-            self._context.abort(code, details, trailing_metadata),
-            self._loop)
-        # Abort should raise an AbortError
-        future.exception()
-
-    def send_initial_metadata(self, object metadata):
-        future = asyncio.run_coroutine_threadsafe(
-            self._context.send_initial_metadata(metadata),
-            self._loop)
-        future.result()
-
-    def set_trailing_metadata(self, object metadata):
-        self._context.set_trailing_metadata(metadata)
-
-    def invocation_metadata(self):
-        return self._context.invocation_metadata()
-
-    def set_code(self, object code):
-        self._context.set_code(code)
-
-    def set_details(self, str details):
-        self._context.set_details(details)
-
-    def set_compression(self, object compression):
-        self._context.set_compression(compression)
-
-    def disable_next_message_compression(self):
-        self._context.disable_next_message_compression()
-
-    def add_callback(self, object callback):
-        self._callbacks.append(callback)
-
-    def peer(self):
-        return self._context.peer()
-
-    def peer_identities(self):
-        return self._context.peer_identities()
-
-    def peer_identity_key(self):
-        return self._context.peer_identity_key()
-
-    def auth_context(self):
-        return self._context.auth_context()
-
-    def time_remaining(self):
-        return self._context.time_remaining()
-
-
-async def _run_interceptor(object interceptors, object query_handler,
-                           object handler_call_details):
-    interceptor = next(interceptors, None)
-    if interceptor:
-        continuation = functools.partial(_run_interceptor, interceptors,
-                                         query_handler)
-        return await interceptor.intercept_service(continuation, handler_call_details)
-    else:
-        return query_handler(handler_call_details)
-
-
-def _is_async_handler(object handler):
-    """Inspect if a method handler is async or sync."""
-    return inspect.isawaitable(handler) or inspect.iscoroutinefunction(handler) or inspect.isasyncgenfunction(handler)
-
-
-async def _find_method_handler(str method, tuple metadata, list generic_handlers,
-                          tuple interceptors):
-    def query_handlers(handler_call_details):
-        for generic_handler in generic_handlers:
-            method_handler = generic_handler.service(handler_call_details)
-            if method_handler is not None:
-                return method_handler
-        return None
-
+cdef _find_method_handler(str method, tuple metadata, list generic_handlers):
     cdef _HandlerCallDetails handler_call_details = _HandlerCallDetails(method,
                                                                         metadata)
-    # interceptor
-    if interceptors:
-        return await _run_interceptor(iter(interceptors), query_handlers,
-                                      handler_call_details)
-    else:
-        return query_handlers(handler_call_details)
+
+    for generic_handler in generic_handlers:
+        method_handler = generic_handler.service(handler_call_details)
+        if method_handler is not None:
+            return method_handler
+    return None
 
 
 async def _finish_handler_with_unary_response(RPCState rpc_state,
@@ -390,47 +232,26 @@ async def _finish_handler_with_unary_response(RPCState rpc_state,
                                               object response_serializer,
                                               object loop):
     """Finishes server method handler with a single response.
-
+    
     This function executes the application handler, and handles response
     sending, as well as errors. It is shared between unary-unary and
     stream-unary handlers.
     """
     # Executes application logic
-    cdef object response_message
-    cdef _SyncServicerContext sync_servicer_context
-
-    if _is_async_handler(unary_handler):
-        # Run async method handlers in this coroutine
-        response_message = await unary_handler(
-            request,
-            servicer_context,
-        )
-    else:
-        # Run sync method handlers in the thread pool
-        sync_servicer_context = _SyncServicerContext(servicer_context)
-        response_message = await loop.run_in_executor(
-            rpc_state.server.thread_pool(),
-            unary_handler,
-            request,
-            sync_servicer_context,
-        )
-        # Support sync-stack callback
-        for callback in sync_servicer_context._callbacks:
-            callback()
+    
+    cdef object response_message = await unary_handler(
+        request,
+        servicer_context,
+    )
 
     # Raises exception if aborted
     rpc_state.raise_for_termination()
 
     # Serializes the response message
-    cdef bytes response_raw
-    if rpc_state.status_code == StatusCode.ok:
-        response_raw = serialize(
-            response_serializer,
-            response_message,
-        )
-    else:
-        # Discards the response message if the status code is non-OK.
-        response_raw = b''
+    cdef bytes response_raw = serialize(
+        response_serializer,
+        response_message,
+    )
 
     # Assembles the batch operations
     cdef tuple finish_ops
@@ -465,31 +286,18 @@ async def _finish_handler_with_stream_responses(RPCState rpc_state,
     """
     cdef object async_response_generator
     cdef object response_message
-
     if inspect.iscoroutinefunction(stream_handler):
-        # Case 1: Coroutine async handler - using reader-writer API
         # The handler uses reader / writer API, returns None.
         await stream_handler(
             request,
             servicer_context,
         )
     else:
-        if inspect.isasyncgenfunction(stream_handler):
-            # Case 2: Async handler - async generator
-            # The handler uses async generator API
-            async_response_generator = stream_handler(
-                request,
-                servicer_context,
-            )
-        else:
-            # Case 3: Sync handler - normal generator
-            # NOTE(lidiz) Streaming handler in sync stack is either a generator
-            # function or a function returns a generator.
-            sync_servicer_context = _SyncServicerContext(servicer_context)
-            gen = stream_handler(request, sync_servicer_context)
-            async_response_generator = generator_to_async_generator(gen,
-                                                                    loop,
-                                                                    rpc_state.server.thread_pool())
+        # The handler uses async generator API
+        async_response_generator = stream_handler(
+            request,
+            servicer_context,
+        )
 
         # Consumes messages from the generator
         async for response_message in async_response_generator:
@@ -586,31 +394,15 @@ async def _handle_unary_stream_rpc(object method_handler,
     )
 
 
-cdef class _MessageReceiver:
+async def _message_receiver(_ServicerContext servicer_context):
     """Bridge between the async generator API and the reader-writer API."""
-
-    def __cinit__(self, _ServicerContext servicer_context):
-        self._servicer_context = servicer_context
-        self._agen = None
-
-    async def _async_message_receiver(self):
-        """An async generator that receives messages."""
-        cdef object message
-        while True:
-            message = await self._servicer_context.read()
-            if message is not EOF:
-                yield message
-            else:
-                break
-
-    def __aiter__(self):
-        # Prevents never awaited warning if application never used the async generator
-        if self._agen is None:
-            self._agen = self._async_message_receiver()
-        return self._agen
-
-    async def __anext__(self):
-        return await self.__aiter__().__anext__()
+    cdef object message
+    while True:
+        message = await servicer_context.read()
+        if message is not EOF:
+            yield message
+        else:
+            break
 
 
 async def _handle_stream_unary_rpc(object method_handler,
@@ -625,20 +417,13 @@ async def _handle_stream_unary_rpc(object method_handler,
     )
 
     # Prepares the request generator
-    cdef object request_iterator
-    if _is_async_handler(method_handler.stream_unary):
-        request_iterator = _MessageReceiver(servicer_context)
-    else:
-        request_iterator = async_generator_to_generator(
-            _MessageReceiver(servicer_context),
-            loop
-        )
+    cdef object request_async_iterator = _message_receiver(servicer_context)
 
     # Finishes the application handler
     await _finish_handler_with_unary_response(
         rpc_state,
         method_handler.stream_unary,
-        request_iterator,
+        request_async_iterator,
         servicer_context,
         method_handler.response_serializer,
         loop
@@ -657,20 +442,13 @@ async def _handle_stream_stream_rpc(object method_handler,
     )
 
     # Prepares the request generator
-    cdef object request_iterator
-    if _is_async_handler(method_handler.stream_stream):
-        request_iterator = _MessageReceiver(servicer_context)
-    else:
-        request_iterator = async_generator_to_generator(
-            _MessageReceiver(servicer_context),
-            loop
-        )
+    cdef object request_async_iterator = _message_receiver(servicer_context)
 
     # Finishes the application handler
     await _finish_handler_with_stream_responses(
         rpc_state,
         method_handler.stream_stream,
-        request_iterator,
+        request_async_iterator,
         servicer_context,
         loop,
     )
@@ -696,13 +474,7 @@ async def _handle_exceptions(RPCState rpc_state, object rpc_coro, object loop):
     except asyncio.CancelledError:
         _LOGGER.debug('RPC cancelled for servicer method [%s]', _decode(rpc_state.method()))
     except _ServerStoppedError:
-        _LOGGER.warning('Aborting method [%s] due to server stop.', _decode(rpc_state.method()))
-    except ExecuteBatchError:
-        # If client closed (aka. cancelled), ignore the failed batch operations.
-        if rpc_state.client_closed:
-            return
-        else:
-            raise
+        _LOGGER.info('Aborting RPC due to server stop.')
     except Exception as e:
         _LOGGER.exception('Unexpected [%s] raised by servicer method [%s]' % (
             type(e).__name__,
@@ -715,7 +487,6 @@ async def _handle_exceptions(RPCState rpc_state, object rpc_coro, object loop):
             else:
                 status_code = rpc_state.status_code
 
-            rpc_state.status_sent = True
             await _send_error_status_from_server(
                 rpc_state,
                 status_code,
@@ -724,19 +495,6 @@ async def _handle_exceptions(RPCState rpc_state, object rpc_coro, object loop):
                 rpc_state.create_send_initial_metadata_op_if_not_sent(),
                 loop
             )
-
-
-cdef _add_callback_handler(object rpc_task, RPCState rpc_state):
-
-    def handle_callbacks(object unused_task):
-        try:
-            for callback in rpc_state.callbacks:
-                # The _ServicerContext object is bound in add_done_callback.
-                callback()
-        except:
-            _LOGGER.exception('Error in callback for method [%s]', _decode(rpc_state.method()))
-
-    rpc_task.add_done_callback(handle_callbacks)
 
 
 async def _handle_cancellation_from_core(object rpc_task,
@@ -748,10 +506,7 @@ async def _handle_cancellation_from_core(object rpc_task,
     # Awaits cancellation from peer.
     await execute_batch(rpc_state, ops, loop)
     rpc_state.client_closed = True
-    # If 1) received cancel signal; 2) the Task is not finished; 3) the server
-    # wasn't replying final status. For condition 3, it might cause inaccurate
-    # log that an RPC is both aborted and cancelled.
-    if op.cancelled() and not rpc_task.done() and not rpc_state.status_sent:
+    if op.cancelled() and not rpc_task.done():
         # Injects `CancelledError` to halt the RPC coroutine
         rpc_task.cancel()
 
@@ -765,19 +520,16 @@ async def _schedule_rpc_coro(object rpc_coro,
         rpc_coro,
         loop,
     ))
-    _add_callback_handler(rpc_task, rpc_state)
     await _handle_cancellation_from_core(rpc_task, rpc_state, loop)
 
 
-async def _handle_rpc(list generic_handlers, tuple interceptors,
-                      RPCState rpc_state, object loop):
+async def _handle_rpc(list generic_handlers, RPCState rpc_state, object loop):
     cdef object method_handler
     # Finds the method handler (application logic)
-    method_handler = await _find_method_handler(
+    method_handler = _find_method_handler(
         rpc_state.method().decode(),
         rpc_state.invocation_metadata(),
         generic_handlers,
-        interceptors,
     )
     if method_handler is None:
         rpc_state.status_sent = True
@@ -794,22 +546,22 @@ async def _handle_rpc(list generic_handlers, tuple interceptors,
     # Handles unary-unary case
     if not method_handler.request_streaming and not method_handler.response_streaming:
         await _handle_unary_unary_rpc(method_handler,
-                                      rpc_state,
-                                      loop)
+                                        rpc_state,
+                                        loop)
         return
 
     # Handles unary-stream case
     if not method_handler.request_streaming and method_handler.response_streaming:
         await _handle_unary_stream_rpc(method_handler,
-                                       rpc_state,
-                                       loop)
+                                        rpc_state,
+                                        loop)
         return
 
     # Handles stream-unary case
     if method_handler.request_streaming and not method_handler.response_streaming:
         await _handle_stream_unary_rpc(method_handler,
-                                       rpc_state,
-                                       loop)
+                                        rpc_state,
+                                        loop)
         return
 
     # Handles stream-stream case
@@ -832,52 +584,17 @@ cdef CallbackFailureHandler SERVER_SHUTDOWN_FAILURE_HANDLER = CallbackFailureHan
     InternalError)
 
 
-cdef class _ConcurrentRpcLimiter:
-
-    def __cinit__(self, int maximum_concurrent_rpcs, object loop):
-        if maximum_concurrent_rpcs <= 0:
-            raise ValueError("maximum_concurrent_rpcs should be a postive integer")
-        self._maximum_concurrent_rpcs = maximum_concurrent_rpcs
-        self._active_rpcs = 0
-        self._active_rpcs_condition = asyncio.Condition()
-        self._loop = loop
-
-    async def check_before_request_call(self):
-        await self._active_rpcs_condition.acquire()
-        try:
-            predicate = lambda: self._active_rpcs < self._maximum_concurrent_rpcs
-            await self._active_rpcs_condition.wait_for(predicate)
-            self._active_rpcs += 1
-        finally:
-            self._active_rpcs_condition.release()
-
-    async def _decrease_active_rpcs_count_with_lock(self):
-        await self._active_rpcs_condition.acquire()
-        try:
-            self._active_rpcs -= 1
-            self._active_rpcs_condition.notify()
-        finally:
-            self._active_rpcs_condition.release()
-
-    def _decrease_active_rpcs_count(self, unused_future):
-        self._loop.create_task(self._decrease_active_rpcs_count_with_lock())
-
-    def decrease_once_finished(self, object rpc_task):
-        rpc_task.add_done_callback(self._decrease_active_rpcs_count)
-
-
 cdef class AioServer:
 
     def __init__(self, loop, thread_pool, generic_handlers, interceptors,
                  options, maximum_concurrent_rpcs):
-        init_grpc_aio()
         # NOTE(lidiz) Core objects won't be deallocated automatically.
         # If AioServer.shutdown is not called, those objects will leak.
-        # TODO(rbellevi): Support xDS in aio server.
-        self._server = Server(options, False)
+        self._server = Server(options)
+        self._cq = CallbackCompletionQueue()
         grpc_server_register_completion_queue(
             self._server.c_server,
-            global_completion_queue(),
+            self._cq.c_ptr(),
             NULL
         )
 
@@ -886,27 +603,25 @@ cdef class AioServer:
         self._generic_handlers = []
         self.add_generic_rpc_handlers(generic_handlers)
         self._serving_task = None
+        self._ongoing_rpc_tasks = set()
 
-        self._shutdown_lock = asyncio.Lock()
+        self._shutdown_lock = asyncio.Lock(loop=self._loop)
         self._shutdown_completed = self._loop.create_future()
         self._shutdown_callback_wrapper = CallbackWrapper(
             self._shutdown_completed,
-            self._loop,
             SERVER_SHUTDOWN_FAILURE_HANDLER)
         self._crash_exception = None
 
         if interceptors:
-            self._interceptors = tuple(interceptors)
-        else:
-            self._interceptors = ()
+            raise NotImplementedError()
+        if maximum_concurrent_rpcs:
+            raise NotImplementedError()
+        if thread_pool:
+            raise NotImplementedError()
 
-        self._thread_pool = thread_pool
-        if maximum_concurrent_rpcs is not None:
-            self._limiter = _ConcurrentRpcLimiter(maximum_concurrent_rpcs,
-                                                  loop)
-
-    def add_generic_rpc_handlers(self, object generic_rpc_handlers):
-        self._generic_handlers.extend(generic_rpc_handlers)
+    def add_generic_rpc_handlers(self, generic_rpc_handlers):
+        for h in generic_rpc_handlers:
+            self._generic_handlers.append(h)
 
     def add_insecure_port(self, address):
         return self._server.add_http2_port(address)
@@ -921,12 +636,11 @@ cdef class AioServer:
         cdef object future = self._loop.create_future()
         cdef CallbackWrapper wrapper = CallbackWrapper(
             future,
-            self._loop,
             REQUEST_CALL_FAILURE_HANDLER)
         error = grpc_server_request_call(
             self._server.c_server, &rpc_state.call, &rpc_state.details,
             &rpc_state.request_metadata,
-            global_completion_queue(), global_completion_queue(),
+            self._cq.c_ptr(), self._cq.c_ptr(),
             wrapper.c_functor()
         )
         if error != GRPC_CALL_OK:
@@ -937,7 +651,7 @@ cdef class AioServer:
 
     async def _server_main_loop(self,
                                 object server_started):
-        self._server.start(backup_queue=False)
+        self._server.start()
         cdef RPCState rpc_state
         server_started.set_result(True)
 
@@ -945,9 +659,6 @@ cdef class AioServer:
             # When shutdown begins, no more new connections.
             if self._status != AIO_SERVER_STATUS_RUNNING:
                 break
-
-            if self._limiter is not None:
-                await self._limiter.check_before_request_call()
 
             # Accepts new request from Core
             rpc_state = await self._request_call()
@@ -958,12 +669,11 @@ cdef class AioServer:
             # the coroutine onto event loop inside of the cancellation
             # coroutine.
             rpc_coro = _handle_rpc(self._generic_handlers,
-                                   self._interceptors,
                                    rpc_state,
                                    self._loop)
 
             # Fires off a task that listens on the cancellation from client.
-            rpc_task = self._loop.create_task(
+            self._loop.create_task(
                 _schedule_rpc_coro(
                     rpc_coro,
                     rpc_state,
@@ -971,13 +681,8 @@ cdef class AioServer:
                 )
             )
 
-            if self._limiter is not None:
-                self._limiter.decrease_once_finished(rpc_task)
-
     def _serving_task_crash_handler(self, object task):
         """Shutdown the server immediately if unexpectedly exited."""
-        if task.cancelled():
-            return
         if task.exception() is None:
             return
         if self._status != AIO_SERVER_STATUS_STOPPING:
@@ -1007,7 +712,7 @@ cdef class AioServer:
         # The shutdown callback won't be called until there is no live RPC.
         grpc_server_shutdown_and_notify(
             self._server.c_server,
-            global_completion_queue(),
+            self._cq._cq,
             self._shutdown_callback_wrapper.c_functor())
 
         # Ensures the serving task (coroutine) exits.
@@ -1041,8 +746,12 @@ cdef class AioServer:
         else:
             try:
                 await asyncio.wait_for(
-                    asyncio.shield(self._shutdown_completed),
+                    asyncio.shield(
+                        self._shutdown_completed,
+                        loop=self._loop
+                    ),
                     grace,
+                    loop=self._loop,
                 )
             except asyncio.TimeoutError:
                 # Cancels all ongoing calls by the end of grace period.
@@ -1056,14 +765,21 @@ cdef class AioServer:
                 self._server.is_shutdown = True
                 self._status = AIO_SERVER_STATUS_STOPPED
 
+                # Shuts down the completion queue
+                await self._cq.shutdown()
+    
     async def wait_for_termination(self, object timeout):
         if timeout is None:
             await self._shutdown_completed
         else:
             try:
                 await asyncio.wait_for(
-                    asyncio.shield(self._shutdown_completed),
+                    asyncio.shield(
+                        self._shutdown_completed,
+                        loop=self._loop,
+                    ),
                     timeout,
+                    loop=self._loop,
                 )
             except asyncio.TimeoutError:
                 if self._crash_exception is not None:
@@ -1078,16 +794,8 @@ cdef class AioServer:
         # TODO(lidiz) if users create server, and then dealloc it immediately.
         # There is a potential memory leak of created Core server.
         if self._status != AIO_SERVER_STATUS_STOPPED:
-            _LOGGER.debug(
+            _LOGGER.warning(
                 '__dealloc__ called on running server %s with status %d',
                 self,
                 self._status
             )
-        shutdown_grpc_aio()
-
-    cdef thread_pool(self):
-        """Access the thread pool instance."""
-        return self._thread_pool
-
-    def is_running(self):
-        return self._status == AIO_SERVER_STATUS_RUNNING

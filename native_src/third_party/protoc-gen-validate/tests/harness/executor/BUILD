@@ -19,12 +19,13 @@ go_library(
         "//tests/harness:harness_go_proto",
         "//tests/harness/cases:go",
         "//tests/harness/cases/other_package:go",
-        "@org_golang_google_protobuf//proto:go_default_library",
-        "@org_golang_google_protobuf//types/known/anypb:go_default_library",
-        "@org_golang_google_protobuf//types/known/durationpb:go_default_library",
-        "@org_golang_google_protobuf//types/known/timestamppb:go_default_library",
-        "@org_golang_google_protobuf//types/known/wrapperspb:go_default_library",
-        "@org_golang_x_net//context:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "@com_github_golang_protobuf//proto:go_default_library",
+        "@com_github_golang_protobuf//ptypes:go_default_library",
+        "@com_github_golang_protobuf//ptypes/duration:go_default_library",
+        "@com_github_golang_protobuf//ptypes/timestamp:go_default_library",
+        "@io_bazel_rules_go//proto/wkt:any_go_proto",
+        "@io_bazel_rules_go//proto/wkt:wrappers_go_proto",
     ],
 )
 
@@ -33,9 +34,11 @@ go_binary(
     data = ["//tests/harness/cc:cc-harness"] + select({
         ":windows_x86_64": [
             "//tests/harness/go/main:go-harness-exe",
+            "//tests/harness/gogo/main:go-harness-exe",
         ],
         "//conditions:default": [
             "//tests/harness/go/main:go-harness-bin",
+            "//tests/harness/gogo/main:go-harness-bin",
             "//tests/harness/java:java-harness",
             "//tests/harness/python:python-harness",
         ],
@@ -44,20 +47,3 @@ go_binary(
     importpath = "github.com/envoyproxy/protoc-gen-validate/tests/harness/executor",
     visibility = ["//visibility:private"],
 )
-
-[
-    sh_test(
-        name = "executor_" + lang + "_test",
-        srcs = ["executor_test.sh"],
-        args = [
-            "$(location :executor)",
-            "-" + lang,
-        ],
-        data = [":executor"],
-        # This could be sharded more, but each shard incurs overhead and test
-        # execution is already sharded by having separate test rules for each language.
-        shard_count = 5,
-        deps = ["@bazel_tools//tools/bash/runfiles"],
-    )
-    for lang in ("cc", "go", "java", "python")
-]

@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include <grpc/grpc.h>
-#include <grpc/grpc_security.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/string_util.h>
@@ -28,11 +27,13 @@
 #include "src/core/lib/gprpp/host_port.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/slice/slice_internal.h"
+#include "src/core/lib/transport/metadata.h"
+
 #include "test/core/end2end/cq_verifier.h"
 #include "test/core/util/port.h"
 #include "test/core/util/test_config.h"
 
-static void* tag(intptr_t t) { return reinterpret_cast<void*>(t); }
+static void* tag(intptr_t i) { return (void*)i; }
 
 static void run_test(bool wait_for_ready, bool use_service_config) {
   grpc_channel* chan;
@@ -76,11 +77,10 @@ static void run_test(bool wait_for_ready, bool use_service_config) {
 
   /* create a call, channel to a port which will refuse connection */
   int port = grpc_pick_unused_port_or_die();
-  std::string addr = grpc_core::JoinHostPort("127.0.0.1", port);
-  gpr_log(GPR_INFO, "server: %s", addr.c_str());
-  grpc_channel_credentials* creds = grpc_insecure_credentials_create();
-  chan = grpc_channel_create(addr.c_str(), creds, args);
-  grpc_channel_credentials_release(creds);
+  grpc_core::UniquePtr<char> addr;
+  grpc_core::JoinHostPort(&addr, "127.0.0.1", port);
+  gpr_log(GPR_INFO, "server: %s", addr.get());
+  chan = grpc_insecure_channel_create(addr.get(), args, nullptr);
   grpc_slice host = grpc_slice_from_static_string("nonexistant");
   gpr_timespec deadline = grpc_timeout_seconds_to_deadline(2);
   call =
@@ -120,8 +120,8 @@ static void run_test(bool wait_for_ready, bool use_service_config) {
   grpc_completion_queue_shutdown(cq);
   while (grpc_completion_queue_next(cq, gpr_inf_future(GPR_CLOCK_REALTIME),
                                     nullptr)
-             .type != GRPC_QUEUE_SHUTDOWN) {
-  }
+             .type != GRPC_QUEUE_SHUTDOWN)
+    ;
   grpc_completion_queue_destroy(cq);
   grpc_call_unref(call);
   grpc_channel_destroy(chan);

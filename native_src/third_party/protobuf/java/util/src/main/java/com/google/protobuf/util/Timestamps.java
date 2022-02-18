@@ -37,11 +37,8 @@ import static com.google.common.math.LongMath.checkedMultiply;
 import static com.google.common.math.LongMath.checkedSubtract;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import com.google.errorprone.annotations.CompileTimeConstant;
-import com.google.j2objc.annotations.J2ObjCIncompatible;
 import com.google.protobuf.Duration;
 import com.google.protobuf.Timestamp;
-import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Comparator;
@@ -95,7 +92,7 @@ public final class Timestamps {
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH);
     GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
     // We use Proleptic Gregorian Calendar (i.e., Gregorian calendar extends
-    // backwards to year one) for timestamp formatting.
+    // backwards to year one) for timestamp formating.
     calendar.setGregorianChange(new Date(Long.MIN_VALUE));
     sdf.setCalendar(calendar);
     return sdf;
@@ -103,25 +100,24 @@ public final class Timestamps {
 
   private Timestamps() {}
 
-  private static enum TimestampComparator implements Comparator<Timestamp>, Serializable {
-    INSTANCE;
-
-    @Override
-    public int compare(Timestamp t1, Timestamp t2) {
-      checkValid(t1);
-      checkValid(t2);
-      int secDiff = Long.compare(t1.getSeconds(), t2.getSeconds());
-      return (secDiff != 0) ? secDiff : Integer.compare(t1.getNanos(), t2.getNanos());
-    }
-  }
+  private static final Comparator<Timestamp> COMPARATOR =
+      new Comparator<Timestamp>() {
+        @Override
+        public int compare(Timestamp t1, Timestamp t2) {
+          checkValid(t1);
+          checkValid(t2);
+          int secDiff = Long.compare(t1.getSeconds(), t2.getSeconds());
+          return (secDiff != 0) ? secDiff : Integer.compare(t1.getNanos(), t2.getNanos());
+        }
+      };
 
   /**
    * Returns a {@link Comparator} for {@link Timestamp Timestamps} which sorts in increasing
    * chronological order. Nulls and invalid {@link Timestamp Timestamps} are not allowed (see
-   * {@link #isValid}). The returned comparator is serializable.
+   * {@link #isValid}).
    */
   public static Comparator<Timestamp> comparator() {
-    return TimestampComparator.INSTANCE;
+    return COMPARATOR;
   }
 
   /**
@@ -132,7 +128,7 @@ public final class Timestamps {
    *     and a value greater than {@code 0} if {@code x > y}
    */
   public static int compare(Timestamp x, Timestamp y) {
-    return TimestampComparator.INSTANCE.compare(x, y);
+    return COMPARATOR.compare(x, y);
   }
 
   /**
@@ -285,25 +281,6 @@ public final class Timestamps {
     }
   }
 
-  /**
-   * Parses a string in RFC 3339 format into a {@link Timestamp}.
-   *
-   * <p>Identical to {@link #parse(String)}, but throws an {@link IllegalArgumentException} instead
-   * of a {@link ParseException} if parsing fails.
-   *
-   * @return a {@link Timestamp} parsed from the string
-   * @throws IllegalArgumentException if parsing fails
-   */
-  public static Timestamp parseUnchecked(@CompileTimeConstant String value) {
-    try {
-      return parse(value);
-    } catch (ParseException e) {
-      // While `java.time.format.DateTimeParseException` is a more accurate representation of the
-      // failure, this library is currently not JDK8 ready because of Android dependencies.
-      throw new IllegalArgumentException(e);
-    }
-  }
-
   /** Create a Timestamp from the number of seconds elapsed from the epoch. */
   @SuppressWarnings("GoodTime") // this is a legacy conversion API
   public static Timestamp fromSeconds(long seconds) {
@@ -327,27 +304,6 @@ public final class Timestamps {
     return normalizedTimestamp(
         milliseconds / MILLIS_PER_SECOND,
         (int) (milliseconds % MILLIS_PER_SECOND * NANOS_PER_MILLISECOND));
-  }
-
-  /**
-   * Create a Timestamp from a java.util.Date. If the java.util.Date is a java.sql.Timestamp,
-   * full nanonsecond precision is retained.
-   *
-   * @throws IllegalArgumentException if the year is before 1 CE or after 9999 CE
-   */
-  @SuppressWarnings("GoodTime") // this is a legacy conversion API
-  @J2ObjCIncompatible
-  public static Timestamp fromDate(Date date) {
-    if (date instanceof java.sql.Timestamp) {
-      java.sql.Timestamp sqlTimestamp = (java.sql.Timestamp) date;
-      long integralSeconds = sqlTimestamp.getTime() / 1000L; // truncate the fractional seconds
-      return Timestamp.newBuilder()
-          .setSeconds(integralSeconds)
-          .setNanos(sqlTimestamp.getNanos())
-          .build();
-    } else {
-      return fromMillis(date.getTime());
-    }
   }
 
   /**

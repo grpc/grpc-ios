@@ -3,16 +3,13 @@ syntax = "proto3";
 package envoy.config.filter.http.header_to_metadata.v2;
 
 import "udpa/annotations/migrate.proto";
-import "udpa/annotations/status.proto";
 import "validate/validate.proto";
 
 option java_package = "io.envoyproxy.envoy.config.filter.http.header_to_metadata.v2";
 option java_outer_classname = "HeaderToMetadataProto";
 option java_multiple_files = true;
-option go_package = "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/header_to_metadata/v2;header_to_metadatav2";
 option (udpa.annotations.file_migrate).move_to_package =
     "envoy.extensions.filters.http.header_to_metadata.v3";
-option (udpa.annotations.file_status).package_version_status = FROZEN;
 
 // [#protodoc-title: Header-To-Metadata Filter]
 //
@@ -72,8 +69,7 @@ message Config {
   // A Rule defines what metadata to apply when a header is present or missing.
   message Rule {
     // The header that triggers this rule — required.
-    string header = 1
-        [(validate.rules).string = {min_bytes: 1 well_known_regex: HTTP_HEADER_NAME strict: false}];
+    string header = 1 [(validate.rules).string = {min_bytes: 1}];
 
     // If the header is present, apply this metadata KeyValuePair.
     //

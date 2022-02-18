@@ -16,11 +16,6 @@
  *
  */
 
-/**
- * class Timeval
- * @see https://github.com/grpc/grpc/tree/master/src/php/ext/grpc/timeval.c
- */
-
 #include "timeval.h"
 
 #include <ext/spl/spl_exceptions.h>
@@ -55,27 +50,19 @@ zval *grpc_php_wrap_timeval(gpr_timespec wrapped TSRMLS_DC) {
 
 /**
  * Constructs a new instance of the Timeval class
- * @param number $microseconds The number of microseconds in the interval
+ * @param long $microseconds The number of microseconds in the interval
  */
 PHP_METHOD(Timeval, __construct) {
   wrapped_grpc_timeval *timeval =
     PHP_GRPC_GET_WRAPPED_OBJECT(wrapped_grpc_timeval, getThis());
-  int64_t microseconds = 0;
+  php_grpc_long microseconds;
 
-  /* parse $microseconds as long */
-  if (zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET,
-                               ZEND_NUM_ARGS() TSRMLS_CC, "l",
-                               &microseconds) == FAILURE) {
-    double microsecondsDouble = 0.0;
-    /* parse $microseconds as double */
-    if (zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET,
-                              ZEND_NUM_ARGS() TSRMLS_CC, "d",
-                              &microsecondsDouble) == FAILURE) {
-      zend_throw_exception(spl_ce_InvalidArgumentException,
-                           "Timeval expects a long or double", 1 TSRMLS_CC);
-      return;
-    }
-    microseconds = (int64_t)microsecondsDouble;
+  /* "l" == 1 long */
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &microseconds) ==
+      FAILURE) {
+    zend_throw_exception(spl_ce_InvalidArgumentException,
+                         "Timeval expects a long", 1 TSRMLS_CC);
+    return;
   }
   gpr_timespec time = gpr_time_from_micros(microseconds, GPR_TIMESPAN);
   memcpy(&timeval->wrapped, &time, sizeof(gpr_timespec));

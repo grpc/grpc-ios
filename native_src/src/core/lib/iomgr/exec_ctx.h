@@ -21,8 +21,6 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <limits>
-
 #include <grpc/impl/codegen/grpc_types.h>
 #include <grpc/support/atm.h>
 #include <grpc/support/cpu.h>
@@ -58,8 +56,8 @@ typedef struct grpc_combiner grpc_combiner;
 #define GRPC_APP_CALLBACK_EXEC_CTX_FLAG_IS_INTERNAL_THREAD 1
 
 gpr_timespec grpc_millis_to_timespec(grpc_millis millis, gpr_clock_type clock);
-grpc_millis grpc_timespec_to_millis_round_down(gpr_timespec ts);
-grpc_millis grpc_timespec_to_millis_round_up(gpr_timespec ts);
+grpc_millis grpc_timespec_to_millis_round_down(gpr_timespec timespec);
+grpc_millis grpc_timespec_to_millis_round_up(gpr_timespec timespec);
 grpc_millis grpc_cycle_counter_to_millis_round_down(gpr_cycle_counter cycles);
 grpc_millis grpc_cycle_counter_to_millis_round_up(gpr_cycle_counter cycles);
 
@@ -73,10 +71,10 @@ class Combiner;
  *  Generally, to create an exec_ctx instance, add the following line at the top
  *  of the public API entry point or at the start of a thread's work function :
  *
- *  ExecCtx exec_ctx;
+ *  grpc_core::ExecCtx exec_ctx;
  *
  *  Access the created ExecCtx instance using :
- *  ExecCtx::Get()
+ *  grpc_core::ExecCtx::Get()
  *
  *  Specific responsibilities (this may grow in the future):
  *  - track a list of core work that needs to be delayed until the base of the
@@ -90,7 +88,7 @@ class Combiner;
  *  - Instance of this must ALWAYS be constructed on the stack, never
  *    heap allocated.
  *  - Do not pass exec_ctx as a parameter to a function. Always access it using
- *    ExecCtx::Get().
+ *    grpc_core::ExecCtx::Get().
  *  - NOTE: In the future, the convention is likely to change to allow only one
  *          ExecCtx on a thread's stack at the same time. The TODO below
  *          discusses this plan in more detail.
@@ -108,14 +106,14 @@ class ExecCtx {
   /** Default Constructor */
 
   ExecCtx() : flags_(GRPC_EXEC_CTX_FLAG_IS_FINISHED) {
-    Fork::IncExecCtxCount();
+    grpc_core::Fork::IncExecCtxCount();
     Set(this);
   }
 
   /** Parameterised Constructor */
-  explicit ExecCtx(uintptr_t fl) : flags_(fl) {
+  ExecCtx(uintptr_t fl) : flags_(fl) {
     if (!(GRPC_EXEC_CTX_FLAG_IS_INTERNAL_THREAD & flags_)) {
-      Fork::IncExecCtxCount();
+      grpc_core::Fork::IncExecCtxCount();
     }
     Set(this);
   }
@@ -126,7 +124,7 @@ class ExecCtx {
     Flush();
     Set(last_exec_ctx_);
     if (!(GRPC_EXEC_CTX_FLAG_IS_INTERNAL_THREAD & flags_)) {
-      Fork::DecExecCtxCount();
+      grpc_core::Fork::DecExecCtxCount();
     }
   }
 
@@ -134,12 +132,7 @@ class ExecCtx {
   ExecCtx(const ExecCtx&) = delete;
   ExecCtx& operator=(const ExecCtx&) = delete;
 
-  unsigned starting_cpu() {
-    if (starting_cpu_ == std::numeric_limits<unsigned>::max()) {
-      starting_cpu_ = gpr_cpu_current_cpu();
-    }
-    return starting_cpu_;
-  }
+  unsigned starting_cpu() const { return starting_cpu_; }
 
   struct CombinerData {
     /* currently active combiner: updated only via combiner.c */
@@ -216,15 +209,19 @@ class ExecCtx {
   static void GlobalInit(void);
 
   /** Global shutdown for ExecCtx. Called by iomgr. */
-  static void GlobalShutdown(void) {}
+  static void GlobalShutdown(void) { gpr_tls_destroy(&exec_ctx_); }
 
   /** Gets pointer to current exec_ctx. */
-  static ExecCtx* Get() { return exec_ctx_; }
+  static ExecCtx* Get() {
+    return reinterpret_cast<ExecCtx*>(gpr_tls_get(&exec_ctx_));
+  }
 
-  static void Set(ExecCtx* exec_ctx) { exec_ctx_ = exec_ctx; }
+  static void Set(ExecCtx* exec_ctx) {
+    gpr_tls_set(&exec_ctx_, reinterpret_cast<intptr_t>(exec_ctx));
+  }
 
   static void Run(const DebugLocation& location, grpc_closure* closure,
-                  grpc_error_handle error);
+                  grpc_error* error);
 
   static void RunList(const DebugLocation& location, grpc_closure_list* list);
 
@@ -242,12 +239,12 @@ class ExecCtx {
   CombinerData combiner_data_ = {nullptr, nullptr};
   uintptr_t flags_;
 
-  unsigned starting_cpu_ = std::numeric_limits<unsigned>::max();
+  unsigned starting_cpu_ = gpr_cpu_current_cpu();
 
   bool now_is_valid_ = false;
   grpc_millis now_ = 0;
 
-  static GPR_THREAD_LOCAL(ExecCtx*) exec_ctx_;
+  GPR_TLS_CLASS_DECL(exec_ctx_);
   ExecCtx* last_exec_ctx_ = Get();
 };
 
@@ -276,7 +273,7 @@ class ExecCtx {
  *  stacks of core re-entries. Instead, any application callbacks instead should
  *  not be invoked until other core work is done and other application callbacks
  *  have completed. To accomplish this, any application callback should be
- *  enqueued using ApplicationCallbackExecCtx::Enqueue .
+ *  enqueued using grpc_core::ApplicationCallbackExecCtx::Enqueue .
  *
  *  CONVENTIONS:
  *  - Instances of this must ALWAYS be constructed on the stack, never
@@ -289,8 +286,8 @@ class ExecCtx {
  *  Generally, core entry points that may trigger application-level callbacks
  *  will have the following declarations:
  *
- *  ApplicationCallbackExecCtx callback_exec_ctx;
- *  ExecCtx exec_ctx;
+ *  grpc_core::ApplicationCallbackExecCtx callback_exec_ctx;
+ *  grpc_core::ExecCtx exec_ctx;
  *
  *  This ordering is important to make sure that the ApplicationCallbackExecCtx
  *  is destroyed after the ExecCtx (to prevent the re-entry problem described
@@ -304,12 +301,11 @@ class ApplicationCallbackExecCtx {
   ApplicationCallbackExecCtx() { Set(this, flags_); }
 
   /** Parameterised Constructor */
-  explicit ApplicationCallbackExecCtx(uintptr_t fl) : flags_(fl) {
-    Set(this, flags_);
-  }
+  ApplicationCallbackExecCtx(uintptr_t fl) : flags_(fl) { Set(this, flags_); }
 
   ~ApplicationCallbackExecCtx() {
-    if (Get() == this) {
+    if (reinterpret_cast<ApplicationCallbackExecCtx*>(
+            gpr_tls_get(&callback_exec_ctx_)) == this) {
       while (head_ != nullptr) {
         auto* f = head_;
         head_ = f->internal_next;
@@ -318,9 +314,9 @@ class ApplicationCallbackExecCtx {
         }
         (*f->functor_run)(f, f->internal_success);
       }
-      callback_exec_ctx_ = nullptr;
+      gpr_tls_set(&callback_exec_ctx_, reinterpret_cast<intptr_t>(nullptr));
       if (!(GRPC_APP_CALLBACK_EXEC_CTX_FLAG_IS_INTERNAL_THREAD & flags_)) {
-        Fork::DecExecCtxCount();
+        grpc_core::Fork::DecExecCtxCount();
       }
     } else {
       GPR_DEBUG_ASSERT(head_ == nullptr);
@@ -328,24 +324,23 @@ class ApplicationCallbackExecCtx {
     }
   }
 
-  uintptr_t Flags() { return flags_; }
-
-  static ApplicationCallbackExecCtx* Get() { return callback_exec_ctx_; }
-
   static void Set(ApplicationCallbackExecCtx* exec_ctx, uintptr_t flags) {
-    if (Get() == nullptr) {
+    if (reinterpret_cast<ApplicationCallbackExecCtx*>(
+            gpr_tls_get(&callback_exec_ctx_)) == nullptr) {
       if (!(GRPC_APP_CALLBACK_EXEC_CTX_FLAG_IS_INTERNAL_THREAD & flags)) {
-        Fork::IncExecCtxCount();
+        grpc_core::Fork::IncExecCtxCount();
       }
-      callback_exec_ctx_ = exec_ctx;
+      gpr_tls_set(&callback_exec_ctx_, reinterpret_cast<intptr_t>(exec_ctx));
     }
   }
 
-  static void Enqueue(grpc_completion_queue_functor* functor, int is_success) {
+  static void Enqueue(grpc_experimental_completion_queue_functor* functor,
+                      int is_success) {
     functor->internal_success = is_success;
     functor->internal_next = nullptr;
 
-    ApplicationCallbackExecCtx* ctx = Get();
+    auto* ctx = reinterpret_cast<ApplicationCallbackExecCtx*>(
+        gpr_tls_get(&callback_exec_ctx_));
 
     if (ctx->head_ == nullptr) {
       ctx->head_ = functor;
@@ -357,18 +352,16 @@ class ApplicationCallbackExecCtx {
   }
 
   /** Global initialization for ApplicationCallbackExecCtx. Called by init. */
-  static void GlobalInit(void) {}
+  static void GlobalInit(void) { gpr_tls_init(&callback_exec_ctx_); }
 
   /** Global shutdown for ApplicationCallbackExecCtx. Called by init. */
-  static void GlobalShutdown(void) {}
-
-  static bool Available() { return Get() != nullptr; }
+  static void GlobalShutdown(void) { gpr_tls_destroy(&callback_exec_ctx_); }
 
  private:
   uintptr_t flags_{0u};
-  grpc_completion_queue_functor* head_{nullptr};
-  grpc_completion_queue_functor* tail_{nullptr};
-  static GPR_THREAD_LOCAL(ApplicationCallbackExecCtx*) callback_exec_ctx_;
+  grpc_experimental_completion_queue_functor* head_{nullptr};
+  grpc_experimental_completion_queue_functor* tail_{nullptr};
+  GPR_TLS_CLASS_DECL(callback_exec_ctx_);
 };
 }  // namespace grpc_core
 

@@ -29,6 +29,9 @@
 #include "src/core/lib/channel/channelz.h"
 
 namespace grpc_core {
+
+class Subchannel;
+
 namespace channelz {
 
 class SubchannelNode : public BaseNode {
@@ -61,9 +64,9 @@ class SubchannelNode : public BaseNode {
   void RecordCallSucceeded() { call_counter_.RecordCallSucceeded(); }
 
  private:
-  std::atomic<grpc_connectivity_state> connectivity_state_{GRPC_CHANNEL_IDLE};
+  Atomic<grpc_connectivity_state> connectivity_state_{GRPC_CHANNEL_IDLE};
   Mutex socket_mu_;
-  RefCountedPtr<SocketNode> child_socket_ ABSL_GUARDED_BY(socket_mu_);
+  RefCountedPtr<SocketNode> child_socket_;
   std::string target_;
   CallCountingHelper call_counter_;
   ChannelTrace trace_;

@@ -1,3 +1,4 @@
+#!/usr/bin/env python2.7
 # Copyright 2015 gRPC authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +18,10 @@ from __future__ import print_function
 import argparse
 import json
 import uuid
+import httplib2
 
 from apiclient import discovery
 from apiclient.errors import HttpError
-import httplib2
 from oauth2client.client import GoogleCredentials
 
 # 30 days in milliseconds

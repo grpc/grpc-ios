@@ -14,13 +14,12 @@
 # limitations under the License.
 
 import argparse
-import os
-import signal
 import subprocess
-import sys
+import os
 import tempfile
+import sys
 import time
-
+import signal
 import yaml
 
 argp = argparse.ArgumentParser(

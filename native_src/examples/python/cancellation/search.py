@@ -127,7 +127,7 @@ def search(target,
     hashes_computed = 0
     for secret in _all_bytestrings():
         if stop_event.is_set():
-            return
+            raise StopIteration()  # pylint: disable=stop-iteration-return
         candidate_hash = _get_hash(secret)
         distance = _get_substring_hamming_distance(candidate_hash, target)
         if interesting_hamming_distance is not None and distance <= interesting_hamming_distance:
@@ -142,7 +142,7 @@ def search(target,
                 secret=base64.b64encode(secret),
                 hashed_name=candidate_hash,
                 hamming_distance=distance)
-            return
+            raise StopIteration()  # pylint: disable=stop-iteration-return
         hashes_computed += 1
         if hashes_computed == maximum_hashes:
             raise ResourceLimitExceededError()

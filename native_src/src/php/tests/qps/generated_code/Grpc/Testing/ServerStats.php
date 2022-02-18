@@ -18,71 +18,48 @@ class ServerStats extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>double time_elapsed = 1;</code>
      */
-    protected $time_elapsed = 0.0;
+    private $time_elapsed = 0.0;
     /**
      * change in user time (in seconds) used by the server since last reset
      *
      * Generated from protobuf field <code>double time_user = 2;</code>
      */
-    protected $time_user = 0.0;
+    private $time_user = 0.0;
     /**
      * change in server time (in seconds) used by the server process and all
      * threads since last reset
      *
      * Generated from protobuf field <code>double time_system = 3;</code>
      */
-    protected $time_system = 0.0;
+    private $time_system = 0.0;
     /**
      * change in total cpu time of the server (data from proc/stat)
      *
      * Generated from protobuf field <code>uint64 total_cpu_time = 4;</code>
      */
-    protected $total_cpu_time = 0;
+    private $total_cpu_time = 0;
     /**
      * change in idle time of the server (data from proc/stat)
      *
      * Generated from protobuf field <code>uint64 idle_cpu_time = 5;</code>
      */
-    protected $idle_cpu_time = 0;
+    private $idle_cpu_time = 0;
     /**
      * Number of polls called inside completion queue
      *
      * Generated from protobuf field <code>uint64 cq_poll_count = 6;</code>
      */
-    protected $cq_poll_count = 0;
+    private $cq_poll_count = 0;
     /**
      * Core library stats
      *
      * Generated from protobuf field <code>.grpc.core.Stats core_stats = 7;</code>
      */
-    protected $core_stats = null;
+    private $core_stats = null;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type float $time_elapsed
-     *           wall clock time change in seconds since last reset
-     *     @type float $time_user
-     *           change in user time (in seconds) used by the server since last reset
-     *     @type float $time_system
-     *           change in server time (in seconds) used by the server process and all
-     *           threads since last reset
-     *     @type int|string $total_cpu_time
-     *           change in total cpu time of the server (data from proc/stat)
-     *     @type int|string $idle_cpu_time
-     *           change in idle time of the server (data from proc/stat)
-     *     @type int|string $cq_poll_count
-     *           Number of polls called inside completion queue
-     *     @type \Grpc\Core\Stats $core_stats
-     *           Core library stats
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Stats::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

@@ -16,10 +16,21 @@
 
 setlocal
 
+set ARCHITECTURE=%1
+
 @rem enter repo root
 cd /d %~dp0\..\..\..
 
-cd src\csharp
+mkdir cmake
+cd cmake
+mkdir build
+cd build
+mkdir %ARCHITECTURE%
+cd %ARCHITECTURE%
+
+cmake -G "Visual Studio 14 2015" -A %ARCHITECTURE% -DgRPC_BUILD_TESTS=OFF -DgRPC_MSVC_STATIC_RUNTIME=ON ../../.. || goto :error
+
+cd ..\..\..\src\csharp
 
 dotnet restore Grpc.sln || goto :error
 

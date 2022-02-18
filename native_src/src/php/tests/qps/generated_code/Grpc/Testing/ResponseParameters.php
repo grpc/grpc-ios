@@ -20,14 +20,14 @@ class ResponseParameters extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>int32 size = 1;</code>
      */
-    protected $size = 0;
+    private $size = 0;
     /**
      * Desired interval between consecutive responses in the response stream in
      * microseconds.
      *
      * Generated from protobuf field <code>int32 interval_us = 2;</code>
      */
-    protected $interval_us = 0;
+    private $interval_us = 0;
     /**
      * Whether to request the server to compress the response. This field is
      * "nullable" in order to interoperate seamlessly with clients not able to
@@ -36,29 +36,11 @@ class ResponseParameters extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.grpc.testing.BoolValue compressed = 3;</code>
      */
-    protected $compressed = null;
+    private $compressed = null;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type int $size
-     *           Desired payload sizes in responses from the server.
-     *     @type int $interval_us
-     *           Desired interval between consecutive responses in the response stream in
-     *           microseconds.
-     *     @type \Grpc\Testing\BoolValue $compressed
-     *           Whether to request the server to compress the response. This field is
-     *           "nullable" in order to interoperate seamlessly with clients not able to
-     *           implement the full compression tests by introspecting the call to verify
-     *           the response's compression status.
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Messages::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

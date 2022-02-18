@@ -1,13 +1,10 @@
 package cc
 
 const declTpl = `
-{{ if not (ignored .) -}}
 extern bool Validate(const {{ class . }}& m, pgv::ValidationMsg* err);
-{{- end -}}
 `
 
 const msgTpl = `
-{{ if not (ignored .) -}}
 {{ if disabled . -}}
 	{{ cmt "Validate is disabled for " (class .) ". This method will always return true." }}
 {{- else -}}
@@ -39,26 +36,12 @@ const msgTpl = `
 			{{- end }}
 		};
 	{{ end }}{{ end }}
-	{{ if has .Rules.Items.GetEnum "In" }} {{ if .Rules.Items.GetEnum.In }}
-	const std::set<{{ inType .Field .Rules.Items.GetEnum.In }}> {{ lookup .Field "InLookup" }} = {
-			{{- range .Rules.Items.GetEnum.In }}
-				{{ inKey $f . }},
-			{{- end }}
-		};
-	{{ end }}{{ end }}
 	{{ end }}{{ end }}
 
 	{{ if has .Rules "Items"}}{{ if .Rules.Items }}
 	{{ if has .Rules.Items.GetString_ "NotIn" }} {{ if .Rules.Items.GetString_.NotIn }}
 	const std::set<string> {{ lookup .Field "NotInLookup" }} = {
 			{{- range .Rules.Items.GetString_.NotIn }}
-				{{ inKey $f . }},
-			{{- end }}
-		};
-	{{ end }}{{ end }}
-	{{ if has .Rules.Items.GetEnum "NotIn" }} {{ if .Rules.Items.GetEnum.NotIn }}
-	const std::set<{{ inType .Field .Rules.Items.GetEnum.NotIn }}> {{ lookup .Field "NotInLookup" }} = {
-			{{- range .Rules.Items.GetEnum.NotIn }}
 				{{ inKey $f . }},
 			{{- end }}
 		};
@@ -120,5 +103,4 @@ bool Validate(const {{ class . }}& m, pgv::ValidationMsg* err) {
 	return true;
 {{ end -}}
 }
-{{- end -}}
 `

@@ -24,6 +24,7 @@
 
 #include <grpc/compression.h>
 #include <grpc/impl/codegen/atm.h>
+
 #include <grpcpp/security/server_credentials.h>
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
@@ -36,14 +37,14 @@ std::shared_ptr<ServerCredentials> CreateInteropServerCredentials();
 
 class InteropServerContextInspector {
  public:
-  explicit InteropServerContextInspector(const ::grpc::ServerContext& context);
+  InteropServerContextInspector(const ::grpc::ServerContext& context);
 
   // Inspector methods, able to peek inside ServerContext, follow.
   std::shared_ptr<const AuthContext> GetAuthContext() const;
   bool IsCancelled() const;
   grpc_compression_algorithm GetCallCompressionAlgorithm() const;
   uint32_t GetEncodingsAcceptedByClient() const;
-  bool WasCompressed() const;
+  uint32_t GetMessageFlags() const;
 
  private:
   const ::grpc::ServerContext& context_;

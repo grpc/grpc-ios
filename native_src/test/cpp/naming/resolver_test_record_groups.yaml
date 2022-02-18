@@ -3,7 +3,6 @@ resolver_component_tests:
 # Tests for which we enable SRV queries
 - expected_addrs:
   - {address: '5.5.5.5:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -16,7 +15,6 @@ resolver_component_tests:
     - {TTL: '2100', data: 5.5.5.5, type: A}
 - expected_addrs:
   - {address: '1.2.3.4:1234', is_balancer: true}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -33,7 +31,6 @@ resolver_component_tests:
   - {address: '1.2.3.5:1234', is_balancer: true}
   - {address: '1.2.3.6:1234', is_balancer: true}
   - {address: '1.2.3.7:1234', is_balancer: true}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -50,7 +47,6 @@ resolver_component_tests:
     - {TTL: '2100', data: 1.2.3.7, type: A}
 - expected_addrs:
   - {address: '[2607:f8b0:400a:801::1001]:1234', is_balancer: true}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -67,7 +63,6 @@ resolver_component_tests:
   - {address: '[2607:f8b0:400a:801::1002]:1234', is_balancer: true}
   - {address: '[2607:f8b0:400a:801::1003]:1234', is_balancer: true}
   - {address: '[2607:f8b0:400a:801::1004]:1234', is_balancer: true}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -84,7 +79,6 @@ resolver_component_tests:
     - {TTL: '2100', data: '2607:f8b0:400a:801::1004', type: AAAA}
 - expected_addrs:
   - {address: '1.2.3.4:1234', is_balancer: true}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: '{"loadBalancingPolicy":"round_robin","methodConfig":[{"name":[{"method":"Foo","service":"SimpleService"}],"waitForReady":true}]}'
   expected_service_config_error: null
   expected_lb_policy: round_robin
@@ -102,7 +96,6 @@ resolver_component_tests:
       type: TXT}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: '{"loadBalancingPolicy":"round_robin","methodConfig":[{"name":[{"method":"Foo","service":"NoSrvSimpleService"}],"waitForReady":true}]}'
   expected_service_config_error: null
   expected_lb_policy: round_robin
@@ -118,7 +111,6 @@ resolver_component_tests:
       type: TXT}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -134,7 +126,6 @@ resolver_component_tests:
       type: TXT}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -150,7 +141,6 @@ resolver_component_tests:
       type: TXT}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: '{"loadBalancingPolicy":"round_robin","methodConfig":[{"name":[{"method":"Foo","service":"CppService"}],"waitForReady":true}]}'
   expected_service_config_error: null
   expected_lb_policy: round_robin
@@ -166,7 +156,6 @@ resolver_component_tests:
       type: TXT}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: '{"loadBalancingPolicy":"round_robin","methodConfig":[{"name":[{"method":"Foo","service":"AlwaysPickedService"}],"waitForReady":true}]}'
   expected_service_config_error: null
   expected_lb_policy: round_robin
@@ -183,7 +172,6 @@ resolver_component_tests:
 - expected_addrs:
   - {address: '1.2.3.4:1234', is_balancer: true}
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -201,7 +189,6 @@ resolver_component_tests:
 - expected_addrs:
   - {address: '[2607:f8b0:400a:801::1002]:1234', is_balancer: true}
   - {address: '[2607:f8b0:400a:801::1002]:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -218,8 +205,7 @@ resolver_component_tests:
     - {TTL: '2100', data: '2607:f8b0:400a:801::1002', type: AAAA}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
-  expected_chosen_service_config: '{"loadBalancingPolicy":"round_robin","methodConfig":[{"name":[{"method":"Foo","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwo","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooThree","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooFour","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooFive","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooSix","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooSeven","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooEight","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooNine","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTen","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooEleven","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwelve","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooThirteen","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooFourteen","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooFifteen","service":"SimpleService"}],"waitForReady":true}]}'
+  expected_chosen_service_config: '{"loadBalancingPolicy":"round_robin","methodConfig":[{"name":[{"method":"Foo","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwo","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooThree","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooFour","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooFive","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooSix","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooSeven","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooEight","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooNine","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTen","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooEleven","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwelve","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwelve","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwelve","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwelve","service":"SimpleService"}],"waitForReady":true}]}'
   expected_service_config_error: null
   expected_lb_policy: null
   enable_srv_queries: true
@@ -230,12 +216,11 @@ resolver_component_tests:
     ipv4-config-causing-fallback-to-tcp:
     - {TTL: '2100', data: 1.2.3.4, type: A}
     _grpc_config.ipv4-config-causing-fallback-to-tcp:
-    - {TTL: '2100', data: 'grpc_config=[{"serviceConfig":{"loadBalancingPolicy":"round_robin","methodConfig":[{"name":[{"method":"Foo","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwo","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooThree","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooFour","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooFive","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooSix","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooSeven","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooEight","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooNine","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTen","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooEleven","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwelve","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooThirteen","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooFourteen","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooFifteen","service":"SimpleService"}],"waitForReady":true}]}}]',
+    - {TTL: '2100', data: 'grpc_config=[{"serviceConfig":{"loadBalancingPolicy":"round_robin","methodConfig":[{"name":[{"method":"Foo","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwo","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooThree","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooFour","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooFive","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooSix","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooSeven","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooEight","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooNine","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTen","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooEleven","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwelve","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwelve","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwelve","service":"SimpleService"}],"waitForReady":true},{"name":[{"method":"FooTwelve","service":"SimpleService"}],"waitForReady":true}]}}]',
       type: TXT}
 # Tests for which we don't enable SRV queries
 - expected_addrs:
   - {address: '2.3.4.5:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -254,7 +239,6 @@ resolver_component_tests:
   - {address: '9.2.3.5:443', is_balancer: false}
   - {address: '9.2.3.6:443', is_balancer: false}
   - {address: '9.2.3.7:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -275,7 +259,6 @@ resolver_component_tests:
     - {TTL: '2100', data: 9.2.3.7, type: A}
 - expected_addrs:
   - {address: '[2600::1001]:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -294,7 +277,6 @@ resolver_component_tests:
   - {address: '[2600::1002]:443', is_balancer: false}
   - {address: '[2600::1003]:443', is_balancer: false}
   - {address: '[2600::1004]:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -315,7 +297,6 @@ resolver_component_tests:
     - {TTL: '2100', data: '2600::1004', type: AAAA}
 - expected_addrs:
   - {address: '5.5.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: '{"loadBalancingPolicy":"round_robin","methodConfig":[{"name":[{"method":"Foo","service":"SimpleService"}],"waitForReady":true}]}'
   expected_service_config_error: null
   expected_lb_policy: round_robin
@@ -335,7 +316,6 @@ resolver_component_tests:
       type: TXT}
 - expected_addrs:
   - {address: '1.2.3.4:1234', is_balancer: true}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -353,7 +333,6 @@ resolver_component_tests:
       type: TXT}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -369,7 +348,6 @@ resolver_component_tests:
       type: TXT}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -385,7 +363,6 @@ resolver_component_tests:
       type: TXT}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: 'JSON parse error'
   expected_lb_policy: null
@@ -401,7 +378,6 @@ resolver_component_tests:
       type: TXT}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: 'field:clientLanguage error:should be of type array'
   expected_lb_policy: null
@@ -417,7 +393,6 @@ resolver_component_tests:
       type: TXT}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: 'field:percentage error:should be of type number'
   expected_lb_policy: null
@@ -433,7 +408,6 @@ resolver_component_tests:
       type: TXT}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: 'field:waitForReady error:Type should be true/false'
   expected_lb_policy: null
@@ -446,11 +420,10 @@ resolver_component_tests:
     - {TTL: '2100', data: 1.2.3.4, type: A}
     _grpc_config.ipv4-svc_cfg_bad_wait_for_ready:
     - {TTL: '2100', data: 'grpc_config=[{"serviceConfig":{"methodConfig":[{"name":[{"method":"Foo","service":"CppService"}],"waitForReady":"true"}]}}]',
-      type: TXT}
+      type: TXT}      
 # Tests for which we also exercise the resolver's ability to skip past a broken DNS server in its nameserver list
 - expected_addrs:
   - {address: '5.5.5.5:443', is_balancer: false}
-  do_ordered_address_comparison: false
   expected_chosen_service_config: null
   expected_service_config_error: null
   expected_lb_policy: null
@@ -463,8 +436,7 @@ resolver_component_tests:
     - {TTL: '2100', data: 5.5.5.5, type: A}
 - expected_addrs:
   - {address: '1.2.3.4:443', is_balancer: false}
-  do_ordered_address_comparison: false
-  expected_chosen_service_config: null
+  expected_chosen_service_config: '{"loadBalancingPolicy":["round_robin"]}'
   expected_service_config_error: 'field:loadBalancingPolicy error:type should be string'
   expected_lb_policy: null
   enable_srv_queries: true
@@ -477,26 +449,3 @@ resolver_component_tests:
     _grpc_config.ipv4-config-causing-fallback-to-tcp-inject-broken-nameservers:
     - {TTL: '2100', data: 'grpc_config=[{"serviceConfig":{"loadBalancingPolicy":["round_robin"]}}]',
       type: TXT}
-# This tests that gRPCLB addresses are sorted properly per RFC 6724. Note
-# that the only assumption that this makes is that the machine that the
-# test runs on has a functioning IPv6 loopback (which by the RFC should
-# always be preferred). Note too that the ordering of the AAAA records
-# listed under the dualstack-balancer name is important in order to
-# actually test this sorting.
-- expected_addrs:
-  - {address: '[::1]:1234', is_balancer: true}
-  - {address: '[2002::1111]:1234', is_balancer: true}
-  do_ordered_address_comparison: true
-  expected_chosen_service_config: null
-  expected_service_config_error: null
-  expected_lb_policy: null
-  enable_srv_queries: true
-  enable_txt_queries: true
-  inject_broken_nameserver_list: false
-  record_to_resolve: load-balanced-name-with-dualstack-balancer
-  records:
-    _grpclb._tcp.load-balanced-name-with-dualstack-balancer:
-    - {TTL: '2100', data: 0 0 1234 dualstack-balancer, type: SRV}
-    dualstack-balancer:
-    - {TTL: '2100', data: '2002::1111', type: AAAA}
-    - {TTL: '2100', data: '::1', type: AAAA}

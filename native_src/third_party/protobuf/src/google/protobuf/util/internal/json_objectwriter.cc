@@ -31,7 +31,6 @@
 #include <google/protobuf/util/internal/json_objectwriter.h>
 
 #include <cmath>
-#include <cstdint>
 #include <limits>
 
 #include <google/protobuf/stubs/casts.h>
@@ -87,17 +86,17 @@ JsonObjectWriter* JsonObjectWriter::RenderBool(StringPiece name,
 }
 
 JsonObjectWriter* JsonObjectWriter::RenderInt32(StringPiece name,
-                                                int32_t value) {
+                                                int32 value) {
   return RenderSimple(name, StrCat(value));
 }
 
 JsonObjectWriter* JsonObjectWriter::RenderUint32(StringPiece name,
-                                                 uint32_t value) {
+                                                 uint32 value) {
   return RenderSimple(name, StrCat(value));
 }
 
 JsonObjectWriter* JsonObjectWriter::RenderInt64(StringPiece name,
-                                                int64_t value) {
+                                                int64 value) {
   WritePrefix(name);
   WriteChar('"');
   WriteRawString(StrCat(value));
@@ -106,7 +105,7 @@ JsonObjectWriter* JsonObjectWriter::RenderInt64(StringPiece name,
 }
 
 JsonObjectWriter* JsonObjectWriter::RenderUint64(StringPiece name,
-                                                 uint64_t value) {
+                                                 uint64 value) {
   WritePrefix(name);
   WriteChar('"');
   WriteRawString(StrCat(value));
@@ -149,7 +148,7 @@ JsonObjectWriter* JsonObjectWriter::RenderBytes(StringPiece name,
   std::string base64;
 
   if (use_websafe_base64_for_bytes_)
-    WebSafeBase64EscapeWithPadding(std::string(value), &base64);
+    WebSafeBase64EscapeWithPadding(value.ToString(), &base64);
   else
     Base64Escape(value, &base64);
 

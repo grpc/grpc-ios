@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//bazel:grpc_build_system.bzl", "grpc_cc_library", "grpc_cc_test", "grpc_package")
+load("//bazel:grpc_build_system.bzl", "grpc_cc_binary", "grpc_cc_library", "grpc_cc_test", "grpc_package")
 
-licenses(["notice"])
+licenses(["notice"])  # Apache v2
 
 grpc_package(
     name = "test/core/util",
@@ -22,11 +22,15 @@ grpc_package(
 )
 
 grpc_cc_library(
-    name = "grpc_suppressions",
-    data = [
-        "lsan_suppressions.txt",
-        "tsan_suppressions.txt",
-        "ubsan_suppressions.txt",
+    name = "grpc_debugger_macros",
+    srcs = [
+        "debugger_macros.cc",
+    ],
+    hdrs = [
+        "debugger_macros.h",
+    ],
+    deps = [
+        "//:grpc_common",
     ],
 )
 
@@ -45,55 +49,50 @@ grpc_cc_library(
         "port_isolated_runtime_environment.cc",
         "port_server_client.cc",
         "reconnect_server.cc",
-        "resolve_localhost_ip46.cc",
         "slice_splitter.cc",
         "subprocess_posix.cc",
         "subprocess_windows.cc",
         "test_config.cc",
         "test_tcp_server.cc",
         "tracer_util.cc",
+        "trickle_endpoint.cc",
     ],
     hdrs = [
         "cmdline.h",
-        "evaluate_args_test_util.h",
         "fuzzer_util.h",
         "grpc_profiler.h",
         "histogram.h",
         "memory_counters.h",
-        "mock_authorization_endpoint.h",
         "mock_endpoint.h",
         "parse_hexstring.h",
         "passthru_endpoint.h",
         "port.h",
         "port_server_client.h",
         "reconnect_server.h",
-        "resolve_localhost_ip46.h",
         "slice_splitter.h",
         "subprocess.h",
         "test_config.h",
         "test_tcp_server.h",
         "tracer_util.h",
+        "trickle_endpoint.h",
     ],
-    external_deps = [
-        "absl/debugging:failure_signal_handler",
-        "absl/debugging:symbolize",
-        "absl/strings:str_format",
+    data = [
+        "lsan_suppressions.txt",
+        "tsan_suppressions.txt",
+        "ubsan_suppressions.txt",
     ],
     language = "C++",
     deps = [
-        ":build",
-        ":grpc_suppressions",
-        ":stack_tracer",
+        ":grpc_debugger_macros",
         "//:gpr",
-        "//:grpc_base",
         "//:grpc_common",
     ],
 )
 
 grpc_cc_library(
     name = "grpc_test_util",
-    srcs = ["tls_utils.cc"],
-    hdrs = ["tls_utils.h"],
+    srcs = [],
+    hdrs = [],
     language = "C++",
     deps = [
         ":grpc_test_util_base",
@@ -128,10 +127,9 @@ grpc_cc_library(
     testonly = 1,
     srcs = ["fuzzer_corpus_test.cc"],
     external_deps = [
-        "absl/flags:flag",
         "gtest",
+        "gflags",
     ],
-    linkstatic = True,
     tags = ["no_windows"],
     deps = [
         ":grpc_test_util",
@@ -162,43 +160,6 @@ sh_library(
 )
 
 grpc_cc_library(
-    name = "stack_tracer",
-    srcs = [
-        "stack_tracer.cc",
-    ],
-    hdrs = [
-        "stack_tracer.h",
-    ],
-    external_deps = [
-        "absl/debugging:stacktrace",
-        "absl/debugging:symbolize",
-    ],
-    language = "C++",
-    deps = [
-        "//:grpc_common",
-    ],
-)
-
-grpc_cc_test(
-    name = "stack_tracer_test",
-    srcs = [
-        "stack_tracer_test.cc",
-    ],
-    external_deps = [
-        "absl/debugging:symbolize",
-        "gtest",
-    ],
-    language = "C++",
-    # TODO(https://github.com/grpc/grpc/issues/24627): Disable this on Windows
-    tags = ["no_windows"],
-    uses_polling = False,
-    deps = [
-        ":grpc_test_util",
-        ":stack_tracer",
-    ],
-)
-
-grpc_cc_library(
     name = "test_lb_policies",
     testonly = 1,
     srcs = ["test_lb_policies.cc"],
@@ -206,26 +167,4 @@ grpc_cc_library(
     deps = [
         "//:grpc",
     ],
-)
-
-grpc_cc_library(
-    name = "fake_udp_and_tcp_server",
-    srcs = ["fake_udp_and_tcp_server.cc"],
-    hdrs = ["fake_udp_and_tcp_server.h"],
-    external_deps = [
-        "absl/strings",
-        "absl/strings:str_format",
-    ],
-    language = "C++",
-    deps = [
-        ":grpc_test_util",
-        "//:gpr",
-        "//:grpc",
-    ],
-)
-
-grpc_cc_library(
-    name = "build",
-    srcs = ["build.cc"],
-    hdrs = ["build.h"],
 )

@@ -43,8 +43,6 @@ namespace protobuf {
 namespace compiler {
 namespace cpp {
 
-class MessageSCCAnalyzer;
-
 // Provides an abstract interface to optimize message layout
 // by rearranging the fields of a message.
 class MessageLayoutHelper {
@@ -52,8 +50,7 @@ class MessageLayoutHelper {
   virtual ~MessageLayoutHelper() {}
 
   virtual void OptimizeLayout(std::vector<const FieldDescriptor*>* fields,
-                              const Options& options,
-                              MessageSCCAnalyzer* scc_analyzer) = 0;
+                              const Options& options) = 0;
 };
 
 }  // namespace cpp

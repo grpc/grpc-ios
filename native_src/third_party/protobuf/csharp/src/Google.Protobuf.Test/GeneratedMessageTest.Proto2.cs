@@ -261,18 +261,6 @@ namespace Google.Protobuf
             Assert.True(message.IsInitialized());
         }
 
-        /// <summary>
-        /// Code was accidentally left in message parser that threw exceptions when missing required fields after parsing.
-        /// We've decided to not throw exceptions on missing fields, instead leaving it up to the consumer how they
-        /// want to check and handle missing fields.
-        /// </summary>
-        [Test]
-        public void RequiredFieldsNoThrow()
-        {
-            Assert.DoesNotThrow(() => MessageParsingHelpers.AssertReadingMessage(TestRequired.Parser, new byte[0], m => { }));
-            Assert.DoesNotThrow(() => MessageParsingHelpers.AssertReadingMessage(TestRequired.Parser as MessageParser, new byte[0], m => { }));
-        }
-
         [Test]
         public void RequiredFieldsInExtensions()
         {
@@ -344,9 +332,9 @@ namespace Google.Protobuf
                 }
             };
 
-            MessageParsingHelpers.AssertWritingMessage(message);
-
-            MessageParsingHelpers.AssertRoundtrip(Proto2.TestAllTypes.Parser, message);
+            byte[] bytes = message.ToByteArray();
+            TestAllTypes parsed = Proto2.TestAllTypes.Parser.ParseFrom(bytes);
+            Assert.AreEqual(message, parsed);
         }
 
         [Test]
@@ -361,11 +349,9 @@ namespace Google.Protobuf
                 new RepeatedGroup_extension { A = 30 }
             });
 
-            MessageParsingHelpers.AssertWritingMessage(message);
-
-            MessageParsingHelpers.AssertRoundtrip(
-                TestAllExtensions.Parser.WithExtensionRegistry(new ExtensionRegistry() { UnittestExtensions.OptionalGroupExtension, UnittestExtensions.RepeatedGroupExtension }),
-                message);
+            byte[] bytes = message.ToByteArray();
+            TestAllExtensions extendable_parsed = TestAllExtensions.Parser.WithExtensionRegistry(new ExtensionRegistry() { UnittestExtensions.OptionalGroupExtension, UnittestExtensions.RepeatedGroupExtension }).ParseFrom(bytes);
+            Assert.AreEqual(message, extendable_parsed);
         }
 
         [Test]
@@ -374,24 +360,9 @@ namespace Google.Protobuf
             var message = new TestGroupExtension();
             message.SetExtension(TestNestedExtension.Extensions.OptionalGroupExtension, new TestNestedExtension.Types.OptionalGroup_extension { A = 10 });
 
-            MessageParsingHelpers.AssertWritingMessage(message);
-            
-            MessageParsingHelpers.AssertRoundtrip(
-                TestGroupExtension.Parser.WithExtensionRegistry(new ExtensionRegistry() { TestNestedExtension.Extensions.OptionalGroupExtension }),
-                message);
-        }
-
-        [Test]
-        public void RoundTrip_ParseUsingCodedInput()
-        {
-            var message = new TestAllExtensions();
-            message.SetExtension(UnittestExtensions.OptionalBoolExtension, true);
             byte[] bytes = message.ToByteArray();
-            using (CodedInputStream input = new CodedInputStream(bytes))
-            {
-                var parsed = TestAllExtensions.Parser.WithExtensionRegistry(new ExtensionRegistry() { UnittestExtensions.OptionalBoolExtension }).ParseFrom(input);
-                Assert.AreEqual(message, parsed);
-            }
+            TestGroupExtension extendable_parsed = TestGroupExtension.Parser.WithExtensionRegistry(new ExtensionRegistry() { TestNestedExtension.Extensions.OptionalGroupExtension }).ParseFrom(bytes);
+            Assert.AreEqual(message, extendable_parsed);
         }
     }
 }

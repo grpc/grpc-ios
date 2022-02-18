@@ -24,9 +24,7 @@ absl_cc_library(
     "internal/hash.h"
   COPTS
     ${ABSL_DEFAULT_COPTS}
-    DEPS
-    absl::city
-    absl::config
+  DEPS
     absl::core_headers
     absl::endian
     absl::fixed_array
@@ -36,7 +34,7 @@ absl_cc_library(
     absl::optional
     absl::variant
     absl::utility
-    absl::low_level_hash
+    absl::city
   PUBLIC
 )
 
@@ -52,7 +50,7 @@ absl_cc_library(
     absl::meta
     absl::strings
     absl::variant
-    GTest::gmock
+    gmock
   TESTONLY
 )
 
@@ -64,7 +62,6 @@ absl_cc_test(
   COPTS
     ${ABSL_TEST_COPTS}
   DEPS
-    absl::cord_test_helpers
     absl::hash
     absl::hash_testing
     absl::core_headers
@@ -72,7 +69,7 @@ absl_cc_test(
     absl::spy_hash_state
     absl::meta
     absl::int128
-    GTest::gmock_main
+    gmock_main
 )
 
 absl_cc_library(
@@ -113,34 +110,6 @@ absl_cc_test(
     ${ABSL_TEST_COPTS}
   DEPS
     absl::city
-    GTest::gmock_main
+    gmock_main
 )
 
-absl_cc_library(
-  NAME
-    low_level_hash
-  HDRS
-    "internal/low_level_hash.h"
-  SRCS
-    "internal/low_level_hash.cc"
-  COPTS
-    ${ABSL_DEFAULT_COPTS}
-  DEPS
-    absl::bits
-    absl::config
-    absl::endian
-    absl::int128
-)
-
-absl_cc_test(
-  NAME
-    low_level_hash_test
-  SRCS
-    "internal/low_level_hash_test.cc"
-  COPTS
-    ${ABSL_TEST_COPTS}
-  DEPS
-    absl::low_level_hash
-    absl::strings
-    GTest::gmock_main
-)

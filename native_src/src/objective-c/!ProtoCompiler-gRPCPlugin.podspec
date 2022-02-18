@@ -42,7 +42,7 @@ Pod::Spec.new do |s|
   # exclamation mark ensures that other "regular" pods will be able to find it as it'll be installed
   # before them.
   s.name     = '!ProtoCompiler-gRPCPlugin'
-  v = '1.45.0-dev'
+  v = '1.28.0'
   s.version  = v
   s.summary  = 'The gRPC ProtoC plugin generates Objective-C files from .proto services.'
   s.description = <<-DESC
@@ -102,10 +102,10 @@ Pod::Spec.new do |s|
   s.preserve_paths = plugin
 
   # Restrict the protoc version to the one supported by this plugin.
-  s.dependency '!ProtoCompiler', '3.19.4'
+  s.dependency '!ProtoCompiler', '3.11.2'
   # For the Protobuf dependency not to complain:
-  s.ios.deployment_target = '9.0'
-  s.osx.deployment_target = '10.10'
+  s.ios.deployment_target = '7.0'
+  s.osx.deployment_target = '10.9'
   s.tvos.deployment_target = '10.0'
 
   # watchOS is disabled due to #20258.
@@ -121,7 +121,6 @@ Pod::Spec.new do |s|
   # present in this pod's directory. We use that knowledge to check for the existence of the file
   # and, if absent, compile the plugin from the local sources.
   s.prepare_command = <<-CMD
-    set -e
     if [ ! -f #{plugin} ]; then
       #{bazel} build //src/compiler:grpc_objective_c_plugin
     fi

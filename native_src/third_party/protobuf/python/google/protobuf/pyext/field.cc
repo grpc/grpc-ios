@@ -34,6 +34,10 @@
 #include <google/protobuf/pyext/descriptor.h>
 #include <google/protobuf/pyext/message.h>
 
+#if PY_MAJOR_VERSION >= 3
+  #define PyString_FromFormat PyUnicode_FromFormat
+#endif
+
 namespace google {
 namespace protobuf {
 namespace python {
@@ -41,8 +45,8 @@ namespace python {
 namespace field {
 
 static PyObject* Repr(PyMessageFieldProperty* self) {
-  return PyUnicode_FromFormat("<field property '%s'>",
-                              self->field_descriptor->full_name().c_str());
+  return PyString_FromFormat("<field property '%s'>",
+                             self->field_descriptor->full_name().c_str());
 }
 
 static PyObject* DescrGet(PyMessageFieldProperty* self, PyObject* obj,
@@ -70,8 +74,8 @@ static PyObject* GetDescriptor(PyMessageFieldProperty* self, void* closure) {
 }
 
 static PyObject* GetDoc(PyMessageFieldProperty* self, void* closure) {
-  return PyUnicode_FromFormat("Field %s",
-                              self->field_descriptor->full_name().c_str());
+  return PyString_FromFormat("Field %s",
+                             self->field_descriptor->full_name().c_str());
 }
 
 static PyGetSetDef Getters[] = {

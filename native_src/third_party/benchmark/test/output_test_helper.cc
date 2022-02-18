@@ -10,7 +10,6 @@
 
 #include "../src/benchmark_api_internal.h"
 #include "../src/check.h"  // NOTE: check.h is for internal use only!
-#include "../src/log.h"    // NOTE: log.h is for internal use only
 #include "../src/re.h"     // NOTE: re.h is for internal use only
 #include "output_test.h"
 
@@ -41,20 +40,14 @@ SubMap& GetSubstitutions() {
   // clang-format off
   static std::string safe_dec_re = "[0-9]*[.]?[0-9]+([eE][-+][0-9]+)?";
   static std::string time_re = "([0-9]+[.])?[0-9]+";
-  static std::string percentage_re = "[0-9]+[.][0-9]{2}";
   static SubMap map = {
       {"%float", "[0-9]*[.]?[0-9]+([eE][-+][0-9]+)?"},
       // human-readable float
       {"%hrfloat", "[0-9]*[.]?[0-9]+([eE][-+][0-9]+)?[kMGTPEZYmunpfazy]?"},
-      {"%percentage", percentage_re},
       {"%int", "[ ]*[0-9]+"},
       {" %s ", "[ ]+"},
       {"%time", "[ ]*" + time_re + "[ ]+ns"},
       {"%console_report", "[ ]*" + time_re + "[ ]+ns [ ]*" + time_re + "[ ]+ns [ ]*[0-9]+"},
-      {"%console_percentage_report", "[ ]*" + percentage_re + "[ ]+% [ ]*" + percentage_re + "[ ]+% [ ]*[0-9]+"},
-      {"%console_us_report", "[ ]*" + time_re + "[ ]+us [ ]*" + time_re + "[ ]+us [ ]*[0-9]+"},
-      {"%console_ms_report", "[ ]*" + time_re + "[ ]+ms [ ]*" + time_re + "[ ]+ms [ ]*[0-9]+"},
-      {"%console_s_report", "[ ]*" + time_re + "[ ]+s [ ]*" + time_re + "[ ]+s [ ]*[0-9]+"},
       {"%console_time_only_report", "[ ]*" + time_re + "[ ]+ns [ ]*" + time_re + "[ ]+ns"},
       {"%console_us_report", "[ ]*" + time_re + "[ ]+us [ ]*" + time_re + "[ ]+us [ ]*[0-9]+"},
       {"%console_us_time_only_report", "[ ]*" + time_re + "[ ]+us [ ]*" + time_re + "[ ]+us"},
@@ -63,8 +56,6 @@ SubMap& GetSubstitutions() {
        "items_per_second,label,error_occurred,error_message"},
       {"%csv_report", "[0-9]+," + safe_dec_re + "," + safe_dec_re + ",ns,,,,,"},
       {"%csv_us_report", "[0-9]+," + safe_dec_re + "," + safe_dec_re + ",us,,,,,"},
-      {"%csv_ms_report", "[0-9]+," + safe_dec_re + "," + safe_dec_re + ",ms,,,,,"},
-      {"%csv_s_report", "[0-9]+," + safe_dec_re + "," + safe_dec_re + ",s,,,,,"},
       {"%csv_bytes_report",
        "[0-9]+," + safe_dec_re + "," + safe_dec_re + ",ns," + safe_dec_re + ",,,,"},
       {"%csv_items_report",
@@ -98,27 +89,27 @@ void CheckCase(std::stringstream& remaining_output, TestCase const& TC,
   bool on_first = true;
   std::string line;
   while (remaining_output.eof() == false) {
-    BM_CHECK(remaining_output.good());
+    CHECK(remaining_output.good());
     std::getline(remaining_output, line);
     if (on_first) {
       first_line = line;
       on_first = false;
     }
     for (const auto& NC : not_checks) {
-      BM_CHECK(!NC.regex->Match(line))
+      CHECK(!NC.regex->Match(line))
           << "Unexpected match for line \"" << line << "\" for MR_Not regex \""
           << NC.regex_str << "\""
           << "\n    actual regex string \"" << TC.substituted_regex << "\""
           << "\n    started matching near: " << first_line;
     }
     if (TC.regex->Match(line)) return;
-    BM_CHECK(TC.match_rule != MR_Next)
+    CHECK(TC.match_rule != MR_Next)
         << "Expected line \"" << line << "\" to match regex \"" << TC.regex_str
         << "\""
         << "\n    actual regex string \"" << TC.substituted_regex << "\""
         << "\n    started matching near: " << first_line;
   }
-  BM_CHECK(remaining_output.eof() == false)
+  CHECK(remaining_output.eof() == false)
       << "End of output reached before match for regex \"" << TC.regex_str
       << "\" was found"
       << "\n    actual regex string \"" << TC.substituted_regex << "\""
@@ -143,12 +134,12 @@ class TestReporter : public benchmark::BenchmarkReporter {
   TestReporter(std::vector<benchmark::BenchmarkReporter*> reps)
       : reporters_(reps) {}
 
-  virtual bool ReportContext(const Context& context) BENCHMARK_OVERRIDE {
+  virtual bool ReportContext(const Context& context) {
     bool last_ret = false;
     bool first = true;
     for (auto rep : reporters_) {
       bool new_ret = rep->ReportContext(context);
-      BM_CHECK(first || new_ret == last_ret)
+      CHECK(first || new_ret == last_ret)
           << "Reports return different values for ReportContext";
       first = false;
       last_ret = new_ret;
@@ -157,10 +148,10 @@ class TestReporter : public benchmark::BenchmarkReporter {
     return last_ret;
   }
 
-  void ReportRuns(const std::vector<Run>& report) BENCHMARK_OVERRIDE {
+  void ReportRuns(const std::vector<Run>& report) {
     for (auto rep : reporters_) rep->ReportRuns(report);
   }
-  void Finalize() BENCHMARK_OVERRIDE {
+  void Finalize() {
     for (auto rep : reporters_) rep->Finalize();
   }
 
@@ -230,7 +221,7 @@ void ResultsChecker::CheckResults(std::stringstream& output) {
   std::string line;
   bool on_first = true;
   while (output.eof() == false) {
-    BM_CHECK(output.good());
+    CHECK(output.good());
     std::getline(output, line);
     if (on_first) {
       SetHeader_(line);  // this is important
@@ -241,18 +232,18 @@ void ResultsChecker::CheckResults(std::stringstream& output) {
   }
   // finally we can call the subscribed check functions
   for (const auto& p : check_patterns) {
-    BM_VLOG(2) << "--------------------------------\n";
-    BM_VLOG(2) << "checking for benchmarks matching " << p.regex_str << "...\n";
+    VLOG(2) << "--------------------------------\n";
+    VLOG(2) << "checking for benchmarks matching " << p.regex_str << "...\n";
     for (const auto& r : results) {
       if (!p.regex->Match(r.name)) {
-        BM_VLOG(2) << p.regex_str << " is not matched by " << r.name << "\n";
+        VLOG(2) << p.regex_str << " is not matched by " << r.name << "\n";
         continue;
       } else {
-        BM_VLOG(2) << p.regex_str << " is matched by " << r.name << "\n";
+        VLOG(2) << p.regex_str << " is matched by " << r.name << "\n";
       }
-      BM_VLOG(1) << "Checking results of " << r.name << ": ... \n";
+      VLOG(1) << "Checking results of " << r.name << ": ... \n";
       p.fn(r);
-      BM_VLOG(1) << "Checking results of " << r.name << ": OK.\n";
+      VLOG(1) << "Checking results of " << r.name << ": OK.\n";
     }
   }
 }
@@ -265,9 +256,9 @@ void ResultsChecker::SetHeader_(const std::string& csv_header) {
 // set the values for a benchmark
 void ResultsChecker::SetValues_(const std::string& entry_csv_line) {
   if (entry_csv_line.empty()) return;  // some lines are empty
-  BM_CHECK(!field_names.empty());
+  CHECK(!field_names.empty());
   auto vals = SplitCsv_(entry_csv_line);
-  BM_CHECK_EQ(vals.size(), field_names.size());
+  CHECK_EQ(vals.size(), field_names.size());
   results.emplace_back(vals[0]);  // vals[0] is the benchmark name
   auto& entry = results.back();
   for (size_t i = 1, e = vals.size(); i < e; ++i) {
@@ -282,7 +273,7 @@ std::vector<std::string> ResultsChecker::SplitCsv_(const std::string& line) {
   if (!field_names.empty()) out.reserve(field_names.size());
   size_t prev = 0, pos = line.find_first_of(','), curr = pos;
   while (pos != line.npos) {
-    BM_CHECK(curr > 0);
+    CHECK(curr > 0);
     if (line[prev] == '"') ++prev;
     if (line[curr - 1] == '"') --curr;
     out.push_back(line.substr(prev, curr - prev));
@@ -313,7 +304,7 @@ int Results::NumThreads() const {
   ss << name.substr(pos + 9, end);
   int num = 1;
   ss >> num;
-  BM_CHECK(!ss.fail());
+  CHECK(!ss.fail());
   return num;
 }
 
@@ -322,11 +313,11 @@ double Results::NumIterations() const {
 }
 
 double Results::GetTime(BenchmarkTime which) const {
-  BM_CHECK(which == kCpuTime || which == kRealTime);
+  CHECK(which == kCpuTime || which == kRealTime);
   const char* which_str = which == kCpuTime ? "cpu_time" : "real_time";
   double val = GetAs<double>(which_str);
   auto unit = Get("time_unit");
-  BM_CHECK(unit);
+  CHECK(unit);
   if (*unit == "ns") {
     return val * 1.e-9;
   } else if (*unit == "us") {
@@ -336,7 +327,7 @@ double Results::GetTime(BenchmarkTime which) const {
   } else if (*unit == "s") {
     return val;
   } else {
-    BM_CHECK(1 == 0) << "unknown time unit: " << *unit;
+    CHECK(1 == 0) << "unknown time unit: " << *unit;
     return 0;
   }
 }
@@ -352,10 +343,10 @@ TestCase::TestCase(std::string re, int rule)
       regex(std::make_shared<benchmark::Regex>()) {
   std::string err_str;
   regex->Init(substituted_regex, &err_str);
-  BM_CHECK(err_str.empty())
-      << "Could not construct regex \"" << substituted_regex << "\""
-      << "\n    originally \"" << regex_str << "\""
-      << "\n    got error: " << err_str;
+  CHECK(err_str.empty()) << "Could not construct regex \"" << substituted_regex
+                         << "\""
+                         << "\n    originally \"" << regex_str << "\""
+                         << "\n    got error: " << err_str;
 }
 
 int AddCases(TestCaseID ID, std::initializer_list<TestCase> il) {
@@ -382,12 +373,6 @@ int SetSubstitutions(
   return 0;
 }
 
-// Disable deprecated warnings temporarily because we need to reference
-// CSVReporter but don't want to trigger -Werror=-Wdeprecated-declarations
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
 void RunOutputTests(int argc, char* argv[]) {
   using internal::GetTestCaseList;
   benchmark::Initialize(&argc, argv);
@@ -442,13 +427,9 @@ void RunOutputTests(int argc, char* argv[]) {
   // the checks to subscribees.
   auto& csv = TestCases[2];
   // would use == but gcc spits a warning
-  BM_CHECK(std::strcmp(csv.name, "CSVReporter") == 0);
+  CHECK(std::strcmp(csv.name, "CSVReporter") == 0);
   internal::GetResultsChecker().CheckResults(csv.out_stream);
 }
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 int SubstrCnt(const std::string& haystack, const std::string& pat) {
   if (pat.length() == 0) return 0;

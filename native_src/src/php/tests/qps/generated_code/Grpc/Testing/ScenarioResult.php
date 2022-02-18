@@ -20,13 +20,13 @@ class ScenarioResult extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.grpc.testing.Scenario scenario = 1;</code>
      */
-    protected $scenario = null;
+    private $scenario = null;
     /**
      * Histograms from all clients merged into one histogram.
      *
      * Generated from protobuf field <code>.grpc.testing.HistogramData latencies = 2;</code>
      */
-    protected $latencies = null;
+    private $latencies = null;
     /**
      * Client stats for each client
      *
@@ -50,7 +50,7 @@ class ScenarioResult extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.grpc.testing.ScenarioResultSummary summary = 6;</code>
      */
-    protected $summary = null;
+    private $summary = null;
     /**
      * Information on success or failure of each worker
      *
@@ -68,34 +68,9 @@ class ScenarioResult extends \Google\Protobuf\Internal\Message
      */
     private $request_results;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type \Grpc\Testing\Scenario $scenario
-     *           Inputs used to run the scenario.
-     *     @type \Grpc\Testing\HistogramData $latencies
-     *           Histograms from all clients merged into one histogram.
-     *     @type \Grpc\Testing\ClientStats[]|\Google\Protobuf\Internal\RepeatedField $client_stats
-     *           Client stats for each client
-     *     @type \Grpc\Testing\ServerStats[]|\Google\Protobuf\Internal\RepeatedField $server_stats
-     *           Server stats for each server
-     *     @type int[]|\Google\Protobuf\Internal\RepeatedField $server_cores
-     *           Number of cores available to each server
-     *     @type \Grpc\Testing\ScenarioResultSummary $summary
-     *           An after-the-fact computed summary
-     *     @type bool[]|\Google\Protobuf\Internal\RepeatedField $client_success
-     *           Information on success or failure of each worker
-     *     @type bool[]|\Google\Protobuf\Internal\RepeatedField $server_success
-     *     @type \Grpc\Testing\RequestResultCount[]|\Google\Protobuf\Internal\RepeatedField $request_results
-     *           Number of failed requests (one row per status code seen)
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Control::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

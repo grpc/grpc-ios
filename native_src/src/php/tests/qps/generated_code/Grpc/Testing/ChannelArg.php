@@ -16,23 +16,12 @@ class ChannelArg extends \Google\Protobuf\Internal\Message
     /**
      * Generated from protobuf field <code>string name = 1;</code>
      */
-    protected $name = '';
+    private $name = '';
     protected $value;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type string $name
-     *     @type string $str_value
-     *     @type int $int_value
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Control::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

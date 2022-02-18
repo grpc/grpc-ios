@@ -16,8 +16,6 @@
 #define BLOATY_TESTS_STRARR_H_
 
 #include <memory>
-#include <string>
-#include <vector>
 
 // For constructing arrays of strings in the slightly peculiar format
 // required by execve().

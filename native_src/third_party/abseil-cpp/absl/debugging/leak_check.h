@@ -43,12 +43,6 @@ ABSL_NAMESPACE_BEGIN
 // currently built into this target.
 bool HaveLeakSanitizer();
 
-// LeakCheckerIsActive()
-//
-// Returns true if a leak-checking sanitizer (either ASan or standalone LSan) is
-// currently built into this target and is turned on.
-bool LeakCheckerIsActive();
-
 // DoIgnoreLeak()
 //
 // Implements `IgnoreLeak()` below. This function should usually
@@ -68,27 +62,13 @@ void DoIgnoreLeak(const void* ptr);
 //
 // If the passed `ptr` does not point to an actively allocated object at the
 // time `IgnoreLeak()` is called, the call is a no-op; if it is actively
-// allocated, leak sanitizer will assume this object is referenced even if
-// there is no actual reference in user memory.
+// allocated, the object must not get deallocated later.
 //
 template <typename T>
 T* IgnoreLeak(T* ptr) {
   DoIgnoreLeak(ptr);
   return ptr;
 }
-
-// FindAndReportLeaks()
-//
-// If any leaks are detected, prints a leak report and returns true.  This
-// function may be called repeatedly, and does not affect end-of-process leak
-// checking.
-//
-// Example:
-// if (FindAndReportLeaks()) {
-//   ... diagnostic already printed. Exit with failure code.
-//   exit(1)
-// }
-bool FindAndReportLeaks();
 
 // LeakCheckDisabler
 //

@@ -16,7 +16,7 @@
 # Don't run this script standalone. Instead, run from the repository root:
 # ./tools/run_tests/run_tests.py -l objc
 
-set -ex
+set -ev
 
 # Params:
 # EXAMPLE_PATH - directory of the example
@@ -27,7 +27,7 @@ export LANG=en_US.UTF-8
 
 TEST_PATH=$(cd "$(dirname $0)" > /dev/null ; pwd)
 
-cd $(dirname $0)/../../..
+cd `dirname $0`/../../..
 
 cd $EXAMPLE_PATH
 
@@ -36,14 +36,12 @@ rm -rf Pods
 rm -rf *.xcworkspace
 rm -f Podfile.lock
 
-time pod install
+pod install | $TEST_PATH/verbose_time.sh
 
-set -o pipefail  # preserve xcodebuild exit code when piping output
-
-XCODEBUILD_FILTER_OUTPUT_SCRIPT="${TEST_PATH}/xcodebuild_filter_output.sh"
-
+set -o pipefail
+XCODEBUILD_FILTER='(^CompileC |^Ld |^.*clang |^ *cd |^ *export |^Libtool |^.*libtool |^CpHeader |^ *builtin-copy )'
 if [ "$SCHEME" == "tvOS-sample" ]; then
-  time xcodebuild \
+  xcodebuild \
     build \
     -workspace *.xcworkspace \
     -scheme $SCHEME \
@@ -51,10 +49,11 @@ if [ "$SCHEME" == "tvOS-sample" ]; then
     -derivedDataPath Build/Build \
     CODE_SIGN_IDENTITY="" \
     CODE_SIGNING_REQUIRED=NO \
-    CODE_SIGNING_ALLOWED=NO \
-    | "${XCODEBUILD_FILTER_OUTPUT_SCRIPT}"
+    | $TEST_PATH/verbose_time.sh \
+    | egrep -v "$XCODEBUILD_FILTER" \
+    | egrep -v "^$" -
 else
-  time xcodebuild \
+  xcodebuild \
     build \
     -workspace *.xcworkspace \
     -scheme $SCHEME \
@@ -62,6 +61,8 @@ else
     -derivedDataPath Build/Build \
     CODE_SIGN_IDENTITY="" \
     CODE_SIGNING_REQUIRED=NO \
-    CODE_SIGNING_ALLOWED=NO \
-    | "${XCODEBUILD_FILTER_OUTPUT_SCRIPT}"
+    | $TEST_PATH/verbose_time.sh \
+    | egrep -v "$XCODEBUILD_FILTER" \
+    | egrep -v "^$" -
 fi
+

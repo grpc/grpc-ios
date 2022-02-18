@@ -19,7 +19,7 @@ load(
     "grpc_cc_library",
 )
 
-licenses(["notice"])
+licenses(["notice"])  # Apache v2
 
 package(
     default_visibility = ["//visibility:public"],
@@ -33,9 +33,7 @@ grpc_cc_library(
     name = "grpc_transport_cronet_client_secure",
     srcs = [
         "client/secure/cronet_channel_create.cc",
-        "transport/cronet_api_phony.cc",
-        "transport/cronet_status.cc",
-        "transport/cronet_status.h",
+        "transport/cronet_api_dummy.cc",
         "transport/cronet_transport.cc",
         "transport/cronet_transport.h",
     ],
@@ -62,6 +60,6 @@ grpc_cc_library(
         ":grpc_transport_cronet_client_secure",
         "//:grpc_base",
         "//:grpc_http_filters",
-        "//:grpc_transport_chttp2_client_connector",
+        "//:grpc_transport_chttp2_client_secure",
     ],
 )

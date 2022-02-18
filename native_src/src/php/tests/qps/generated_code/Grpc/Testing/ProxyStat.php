@@ -16,20 +16,11 @@ class ProxyStat extends \Google\Protobuf\Internal\Message
     /**
      * Generated from protobuf field <code>double latency = 1;</code>
      */
-    protected $latency = 0.0;
+    private $latency = 0.0;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type float $latency
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\ProxyService::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

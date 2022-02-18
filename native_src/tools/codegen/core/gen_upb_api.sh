@@ -21,20 +21,103 @@ bazel=`pwd`/tools/bazel
 
 if [ $# -eq 0 ]; then
   UPB_OUTPUT_DIR=$PWD/src/core/ext/upb-generated
-  UPBDEFS_OUTPUT_DIR=$PWD/src/core/ext/upbdefs-generated
   rm -rf $UPB_OUTPUT_DIR
-  rm -rf $UPBDEFS_OUTPUT_DIR
   mkdir -p $UPB_OUTPUT_DIR
-  mkdir -p $UPBDEFS_OUTPUT_DIR
 else
-  UPB_OUTPUT_DIR=$1/upb-generated
-  UPBDEFS_OUTPUT_DIR=$1/upbdefs-generated
-  mkdir $UPB_OUTPUT_DIR
-  mkdir $UPBDEFS_OUTPUT_DIR
+  UPB_OUTPUT_DIR=$1
 fi
 
-# generate upb files from bazel rules
-python3 tools/codegen/core/gen_upb_api_from_bazel_xml.py \
-  --upb_out=$UPB_OUTPUT_DIR \
-  --upbdefs_out=$UPBDEFS_OUTPUT_DIR \
-  --verbose
+pushd third_party/protobuf
+$bazel build :protoc
+PROTOC=$PWD/bazel-bin/protoc
+popd
+
+pushd third_party/upb
+$bazel build :protoc-gen-upb
+UPB_PLUGIN=$PWD/bazel-bin/protoc-gen-upb
+popd
+
+proto_files=( \
+  "envoy/annotations/deprecation.proto" \
+  "envoy/annotations/resource.proto" \
+  "envoy/api/v2/auth/cert.proto" \
+  "envoy/api/v2/cds.proto" \
+  "envoy/api/v2/cluster/circuit_breaker.proto" \
+  "envoy/api/v2/cluster/filter.proto" \
+  "envoy/api/v2/cluster/outlier_detection.proto" \
+  "envoy/api/v2/core/address.proto" \
+  "envoy/api/v2/core/base.proto" \
+  "envoy/api/v2/core/config_source.proto" \
+  "envoy/api/v2/core/grpc_service.proto" \
+  "envoy/api/v2/core/health_check.proto" \
+  "envoy/api/v2/core/http_uri.proto" \
+  "envoy/api/v2/core/protocol.proto" \
+  "envoy/api/v2/cluster.proto" \
+  "envoy/api/v2/discovery.proto" \
+  "envoy/api/v2/eds.proto" \
+  "envoy/api/v2/endpoint.proto" \
+  "envoy/api/v2/endpoint/endpoint.proto" \
+  "envoy/api/v2/endpoint/endpoint_components.proto" \
+  "envoy/api/v2/endpoint/load_report.proto" \
+  "envoy/api/v2/lds.proto" \
+  "envoy/api/v2/listener.proto" \
+  "envoy/api/v2/listener/listener.proto" \
+  "envoy/api/v2/listener/listener_components.proto" \
+  "envoy/api/v2/rds.proto" \
+  "envoy/api/v2/route.proto" \
+  "envoy/api/v2/route/route.proto" \
+  "envoy/api/v2/route/route_components.proto" \
+  "envoy/api/v2/srds.proto" \
+  "envoy/api/v2/scoped_route.proto" \
+  "envoy/config/listener/v2/api_listener.proto" \
+  "envoy/config/filter/network/http_connection_manager/v2/http_connection_manager.proto" \
+  "envoy/config/filter/accesslog/v2/accesslog.proto" \
+  "envoy/service/discovery/v2/ads.proto" \
+  "envoy/service/load_stats/v2/lrs.proto" \
+  "envoy/type/http.proto" \
+  "envoy/type/matcher/regex.proto" \
+  "envoy/api/v2/listener/udp_listener_config.proto" \
+  "envoy/type/matcher/string.proto" \
+  "envoy/type/metadata/v2/metadata.proto" \
+  "envoy/type/percent.proto" \
+  "envoy/type/range.proto" \
+  "envoy/type/semantic_version.proto" \
+  "envoy/type/tracing/v2/custom_tag.proto" \
+  "gogoproto/gogo.proto" \
+  "google/api/annotations.proto" \
+  "google/api/http.proto" \
+  "google/protobuf/any.proto" \
+  "google/protobuf/descriptor.proto" \
+  "google/protobuf/duration.proto" \
+  "google/protobuf/empty.proto" \
+  "google/protobuf/struct.proto" \
+  "google/protobuf/timestamp.proto" \
+  "google/protobuf/wrappers.proto" \
+  "google/rpc/status.proto" \
+  "src/proto/grpc/gcp/altscontext.proto" \
+  "src/proto/grpc/gcp/handshaker.proto" \
+  "src/proto/grpc/gcp/transport_security_common.proto" \
+  "src/proto/grpc/health/v1/health.proto" \
+  "src/proto/grpc/lb/v1/load_balancer.proto" \
+  "udpa/data/orca/v1/orca_load_report.proto" \
+  "udpa/annotations/migrate.proto" \
+  "udpa/annotations/sensitive.proto" \
+  "validate/validate.proto")
+
+for i in "${proto_files[@]}"
+do
+  echo "Compiling: ${i}"
+  $PROTOC \
+    -I=$PWD/third_party/udpa \
+    -I=$PWD/third_party/envoy-api \
+    -I=$PWD/third_party/googleapis \
+    -I=$PWD/third_party/protobuf/src \
+    -I=$PWD/third_party/protoc-gen-validate \
+    -I=$PWD \
+    $i \
+    --upb_out=$UPB_OUTPUT_DIR \
+    --plugin=protoc-gen-upb=$UPB_PLUGIN
+done
+
+find $UPB_OUTPUT_DIR -name "*.upbdefs.c" -type f -delete
+find $UPB_OUTPUT_DIR -name "*.upbdefs.h" -type f -delete

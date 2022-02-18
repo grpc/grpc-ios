@@ -18,9 +18,8 @@
 
 #include "src/core/lib/security/credentials/jwt/json_token.h"
 
-#include <string.h>
-
 #include <openssl/evp.h>
+#include <string.h>
 
 #include <grpc/grpc_security.h>
 #include <grpc/slice.h>
@@ -216,12 +215,13 @@ static Json parse_json_part_from_jwt(const char* str, size_t len) {
   grpc_slice slice = grpc_base64_decode(b64, 1);
   gpr_free(b64);
   GPR_ASSERT(!GRPC_SLICE_IS_EMPTY(slice));
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  absl::string_view string = grpc_core::StringViewFromSlice(slice);
+  grpc_error* error = GRPC_ERROR_NONE;
+  grpc_core::StringView string(
+      reinterpret_cast<const char*>(GRPC_SLICE_START_PTR(slice)),
+      GRPC_SLICE_LENGTH(slice));
   Json json = Json::Parse(string, &error);
   if (error != GRPC_ERROR_NONE) {
-    gpr_log(GPR_ERROR, "JSON parse error: %s",
-            grpc_error_std_string(error).c_str());
+    gpr_log(GPR_ERROR, "JSON parse error: %s", grpc_error_string(error));
     GRPC_ERROR_UNREF(error);
   }
   grpc_slice_unref(slice);

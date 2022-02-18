@@ -23,11 +23,12 @@
 #include <set>
 #include <vector>
 
-#include <grpcpp/channel.h>
 #include <grpcpp/support/config.h>
 
-#include "src/proto/grpc/testing/report_qps_scenario_service.grpc.pb.h"
 #include "test/cpp/qps/driver.h"
+
+#include <grpcpp/channel.h>
+#include "src/proto/grpc/testing/report_qps_scenario_service.grpc.pb.h"
 
 namespace grpc {
 namespace testing {
@@ -36,7 +37,7 @@ namespace testing {
 class Reporter {
  public:
   /** Construct a reporter with the given \a name. */
-  explicit Reporter(const string& name) : name_(name) {}
+  Reporter(const string& name) : name_(name) {}
 
   virtual ~Reporter() {}
 
@@ -93,7 +94,7 @@ class CompositeReporter : public Reporter {
 /** Reporter to gpr_log(GPR_INFO). */
 class GprLogReporter : public Reporter {
  public:
-  explicit GprLogReporter(const string& name) : Reporter(name) {}
+  GprLogReporter(const string& name) : Reporter(name) {}
 
  private:
   void ReportQPS(const ScenarioResult& result) override;

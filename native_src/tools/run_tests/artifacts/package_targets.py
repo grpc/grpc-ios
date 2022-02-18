@@ -29,14 +29,14 @@ def create_docker_jobspec(name,
                           timeout_retries=0):
     """Creates jobspec for a task running under docker."""
     environ = environ.copy()
+    environ['RUN_COMMAND'] = shell_command
 
     docker_args = []
-    for k, v in list(environ.items()):
+    for k, v in environ.items():
         docker_args += ['-e', '%s=%s' % (k, v)]
     docker_env = {
         'DOCKERFILE_DIR': dockerfile_dir,
         'DOCKER_RUN_SCRIPT': 'tools/run_tests/dockerize/docker_run.sh',
-        'DOCKER_RUN_SCRIPT_COMMAND': shell_command,
         'OUTPUT_DIR': 'artifacts'
     }
     jobspec = jobset.JobSpec(
@@ -76,35 +76,29 @@ class CSharpPackage:
 
     def __init__(self, unity=False):
         self.unity = unity
-        self.labels = ['package', 'csharp', 'linux']
+        self.labels = ['package', 'csharp', 'windows']
         if unity:
-            self.name = 'csharp_package_unity_linux'
+            self.name = 'csharp_package_unity_windows'
             self.labels += ['unity']
         else:
-            self.name = 'csharp_package_nuget_linux'
+            self.name = 'csharp_package_nuget_windows'
             self.labels += ['nuget']
 
     def pre_build_jobspecs(self):
         return []
 
-    def build_jobspec(self, inner_jobs=None):
-        del inner_jobs  # arg unused as there is little opportunity for parallelizing
-        environ = {
-            'GRPC_CSHARP_BUILD_SINGLE_PLATFORM_NUGET':
-                os.getenv('GRPC_CSHARP_BUILD_SINGLE_PLATFORM_NUGET', '')
-        }
+    def build_jobspec(self):
         if self.unity:
-            return create_docker_jobspec(
-                self.name,
-                'tools/dockerfile/test/csharp_debian11_x64',
-                'src/csharp/build_unitypackage.sh',
-                environ=environ)
+            # use very high CPU cost to avoid running nuget package build
+            # and unity build concurrently
+            return create_jobspec(self.name, ['build_unitypackage.bat'],
+                                  cwd='src\\csharp',
+                                  cpu_cost=1e6,
+                                  shell=True)
         else:
-            return create_docker_jobspec(
-                self.name,
-                'tools/dockerfile/test/csharp_debian11_x64',
-                'src/csharp/build_nuget.sh',
-                environ=environ)
+            return create_jobspec(self.name, ['build_packages_dotnetcli.bat'],
+                                  cwd='src\\csharp',
+                                  shell=True)
 
     def __str__(self):
         return self.name
@@ -120,10 +114,9 @@ class RubyPackage:
     def pre_build_jobspecs(self):
         return []
 
-    def build_jobspec(self, inner_jobs=None):
-        del inner_jobs  # arg unused as this step simply collects preexisting artifacts
+    def build_jobspec(self):
         return create_docker_jobspec(
-            self.name, 'tools/dockerfile/grpc_artifact_centos6_x64',
+            self.name, 'tools/dockerfile/grpc_artifact_linux_x64',
             'tools/run_tests/artifacts/build_package_ruby.sh')
 
 
@@ -137,16 +130,10 @@ class PythonPackage:
     def pre_build_jobspecs(self):
         return []
 
-    def build_jobspec(self, inner_jobs=None):
-        del inner_jobs  # arg unused as this step simply collects preexisting artifacts
-        # since the python package build does very little, we can use virtually
-        # any image that has new-enough python, so reusing one of the images used
-        # for artifact building seems natural.
+    def build_jobspec(self):
         return create_docker_jobspec(
-            self.name,
-            'tools/dockerfile/grpc_artifact_python_manylinux2014_x64',
-            'tools/run_tests/artifacts/build_package_python.sh',
-            environ={'PYTHON': '/opt/python/cp39-cp39/bin/python'})
+            self.name, 'tools/dockerfile/grpc_artifact_linux_x64',
+            'tools/run_tests/artifacts/build_package_python.sh')
 
 
 class PHPPackage:
@@ -159,10 +146,9 @@ class PHPPackage:
     def pre_build_jobspecs(self):
         return []
 
-    def build_jobspec(self, inner_jobs=None):
-        del inner_jobs  # arg unused as this step simply collects preexisting artifacts
+    def build_jobspec(self):
         return create_docker_jobspec(
-            self.name, 'tools/dockerfile/grpc_artifact_centos6_x64',
+            self.name, 'tools/dockerfile/grpc_artifact_linux_x64',
             'tools/run_tests/artifacts/build_package_php.sh')
 
 

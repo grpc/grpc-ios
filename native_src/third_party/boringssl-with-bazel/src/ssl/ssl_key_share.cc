@@ -124,17 +124,29 @@ class ECKeyShare : public SSLKeyShare {
     return true;
   }
 
-  bool SerializePrivateKey(CBB *out) override {
+  bool Serialize(CBB *out) override {
     assert(private_key_);
+    CBB cbb;
     UniquePtr<EC_GROUP> group(EC_GROUP_new_by_curve_name(nid_));
     // Padding is added to avoid leaking the length.
     size_t len = BN_num_bytes(EC_GROUP_get0_order(group.get()));
-    return BN_bn2cbb_padded(out, len, private_key_.get());
+    if (!CBB_add_asn1_uint64(out, group_id_) ||
+        !CBB_add_asn1(out, &cbb, CBS_ASN1_OCTETSTRING) ||
+        !BN_bn2cbb_padded(&cbb, len, private_key_.get()) ||
+        !CBB_flush(out)) {
+      return false;
+    }
+    return true;
   }
 
-  bool DeserializePrivateKey(CBS *in) override {
+  bool Deserialize(CBS *in) override {
     assert(!private_key_);
-    private_key_.reset(BN_bin2bn(CBS_data(in), CBS_len(in), nullptr));
+    CBS private_key;
+    if (!CBS_get_asn1(in, &private_key, CBS_ASN1_OCTETSTRING)) {
+      return false;
+    }
+    private_key_.reset(BN_bin2bn(CBS_data(&private_key),
+                                 CBS_len(&private_key), nullptr));
     return private_key_ != nullptr;
   }
 
@@ -177,13 +189,16 @@ class X25519KeyShare : public SSLKeyShare {
     return true;
   }
 
-  bool SerializePrivateKey(CBB *out) override {
-    return CBB_add_bytes(out, private_key_, sizeof(private_key_));
+  bool Serialize(CBB *out) override {
+    return (CBB_add_asn1_uint64(out, GroupID()) &&
+            CBB_add_asn1_octet_string(out, private_key_, sizeof(private_key_)));
   }
 
-  bool DeserializePrivateKey(CBS *in) override {
-    if (CBS_len(in) != sizeof(private_key_) ||
-        !CBS_copy_bytes(in, private_key_, sizeof(private_key_))) {
+  bool Deserialize(CBS *in) override {
+    CBS key;
+    if (!CBS_get_asn1(in, &key, CBS_ASN1_OCTETSTRING) ||
+        CBS_len(&key) != sizeof(private_key_) ||
+        !CBS_copy_bytes(&key, private_key_, sizeof(private_key_))) {
       return false;
     }
     return true;
@@ -206,10 +221,7 @@ class CECPQ2KeyShare : public SSLKeyShare {
     uint8_t hrss_entropy[HRSS_GENERATE_KEY_BYTES];
     HRSS_public_key hrss_public_key;
     RAND_bytes(hrss_entropy, sizeof(hrss_entropy));
-    if (!HRSS_generate_key(&hrss_public_key, &hrss_private_key_,
-                           hrss_entropy)) {
-      return false;
-    }
+    HRSS_generate_key(&hrss_public_key, &hrss_private_key_, hrss_entropy);
 
     uint8_t hrss_public_key_bytes[HRSS_PUBLIC_KEY_BYTES];
     HRSS_marshal_public_key(hrss_public_key_bytes, &hrss_public_key);
@@ -246,10 +258,9 @@ class CECPQ2KeyShare : public SSLKeyShare {
     uint8_t ciphertext[HRSS_CIPHERTEXT_BYTES];
     uint8_t entropy[HRSS_ENCAP_BYTES];
     RAND_bytes(entropy, sizeof(entropy));
+    HRSS_encap(ciphertext, secret.data() + 32, &peer_public_key, entropy);
 
-    if (!HRSS_encap(ciphertext, secret.data() + 32, &peer_public_key,
-                    entropy) ||
-        !CBB_add_bytes(out_public_key, x25519_public_key,
+    if (!CBB_add_bytes(out_public_key, x25519_public_key,
                        sizeof(x25519_public_key)) ||
         !CBB_add_bytes(out_public_key, ciphertext, sizeof(ciphertext))) {
       return false;
@@ -276,10 +287,8 @@ class CECPQ2KeyShare : public SSLKeyShare {
       return false;
     }
 
-    if (!HRSS_decap(secret.data() + 32, &hrss_private_key_,
-                    peer_key.data() + 32, peer_key.size() - 32)) {
-      return false;
-    }
+    HRSS_decap(secret.data() + 32, &hrss_private_key_, peer_key.data() + 32,
+               peer_key.size() - 32);
 
     *out_secret = std::move(secret);
     return true;
@@ -330,28 +339,16 @@ UniquePtr<SSLKeyShare> SSLKeyShare::Create(uint16_t group_id) {
 
 UniquePtr<SSLKeyShare> SSLKeyShare::Create(CBS *in) {
   uint64_t group;
-  CBS private_key;
-  if (!CBS_get_asn1_uint64(in, &group) || group > 0xffff ||
-      !CBS_get_asn1(in, &private_key, CBS_ASN1_OCTETSTRING)) {
+  if (!CBS_get_asn1_uint64(in, &group) || group > 0xffff) {
     return nullptr;
   }
   UniquePtr<SSLKeyShare> key_share = Create(static_cast<uint16_t>(group));
-  if (!key_share || !key_share->DeserializePrivateKey(&private_key)) {
+  if (!key_share || !key_share->Deserialize(in)) {
     return nullptr;
   }
   return key_share;
 }
 
-bool SSLKeyShare::Serialize(CBB *out) {
-  CBB private_key;
-  if (!CBB_add_asn1_uint64(out, GroupID()) ||
-      !CBB_add_asn1(out, &private_key, CBS_ASN1_OCTETSTRING) ||
-      !SerializePrivateKey(&private_key) ||  //
-      !CBB_flush(out)) {
-    return false;
-  }
-  return true;
-}
 
 bool SSLKeyShare::Accept(CBB *out_public_key, Array<uint8_t> *out_secret,
                          uint8_t *out_alert, Span<const uint8_t> peer_key) {

@@ -187,10 +187,10 @@ final class MessageLiteToString {
       return ((Integer) o) == 0;
     }
     if (o instanceof Float) {
-      return Float.floatToRawIntBits((Float) o) == 0;
+      return ((Float) o) == 0f;
     }
     if (o instanceof Double) {
-      return Double.doubleToRawLongBits((Double) o) == 0;
+      return ((Double) o) == 0d;
     }
     if (o instanceof String) {
       return o.equals("");

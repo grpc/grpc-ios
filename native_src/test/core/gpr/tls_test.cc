@@ -20,48 +20,49 @@
 
 #include "src/core/lib/gpr/tls.h"
 
-#include <array>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <gtest/gtest.h>
+#include <grpc/support/log.h>
+#include <grpc/support/sync.h>
 
 #include "src/core/lib/gprpp/thd.h"
 #include "test/core/util/test_config.h"
 
-struct BiggerThanMachineWord {
-  size_t a, b;
-  uint8_t c;
-};
+#define NUM_THREADS 100
 
-static GPR_THREAD_LOCAL(BiggerThanMachineWord) test_var;
-// Fails to compile: static GPR_THREAD_LOCAL(std::unique_ptr<char>) non_trivial;
+GPR_TLS_DECL(test_var);
 
-namespace {
-void thd_body(void*) {
-  for (size_t i = 0; i < 100000; i++) {
-    BiggerThanMachineWord next = {i, i, uint8_t(i)};
-    test_var = next;
-    BiggerThanMachineWord read = test_var;
-    ASSERT_EQ(read.a, i);
-    ASSERT_EQ(read.b, i);
-    ASSERT_EQ(read.c, uint8_t(i)) << i;
+static void thd_body(void* /*arg*/) {
+  intptr_t i;
+
+  GPR_ASSERT(gpr_tls_get(&test_var) == 0);
+
+  for (i = 0; i < 100000; i++) {
+    gpr_tls_set(&test_var, i);
+    GPR_ASSERT(gpr_tls_get(&test_var) == i);
   }
+  gpr_tls_set(&test_var, 0);
 }
 
-TEST(ThreadLocal, ReadWrite) {
-  std::array<grpc_core::Thread, 100> threads;
-  for (grpc_core::Thread& th : threads) {
+/* ------------------------------------------------- */
+
+int main(int argc, char* argv[]) {
+  grpc_core::Thread threads[NUM_THREADS];
+
+  grpc::testing::TestEnvironment env(argc, argv);
+
+  gpr_tls_init(&test_var);
+
+  for (auto& th : threads) {
     th = grpc_core::Thread("grpc_tls_test", thd_body, nullptr);
     th.Start();
   }
-  for (grpc_core::Thread& th : threads) {
+  for (auto& th : threads) {
     th.Join();
   }
-}
 
-}  // namespace
+  gpr_tls_destroy(&test_var);
 
-int main(int argc, char* argv[]) {
-  grpc::testing::TestEnvironment env(argc, argv);
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  return 0;
 }

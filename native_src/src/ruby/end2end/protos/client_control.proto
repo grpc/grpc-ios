@@ -26,11 +26,3 @@ message DoEchoRpcRequest {
 }
 
 message Void{}
-
-service ParentController {
-  rpc SetClientControllerPort(Port) returns (Void) {}
-}
-
-message Port {
-  int32 port = 1;
-}

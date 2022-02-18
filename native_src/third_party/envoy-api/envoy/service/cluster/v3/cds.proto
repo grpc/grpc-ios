@@ -6,16 +6,14 @@ import "envoy/service/discovery/v3/discovery.proto";
 
 import "google/api/annotations.proto";
 
-import "envoy/annotations/resource.proto";
-import "udpa/annotations/status.proto";
 import "udpa/annotations/versioning.proto";
+
+import "envoy/annotations/resource.proto";
 
 option java_package = "io.envoyproxy.envoy.service.cluster.v3";
 option java_outer_classname = "CdsProto";
 option java_multiple_files = true;
-option go_package = "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3;clusterv3";
 option java_generic_services = true;
-option (udpa.annotations.file_status).package_version_status = ACTIVE;
 
 // [#protodoc-title: CDS]
 

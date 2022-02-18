@@ -38,16 +38,15 @@ class TestServiceClient extends \Grpc\BaseStub {
 
     /**
      * One empty request followed by one empty response.
-     * @param \Grpc\Testing\EmptyMessage $argument input argument
+     * @param \Grpc\Testing\PBEmpty $argument input argument
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\EmptyMessage
      */
-    public function EmptyCall(\Grpc\Testing\EmptyMessage $argument,
+    public function EmptyCall(\Grpc\Testing\PBEmpty $argument,
       $metadata = [], $options = []) {
         return $this->_simpleRequest('/grpc.testing.TestService/EmptyCall',
         $argument,
-        ['\Grpc\Testing\EmptyMessage', 'decode'],
+        ['\Grpc\Testing\PBEmpty', 'decode'],
         $metadata, $options);
     }
 
@@ -56,7 +55,6 @@ class TestServiceClient extends \Grpc\BaseStub {
      * @param \Grpc\Testing\SimpleRequest $argument input argument
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\SimpleResponse
      */
     public function UnaryCall(\Grpc\Testing\SimpleRequest $argument,
       $metadata = [], $options = []) {
@@ -73,7 +71,6 @@ class TestServiceClient extends \Grpc\BaseStub {
      * @param \Grpc\Testing\SimpleRequest $argument input argument
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\SimpleResponse
      */
     public function CacheableUnaryCall(\Grpc\Testing\SimpleRequest $argument,
       $metadata = [], $options = []) {
@@ -89,7 +86,6 @@ class TestServiceClient extends \Grpc\BaseStub {
      * @param \Grpc\Testing\StreamingOutputCallRequest $argument input argument
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\StreamingOutputCallResponse
      */
     public function StreamingOutputCall(\Grpc\Testing\StreamingOutputCallRequest $argument,
       $metadata = [], $options = []) {
@@ -104,7 +100,6 @@ class TestServiceClient extends \Grpc\BaseStub {
      * The server returns the aggregated size of client payload as the result.
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\StreamingInputCallResponse
      */
     public function StreamingInputCall($metadata = [], $options = []) {
         return $this->_clientStreamRequest('/grpc.testing.TestService/StreamingInputCall',
@@ -118,7 +113,6 @@ class TestServiceClient extends \Grpc\BaseStub {
      * demonstrates the idea of full duplexing.
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\StreamingOutputCallResponse
      */
     public function FullDuplexCall($metadata = [], $options = []) {
         return $this->_bidiRequest('/grpc.testing.TestService/FullDuplexCall',
@@ -133,7 +127,6 @@ class TestServiceClient extends \Grpc\BaseStub {
      * first request.
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\StreamingOutputCallResponse
      */
     public function HalfDuplexCall($metadata = [], $options = []) {
         return $this->_bidiRequest('/grpc.testing.TestService/HalfDuplexCall',
@@ -144,16 +137,15 @@ class TestServiceClient extends \Grpc\BaseStub {
     /**
      * The test server will not implement this method. It will be used
      * to test the behavior when clients call unimplemented methods.
-     * @param \Grpc\Testing\EmptyMessage $argument input argument
+     * @param \Grpc\Testing\PBEmpty $argument input argument
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\EmptyMessage
      */
-    public function UnimplementedCall(\Grpc\Testing\EmptyMessage $argument,
+    public function UnimplementedCall(\Grpc\Testing\PBEmpty $argument,
       $metadata = [], $options = []) {
         return $this->_simpleRequest('/grpc.testing.TestService/UnimplementedCall',
         $argument,
-        ['\Grpc\Testing\EmptyMessage', 'decode'],
+        ['\Grpc\Testing\PBEmpty', 'decode'],
         $metadata, $options);
     }
 

@@ -16,6 +16,8 @@
  *
  */
 
+#include "test/core/end2end/end2end_tests.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -25,46 +27,31 @@
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/gpr/string.h"
 #include "src/core/lib/gpr/tmpfile.h"
-#include "src/core/lib/iomgr/load_file.h"
 #include "src/core/lib/security/credentials/credentials.h"
 #include "src/core/lib/security/security_connector/ssl_utils_config.h"
-#include "test/core/end2end/end2end_tests.h"
+#include "test/core/end2end/data/ssl_test_data.h"
 #include "test/core/end2end/fixtures/proxy.h"
 #include "test/core/util/port.h"
 #include "test/core/util/test_config.h"
-
-#define CA_CERT_PATH "src/core/tsi/test_creds/ca.pem"
-#define SERVER_CERT_PATH "src/core/tsi/test_creds/server1.pem"
-#define SERVER_KEY_PATH "src/core/tsi/test_creds/server1.key"
 
 typedef struct fullstack_secure_fixture_data {
   grpc_end2end_proxy* proxy;
 } fullstack_secure_fixture_data;
 
 static grpc_server* create_proxy_server(const char* port,
-                                        const grpc_channel_args* server_args) {
+                                        grpc_channel_args* server_args) {
   grpc_server* s = grpc_server_create(server_args, nullptr);
-  grpc_slice cert_slice, key_slice;
-  GPR_ASSERT(GRPC_LOG_IF_ERROR(
-      "load_file", grpc_load_file(SERVER_CERT_PATH, 1, &cert_slice)));
-  GPR_ASSERT(GRPC_LOG_IF_ERROR("load_file",
-                               grpc_load_file(SERVER_KEY_PATH, 1, &key_slice)));
-  const char* server_cert =
-      reinterpret_cast<const char*> GRPC_SLICE_START_PTR(cert_slice);
-  const char* server_key =
-      reinterpret_cast<const char*> GRPC_SLICE_START_PTR(key_slice);
-  grpc_ssl_pem_key_cert_pair pem_key_cert_pair = {server_key, server_cert};
+  grpc_ssl_pem_key_cert_pair pem_cert_key_pair = {test_server1_key,
+                                                  test_server1_cert};
   grpc_server_credentials* ssl_creds = grpc_ssl_server_credentials_create(
-      nullptr, &pem_key_cert_pair, 1, 0, nullptr);
-  grpc_slice_unref(cert_slice);
-  grpc_slice_unref(key_slice);
-  GPR_ASSERT(grpc_server_add_http2_port(s, port, ssl_creds));
+      nullptr, &pem_cert_key_pair, 1, 0, nullptr);
+  GPR_ASSERT(grpc_server_add_secure_http2_port(s, port, ssl_creds));
   grpc_server_credentials_release(ssl_creds);
   return s;
 }
 
 static grpc_channel* create_proxy_client(const char* target,
-                                         const grpc_channel_args* client_args) {
+                                         grpc_channel_args* client_args) {
   grpc_channel* channel;
   grpc_channel_credentials* ssl_creds =
       grpc_ssl_credentials_create(nullptr, nullptr, nullptr, nullptr);
@@ -72,9 +59,10 @@ static grpc_channel* create_proxy_client(const char* target,
       GRPC_ARG_STRING,
       const_cast<char*>(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG),
       {const_cast<char*>("foo.test.google.fr")}};
-  const grpc_channel_args* new_client_args =
+  grpc_channel_args* new_client_args =
       grpc_channel_args_copy_and_add(client_args, &ssl_name_override, 1);
-  channel = grpc_channel_create(target, ssl_creds, new_client_args);
+  channel =
+      grpc_secure_channel_create(ssl_creds, target, new_client_args, nullptr);
   grpc_channel_credentials_release(ssl_creds);
   {
     grpc_core::ExecCtx exec_ctx;
@@ -87,8 +75,7 @@ static const grpc_end2end_proxy_def proxy_def = {create_proxy_server,
                                                  create_proxy_client};
 
 static grpc_end2end_test_fixture chttp2_create_fixture_secure_fullstack(
-    const grpc_channel_args* client_args,
-    const grpc_channel_args* server_args) {
+    grpc_channel_args* client_args, grpc_channel_args* server_args) {
   grpc_end2end_test_fixture f;
   fullstack_secure_fixture_data* ffd =
       static_cast<fullstack_secure_fixture_data*>(
@@ -114,18 +101,19 @@ static void process_auth_failure(void* state, grpc_auth_context* /*ctx*/,
 }
 
 static void chttp2_init_client_secure_fullstack(
-    grpc_end2end_test_fixture* f, const grpc_channel_args* client_args,
+    grpc_end2end_test_fixture* f, grpc_channel_args* client_args,
     grpc_channel_credentials* creds) {
   fullstack_secure_fixture_data* ffd =
       static_cast<fullstack_secure_fixture_data*>(f->fixture_data);
-  f->client = grpc_channel_create(
-      grpc_end2end_proxy_get_client_target(ffd->proxy), creds, client_args);
+  f->client = grpc_secure_channel_create(
+      creds, grpc_end2end_proxy_get_client_target(ffd->proxy), client_args,
+      nullptr);
   GPR_ASSERT(f->client != nullptr);
   grpc_channel_credentials_release(creds);
 }
 
 static void chttp2_init_server_secure_fullstack(
-    grpc_end2end_test_fixture* f, const grpc_channel_args* server_args,
+    grpc_end2end_test_fixture* f, grpc_channel_args* server_args,
     grpc_server_credentials* server_creds) {
   fullstack_secure_fixture_data* ffd =
       static_cast<fullstack_secure_fixture_data*>(f->fixture_data);
@@ -134,7 +122,7 @@ static void chttp2_init_server_secure_fullstack(
   }
   f->server = grpc_server_create(server_args, nullptr);
   grpc_server_register_completion_queue(f->server, f->cq, nullptr);
-  GPR_ASSERT(grpc_server_add_http2_port(
+  GPR_ASSERT(grpc_server_add_secure_http2_port(
       f->server, grpc_end2end_proxy_get_server_port(ffd->proxy), server_creds));
   grpc_server_credentials_release(server_creds);
   grpc_server_start(f->server);
@@ -148,14 +136,14 @@ void chttp2_tear_down_secure_fullstack(grpc_end2end_test_fixture* f) {
 }
 
 static void chttp2_init_client_simple_ssl_secure_fullstack(
-    grpc_end2end_test_fixture* f, const grpc_channel_args* client_args) {
+    grpc_end2end_test_fixture* f, grpc_channel_args* client_args) {
   grpc_channel_credentials* ssl_creds =
       grpc_ssl_credentials_create(nullptr, nullptr, nullptr, nullptr);
   grpc_arg ssl_name_override = {
       GRPC_ARG_STRING,
       const_cast<char*>(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG),
       {const_cast<char*>("foo.test.google.fr")}};
-  const grpc_channel_args* new_client_args =
+  grpc_channel_args* new_client_args =
       grpc_channel_args_copy_and_add(client_args, &ssl_name_override, 1);
   chttp2_init_client_secure_fullstack(f, new_client_args, ssl_creds);
   {
@@ -164,7 +152,7 @@ static void chttp2_init_client_simple_ssl_secure_fullstack(
   }
 }
 
-static int fail_server_auth_check(const grpc_channel_args* server_args) {
+static int fail_server_auth_check(grpc_channel_args* server_args) {
   size_t i;
   if (server_args == nullptr) return 0;
   for (i = 0; i < server_args->num_args; i++) {
@@ -177,21 +165,11 @@ static int fail_server_auth_check(const grpc_channel_args* server_args) {
 }
 
 static void chttp2_init_server_simple_ssl_secure_fullstack(
-    grpc_end2end_test_fixture* f, const grpc_channel_args* server_args) {
-  grpc_slice cert_slice, key_slice;
-  GPR_ASSERT(GRPC_LOG_IF_ERROR(
-      "load_file", grpc_load_file(SERVER_CERT_PATH, 1, &cert_slice)));
-  GPR_ASSERT(GRPC_LOG_IF_ERROR("load_file",
-                               grpc_load_file(SERVER_KEY_PATH, 1, &key_slice)));
-  const char* server_cert =
-      reinterpret_cast<const char*> GRPC_SLICE_START_PTR(cert_slice);
-  const char* server_key =
-      reinterpret_cast<const char*> GRPC_SLICE_START_PTR(key_slice);
-  grpc_ssl_pem_key_cert_pair pem_key_cert_pair = {server_key, server_cert};
+    grpc_end2end_test_fixture* f, grpc_channel_args* server_args) {
+  grpc_ssl_pem_key_cert_pair pem_cert_key_pair = {test_server1_key,
+                                                  test_server1_cert};
   grpc_server_credentials* ssl_creds = grpc_ssl_server_credentials_create(
-      nullptr, &pem_key_cert_pair, 1, 0, nullptr);
-  grpc_slice_unref(cert_slice);
-  grpc_slice_unref(key_slice);
+      nullptr, &pem_cert_key_pair, 1, 0, nullptr);
   if (fail_server_auth_check(server_args)) {
     grpc_auth_metadata_processor processor = {process_auth_failure, nullptr,
                                               nullptr};
@@ -217,10 +195,20 @@ static grpc_end2end_test_config configs[] = {
 
 int main(int argc, char** argv) {
   size_t i;
+  FILE* roots_file;
+  size_t roots_size = strlen(test_root_cert);
+  char* roots_filename;
 
   grpc::testing::TestEnvironment env(argc, argv);
   grpc_end2end_tests_pre_init();
-  GPR_GLOBAL_CONFIG_SET(grpc_default_ssl_roots_file_path, CA_CERT_PATH);
+
+  /* Set the SSL roots env var. */
+  roots_file = gpr_tmpfile("chttp2_simple_ssl_fullstack_test", &roots_filename);
+  GPR_ASSERT(roots_filename != nullptr);
+  GPR_ASSERT(roots_file != nullptr);
+  GPR_ASSERT(fwrite(test_root_cert, 1, roots_size, roots_file) == roots_size);
+  fclose(roots_file);
+  GPR_GLOBAL_CONFIG_SET(grpc_default_ssl_roots_file_path, roots_filename);
 
   grpc_init();
 
@@ -229,6 +217,10 @@ int main(int argc, char** argv) {
   }
 
   grpc_shutdown();
+
+  /* Cleanup. */
+  remove(roots_filename);
+  gpr_free(roots_filename);
 
   return 0;
 }

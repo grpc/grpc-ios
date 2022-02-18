@@ -22,9 +22,7 @@
 
 #include <string.h>
 
-#include "absl/base/attributes.h"
-
-#define ROTL32(x, r) (((x) << (r)) | ((x) >> (32 - (r))))
+#define ROTL32(x, r) ((x) << (r)) | ((x) >> (32 - (r)))
 
 #define FMIX32(h)    \
   (h) ^= (h) >> 16;  \
@@ -63,10 +61,10 @@ uint32_t gpr_murmur_hash3(const void* key, size_t len, uint32_t seed) {
   switch (len & 3) {
     case 3:
       k1 ^= (static_cast<uint32_t>(keyptr[2])) << 16;
-      ABSL_FALLTHROUGH_INTENDED;
+    /* fallthrough */
     case 2:
       k1 ^= (static_cast<uint32_t>(keyptr[1])) << 8;
-      ABSL_FALLTHROUGH_INTENDED;
+    /* fallthrough */
     case 1:
       k1 ^= keyptr[0];
       k1 *= c1;

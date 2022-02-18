@@ -25,7 +25,7 @@ namespace Grpc.Core.Tests
 {
     public class AppDomainUnloadTest
     {
-#if NETCOREAPP
+#if NETCOREAPP1_1 || NETCOREAPP2_1
         [Test]
         [Ignore("Not supported for CoreCLR")]
         public void AppDomainUnloadHookCanCleanupAbandonedCall()

@@ -20,7 +20,6 @@
 
 #include <grpc/census.h>
 #include <grpc/grpc.h>
-
 #include "src/core/lib/surface/api_trace.h"
 #include "src/core/lib/surface/call.h"
 

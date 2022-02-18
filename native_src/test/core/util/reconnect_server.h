@@ -21,7 +21,6 @@
 
 #include <grpc/support/sync.h>
 #include <grpc/support/time.h>
-
 #include "test/core/util/test_tcp_server.h"
 
 typedef struct timestamp_list {
@@ -33,7 +32,7 @@ typedef struct reconnect_server {
   test_tcp_server tcp_server;
   timestamp_list* head;
   timestamp_list* tail;
-  std::string* peer;
+  char* peer;
   int max_reconnect_backoff_ms;
 } reconnect_server;
 

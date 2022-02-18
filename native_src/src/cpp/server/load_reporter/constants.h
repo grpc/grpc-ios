@@ -21,8 +21,6 @@
 
 #include <grpc/impl/codegen/port_platform.h>
 
-#include <stddef.h>
-
 namespace grpc {
 namespace load_reporter {
 

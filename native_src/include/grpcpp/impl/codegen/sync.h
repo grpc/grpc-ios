@@ -19,8 +19,6 @@
 #ifndef GRPCPP_IMPL_CODEGEN_SYNC_H
 #define GRPCPP_IMPL_CODEGEN_SYNC_H
 
-// IWYU pragma: private
-
 #include <grpc/impl/codegen/port_platform.h>
 
 #ifdef GPR_HAS_PTHREAD_H
@@ -29,10 +27,9 @@
 
 #include <mutex>
 
-#include "absl/synchronization/mutex.h"
-
 #include <grpc/impl/codegen/log.h>
 #include <grpc/impl/codegen/sync.h>
+
 #include <grpcpp/impl/codegen/core_codegen_interface.h>
 
 // The core library is not accessible in C++ codegen headers, and vice versa.
@@ -47,16 +44,7 @@
 namespace grpc {
 namespace internal {
 
-#ifdef GPR_ABSEIL_SYNC
-
-using Mutex = absl::Mutex;
-using MutexLock = absl::MutexLock;
-using ReleasableMutexLock = absl::ReleasableMutexLock;
-using CondVar = absl::CondVar;
-
-#else
-
-class ABSL_LOCKABLE Mutex {
+class Mutex {
  public:
   Mutex() { g_core_codegen_interface->gpr_mu_init(&mu_); }
   ~Mutex() { g_core_codegen_interface->gpr_mu_destroy(&mu_); }
@@ -64,12 +52,8 @@ class ABSL_LOCKABLE Mutex {
   Mutex(const Mutex&) = delete;
   Mutex& operator=(const Mutex&) = delete;
 
-  void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() {
-    g_core_codegen_interface->gpr_mu_lock(&mu_);
-  }
-  void Unlock() ABSL_UNLOCK_FUNCTION() {
-    g_core_codegen_interface->gpr_mu_unlock(&mu_);
-  }
+  gpr_mu* get() { return &mu_; }
+  const gpr_mu* get() const { return &mu_; }
 
  private:
   union {
@@ -79,45 +63,55 @@ class ABSL_LOCKABLE Mutex {
     pthread_mutex_t do_not_use_pth_;
 #endif
   };
-
-  friend class CondVar;
 };
 
-class ABSL_SCOPED_LOCKABLE MutexLock {
+// MutexLock is a std::
+class MutexLock {
  public:
-  explicit MutexLock(Mutex* mu) ABSL_EXCLUSIVE_LOCK_FUNCTION(mu) : mu_(mu) {
-    mu_->Lock();
+  explicit MutexLock(Mutex* mu) : mu_(mu->get()) {
+    g_core_codegen_interface->gpr_mu_lock(mu_);
   }
-  ~MutexLock() ABSL_UNLOCK_FUNCTION() { mu_->Unlock(); }
+  explicit MutexLock(gpr_mu* mu) : mu_(mu) {
+    g_core_codegen_interface->gpr_mu_lock(mu_);
+  }
+  ~MutexLock() { g_core_codegen_interface->gpr_mu_unlock(mu_); }
 
   MutexLock(const MutexLock&) = delete;
   MutexLock& operator=(const MutexLock&) = delete;
 
  private:
-  Mutex* const mu_;
+  gpr_mu* const mu_;
 };
 
-class ABSL_SCOPED_LOCKABLE ReleasableMutexLock {
+class ReleasableMutexLock {
  public:
-  explicit ReleasableMutexLock(Mutex* mu) ABSL_EXCLUSIVE_LOCK_FUNCTION(mu)
-      : mu_(mu) {
-    mu_->Lock();
+  explicit ReleasableMutexLock(Mutex* mu) : mu_(mu->get()) {
+    g_core_codegen_interface->gpr_mu_lock(mu_);
   }
-  ~ReleasableMutexLock() ABSL_UNLOCK_FUNCTION() {
-    if (!released_) mu_->Unlock();
+  explicit ReleasableMutexLock(gpr_mu* mu) : mu_(mu) {
+    g_core_codegen_interface->gpr_mu_lock(mu_);
+  }
+  ~ReleasableMutexLock() {
+    if (!released_) g_core_codegen_interface->gpr_mu_unlock(mu_);
   }
 
   ReleasableMutexLock(const ReleasableMutexLock&) = delete;
   ReleasableMutexLock& operator=(const ReleasableMutexLock&) = delete;
 
-  void Release() ABSL_UNLOCK_FUNCTION() {
+  void Lock() {
+    GPR_DEBUG_ASSERT(released_);
+    g_core_codegen_interface->gpr_mu_lock(mu_);
+    released_ = false;
+  }
+
+  void Unlock() {
     GPR_DEBUG_ASSERT(!released_);
     released_ = true;
-    mu_->Unlock();
+    g_core_codegen_interface->gpr_mu_unlock(mu_);
   }
 
  private:
-  Mutex* const mu_;
+  gpr_mu* const mu_;
   bool released_ = false;
 };
 
@@ -130,27 +124,26 @@ class CondVar {
   CondVar& operator=(const CondVar&) = delete;
 
   void Signal() { g_core_codegen_interface->gpr_cv_signal(&cv_); }
-  void SignalAll() { g_core_codegen_interface->gpr_cv_broadcast(&cv_); }
+  void Broadcast() { g_core_codegen_interface->gpr_cv_broadcast(&cv_); }
 
-  void Wait(Mutex* mu) {
-    g_core_codegen_interface->gpr_cv_wait(
-        &cv_, &mu->mu_,
-        g_core_codegen_interface->gpr_inf_future(GPR_CLOCK_REALTIME));
+  int Wait(Mutex* mu) {
+    return Wait(mu,
+                g_core_codegen_interface->gpr_inf_future(GPR_CLOCK_REALTIME));
+  }
+  int Wait(Mutex* mu, const gpr_timespec& deadline) {
+    return g_core_codegen_interface->gpr_cv_wait(&cv_, mu->get(), deadline);
+  }
+
+  template <typename Predicate>
+  void WaitUntil(Mutex* mu, Predicate pred) {
+    while (!pred()) {
+      Wait(mu, g_core_codegen_interface->gpr_inf_future(GPR_CLOCK_REALTIME));
+    }
   }
 
  private:
   gpr_cv cv_;
 };
-
-#endif  // GPR_ABSEIL_SYNC
-
-template <typename Predicate>
-GRPC_DEPRECATED("incompatible with thread safety analysis")
-static void WaitUntil(CondVar* cv, Mutex* mu, Predicate pred) {
-  while (!pred()) {
-    cv->Wait(mu);
-  }
-}
 
 }  // namespace internal
 }  // namespace grpc

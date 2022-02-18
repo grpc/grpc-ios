@@ -14,7 +14,7 @@
 
 load("//bazel:grpc_build_system.bzl", "grpc_cc_library", "grpc_cc_test", "grpc_package")
 
-licenses(["notice"])
+licenses(["notice"])  # Apache v2
 
 grpc_package(name = "test/core/tsi/alts/handshaker")
 
@@ -23,6 +23,7 @@ grpc_cc_library(
     srcs = ["alts_handshaker_service_api_test_lib.cc"],
     hdrs = ["alts_handshaker_service_api_test_lib.h"],
     deps = [
+        "//:alts_util",
         "//:grpc",
     ],
 )
@@ -34,6 +35,8 @@ grpc_cc_test(
     deps = [
         ":alts_handshaker_service_api_test_lib",
         "//:grpc",
+        "//:tsi",
+        "//:tsi_interface",
         "//test/core/util:grpc_test_util",
     ],
 )
@@ -47,6 +50,7 @@ grpc_cc_test(
         "//:gpr",
         "//:gpr_base",
         "//:grpc",
+        "//:tsi",
         "//test/core/util:grpc_test_util",
     ],
 )
@@ -58,6 +62,7 @@ grpc_cc_test(
     deps = [
         ":alts_handshaker_service_api_test_lib",
         "//:grpc",
+        "//:tsi",
         "//test/core/util:grpc_test_util",
     ],
 )
@@ -67,6 +72,7 @@ grpc_cc_test(
     srcs = ["transport_security_common_api_test.cc"],
     language = "C++",
     deps = [
+        "//:alts_util",
         "//:grpc",
         "//test/core/util:grpc_test_util",
     ],
@@ -81,15 +87,12 @@ grpc_cc_test(
     language = "C++",
     # TODO(apolcyn): make the fake TCP server used in this
     # test portable to Windows.
-    tags = [
-        "no_mac",  # TODO(https://github.com/grpc/grpc/issues/24747): Disable temporarily
-        "no_windows",
-    ],
+    tags = ["no_windows"],
     deps = [
+        "//:alts_util",
         "//:grpc",
         "//test/core/end2end:cq_verifier",
         "//test/core/tsi/alts/fake_handshaker:fake_handshaker_lib",
-        "//test/core/util:fake_udp_and_tcp_server",
         "//test/core/util:grpc_test_util",
     ],
 )

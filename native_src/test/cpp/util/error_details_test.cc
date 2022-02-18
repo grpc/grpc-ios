@@ -16,13 +16,11 @@
  *
  */
 
-#include <gtest/gtest.h>
-
 #include <grpcpp/support/error_details.h>
+#include <gtest/gtest.h>
 
 #include "src/proto/grpc/status/status.pb.h"
 #include "src/proto/grpc/testing/echo_messages.pb.h"
-#include "test/core/util/test_config.h"
 
 namespace grpc {
 namespace {
@@ -32,11 +30,11 @@ TEST(ExtractTest, Success) {
   expected.set_code(13);  // INTERNAL
   expected.set_message("I am an error message");
   testing::EchoRequest expected_details;
-  expected_details.set_message(std::string(100, '\0'));
+  expected_details.set_message(grpc::string(100, '\0'));
   expected.add_details()->PackFrom(expected_details);
 
   google::rpc::Status to;
-  std::string error_details = expected.SerializeAsString();
+  grpc::string error_details = expected.SerializeAsString();
   Status from(static_cast<StatusCode>(expected.code()), expected.message(),
               error_details);
   EXPECT_TRUE(ExtractErrorDetails(from, &to).ok());
@@ -54,7 +52,7 @@ TEST(ExtractTest, NullInput) {
 }
 
 TEST(ExtractTest, Unparsable) {
-  std::string error_details("I am not a status object");
+  grpc::string error_details("I am not a status object");
   Status from(StatusCode::INTERNAL, "", error_details);
   google::rpc::Status to;
   EXPECT_EQ(StatusCode::INVALID_ARGUMENT,
@@ -66,7 +64,7 @@ TEST(SetTest, Success) {
   expected.set_code(13);  // INTERNAL
   expected.set_message("I am an error message");
   testing::EchoRequest expected_details;
-  expected_details.set_message(std::string(100, '\0'));
+  expected_details.set_message(grpc::string(100, '\0'));
   expected.add_details()->PackFrom(expected_details);
 
   Status to;
@@ -87,7 +85,7 @@ TEST(SetTest, OutOfScopeErrorCode) {
   expected.set_code(17);  // Out of scope (UNAUTHENTICATED is 16).
   expected.set_message("I am an error message");
   testing::EchoRequest expected_details;
-  expected_details.set_message(std::string(100, '\0'));
+  expected_details.set_message(grpc::string(100, '\0'));
   expected.add_details()->PackFrom(expected_details);
 
   Status to;
@@ -104,7 +102,7 @@ TEST(SetTest, ValidScopeErrorCode) {
     expected.set_code(c);
     expected.set_message("I am an error message");
     testing::EchoRequest expected_details;
-    expected_details.set_message(std::string(100, '\0'));
+    expected_details.set_message(grpc::string(100, '\0'));
     expected.add_details()->PackFrom(expected_details);
 
     Status to;
@@ -120,7 +118,6 @@ TEST(SetTest, ValidScopeErrorCode) {
 }  // namespace grpc
 
 int main(int argc, char** argv) {
-  grpc::testing::TestEnvironment env(argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

@@ -95,14 +95,15 @@ class TimeZoneInfo : public TimeZoneIf {
     std::size_t DataLength(std::size_t time_len) const;
   };
 
-  bool GetTransitionType(std::int_fast32_t utc_offset, bool is_dst,
-                         const std::string& abbr, std::uint_least8_t* index);
+  void CheckTransition(const std::string& name, const TransitionType& tt,
+                       std::int_fast32_t offset, bool is_dst,
+                       const std::string& abbr) const;
   bool EquivTransitions(std::uint_fast8_t tt1_index,
                         std::uint_fast8_t tt2_index) const;
-  bool ExtendTransitions();
+  void ExtendTransitions(const std::string& name, const Header& hdr);
 
   bool ResetToBuiltinUTC(const seconds& offset);
-  bool Load(ZoneInfoSource* zip);
+  bool Load(const std::string& name, ZoneInfoSource* zip);
 
   // Helpers for BreakTime() and MakeTime().
   time_zone::absolute_lookup LocalTime(std::int_fast64_t unix_time,

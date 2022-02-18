@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import os
+import pkg_resources
 import sys
 
-from grpc_tools import protoc
-import pkg_resources
 import setuptools
+
+from grpc_tools import protoc
 
 
 def build_package_protos(package_root, strict_mode=False):

@@ -32,7 +32,7 @@ namespace {
 
 class BoringSslCachedSession : public SslCachedSession {
  public:
-  explicit BoringSslCachedSession(SslSessionPtr session)
+  BoringSslCachedSession(SslSessionPtr session)
       : session_(std::move(session)) {}
 
   SslSessionPtr CopySession() const override {

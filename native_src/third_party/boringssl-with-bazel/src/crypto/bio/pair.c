@@ -127,7 +127,12 @@ static void bio_destroy_pair(BIO *bio) {
 }
 
 static int bio_free(BIO *bio) {
-  struct bio_bio_st *b = bio->ptr;
+  struct bio_bio_st *b;
+
+  if (bio == NULL) {
+    return 0;
+  }
+  b = bio->ptr;
 
   assert(b != NULL);
 

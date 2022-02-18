@@ -220,13 +220,6 @@ TEST(ARMLinuxTest, CPUInfo) {
           0,
           false,
       },
-      // If opening /proc/cpuinfo fails, we process the empty string.
-      {
-          "",
-          0,
-          0,
-          false,
-      },
   };
 
   for (const auto &t : kTests) {

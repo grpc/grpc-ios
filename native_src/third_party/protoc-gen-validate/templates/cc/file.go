@@ -22,12 +22,10 @@ using std::string;
 const re2::RE2 _uuidPattern("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
 {{ range .AllMessages }}
-{{- if not (ignored .) -}}
 {{- if not (disabled .) -}}
 
 pgv::Validator<{{ class . }}> {{ staticVarName . }}(static_cast<bool(*)(const {{ class .}}&, pgv::ValidationMsg*)>({{ package .}}::Validate));
 
-{{- end -}}
 {{ end }}
 {{ end }}
 
@@ -78,8 +76,6 @@ using std::string;
 
 #define X_{{ .Package.ProtoName.ScreamingSnakeCase }}_{{ .File.InputPath.BaseName | screaming_snake_case }}(X) \
 {{ range .AllMessages -}}
-{{- if not (ignored .) -}}
 	X({{class . }}) \
-{{ end -}}
 {{ end }}
 `

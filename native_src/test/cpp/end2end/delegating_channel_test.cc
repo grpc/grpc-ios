@@ -19,8 +19,6 @@
 #include <memory>
 #include <vector>
 
-#include <gtest/gtest.h>
-
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
@@ -39,14 +37,15 @@
 #include "test/cpp/util/byte_buffer_proto_helper.h"
 #include "test/cpp/util/string_ref_helper.h"
 
+#include <gtest/gtest.h>
+
 namespace grpc {
 namespace testing {
 namespace {
 
 class TestChannel : public experimental::DelegatingChannel {
  public:
-  explicit TestChannel(
-      const std::shared_ptr<ChannelInterface>& delegate_channel)
+  TestChannel(const std::shared_ptr<ChannelInterface>& delegate_channel)
       : experimental::DelegatingChannel(delegate_channel) {}
   // Always returns GRPC_CHANNEL_READY
   grpc_connectivity_state GetState(bool /*try_to_connect*/) override {
@@ -65,7 +64,7 @@ class DelegatingChannelTest : public ::testing::Test {
     server_ = builder.BuildAndStart();
   }
 
-  ~DelegatingChannelTest() override { server_->Shutdown(); }
+  ~DelegatingChannelTest() { server_->Shutdown(); }
 
   std::string server_address_;
   TestServiceImpl service_;

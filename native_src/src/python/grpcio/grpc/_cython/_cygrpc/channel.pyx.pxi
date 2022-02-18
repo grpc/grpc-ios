@@ -256,8 +256,6 @@ cdef void _call(
         on_success(started_tags)
     else:
       raise ValueError('Cannot invoke RPC: %s' % channel_state.closed_reason)
-
-
 cdef void _process_integrated_call_tag(
     _ChannelState state, _BatchOperationTag tag) except *:
   cdef _CallState call_state = state.integrated_call_states.pop(tag)
@@ -425,7 +423,7 @@ cdef _close(Channel channel, grpc_status_code code, object details,
       _destroy_c_completion_queue(state.c_connectivity_completion_queue)
       grpc_channel_destroy(state.c_channel)
       state.c_channel = NULL
-      grpc_shutdown()
+      grpc_shutdown_blocking()
       state.condition.notify_all()
     else:
       # Another call to close already completed in the past or is currently
@@ -452,12 +450,14 @@ cdef class Channel:
         grpc_completion_queue_create_for_next(NULL))
     self._arguments = arguments
     cdef _ChannelArgs channel_args = _ChannelArgs(arguments)
-    c_channel_credentials = (
-        channel_credentials.c() if channel_credentials is not None
-        else grpc_insecure_credentials_create())
-    self._state.c_channel = grpc_channel_create(
-        <char *>target, c_channel_credentials, channel_args.c_args())
-    grpc_channel_credentials_release(c_channel_credentials)
+    if channel_credentials is None:
+      self._state.c_channel = grpc_insecure_channel_create(
+          <char *>target, channel_args.c_args(), NULL)
+    else:
+      c_channel_credentials = channel_credentials.c()
+      self._state.c_channel = grpc_secure_channel_create(
+          c_channel_credentials, <char *>target, channel_args.c_args(), NULL)
+      grpc_channel_credentials_release(c_channel_credentials)
 
   def target(self):
     cdef char *c_target

@@ -18,11 +18,12 @@
 
 #include <grpc/support/port_platform.h>
 
+#include <grpc/slice_buffer.h>
 #include "src/core/lib/security/security_connector/load_system_roots_linux.h"
 
-#include <grpc/slice_buffer.h>
-
 #if defined(GPR_LINUX) || defined(GPR_ANDROID)
+
+#include "src/core/lib/security/security_connector/load_system_roots.h"
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -33,8 +34,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "absl/container/inlined_vector.h"
-
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/string_util.h>
@@ -42,8 +41,8 @@
 #include "src/core/lib/gpr/string.h"
 #include "src/core/lib/gpr/useful.h"
 #include "src/core/lib/gprpp/global_config.h"
+#include "src/core/lib/gprpp/inlined_vector.h"
 #include "src/core/lib/iomgr/load_file.h"
-#include "src/core/lib/security/security_connector/load_system_roots.h"
 
 GPR_GLOBAL_CONFIG_DEFINE_STRING(grpc_system_ssl_roots_dir, "",
                                 "Custom directory to SSL Roots");
@@ -63,7 +62,7 @@ grpc_slice GetSystemRootCerts() {
   grpc_slice valid_bundle_slice = grpc_empty_slice();
   size_t num_cert_files_ = GPR_ARRAY_SIZE(kLinuxCertFiles);
   for (size_t i = 0; i < num_cert_files_; i++) {
-    grpc_error_handle error =
+    grpc_error* error =
         grpc_load_file(kLinuxCertFiles[i], 1, &valid_bundle_slice);
     if (error == GRPC_ERROR_NONE) {
       return valid_bundle_slice;
@@ -101,7 +100,7 @@ grpc_slice CreateRootCertsBundle(const char* certs_directory) {
     char path[MAXPATHLEN];
     off_t size;
   };
-  absl::InlinedVector<FileData, 2> roots_filenames;
+  InlinedVector<FileData, 2> roots_filenames;
   size_t total_bundle_size = 0;
   struct dirent* directory_entry;
   while ((directory_entry = readdir(ca_directory)) != nullptr) {
@@ -145,7 +144,8 @@ grpc_slice CreateRootCertsBundle(const char* certs_directory) {
 grpc_slice LoadSystemRootCerts() {
   grpc_slice result = grpc_empty_slice();
   // Prioritize user-specified custom directory if flag is set.
-  UniquePtr<char> custom_dir = GPR_GLOBAL_CONFIG_GET(grpc_system_ssl_roots_dir);
+  grpc_core::UniquePtr<char> custom_dir =
+      GPR_GLOBAL_CONFIG_GET(grpc_system_ssl_roots_dir);
   if (strlen(custom_dir.get()) > 0) {
     result = CreateRootCertsBundle(custom_dir.get());
   }

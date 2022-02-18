@@ -19,10 +19,8 @@
 #ifndef TEST_CPP_MICROBENCHMARKS_CALLBACK_STREAMING_PING_PONG_H
 #define TEST_CPP_MICROBENCHMARKS_CALLBACK_STREAMING_PING_PONG_H
 
-#include <sstream>
-
 #include <benchmark/benchmark.h>
-
+#include <sstream>
 #include "src/core/lib/profiling/timers.h"
 #include "src/proto/grpc/testing/echo.grpc.pb.h"
 #include "test/cpp/microbenchmarks/callback_test_service.h"
@@ -36,7 +34,8 @@ namespace testing {
  * BENCHMARKING KERNELS
  */
 
-class BidiClient : public grpc::ClientBidiReactor<EchoRequest, EchoResponse> {
+class BidiClient
+    : public grpc::experimental::ClientBidiReactor<EchoRequest, EchoResponse> {
  public:
   BidiClient(benchmark::State* state, EchoTestService::Stub* stub,
              ClientContext* cli_ctx, EchoRequest* request,
@@ -84,8 +83,8 @@ class BidiClient : public grpc::ClientBidiReactor<EchoRequest, EchoResponse> {
   void StartNewRpc() {
     cli_ctx_->~ClientContext();
     new (cli_ctx_) ClientContext();
-    cli_ctx_->AddMetadata(kServerMessageSize, std::to_string(msgs_size_));
-    stub_->async()->BidiStream(cli_ctx_, this);
+    cli_ctx_->AddMetadata(kServerMessageSize, grpc::to_string(msgs_size_));
+    stub_->experimental_async()->BidiStream(cli_ctx_, this);
     MaybeWrite();
     StartCall();
   }

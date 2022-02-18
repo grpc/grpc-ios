@@ -121,11 +121,7 @@ public abstract class GeneratedMessageLite<
       return true;
     }
 
-    if (other == null) {
-      return false;
-    }
-
-    if (this.getClass() != other.getClass()) {
+    if (!getDefaultInstanceForType().getClass().isInstance(other)) {
       return false;
     }
 
@@ -223,7 +219,7 @@ public abstract class GeneratedMessageLite<
 
   /**
    * A method that implements different types of operations described in {@link MethodToInvoke}.
-   * These different kinds of operations are required to implement message-level operations for
+   * Theses different kinds of operations are required to implement message-level operations for
    * builders in the runtime. This method bundles those operations to reduce the generated methods
    * count.
    *
@@ -234,7 +230,7 @@ public abstract class GeneratedMessageLite<
    *       It doesn't use or modify any memoized value.
    *   <li>{@code GET_MEMOIZED_IS_INITIALIZED} returns the memoized {@code isInitialized} byte
    *       value.
-   *   <li>{@code SET_MEMOIZED_IS_INITIALIZED} sets the memoized {@code isInitialized} byte value to
+   *   <li>{@code SET_MEMOIZED_IS_INITIALIZED} sets the memoized {@code isInitilaized} byte value to
    *       1 if the first parameter is not null, or to 0 if the first parameter is null.
    *   <li>{@code NEW_BUILDER} returns a {@code BuilderType} instance.
    * </ul>
@@ -266,14 +262,12 @@ public abstract class GeneratedMessageLite<
     memoizedSerializedSize = size;
   }
 
-  @Override
   public void writeTo(CodedOutputStream output) throws IOException {
     Protobuf.getInstance()
         .schemaFor(this)
         .writeTo(this, CodedOutputStreamWriter.forCodedOutput(output));
   }
 
-  @Override
   public int getSerializedSize() {
     if (memoizedSerializedSize == -1) {
       memoizedSerializedSize = Protobuf.getInstance().schemaFor(this).getSerializedSize(this);
@@ -463,7 +457,7 @@ public abstract class GeneratedMessageLite<
         throws IOException {
       copyOnWrite();
       try {
-        // TODO(yilunchong): Try to make input with type CodedInputStream.ArrayDecoder use
+        // TODO(yilunchong): Try to make input with type CodedInpuStream.ArrayDecoder use
         // fast path.
         Protobuf.getInstance().schemaFor(instance).mergeFrom(
             instance, CodedInputStreamReader.forCodedInput(input), extensionRegistry);
@@ -1537,16 +1531,11 @@ public abstract class GeneratedMessageLite<
       Schema<T> schema = Protobuf.getInstance().schemaFor(result);
       schema.mergeFrom(result, CodedInputStreamReader.forCodedInput(input), extensionRegistry);
       schema.makeImmutable(result);
-    } catch (InvalidProtocolBufferException e) {
-      if (e.getThrownFromInputStream()) {
-        e = new InvalidProtocolBufferException(e);
-      }
-      throw e.setUnfinishedMessage(result);
     } catch (IOException e) {
       if (e.getCause() instanceof InvalidProtocolBufferException) {
         throw (InvalidProtocolBufferException) e.getCause();
       }
-      throw new InvalidProtocolBufferException(e).setUnfinishedMessage(result);
+      throw new InvalidProtocolBufferException(e.getMessage()).setUnfinishedMessage(result);
     } catch (RuntimeException e) {
       if (e.getCause() instanceof InvalidProtocolBufferException) {
         throw (InvalidProtocolBufferException) e.getCause();
@@ -1570,16 +1559,11 @@ public abstract class GeneratedMessageLite<
       if (result.memoizedHashCode != 0) {
         throw new RuntimeException();
       }
-    } catch (InvalidProtocolBufferException e) {
-      if (e.getThrownFromInputStream()) {
-        e = new InvalidProtocolBufferException(e);
-      }
-      throw e.setUnfinishedMessage(result);
     } catch (IOException e) {
       if (e.getCause() instanceof InvalidProtocolBufferException) {
         throw (InvalidProtocolBufferException) e.getCause();
       }
-      throw new InvalidProtocolBufferException(e).setUnfinishedMessage(result);
+      throw new InvalidProtocolBufferException(e.getMessage()).setUnfinishedMessage(result);
     } catch (IndexOutOfBoundsException e) {
       throw InvalidProtocolBufferException.truncatedMessage().setUnfinishedMessage(result);
     }
@@ -1737,13 +1721,8 @@ public abstract class GeneratedMessageLite<
         return null;
       }
       size = CodedInputStream.readRawVarint32(firstByte, input);
-    } catch (InvalidProtocolBufferException e) {
-      if (e.getThrownFromInputStream()) {
-        e = new InvalidProtocolBufferException(e);
-      }
-      throw e;
     } catch (IOException e) {
-      throw new InvalidProtocolBufferException(e);
+      throw new InvalidProtocolBufferException(e.getMessage());
     }
     InputStream limitedInput = new LimitedInputStream(input, size);
     CodedInputStream codedInput = CodedInputStream.newInstance(limitedInput);

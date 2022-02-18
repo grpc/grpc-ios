@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,9 +17,6 @@ syntax = "proto3";
 package google.devtools.cloudtrace.v2;
 
 import "google/api/annotations.proto";
-import "google/api/client.proto";
-import "google/api/field_behavior.proto";
-import "google/api/resource.proto";
 import "google/devtools/cloudtrace/v2/trace.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
@@ -30,7 +27,7 @@ option java_multiple_files = true;
 option java_outer_classname = "TracingProto";
 option java_package = "com.google.devtools.cloudtrace.v2";
 option php_namespace = "Google\\Cloud\\Trace\\V2";
-option ruby_package = "Google::Cloud::Trace::V2";
+
 
 // This file describes an API for collecting and viewing traces and spans
 // within a trace.  A Trace is a collection of spans corresponding to a single
@@ -38,27 +35,15 @@ option ruby_package = "Google::Cloud::Trace::V2";
 // timed event which forms a node of the trace tree. A single trace may
 // contain span(s) from multiple services.
 service TraceService {
-  option (google.api.default_host) = "cloudtrace.googleapis.com";
-  option (google.api.oauth_scopes) =
-      "https://www.googleapis.com/auth/cloud-platform,"
-      "https://www.googleapis.com/auth/trace.append";
-
   // Sends new spans to new or existing traces. You cannot update
   // existing spans.
   rpc BatchWriteSpans(BatchWriteSpansRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/v2/{name=projects/*}/traces:batchWrite"
-      body: "*"
-    };
-    option (google.api.method_signature) = "name,spans";
+    option (google.api.http) = { post: "/v2/{name=projects/*}/traces:batchWrite" body: "*" };
   }
 
   // Creates a new span.
   rpc CreateSpan(Span) returns (Span) {
-    option (google.api.http) = {
-      post: "/v2/{name=projects/*/traces/*/spans/*}"
-      body: "*"
-    };
+    option (google.api.http) = { post: "/v2/{name=projects/*/traces/*}/spans" body: "*" };
   }
 }
 
@@ -66,14 +51,9 @@ service TraceService {
 message BatchWriteSpansRequest {
   // Required. The name of the project where the spans belong. The format is
   // `projects/[PROJECT_ID]`.
-  string name = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.resource_reference) = {
-      type: "cloudresourcemanager.googleapis.com/Project"
-    }
-  ];
+  string name = 1;
 
-  // Required. A list of new spans. The span names must not match existing
+  // A list of new spans. The span names must not match existing
   // spans, or the results are undefined.
-  repeated Span spans = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated Span spans = 2;
 }

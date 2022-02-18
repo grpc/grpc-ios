@@ -16,19 +16,22 @@
  *
  */
 
-#include "src/core/lib/gprpp/host_port.h"
-
 #include <string.h>
 
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 
+#include "src/core/lib/gprpp/host_port.h"
 #include "test/core/util/test_config.h"
 
 static void join_host_port_expect(const char* host, int port,
                                   const char* expected) {
-  std::string actual = grpc_core::JoinHostPort(host, port);
-  GPR_ASSERT(actual == expected);
+  grpc_core::UniquePtr<char> buf;
+  int len;
+  len = grpc_core::JoinHostPort(&buf, host, port);
+  GPR_ASSERT(len >= 0);
+  GPR_ASSERT(strlen(expected) == static_cast<size_t>(len));
+  GPR_ASSERT(strcmp(expected, buf.get()) == 0);
 }
 
 static void test_join_host_port(void) {
@@ -47,13 +50,21 @@ static void test_join_host_port_garbage(void) {
 
 static void split_host_port_expect(const char* name, const char* host,
                                    const char* port, bool ret) {
-  std::string actual_host;
-  std::string actual_port;
+  grpc_core::UniquePtr<char> actual_host;
+  grpc_core::UniquePtr<char> actual_port;
   const bool actual_ret =
       grpc_core::SplitHostPort(name, &actual_host, &actual_port);
   GPR_ASSERT(actual_ret == ret);
-  GPR_ASSERT(actual_host == (host == nullptr ? "" : host));
-  GPR_ASSERT(actual_port == (port == nullptr ? "" : port));
+  if (host == nullptr) {
+    GPR_ASSERT(actual_host == nullptr);
+  } else {
+    GPR_ASSERT(strcmp(host, actual_host.get()) == 0);
+  }
+  if (port == nullptr) {
+    GPR_ASSERT(actual_port == nullptr);
+  } else {
+    GPR_ASSERT(strcmp(port, actual_port.get()) == 0);
+  }
 }
 
 static void test_split_host_port() {

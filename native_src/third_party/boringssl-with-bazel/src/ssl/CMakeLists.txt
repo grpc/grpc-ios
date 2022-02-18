@@ -10,8 +10,6 @@ add_library(
   d1_srtp.cc
   dtls_method.cc
   dtls_record.cc
-  encrypted_client_hello.cc
-  extensions.cc
   handoff.cc
   handshake.cc
   handshake_client.cc
@@ -34,6 +32,7 @@ add_library(
   ssl_versions.cc
   ssl_x509.cc
   t1_enc.cc
+  t1_lib.cc
   tls_method.cc
   tls_record.cc
   tls13_both.cc

@@ -19,8 +19,6 @@
 #ifndef GRPCPP_IMPL_CODEGEN_CALL_HOOK_H
 #define GRPCPP_IMPL_CODEGEN_CALL_HOOK_H
 
-// IWYU pragma: private
-
 namespace grpc {
 
 namespace internal {

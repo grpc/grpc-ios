@@ -81,13 +81,13 @@ enum ProcessingTypes {
 static_assert(TYPE_MAP < kRepeatedMask, "Invalid enum");
 
 struct PROTOBUF_EXPORT FieldMetadata {
-  uint32_t offset;  // offset of this field in the struct
-  uint32_t tag;     // field * 8 + wire_type
+  uint32 offset;  // offset of this field in the struct
+  uint32 tag;     // field * 8 + wire_type
   // byte offset * 8 + bit_offset;
   // if the high bit is set then this is the byte offset of the oneof_case
   // for this field.
-  uint32_t has_offset;
-  uint32_t type;    // the type of this field.
+  uint32 has_offset;
+  uint32 type;      // the type of this field.
   const void* ptr;  // auxiliary data
 
   // From the serializer point of view each fundamental type can occur in
@@ -102,7 +102,7 @@ struct PROTOBUF_EXPORT FieldMetadata {
     kNumTypeClasses  // must be last enum
   };
   // C++ protobuf has 20 fundamental types, were we added Cord and StringPiece
-  // and also distinguish the same types if they have different wire format.
+  // and also distinquish the same types if they have different wire format.
   enum {
     kCordType = 19,
     kStringPieceType = 20,
@@ -120,12 +120,12 @@ struct PROTOBUF_EXPORT FieldMetadata {
 // ParseTableField is kept small to help simplify instructions for computing
 // offsets, as we will always need this information to parse a field.
 // Additional data, needed for some types, is stored in
-// AuxiliaryParseTableField.
+// AuxillaryParseTableField.
 struct ParseTableField {
-  uint32_t offset;
+  uint32 offset;
   // The presence_index ordinarily represents a has_bit index, but for fields
   // inside a oneof it represents the index in _oneof_case_.
-  uint32_t presence_index;
+  uint32 presence_index;
   unsigned char normal_wiretype;
   unsigned char packed_wiretype;
 
@@ -138,7 +138,7 @@ struct ParseTableField {
 
 struct ParseTable;
 
-union AuxiliaryParseTableField {
+union AuxillaryParseTableField {
   typedef bool (*EnumValidator)(int);
 
   // Enums
@@ -169,28 +169,28 @@ union AuxiliaryParseTableField {
   };
   map_aux maps;
 
-  AuxiliaryParseTableField() = default;
-  constexpr AuxiliaryParseTableField(AuxiliaryParseTableField::enum_aux e)
+  AuxillaryParseTableField() = default;
+  constexpr AuxillaryParseTableField(AuxillaryParseTableField::enum_aux e)
       : enums(e) {}
-  constexpr AuxiliaryParseTableField(AuxiliaryParseTableField::message_aux m)
+  constexpr AuxillaryParseTableField(AuxillaryParseTableField::message_aux m)
       : messages(m) {}
-  constexpr AuxiliaryParseTableField(AuxiliaryParseTableField::string_aux s)
+  constexpr AuxillaryParseTableField(AuxillaryParseTableField::string_aux s)
       : strings(s) {}
-  constexpr AuxiliaryParseTableField(AuxiliaryParseTableField::map_aux m)
+  constexpr AuxillaryParseTableField(AuxillaryParseTableField::map_aux m)
       : maps(m) {}
 };
 
 struct ParseTable {
   const ParseTableField* fields;
-  const AuxiliaryParseTableField* aux;
+  const AuxillaryParseTableField* aux;
   int max_field_number;
   // TODO(ckennelly): Do something with this padding.
 
   // TODO(ckennelly): Vet these for sign extension.
-  int64_t has_bits_offset;
-  int64_t oneof_case_offset;
-  int64_t extension_offset;
-  int64_t arena_offset;
+  int64 has_bits_offset;
+  int64 oneof_case_offset;
+  int64 extension_offset;
+  int64 arena_offset;
 
   // ExplicitlyInitialized<T> -> T requires a reinterpret_cast, which prevents
   // the tables from being constructed as a constexpr.  We use void to avoid
@@ -206,22 +206,12 @@ struct ParseTable {
 static_assert(sizeof(ParseTableField) <= 16, "ParseTableField is too large");
 // The tables must be composed of POD components to ensure link-time
 // initialization.
-static_assert(std::is_standard_layout<ParseTableField>::value, "");
-static_assert(std::is_trivial<ParseTableField>::value, "");
-static_assert(std::is_standard_layout<AuxiliaryParseTableField>::value, "");
-static_assert(std::is_trivial<AuxiliaryParseTableField>::value, "");
-static_assert(
-    std::is_standard_layout<AuxiliaryParseTableField::enum_aux>::value, "");
-static_assert(std::is_trivial<AuxiliaryParseTableField::enum_aux>::value, "");
-static_assert(
-    std::is_standard_layout<AuxiliaryParseTableField::message_aux>::value, "");
-static_assert(std::is_trivial<AuxiliaryParseTableField::message_aux>::value,
-              "");
-static_assert(
-    std::is_standard_layout<AuxiliaryParseTableField::string_aux>::value, "");
-static_assert(std::is_trivial<AuxiliaryParseTableField::string_aux>::value, "");
-static_assert(std::is_standard_layout<ParseTable>::value, "");
-static_assert(std::is_trivial<ParseTable>::value, "");
+static_assert(std::is_pod<ParseTableField>::value, "");
+static_assert(std::is_pod<AuxillaryParseTableField>::value, "");
+static_assert(std::is_pod<AuxillaryParseTableField::enum_aux>::value, "");
+static_assert(std::is_pod<AuxillaryParseTableField::message_aux>::value, "");
+static_assert(std::is_pod<AuxillaryParseTableField::string_aux>::value, "");
+static_assert(std::is_pod<ParseTable>::value, "");
 
 // TODO(ckennelly): Consolidate these implementations into a single one, using
 // dynamic dispatch to the appropriate unknown field handler.
@@ -246,9 +236,9 @@ struct SerializationTable {
   const FieldMetadata* field_table;
 };
 
-PROTOBUF_EXPORT void SerializeInternal(const uint8_t* base,
+PROTOBUF_EXPORT void SerializeInternal(const uint8* base,
                                        const FieldMetadata* table,
-                                       int32_t num_fields,
+                                       int32 num_fields,
                                        io::CodedOutputStream* output);
 
 inline void TableSerialize(const MessageLite& msg,
@@ -256,26 +246,24 @@ inline void TableSerialize(const MessageLite& msg,
                            io::CodedOutputStream* output) {
   const FieldMetadata* field_table = table->field_table;
   int num_fields = table->num_fields - 1;
-  const uint8_t* base = reinterpret_cast<const uint8_t*>(&msg);
+  const uint8* base = reinterpret_cast<const uint8*>(&msg);
   // TODO(gerbens) This skips the first test if we could use the fast
   // array serialization path, we should make this
   // int cached_size =
-  //    *reinterpret_cast<const int32_t*>(base + field_table->offset);
+  //    *reinterpret_cast<const int32*>(base + field_table->offset);
   // SerializeWithCachedSize(msg, field_table + 1, num_fields, cached_size, ...)
   // But we keep conformance with the old way for now.
   SerializeInternal(base, field_table + 1, num_fields, output);
 }
 
-PROTOBUF_EXPORT uint8_t* SerializeInternalToArray(const uint8_t* base,
-                                                  const FieldMetadata* table,
-                                                  int32_t num_fields,
-                                                  bool is_deterministic,
-                                                  uint8_t* buffer);
+uint8* SerializeInternalToArray(const uint8* base, const FieldMetadata* table,
+                                int32 num_fields, bool is_deterministic,
+                                uint8* buffer);
 
-inline uint8_t* TableSerializeToArray(const MessageLite& msg,
-                                      const SerializationTable* table,
-                                      bool is_deterministic, uint8_t* buffer) {
-  const uint8_t* base = reinterpret_cast<const uint8_t*>(&msg);
+inline uint8* TableSerializeToArray(const MessageLite& msg,
+                                    const SerializationTable* table,
+                                    bool is_deterministic, uint8* buffer) {
+  const uint8* base = reinterpret_cast<const uint8*>(&msg);
   const FieldMetadata* field_table = table->field_table + 1;
   int num_fields = table->num_fields - 1;
   return SerializeInternalToArray(base, field_table, num_fields,
@@ -307,8 +295,8 @@ struct CompareMapKey {
 };
 
 template <typename MapFieldType, const SerializationTable* table>
-void MapFieldSerializer(const uint8_t* base, uint32_t offset, uint32_t tag,
-                        uint32_t has_offset, io::CodedOutputStream* output) {
+void MapFieldSerializer(const uint8* base, uint32 offset, uint32 tag,
+                        uint32 has_offset, io::CodedOutputStream* output) {
   typedef MapEntryHelper<typename MapFieldType::EntryTypeTrait> Entry;
   typedef typename MapFieldType::MapType::const_iterator Iter;
 
@@ -323,7 +311,7 @@ void MapFieldSerializer(const uint8_t* base, uint32_t offset, uint32_t tag,
       Entry map_entry(*it);
       output->WriteVarint32(tag);
       output->WriteVarint32(map_entry._cached_size_);
-      SerializeInternal(reinterpret_cast<const uint8_t*>(&map_entry),
+      SerializeInternal(reinterpret_cast<const uint8*>(&map_entry),
                         t->field_table, t->num_fields, output);
     }
   } else {
@@ -336,7 +324,7 @@ void MapFieldSerializer(const uint8_t* base, uint32_t offset, uint32_t tag,
     for (int i = 0; i < v.size(); i++) {
       output->WriteVarint32(tag);
       output->WriteVarint32(v[i]._cached_size_);
-      SerializeInternal(reinterpret_cast<const uint8_t*>(&v[i]), t->field_table,
+      SerializeInternal(reinterpret_cast<const uint8*>(&v[i]), t->field_table,
                         t->num_fields, output);
     }
   }

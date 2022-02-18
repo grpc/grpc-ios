@@ -21,22 +21,19 @@
 #ifdef GRPC_CFSTREAM
 #include <CoreFoundation/CoreFoundation.h>
 
-#include <string>
-
-#include "absl/strings/str_format.h"
-
 #include <grpc/support/alloc.h>
+#include <grpc/support/string_util.h>
 
 #include "src/core/lib/iomgr/error.h"
 
 #define MAX_ERROR_DESCRIPTION 256
 
-grpc_error_handle grpc_error_create_from_cferror(const char* file, int line,
-                                                 void* arg,
-                                                 const char* custom_desc) {
+grpc_error* grpc_error_create_from_cferror(const char* file, int line,
+                                           void* arg, const char* custom_desc) {
   CFErrorRef error = static_cast<CFErrorRef>(arg);
   char buf_domain[MAX_ERROR_DESCRIPTION];
   char buf_desc[MAX_ERROR_DESCRIPTION];
+  char* error_msg;
   CFErrorDomain domain = CFErrorGetDomain((error));
   CFIndex code = CFErrorGetCode((error));
   CFStringRef desc = CFErrorCopyDescription((error));
@@ -44,16 +41,12 @@ grpc_error_handle grpc_error_create_from_cferror(const char* file, int line,
                      kCFStringEncodingUTF8);
   CFStringGetCString(desc, buf_desc, MAX_ERROR_DESCRIPTION,
                      kCFStringEncodingUTF8);
-  std::string error_msg =
-      absl::StrFormat("%s (error domain:%s, code:%ld, description:%s)",
-                      custom_desc, buf_domain, code, buf_desc);
+  gpr_asprintf(&error_msg, "%s (error domain:%s, code:%ld, description:%s)",
+               custom_desc, buf_domain, code, buf_desc);
   CFRelease(desc);
-#ifdef GRPC_ERROR_IS_ABSEIL_STATUS
-  return StatusCreate(absl::StatusCode::kUnknown, error_msg,
-                      grpc_core::DebugLocation(file, line), {});
-#else
-  return grpc_error_create(
-      file, line, grpc_slice_from_copied_string(error_msg.c_str()), NULL, 0);
-#endif
+  grpc_error* return_error = grpc_error_create(
+      file, line, grpc_slice_from_copied_string(error_msg), NULL, 0);
+  gpr_free(error_msg);
+  return return_error;
 }
 #endif /* GRPC_CFSTREAM */

@@ -12,9 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
 package(features = ["-parse_headers"])
 
-licenses(["notice"])
+licenses(["notice"])  # Apache License
 
 filegroup(
     name = "zoneinfo",
@@ -24,14 +26,14 @@ filegroup(
 config_setting(
     name = "osx",
     constraint_values = [
-        "@platforms//os:osx",
+        "@bazel_tools//platforms:osx",
     ],
 )
 
 config_setting(
     name = "ios",
     constraint_values = [
-        "@platforms//os:ios",
+        "@bazel_tools//platforms:ios",
     ],
 )
 
@@ -89,11 +91,6 @@ cc_library(
 )
 
 ### tests
-
-test_suite(
-    name = "all_tests",
-    visibility = ["//visibility:public"],
-)
 
 cc_test(
     name = "civil_time_test",

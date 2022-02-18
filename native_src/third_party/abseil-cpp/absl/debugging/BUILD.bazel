@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load(
     "//absl:copts/configure_copts.bzl",
     "ABSL_DEFAULT_COPTS",
@@ -25,7 +26,7 @@ package(
     default_visibility = ["//visibility:public"],
 )
 
-licenses(["notice"])
+licenses(["notice"])  # Apache 2.0
 
 cc_library(
     name = "stacktrace",
@@ -33,10 +34,8 @@ cc_library(
         "internal/stacktrace_aarch64-inl.inc",
         "internal/stacktrace_arm-inl.inc",
         "internal/stacktrace_config.h",
-        "internal/stacktrace_emscripten-inl.inc",
         "internal/stacktrace_generic-inl.inc",
         "internal/stacktrace_powerpc-inl.inc",
-        "internal/stacktrace_riscv-inl.inc",
         "internal/stacktrace_unimplemented-inl.inc",
         "internal/stacktrace_win32-inl.inc",
         "internal/stacktrace_x86-inl.inc",
@@ -56,9 +55,7 @@ cc_library(
     name = "symbolize",
     srcs = [
         "symbolize.cc",
-        "symbolize_darwin.inc",
         "symbolize_elf.inc",
-        "symbolize_emscripten.inc",
         "symbolize_unimplemented.inc",
         "symbolize_win32.inc",
     ],
@@ -68,8 +65,7 @@ cc_library(
     ],
     copts = ABSL_DEFAULT_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS + select({
-        "//absl:msvc_compiler": ["-DEFAULTLIB:dbghelp.lib"],
-        "//absl:clang-cl_compiler": ["-DEFAULTLIB:dbghelp.lib"],
+        "//absl:windows": ["-DEFAULTLIB:dbghelp.lib"],
         "//conditions:default": [],
     }),
     deps = [
@@ -81,7 +77,6 @@ cc_library(
         "//absl/base:dynamic_annotations",
         "//absl/base:malloc_internal",
         "//absl/base:raw_logging_internal",
-        "//absl/strings",
     ],
 )
 
@@ -89,24 +84,20 @@ cc_test(
     name = "symbolize_test",
     srcs = ["symbolize_test.cc"],
     copts = ABSL_TEST_COPTS + select({
-        "//absl:msvc_compiler": ["/Z7"],
-        "//absl:clang-cl_compiler": ["/Z7"],
+        "//absl:windows": ["/Z7"],
         "//conditions:default": [],
     }),
     linkopts = ABSL_DEFAULT_LINKOPTS + select({
-        "//absl:msvc_compiler": ["/DEBUG"],
-        "//absl:clang-cl_compiler": ["/DEBUG"],
+        "//absl:windows": ["/DEBUG"],
         "//conditions:default": [],
     }),
     deps = [
         ":stack_consumption",
         ":symbolize",
         "//absl/base",
-        "//absl/base:config",
         "//absl/base:core_headers",
         "//absl/base:raw_logging_internal",
         "//absl/memory",
-        "//absl/strings",
         "@com_google_googletest//:gtest",
     ],
 )
@@ -153,9 +144,7 @@ cc_test(
     srcs = ["failure_signal_handler_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = select({
-        "//absl:msvc_compiler": [],
-        "//absl:clang-cl_compiler": [],
-        "//absl:wasm": [],
+        "//absl:windows": [],
         "//conditions:default": ["-pthread"],
     }) + ABSL_DEFAULT_LINKOPTS,
     deps = [
@@ -182,7 +171,6 @@ cc_library(
     ],
     copts = ABSL_DEFAULT_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    visibility = ["//visibility:private"],
     deps = [
         "//absl/base:config",
         "//absl/base:core_headers",
@@ -197,7 +185,6 @@ cc_library(
     srcs = ["internal/demangle.cc"],
     hdrs = ["internal/demangle.h"],
     copts = ABSL_DEFAULT_COPTS,
-    visibility = ["//visibility:private"],
     deps = [
         "//absl/base",
         "//absl/base:config",
@@ -213,7 +200,6 @@ cc_test(
     deps = [
         ":demangle_internal",
         ":stack_consumption",
-        "//absl/base:config",
         "//absl/base:core_headers",
         "//absl/base:raw_logging_internal",
         "//absl/memory",
@@ -247,7 +233,7 @@ cc_library(
 # These targets exists for use in tests only, explicitly configuring the
 # LEAK_SANITIZER macro. It must be linked with -fsanitize=leak for lsan.
 ABSL_LSAN_LINKOPTS = select({
-    "//absl:clang_compiler": ["-fsanitize=leak"],
+    "//absl:llvm_compiler": ["-fsanitize=leak"],
     "//conditions:default": [],
 })
 
@@ -257,14 +243,13 @@ cc_library(
     srcs = ["leak_check.cc"],
     hdrs = ["leak_check.h"],
     copts = select({
-        "//absl:clang_compiler": ["-DLEAK_SANITIZER"],
+        "//absl:llvm_compiler": ["-DLEAK_SANITIZER"],
         "//conditions:default": [],
     }),
     linkopts = ABSL_DEFAULT_LINKOPTS,
     visibility = ["//visibility:private"],
     deps = [
         "//absl/base:config",
-        "//absl/base:core_headers",
     ],
 )
 
@@ -278,7 +263,6 @@ cc_library(
     visibility = ["//visibility:private"],
     deps = [
         "//absl/base:config",
-        "//absl/base:core_headers",
     ],
 )
 
@@ -286,7 +270,7 @@ cc_test(
     name = "leak_check_test",
     srcs = ["leak_check_test.cc"],
     copts = select({
-        "//absl:clang_compiler": ["-DABSL_EXPECT_LEAK_SANITIZER"],
+        "//absl:llvm_compiler": ["-DABSL_EXPECT_LEAK_SANITIZER"],
         "//conditions:default": [],
     }),
     linkopts = ABSL_LSAN_LINKOPTS + ABSL_DEFAULT_LINKOPTS,
@@ -348,7 +332,6 @@ cc_test(
     srcs = ["internal/stack_consumption_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = ["notsan"],
     deps = [
         ":stack_consumption",
         "//absl/base:core_headers",

@@ -29,7 +29,7 @@ module Echo
       self.unmarshal_class_method = :decode
       self.service_name = 'echo.EchoServer'
 
-      rpc :Echo, ::Echo::EchoRequest, ::Echo::EchoReply
+      rpc :Echo, EchoRequest, EchoReply
     end
 
     Stub = Service.rpc_stub_class

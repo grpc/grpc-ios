@@ -19,8 +19,6 @@
 #include <memory>
 #include <thread>
 
-#include <gtest/gtest.h>
-
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
@@ -39,11 +37,19 @@
 #include "test/cpp/end2end/test_service_impl.h"
 #include "test/cpp/util/byte_buffer_proto_helper.h"
 
+#include <gtest/gtest.h>
+
 namespace grpc {
 namespace testing {
 namespace {
 
-void* tag(int i) { return reinterpret_cast<void*>(i); }
+#ifndef GRPC_CALLBACK_API_NONEXPERIMENTAL
+using ::grpc::experimental::CallbackGenericService;
+using ::grpc::experimental::GenericCallbackServerContext;
+using ::grpc::experimental::ServerGenericBidiReactor;
+#endif
+
+void* tag(int i) { return (void*)static_cast<intptr_t>(i); }
 
 bool VerifyReturnSuccess(CompletionQueue* cq, int i) {
   void* got_tag;
@@ -267,7 +273,12 @@ class HybridEnd2endTest : public ::testing::TestWithParam<bool> {
       builder.RegisterAsyncGenericService(generic_service);
     }
     if (callback_generic_service) {
+#ifdef GRPC_CALLBACK_API_NONEXPERIMENTAL
       builder.RegisterCallbackGenericService(callback_generic_service);
+#else
+      builder.experimental().RegisterCallbackGenericService(
+          callback_generic_service);
+#endif
     }
 
     if (max_message_size != 0) {
@@ -294,8 +305,8 @@ class HybridEnd2endTest : public ::testing::TestWithParam<bool> {
     bool ignored_ok;
     for (auto it = cqs_.begin(); it != cqs_.end(); ++it) {
       (*it)->Shutdown();
-      while ((*it)->Next(&ignored_tag, &ignored_ok)) {
-      }
+      while ((*it)->Next(&ignored_tag, &ignored_ok))
+        ;
     }
   }
 
@@ -343,7 +354,7 @@ class HybridEnd2endTest : public ::testing::TestWithParam<bool> {
   void SendSimpleClientStreaming() {
     EchoRequest send_request;
     EchoResponse recv_response;
-    std::string expected_message;
+    grpc::string expected_message;
     ClientContext cli_ctx;
     cli_ctx.set_wait_for_ready(true);
     send_request.set_message("Hello");
@@ -406,7 +417,7 @@ class HybridEnd2endTest : public ::testing::TestWithParam<bool> {
     EchoResponse response;
     ClientContext context;
     context.set_wait_for_ready(true);
-    std::string msg("hello");
+    grpc::string msg("hello");
 
     auto stream = stub_->BidiStream(&context);
 
@@ -650,7 +661,7 @@ class SplitResponseStreamDupPkg
     gpr_log(GPR_INFO, "Split Streamed Next Message Size is %u", next_msg_sz);
     GPR_ASSERT(stream->Read(&req));
     for (int i = 0; i < kServerDefaultResponseStreamsToSend; i++) {
-      resp.set_message(req.message() + std::to_string(i) + "_dup");
+      resp.set_message(req.message() + grpc::to_string(i) + "_dup");
       GPR_ASSERT(stream->Write(resp));
     }
     return Status::OK;
@@ -690,7 +701,7 @@ class FullySplitStreamedDupPkg
     gpr_log(GPR_INFO, "Split Streamed Next Message Size is %u", next_msg_sz);
     GPR_ASSERT(stream->Read(&req));
     for (int i = 0; i < kServerDefaultResponseStreamsToSend; i++) {
-      resp.set_message(req.message() + std::to_string(i) + "_dup");
+      resp.set_message(req.message() + grpc::to_string(i) + "_dup");
       GPR_ASSERT(stream->Write(resp));
     }
     return Status::OK;
@@ -742,7 +753,7 @@ class FullyStreamedDupPkg : public duplicate::EchoTestService::StreamedService {
     gpr_log(GPR_INFO, "Split Streamed Next Message Size is %u", next_msg_sz);
     GPR_ASSERT(stream->Read(&req));
     for (int i = 0; i < kServerDefaultResponseStreamsToSend; i++) {
-      resp.set_message(req.message() + std::to_string(i) + "_dup");
+      resp.set_message(req.message() + grpc::to_string(i) + "_dup");
       GPR_ASSERT(stream->Write(resp));
     }
     return Status::OK;

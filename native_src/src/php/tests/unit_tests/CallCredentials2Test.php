@@ -17,9 +17,9 @@
  *
  */
 
-class CallCredentials2Test extends \PHPUnit\Framework\TestCase
+class CallCredentials2Test extends PHPUnit_Framework_TestCase
 {
-    public function setUp(): void
+    public function setUp()
     {
         $credentials = Grpc\ChannelCredentials::createSsl(
             file_get_contents(dirname(__FILE__).'/../data/ca.pem'));
@@ -43,7 +43,7 @@ class CallCredentials2Test extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public function tearDown(): void
+    public function tearDown()
     {
         unset($this->channel);
         unset($this->server);
@@ -62,7 +62,7 @@ class CallCredentials2Test extends \PHPUnit\Framework\TestCase
         $deadline = Grpc\Timeval::infFuture();
         $status_text = 'xyz';
         $call = new Grpc\Call($this->channel,
-                              '/abc/phony_method',
+                              '/abc/dummy_method',
                               $deadline,
                               $this->host_override);
 
@@ -87,7 +87,7 @@ class CallCredentials2Test extends \PHPUnit\Framework\TestCase
         $this->assertSame($metadata['k1'], ['v1']);
         $this->assertSame($metadata['k2'], ['v2']);
 
-        $this->assertSame('/abc/phony_method', $event->method);
+        $this->assertSame('/abc/dummy_method', $event->method);
         $server_call = $event->call;
 
         $event = $server_call->startBatch([
@@ -132,7 +132,7 @@ class CallCredentials2Test extends \PHPUnit\Framework\TestCase
         $deadline = Grpc\Timeval::infFuture();
         $status_text = 'xyz';
         $call = new Grpc\Call($this->channel,
-                              '/abc/phony_method',
+                              '/abc/dummy_method',
                               $deadline,
                               $this->host_override);
 
@@ -164,7 +164,7 @@ class CallCredentials2Test extends \PHPUnit\Framework\TestCase
         $deadline = Grpc\Timeval::infFuture();
         $status_text = 'xyz';
         $call = new Grpc\Call($this->channel,
-                              '/abc/phony_method',
+                              '/abc/dummy_method',
                               $deadline,
                               $this->host_override);
 

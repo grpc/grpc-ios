@@ -469,7 +469,7 @@ int PKCS8_marshal_encrypted_private_key(CBB *out, int pbe_nid,
   }
 
   if (iterations <= 0) {
-    iterations = PKCS12_DEFAULT_ITER;
+    iterations = PKCS5_DEFAULT_ITERATIONS;
   }
 
   // Serialize the input key.

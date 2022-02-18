@@ -391,21 +391,22 @@ module GRPC
       # register signal handlers
       signals.each do |sig|
         # input validation
-        target_sig = if sig.class == String
-                       # cut out the SIG prefix to see if valid signal
-                       sig.upcase.start_with?('SIG') ? sig.upcase[3..-1] : sig.upcase
-                     else
-                       sig
-                     end
+        if sig.class == String
+          sig.upcase!
+          if sig.start_with?('SIG')
+            # cut out the SIG prefix to see if valid signal
+            sig = sig[3..-1]
+          end
+        end
 
         # register signal traps for all valid signals
-        if valid_signals.value?(target_sig) || valid_signals.key?(target_sig)
-          Signal.trap(target_sig) do
+        if valid_signals.value?(sig) || valid_signals.key?(sig)
+          Signal.trap(sig) do
             @stop_server = true
             @stop_server_cv.broadcast
           end
         else
-          fail "#{target_sig} not a valid signal"
+          fail "#{sig} not a valid signal"
         end
       end
 

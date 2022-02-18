@@ -19,8 +19,6 @@
 #ifndef GRPCPP_IMPL_CODEGEN_PROTO_BUFFER_READER_H
 #define GRPCPP_IMPL_CODEGEN_PROTO_BUFFER_READER_H
 
-// IWYU pragma: private, include <grpcpp/support/proto_buffer_reader.h>
-
 #include <type_traits>
 
 #include <grpc/impl/codegen/byte_buffer_reader.h>
@@ -61,7 +59,7 @@ class ProtoBufferReader : public ::grpc::protobuf::io::ZeroCopyInputStream {
     }
   }
 
-  ~ProtoBufferReader() override {
+  ~ProtoBufferReader() {
     if (status_.ok()) {
       g_core_codegen_interface->grpc_byte_buffer_reader_destroy(&reader_);
     }
@@ -78,7 +76,7 @@ class ProtoBufferReader : public ::grpc::protobuf::io::ZeroCopyInputStream {
       *data = GRPC_SLICE_START_PTR(*slice_) + GRPC_SLICE_LENGTH(*slice_) -
               backup_count_;
       GPR_CODEGEN_ASSERT(backup_count_ <= INT_MAX);
-      *size = static_cast<int>(backup_count_);
+      *size = (int)backup_count_;
       backup_count_ = 0;
       return true;
     }
@@ -90,7 +88,7 @@ class ProtoBufferReader : public ::grpc::protobuf::io::ZeroCopyInputStream {
     *data = GRPC_SLICE_START_PTR(*slice_);
     // On win x64, int is only 32bit
     GPR_CODEGEN_ASSERT(GRPC_SLICE_LENGTH(*slice_) <= INT_MAX);
-    byte_count_ += * size = static_cast<int>(GRPC_SLICE_LENGTH(*slice_));
+    byte_count_ += * size = (int)GRPC_SLICE_LENGTH(*slice_);
     return true;
   }
 

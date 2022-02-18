@@ -13,16 +13,15 @@
 # limitations under the License.
 
 import asyncio
-import gc
 import logging
-import time
 import unittest
+import time
+import gc
 
 import grpc
 from grpc.experimental import aio
-
-from tests.unit.framework.common import test_constants
 from tests_aio.unit._test_base import AioTestBase
+from tests.unit.framework.common import test_constants
 
 _UNARY_UNARY_ABORT = '/test/UnaryUnaryAbort'
 _SUPPRESS_ABORT = '/test/SuppressAbort'
@@ -34,7 +33,7 @@ _RESPONSE = b'\x01\x01\x01'
 _NUM_STREAM_RESPONSES = 5
 
 _ABORT_CODE = grpc.StatusCode.RESOURCE_EXHAUSTED
-_ABORT_DETAILS = 'Phony error details'
+_ABORT_DETAILS = 'Dummy error details'
 
 
 class _GenericHandler(grpc.GenericRpcHandler):

@@ -21,13 +21,13 @@
 #include <fstream>
 
 #include <grpc/support/log.h>
-#include <grpcpp/client_context.h>
-
-#include "src/cpp/util/core_stats.h"
-#include "src/proto/grpc/testing/report_qps_scenario_service.grpc.pb.h"
 #include "test/cpp/qps/driver.h"
 #include "test/cpp/qps/parse_json.h"
 #include "test/cpp/qps/stats.h"
+
+#include <grpcpp/client_context.h>
+#include "src/cpp/util/core_stats.h"
+#include "src/proto/grpc/testing/report_qps_scenario_service.grpc.pb.h"
 
 namespace grpc {
 namespace testing {
@@ -164,7 +164,7 @@ void GprLogReporter::ReportQueriesPerCpuSec(const ScenarioResult& result) {
 }
 
 void JsonReporter::ReportQPS(const ScenarioResult& result) {
-  std::string json_string =
+  grpc::string json_string =
       SerializeJson(result, "type.googleapis.com/grpc.testing.ScenarioResult");
   std::ofstream output_file(report_file_);
   output_file << json_string;
@@ -198,10 +198,10 @@ void JsonReporter::ReportQueriesPerCpuSec(const ScenarioResult& /*result*/) {
 void RpcReporter::ReportQPS(const ScenarioResult& result) {
   grpc::ClientContext context;
   grpc::Status status;
-  Void phony;
+  Void dummy;
 
   gpr_log(GPR_INFO, "RPC reporter sending scenario result to server");
-  status = stub_->ReportScenario(&context, result, &phony);
+  status = stub_->ReportScenario(&context, result, &dummy);
 
   if (status.ok()) {
     gpr_log(GPR_INFO, "RpcReporter report RPC success!");

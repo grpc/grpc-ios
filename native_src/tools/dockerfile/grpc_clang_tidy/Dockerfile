@@ -12,13 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM silkeh/clang:13
+FROM debian:jessie
 
-# Install prerequisites for the clang-tidy script
-RUN apt-get update && apt-get install -y python3 jq git && apt-get clean
 
-# otherwise clang-tidy will report missing <gtest/gtest.h> header
-RUN apt-get update && apt-get install -y libgtest-dev && apt-get clean
+RUN apt-get update && apt-get -y install wget xz-utils
+RUN wget http://releases.llvm.org/5.0.0/clang+llvm-5.0.0-linux-x86_64-ubuntu14.04.tar.xz
+RUN tar xf clang+llvm-5.0.0-linux-x86_64-ubuntu14.04.tar.xz
+RUN ln -s /clang+llvm-5.0.0-linux-x86_64-ubuntu14.04/bin/clang-format /usr/local/bin/clang-format
+ENV CLANG_FORMAT=clang-format
+RUN ln -s /clang+llvm-5.0.0-linux-x86_64-ubuntu14.04/bin/clang-tidy /usr/local/bin/clang-tidy
+ENV CLANG_TIDY=clang-tidy
+
+#====================
+# Python dependencies
+
+# Install dependencies
+
+RUN apt-get update && apt-get install -y \
+    python-all-dev \
+    python3-all-dev \
+    python-pip
+
+# Install Python packages from PyPI
+RUN pip install --upgrade pip==19.3.1
+RUN pip install virtualenv==16.7.9
+RUN pip install futures==2.2.0 enum34==1.0.4 protobuf==3.5.2.post1 six==1.10.0 twisted==17.5.0
 
 ADD clang_tidy_all_the_things.sh /
 

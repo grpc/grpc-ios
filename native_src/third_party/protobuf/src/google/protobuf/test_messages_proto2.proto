@@ -27,6 +27,36 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+// Protocol Buffers - Google's data interchange format
+// Copyright 2008 Google Inc.  All rights reserved.
+// https://developers.google.com/protocol-buffers/
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Test schema for proto2 messages.  This test schema is used by:
 //
@@ -194,22 +224,6 @@ message TestAllTypesProto2 {
     optional uint32 group_uint32 = 203;
   }
 
-  // default values
-  optional int32 default_int32 = 241 [ default = -123456789];
-  optional int64 default_int64 = 242 [ default = -9123456789123456789];
-  optional uint32 default_uint32 = 243 [ default = 2123456789];
-  optional uint64 default_uint64 = 244 [ default = 10123456789123456789];
-  optional sint32 default_sint32 = 245 [ default = -123456789];
-  optional sint64 default_sint64 = 246 [default = -9123456789123456789];
-  optional fixed32 default_fixed32 = 247 [ default = 2123456789];
-  optional fixed64 default_fixed64 = 248 [ default = 10123456789123456789];
-  optional sfixed32 default_sfixed32 = 249 [ default = -123456789];
-  optional sfixed64 default_sfixed64 = 250 [default = -9123456789123456789];
-  optional float default_float = 251 [ default = 9e9];
-  optional double default_double = 252 [ default = 7e22];
-  optional bool default_bool = 253 [ default = true];
-  optional string default_string = 254 [ default = "Rosebud"];
-
   // Test field-name-to-JSON-name convention.
   // (protobuf says names can be any valid C/C++ identifier.)
   optional int32 fieldname1 = 401;
@@ -279,14 +293,4 @@ message UnknownToTestAllTypes {
   }
   optional bool optional_bool = 1006;
   repeated int32 repeated_int32 = 1011;
-}
-
-message NullHypothesisProto2 {
-}
-
-message EnumOnlyProto2 {
-  enum Bool {
-    kFalse = 0;
-    kTrue = 1;
-  }
 }

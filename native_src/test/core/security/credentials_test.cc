@@ -20,18 +20,9 @@
 
 #include "src/core/lib/security/credentials/credentials.h"
 
+#include <openssl/rsa.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <string>
-
-#include <gmock/gmock.h>
-#include <openssl/rsa.h>
-
-#include "absl/strings/match.h"
-#include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
-#include "absl/strings/str_replace.h"
 
 #include <grpc/grpc_security.h>
 #include <grpc/slice.h>
@@ -47,10 +38,6 @@
 #include "src/core/lib/http/httpcli.h"
 #include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/security/credentials/composite/composite_credentials.h"
-#include "src/core/lib/security/credentials/external/aws_external_account_credentials.h"
-#include "src/core/lib/security/credentials/external/external_account_credentials.h"
-#include "src/core/lib/security/credentials/external/file_external_account_credentials.h"
-#include "src/core/lib/security/credentials/external/url_external_account_credentials.h"
 #include "src/core/lib/security/credentials/fake/fake_credentials.h"
 #include "src/core/lib/security/credentials/google_default/google_default_credentials.h"
 #include "src/core/lib/security/credentials/jwt/jwt_credentials.h"
@@ -110,43 +97,6 @@ static const char test_refresh_token_str[] =
     "  \"refresh_token\": \"1/Blahblasj424jladJDSGNf-u4Sua3HDA2ngjd42\","
     "  \"type\": \"authorized_user\"}";
 
-/* Test external account credentials. */
-static const char test_external_account_credentials_str[] =
-    "{\"type\":\"external_account\",\"audience\":\"audience\",\"subject_"
-    "token_type\":\"subject_token_type\",\"service_account_impersonation_"
-    "url\":\"\",\"token_url\":\"https://"
-    "sts.googleapis.com:5555/"
-    "token\",\"token_info_url\":\"\",\"credential_source\":{\"file\":"
-    "\"credentials_file_path\"},"
-    "\"quota_project_id\":\"quota_"
-    "project_id\",\"client_id\":\"client_id\",\"client_secret\":\"client_"
-    "secret\"}";
-
-static const char test_external_account_credentials_multi_pattern_sts_str[] =
-    "{\"type\":\"external_account\",\"audience\":\"audience\",\"subject_"
-    "token_type\":\"subject_token_type\",\"service_account_impersonation_"
-    "url\":\"https://sts.test.googleapis.com:5555/"
-    "service_account_impersonation_url\",\"token_url\":\"https://"
-    "test.sts.googleapis.com:5555/token\",\"token_info_url\":\"https://"
-    "test-sts.googleapis.com:5555/"
-    "token_info\",\"credential_source\":{\"file\":\"credentials_file_path\"},"
-    "\"quota_project_id\":\"quota_"
-    "project_id\",\"client_id\":\"client_id\",\"client_secret\":\"client_"
-    "secret\"}";
-
-static const char test_external_account_credentials_multi_pattern_iam_str[] =
-    "{\"type\":\"external_account\",\"audience\":\"audience\",\"subject_"
-    "token_type\":\"subject_token_type\",\"service_account_impersonation_"
-    "url\":\"https://iamcredentials.test.googleapis.com:5555/"
-    "service_account_impersonation_url\",\"token_url\":\"https://"
-    "test.iamcredentials.googleapis.com:5555/"
-    "token\",\"token_info_url\":\"https://"
-    "test-iamcredentials.googleapis.com:5555/"
-    "token_info\",\"credential_source\":{\"file\":\"credentials_file_path\"},"
-    "\"quota_project_id\":\"quota_"
-    "project_id\",\"client_id\":\"client_id\",\"client_secret\":\"client_"
-    "secret\"}";
-
 static const char valid_oauth2_json_response[] =
     "{\"access_token\":\"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_\","
     " \"expires_in\":3599, "
@@ -173,107 +123,12 @@ static const char test_signed_jwt_token_type2[] =
 static const char test_signed_jwt_path_prefix[] = "test_sign_jwt";
 
 static const char test_service_url[] = "https://foo.com/foo.v1";
-static const char test_service_url_no_service_name[] = "https://foo.com/";
 static const char other_test_service_url[] = "https://bar.com/bar.v1";
-static const char other_test_service_url_no_service_name[] = "https://bar.com/";
 
 static const char test_sts_endpoint_url[] =
     "https://foo.com:5555/v1/token-exchange";
 
 static const char test_method[] = "ThisIsNotAMethod";
-
-static const char valid_external_account_creds_token_exchange_response[] =
-    "{\"access_token\":\"token_exchange_access_token\","
-    " \"expires_in\":3599,"
-    " \"token_type\":\"Bearer\"}";
-
-static const char
-    valid_external_account_creds_service_account_impersonation_response[] =
-        "{\"accessToken\":\"service_account_impersonation_access_token\","
-        " \"expireTime\":\"2050-01-01T00:00:00Z\"}";
-
-static const char
-    valid_url_external_account_creds_options_credential_source_format_text[] =
-        "{\"url\":\"https://foo.com:5555/generate_subject_token_format_text\","
-        "\"headers\":{\"Metadata-Flavor\":\"Google\"}}";
-
-static const char
-    valid_url_external_account_creds_options_credential_source_with_qurey_params_format_text
-        [] = "{\"url\":\"https://foo.com:5555/"
-             "path/to/url/creds?p1=v1&p2=v2\","
-             "\"headers\":{\"Metadata-Flavor\":\"Google\"}}";
-
-static const char
-    valid_url_external_account_creds_retrieve_subject_token_response_format_text
-        [] = "test_subject_token";
-
-static const char
-    valid_url_external_account_creds_options_credential_source_format_json[] =
-        "{\"url\":\"https://foo.com:5555/generate_subject_token_format_json\","
-        "\"headers\":{\"Metadata-Flavor\":\"Google\"},"
-        "\"format\":{\"type\":\"json\",\"subject_token_field_name\":\"access_"
-        "token\"}}";
-
-static const char
-    valid_url_external_account_creds_retrieve_subject_token_response_format_json
-        [] = "{\"access_token\":\"test_subject_token\"}";
-
-static const char
-    invalid_url_external_account_creds_options_credential_source[] =
-        "{\"url\":\"invalid_credential_source_url\","
-        "\"headers\":{\"Metadata-Flavor\":\"Google\"}}";
-
-static const char
-    valid_aws_external_account_creds_retrieve_signing_keys_response[] =
-        "{\"AccessKeyId\":\"test_access_key_id\",\"SecretAccessKey\":"
-        "\"test_secret_access_key\",\"Token\":\"test_token\"}";
-
-static const char valid_aws_external_account_creds_options_credential_source[] =
-    "{\"environment_id\":\"aws1\","
-    "\"region_url\":\"https://foo.com:5555/region_url\","
-    "\"url\":\"https://foo.com:5555/url\","
-    "\"regional_cred_verification_url\":\"https://foo.com:5555/"
-    "regional_cred_verification_url_{region}\"}";
-
-static const char
-    invalid_aws_external_account_creds_options_credential_source_unmatched_environment_id
-        [] = "{\"environment_id\":\"unsupported_aws_version\","
-             "\"region_url\":\"https://foo.com:5555/region_url\","
-             "\"url\":\"https://foo.com:5555/url\","
-             "\"regional_cred_verification_url\":\"https://foo.com:5555/"
-             "regional_cred_verification_url_{region}\"}";
-
-static const char
-    invalid_aws_external_account_creds_options_credential_source_invalid_region_url
-        [] = "{\"environment_id\":\"aws1\","
-             "\"region_url\":\"invalid_region_url\","
-             "\"url\":\"https://foo.com:5555/url\","
-             "\"regional_cred_verification_url\":\"https://foo.com:5555/"
-             "regional_cred_verification_url_{region}\"}";
-
-static const char
-    invalid_aws_external_account_creds_options_credential_source_invalid_url[] =
-        "{\"environment_id\":\"aws1\","
-        "\"region_url\":\"https://foo.com:5555/region_url\","
-        "\"url\":\"invalid_url\","
-        "\"regional_cred_verification_url\":\"https://foo.com:5555/"
-        "regional_cred_verification_url_{region}\"}";
-
-static const char
-    invalid_aws_external_account_creds_options_credential_source_missing_role_name
-        [] = "{\"environment_id\":\"aws1\","
-             "\"region_url\":\"https://foo.com:5555/region_url\","
-             "\"url\":\"https://foo.com:5555/url_no_role_name\","
-             "\"regional_cred_verification_url\":\"https://foo.com:5555/"
-             "regional_cred_verification_url_{region}\"}";
-
-static const char
-    invalid_aws_external_account_creds_options_credential_source_invalid_regional_cred_verification_url
-        [] = "{\"environment_id\":\"aws1\","
-             "\"region_url\":\"https://foo.com:5555/region_url\","
-             "\"url\":\"https://foo.com:5555/url_no_role_name\","
-             "\"regional_cred_verification_url\":\"invalid_regional_cred_"
-             "verification_url\"}";
 
 /*  -- Global state flags. -- */
 
@@ -297,8 +152,8 @@ static char* test_json_key_str(void) {
   return result;
 }
 
-static grpc_http_response http_response(int status, const char* body) {
-  grpc_http_response response;
+static grpc_httpcli_response http_response(int status, const char* body) {
+  grpc_httpcli_response response;
   response = {};
   response.status = status;
   response.body = gpr_strdup(const_cast<char*>(body));
@@ -308,208 +163,244 @@ static grpc_http_response http_response(int status, const char* body) {
 
 /* -- Tests. -- */
 
-TEST(CredentialsTest, TestOauth2TokenFetcherCredsParsingOk) {
+static void test_empty_md_array(void) {
   grpc_core::ExecCtx exec_ctx;
-  absl::optional<grpc_core::Slice> token_value;
+  grpc_credentials_mdelem_array md_array;
+  md_array = {};
+  GPR_ASSERT(md_array.md == nullptr);
+  GPR_ASSERT(md_array.size == 0);
+  grpc_credentials_mdelem_array_destroy(&md_array);
+}
+
+static void test_add_to_empty_md_array(void) {
+  grpc_core::ExecCtx exec_ctx;
+  grpc_credentials_mdelem_array md_array;
+  md_array = {};
+  const char* key = "hello";
+  const char* value = "there blah blah blah blah blah blah blah";
+  grpc_mdelem md = grpc_mdelem_from_slices(
+      grpc_slice_from_copied_string(key), grpc_slice_from_copied_string(value));
+  grpc_credentials_mdelem_array_add(&md_array, md);
+  GPR_ASSERT(md_array.size == 1);
+  GPR_ASSERT(grpc_mdelem_eq(md, md_array.md[0]));
+  GRPC_MDELEM_UNREF(md);
+  grpc_credentials_mdelem_array_destroy(&md_array);
+}
+
+static void test_add_abunch_to_md_array(void) {
+  grpc_core::ExecCtx exec_ctx;
+  grpc_credentials_mdelem_array md_array;
+  md_array = {};
+  const char* key = "hello";
+  const char* value = "there blah blah blah blah blah blah blah";
+  grpc_mdelem md = grpc_mdelem_from_slices(
+      grpc_slice_from_copied_string(key), grpc_slice_from_copied_string(value));
+  size_t num_entries = 1000;
+  for (size_t i = 0; i < num_entries; ++i) {
+    grpc_credentials_mdelem_array_add(&md_array, md);
+  }
+  for (size_t i = 0; i < num_entries; ++i) {
+    GPR_ASSERT(grpc_mdelem_eq(md_array.md[i], md));
+  }
+  GRPC_MDELEM_UNREF(md);
+  grpc_credentials_mdelem_array_destroy(&md_array);
+}
+
+static void test_oauth2_token_fetcher_creds_parsing_ok(void) {
+  grpc_core::ExecCtx exec_ctx;
+  grpc_mdelem token_md = GRPC_MDNULL;
   grpc_millis token_lifetime;
-  grpc_http_response response = http_response(200, valid_oauth2_json_response);
+  grpc_httpcli_response response =
+      http_response(200, valid_oauth2_json_response);
   GPR_ASSERT(grpc_oauth2_token_fetcher_credentials_parse_server_response(
-                 &response, &token_value, &token_lifetime) ==
-             GRPC_CREDENTIALS_OK);
+                 &response, &token_md, &token_lifetime) == GRPC_CREDENTIALS_OK);
   GPR_ASSERT(token_lifetime == 3599 * GPR_MS_PER_SEC);
-  GPR_ASSERT(token_value->as_string_view() ==
-             "Bearer ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_");
+  GPR_ASSERT(grpc_slice_str_cmp(GRPC_MDKEY(token_md), "authorization") == 0);
+  GPR_ASSERT(grpc_slice_str_cmp(GRPC_MDVALUE(token_md),
+                                "Bearer ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_") ==
+             0);
+  GRPC_MDELEM_UNREF(token_md);
   grpc_http_response_destroy(&response);
 }
 
-TEST(CredentialsTest, TestOauth2TokenFetcherCredsParsingBadHttpStatus) {
+static void test_oauth2_token_fetcher_creds_parsing_bad_http_status(void) {
   grpc_core::ExecCtx exec_ctx;
-  absl::optional<grpc_core::Slice> token_value;
+  grpc_mdelem token_md = GRPC_MDNULL;
   grpc_millis token_lifetime;
-  grpc_http_response response = http_response(401, valid_oauth2_json_response);
+  grpc_httpcli_response response =
+      http_response(401, valid_oauth2_json_response);
   GPR_ASSERT(grpc_oauth2_token_fetcher_credentials_parse_server_response(
-                 &response, &token_value, &token_lifetime) ==
+                 &response, &token_md, &token_lifetime) ==
              GRPC_CREDENTIALS_ERROR);
   grpc_http_response_destroy(&response);
 }
 
-TEST(CredentialsTest, TestOauth2TokenFetcherCredsParsingEmptyHttpBody) {
+static void test_oauth2_token_fetcher_creds_parsing_empty_http_body(void) {
   grpc_core::ExecCtx exec_ctx;
-  absl::optional<grpc_core::Slice> token_value;
+  grpc_mdelem token_md = GRPC_MDNULL;
   grpc_millis token_lifetime;
-  grpc_http_response response = http_response(200, "");
+  grpc_httpcli_response response = http_response(200, "");
   GPR_ASSERT(grpc_oauth2_token_fetcher_credentials_parse_server_response(
-                 &response, &token_value, &token_lifetime) ==
+                 &response, &token_md, &token_lifetime) ==
              GRPC_CREDENTIALS_ERROR);
   grpc_http_response_destroy(&response);
 }
 
-TEST(CredentialsTest, TestOauth2TokenFetcherCredsParsingInvalidJson) {
+static void test_oauth2_token_fetcher_creds_parsing_invalid_json(void) {
   grpc_core::ExecCtx exec_ctx;
-  absl::optional<grpc_core::Slice> token_value;
+  grpc_mdelem token_md = GRPC_MDNULL;
   grpc_millis token_lifetime;
-  grpc_http_response response =
+  grpc_httpcli_response response =
       http_response(200,
                     "{\"access_token\":\"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_\","
                     " \"expires_in\":3599, "
                     " \"token_type\":\"Bearer\"");
   GPR_ASSERT(grpc_oauth2_token_fetcher_credentials_parse_server_response(
-                 &response, &token_value, &token_lifetime) ==
+                 &response, &token_md, &token_lifetime) ==
              GRPC_CREDENTIALS_ERROR);
   grpc_http_response_destroy(&response);
 }
 
-TEST(CredentialsTest, TestOauth2TokenFetcherCredsParsingMissingToken) {
+static void test_oauth2_token_fetcher_creds_parsing_missing_token(void) {
   grpc_core::ExecCtx exec_ctx;
-  absl::optional<grpc_core::Slice> token_value;
+  grpc_mdelem token_md = GRPC_MDNULL;
   grpc_millis token_lifetime;
-  grpc_http_response response = http_response(200,
-                                              "{"
-                                              " \"expires_in\":3599, "
-                                              " \"token_type\":\"Bearer\"}");
+  grpc_httpcli_response response = http_response(200,
+                                                 "{"
+                                                 " \"expires_in\":3599, "
+                                                 " \"token_type\":\"Bearer\"}");
   GPR_ASSERT(grpc_oauth2_token_fetcher_credentials_parse_server_response(
-                 &response, &token_value, &token_lifetime) ==
+                 &response, &token_md, &token_lifetime) ==
              GRPC_CREDENTIALS_ERROR);
   grpc_http_response_destroy(&response);
 }
 
-TEST(CredentialsTest, TestOauth2TokenFetcherCredsParsingMissingTokenType) {
+static void test_oauth2_token_fetcher_creds_parsing_missing_token_type(void) {
   grpc_core::ExecCtx exec_ctx;
-  absl::optional<grpc_core::Slice> token_value;
+  grpc_mdelem token_md = GRPC_MDNULL;
   grpc_millis token_lifetime;
-  grpc_http_response response =
+  grpc_httpcli_response response =
       http_response(200,
                     "{\"access_token\":\"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_\","
                     " \"expires_in\":3599, "
                     "}");
   GPR_ASSERT(grpc_oauth2_token_fetcher_credentials_parse_server_response(
-                 &response, &token_value, &token_lifetime) ==
+                 &response, &token_md, &token_lifetime) ==
              GRPC_CREDENTIALS_ERROR);
   grpc_http_response_destroy(&response);
 }
 
-TEST(CredentialsTest, TestOauth2TokenFetcherCredsParsingMissingTokenLifetime) {
+static void test_oauth2_token_fetcher_creds_parsing_missing_token_lifetime(
+    void) {
   grpc_core::ExecCtx exec_ctx;
-  absl::optional<grpc_core::Slice> token_value;
+  grpc_mdelem token_md = GRPC_MDNULL;
   grpc_millis token_lifetime;
-  grpc_http_response response =
+  grpc_httpcli_response response =
       http_response(200,
                     "{\"access_token\":\"ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_\","
                     " \"token_type\":\"Bearer\"}");
   GPR_ASSERT(grpc_oauth2_token_fetcher_credentials_parse_server_response(
-                 &response, &token_value, &token_lifetime) ==
+                 &response, &token_md, &token_lifetime) ==
              GRPC_CREDENTIALS_ERROR);
   grpc_http_response_destroy(&response);
 }
 
-namespace {
+typedef struct {
+  const char* key;
+  const char* value;
+} expected_md;
 
-class RequestMetadataState {
- public:
-  static RequestMetadataState* NewInstance(
-      grpc_error_handle expected_error,
-      std::map<std::string, std::string> expected) {
-    RequestMetadataState* state = new RequestMetadataState(
-        expected_error, std::move(expected),
-        grpc_polling_entity_create_from_pollset_set(grpc_pollset_set_create()));
-    return state;
-  }
+typedef struct {
+  grpc_error* expected_error;
+  const expected_md* expected;
+  size_t expected_size;
+  grpc_credentials_mdelem_array md_array;
+  grpc_closure on_request_metadata;
+  grpc_call_credentials* creds;
+  grpc_polling_entity pollent;
+} request_metadata_state;
 
- private:
-  RequestMetadataState(grpc_error_handle expected_error,
-                       std::map<std::string, std::string> expected,
-                       grpc_polling_entity pollent)
-      : expected_error_(expected_error),
-        expected_(expected),
-        pollent_(pollent) {
-    GRPC_CLOSURE_INIT(&on_request_metadata_, OnRequestMetadata, this,
-                      grpc_schedule_on_exec_ctx);
-  }
-
- public:
-  ~RequestMetadataState() {
-    grpc_pollset_set_destroy(grpc_polling_entity_pollset_set(&pollent_));
-  }
-
-  void RunRequestMetadataTest(grpc_call_credentials* creds,
-                              grpc_auth_metadata_context auth_md_ctx) {
-    grpc_error_handle error = GRPC_ERROR_NONE;
-    if (creds->get_request_metadata(&pollent_, auth_md_ctx, &md_array_,
-                                    &on_request_metadata_, &error)) {
-      // Synchronous result.  Invoke the callback directly.
-      CheckRequestMetadata(error);
-      GRPC_ERROR_UNREF(error);
-    }
-  }
-
- private:
-  static void OnRequestMetadata(void* arg, grpc_error_handle error) {
-    RequestMetadataState* state = static_cast<RequestMetadataState*>(arg);
-    state->CheckRequestMetadata(error);
-  }
-
-  void CheckRequestMetadata(grpc_error_handle error) {
-    gpr_log(GPR_INFO, "expected_error: %s",
-            grpc_error_std_string(expected_error_).c_str());
-    gpr_log(GPR_INFO, "actual_error: %s", grpc_error_std_string(error).c_str());
-    if (expected_error_ == GRPC_ERROR_NONE) {
-      GPR_ASSERT(error == GRPC_ERROR_NONE);
-    } else {
-      std::string expected_error;
-      GPR_ASSERT(grpc_error_get_str(expected_error_, GRPC_ERROR_STR_DESCRIPTION,
-                                    &expected_error));
-      std::string actual_error;
-      GPR_ASSERT(
-          grpc_error_get_str(error, GRPC_ERROR_STR_DESCRIPTION, &actual_error));
-      GPR_ASSERT(expected_error == actual_error);
-      GRPC_ERROR_UNREF(expected_error_);
-    }
-    gpr_log(GPR_INFO, "expected_size=%" PRIdPTR " actual_size=%" PRIdPTR,
-            expected_.size(), md_array_.size());
-    GPR_ASSERT(md_array_.size() == expected_.size());
-    CheckMetadata(expected_, &md_array_);
-    delete this;
-  }
-
-  static void CheckMetadata(const std::map<std::string, std::string>& expected,
-                            grpc_core::CredentialsMetadataArray* md_array) {
-    for (auto const& i : expected) {
-      size_t j;
-      for (j = 0; j < md_array->size(); ++j) {
-        absl::string_view actual_key = md_array->at(j).first.as_string_view();
-        if (actual_key == i.first) {
-          absl::string_view actual_value =
-              md_array->at(j).second.as_string_view();
-          GPR_ASSERT(actual_value == i.second);
-          break;
-        }
-      }
-      if (j == md_array->size()) {
-        gpr_log(GPR_ERROR, "key %s not found", i.first.c_str());
-        GPR_ASSERT(0);
+static void check_metadata(const expected_md* expected,
+                           grpc_credentials_mdelem_array* md_array) {
+  for (size_t i = 0; i < md_array->size; ++i) {
+    size_t j;
+    for (j = 0; j < md_array->size; ++j) {
+      if (0 ==
+          grpc_slice_str_cmp(GRPC_MDKEY(md_array->md[j]), expected[i].key)) {
+        GPR_ASSERT(grpc_slice_str_cmp(GRPC_MDVALUE(md_array->md[j]),
+                                      expected[i].value) == 0);
+        break;
       }
     }
+    if (j == md_array->size) {
+      gpr_log(GPR_ERROR, "key %s not found", expected[i].key);
+      GPR_ASSERT(0);
+    }
   }
+}
 
- private:
-  grpc_error_handle expected_error_;
-  std::map<std::string, std::string> expected_;
-  grpc_core::CredentialsMetadataArray md_array_;
-  grpc_closure on_request_metadata_;
-  grpc_polling_entity pollent_;
-};
+static void check_request_metadata(void* arg, grpc_error* error) {
+  request_metadata_state* state = static_cast<request_metadata_state*>(arg);
+  gpr_log(GPR_INFO, "expected_error: %s",
+          grpc_error_string(state->expected_error));
+  gpr_log(GPR_INFO, "actual_error: %s", grpc_error_string(error));
+  if (state->expected_error == GRPC_ERROR_NONE) {
+    GPR_ASSERT(error == GRPC_ERROR_NONE);
+  } else {
+    grpc_slice expected_error;
+    GPR_ASSERT(grpc_error_get_str(state->expected_error,
+                                  GRPC_ERROR_STR_DESCRIPTION, &expected_error));
+    grpc_slice actual_error;
+    GPR_ASSERT(
+        grpc_error_get_str(error, GRPC_ERROR_STR_DESCRIPTION, &actual_error));
+    GPR_ASSERT(grpc_slice_cmp(expected_error, actual_error) == 0);
+    GRPC_ERROR_UNREF(state->expected_error);
+  }
+  gpr_log(GPR_INFO, "expected_size=%" PRIdPTR " actual_size=%" PRIdPTR,
+          state->expected_size, state->md_array.size);
+  GPR_ASSERT(state->md_array.size == state->expected_size);
+  check_metadata(state->expected, &state->md_array);
+  grpc_credentials_mdelem_array_destroy(&state->md_array);
+  grpc_pollset_set_destroy(grpc_polling_entity_pollset_set(&state->pollent));
+  gpr_free(state);
+}
 
-}  // namespace
+static request_metadata_state* make_request_metadata_state(
+    grpc_error* expected_error, const expected_md* expected,
+    size_t expected_size) {
+  request_metadata_state* state =
+      static_cast<request_metadata_state*>(gpr_zalloc(sizeof(*state)));
+  state->expected_error = expected_error;
+  state->expected = expected;
+  state->expected_size = expected_size;
+  state->pollent =
+      grpc_polling_entity_create_from_pollset_set(grpc_pollset_set_create());
+  GRPC_CLOSURE_INIT(&state->on_request_metadata, check_request_metadata, state,
+                    grpc_schedule_on_exec_ctx);
+  return state;
+}
 
-TEST(CredentialsTest, TestGoogleIamCreds) {
+static void run_request_metadata_test(grpc_call_credentials* creds,
+                                      grpc_auth_metadata_context auth_md_ctx,
+                                      request_metadata_state* state) {
+  grpc_error* error = GRPC_ERROR_NONE;
+  if (creds->get_request_metadata(&state->pollent, auth_md_ctx,
+                                  &state->md_array, &state->on_request_metadata,
+                                  &error)) {
+    // Synchronous result.  Invoke the callback directly.
+    check_request_metadata(state, error);
+    GRPC_ERROR_UNREF(error);
+  }
+}
+
+static void test_google_iam_creds(void) {
   grpc_core::ExecCtx exec_ctx;
-  std::map<std::string, std::string> emd = {
-      {GRPC_IAM_AUTHORIZATION_TOKEN_METADATA_KEY,
-       test_google_iam_authorization_token},
-      {GRPC_IAM_AUTHORITY_SELECTOR_METADATA_KEY,
-       test_google_iam_authority_selector}};
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
+  expected_md emd[] = {{GRPC_IAM_AUTHORIZATION_TOKEN_METADATA_KEY,
+                        test_google_iam_authorization_token},
+                       {GRPC_IAM_AUTHORITY_SELECTOR_METADATA_KEY,
+                        test_google_iam_authority_selector}};
+  request_metadata_state* state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
   grpc_call_credentials* creds = grpc_google_iam_credentials_create(
       test_google_iam_authorization_token, test_google_iam_authority_selector,
       nullptr);
@@ -517,16 +408,15 @@ TEST(CredentialsTest, TestGoogleIamCreds) {
   GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   creds->Unref();
 }
 
-TEST(CredentialsTest, TestAccessTokenCreds) {
+static void test_access_token_creds(void) {
   grpc_core::ExecCtx exec_ctx;
-  std::map<std::string, std::string> emd = {
-      {GRPC_AUTHORIZATION_METADATA_KEY, "Bearer blah"}};
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
+  expected_md emd[] = {{GRPC_AUTHORIZATION_METADATA_KEY, "Bearer blah"}};
+  request_metadata_state* state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
   grpc_call_credentials* creds =
       grpc_access_token_credentials_create("blah", nullptr);
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
@@ -534,7 +424,7 @@ TEST(CredentialsTest, TestAccessTokenCreds) {
   GPR_ASSERT(strcmp(creds->type(), GRPC_CALL_CREDENTIALS_TYPE_OAUTH2) == 0);
   /* Check security level. */
   GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   creds->Unref();
 }
 
@@ -555,17 +445,10 @@ class check_channel_oauth2 final : public grpc_channel_credentials {
                0);
     return nullptr;
   }
-
- private:
-  int cmp_impl(const grpc_channel_credentials* other) const override {
-    // TODO(yashykt): Check if we can do something better here
-    return grpc_core::QsortCompare(
-        static_cast<const grpc_channel_credentials*>(this), other);
-  }
 };
 }  // namespace
 
-TEST(CredentialsTest, TestChannelOauth2CompositeCreds) {
+static void test_channel_oauth2_composite_creds(void) {
   grpc_core::ExecCtx exec_ctx;
   grpc_channel_args* new_args;
   grpc_channel_credentials* channel_creds = new check_channel_oauth2();
@@ -581,20 +464,20 @@ TEST(CredentialsTest, TestChannelOauth2CompositeCreds) {
   grpc_channel_credentials_release(channel_oauth2_creds);
 }
 
-TEST(CredentialsTest, TestOauth2GoogleIamCompositeCreds) {
+static void test_oauth2_google_iam_composite_creds(void) {
   grpc_core::ExecCtx exec_ctx;
-  std::map<std::string, std::string> emd = {
+  expected_md emd[] = {
       {GRPC_AUTHORIZATION_METADATA_KEY, test_oauth2_bearer_token},
       {GRPC_IAM_AUTHORIZATION_TOKEN_METADATA_KEY,
        test_google_iam_authorization_token},
       {GRPC_IAM_AUTHORITY_SELECTOR_METADATA_KEY,
        test_google_iam_authority_selector}};
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
+  request_metadata_state* state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
   grpc_call_credentials* oauth2_creds = grpc_md_only_test_credentials_create(
-      "authorization", test_oauth2_bearer_token, false);
+      "authorization", test_oauth2_bearer_token, 0);
 
   /* Check security level of fake credentials. */
   GPR_ASSERT(oauth2_creds->min_security_level() == GRPC_SECURITY_NONE);
@@ -621,7 +504,7 @@ TEST(CredentialsTest, TestOauth2GoogleIamCompositeCreds) {
              0);
   GPR_ASSERT(strcmp(creds_list[1]->type(), GRPC_CALL_CREDENTIALS_TYPE_IAM) ==
              0);
-  state->RunRequestMetadataTest(composite_creds, auth_md_ctx);
+  run_request_metadata_test(composite_creds, auth_md_ctx, state);
   composite_creds->Unref();
 }
 
@@ -649,17 +532,10 @@ class check_channel_oauth2_google_iam final : public grpc_channel_credentials {
                0);
     return nullptr;
   }
-
- private:
-  int cmp_impl(const grpc_channel_credentials* other) const override {
-    // TODO(yashykt): Check if we can do something better here
-    return grpc_core::QsortCompare(
-        static_cast<const grpc_channel_credentials*>(this), other);
-  }
 };
 }  // namespace
 
-TEST(CredentialsTest, TestChannelOauth2GoogleIamCompositeCreds) {
+static void test_channel_oauth2_google_iam_composite_creds(void) {
   grpc_core::ExecCtx exec_ctx;
   grpc_channel_args* new_args;
   grpc_channel_credentials* channel_creds =
@@ -688,61 +564,55 @@ TEST(CredentialsTest, TestChannelOauth2GoogleIamCompositeCreds) {
 }
 
 static void validate_compute_engine_http_request(
-    const grpc_http_request* request, const char* host, const char* path) {
-  GPR_ASSERT(strcmp(host, "metadata.google.internal.") == 0);
+    const grpc_httpcli_request* request) {
+  GPR_ASSERT(request->handshaker != &grpc_httpcli_ssl);
+  GPR_ASSERT(strcmp(request->host, "metadata.google.internal.") == 0);
   GPR_ASSERT(
-      strcmp(path,
+      strcmp(request->http.path,
              "/computeMetadata/v1/instance/service-accounts/default/token") ==
       0);
-  GPR_ASSERT(request->hdr_count == 1);
-  GPR_ASSERT(strcmp(request->hdrs[0].key, "Metadata-Flavor") == 0);
-  GPR_ASSERT(strcmp(request->hdrs[0].value, "Google") == 0);
+  GPR_ASSERT(request->http.hdr_count == 1);
+  GPR_ASSERT(strcmp(request->http.hdrs[0].key, "Metadata-Flavor") == 0);
+  GPR_ASSERT(strcmp(request->http.hdrs[0].value, "Google") == 0);
 }
 
 static int compute_engine_httpcli_get_success_override(
-    const grpc_http_request* request, const char* host, const char* path,
-    grpc_millis /*deadline*/, grpc_closure* on_done,
-    grpc_http_response* response) {
-  validate_compute_engine_http_request(request, host, path);
+    const grpc_httpcli_request* request, grpc_millis /*deadline*/,
+    grpc_closure* on_done, grpc_httpcli_response* response) {
+  validate_compute_engine_http_request(request);
   *response = http_response(200, valid_oauth2_json_response);
   grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
   return 1;
 }
 
 static int compute_engine_httpcli_get_failure_override(
-    const grpc_http_request* request, const char* host, const char* path,
-    grpc_millis /*deadline*/, grpc_closure* on_done,
-    grpc_http_response* response) {
-  validate_compute_engine_http_request(request, host, path);
+    const grpc_httpcli_request* request, grpc_millis /*deadline*/,
+    grpc_closure* on_done, grpc_httpcli_response* response) {
+  validate_compute_engine_http_request(request);
   *response = http_response(403, "Not Authorized.");
   grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
   return 1;
 }
 
 static int httpcli_post_should_not_be_called(
-    const grpc_http_request* /*request*/, const char* /*host*/,
-    const char* /*path*/, const char* /*body_bytes*/, size_t /*body_size*/,
-    grpc_millis /*deadline*/, grpc_closure* /*on_done*/,
-    grpc_http_response* /*response*/) {
+    const grpc_httpcli_request* /*request*/, const char* /*body_bytes*/,
+    size_t /*body_size*/, grpc_millis /*deadline*/, grpc_closure* /*on_done*/,
+    grpc_httpcli_response* /*response*/) {
   GPR_ASSERT("HTTP POST should not be called" == nullptr);
   return 1;
 }
 
 static int httpcli_get_should_not_be_called(
-    const grpc_http_request* /*request*/, const char* /*host*/,
-    const char* /*path*/, grpc_millis /*deadline*/, grpc_closure* /*on_done*/,
-    grpc_http_response* /*response*/) {
+    const grpc_httpcli_request* /*request*/, grpc_millis /*deadline*/,
+    grpc_closure* /*on_done*/, grpc_httpcli_response* /*response*/) {
   GPR_ASSERT("HTTP GET should not be called" == nullptr);
   return 1;
 }
 
-TEST(CredentialsTest, TestComputeEngineCredsSuccess) {
+static void test_compute_engine_creds_success() {
   grpc_core::ExecCtx exec_ctx;
-  std::map<std::string, std::string> emd = {
+  expected_md emd[] = {
       {"authorization", "Bearer ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_"}};
-  const char expected_creds_debug_string[] =
-      "GoogleComputeEngineTokenFetcherCredentials{"
-      "OAuth2TokenFetcherCredentials}";
   grpc_call_credentials* creds =
       grpc_google_compute_engine_credentials_create(nullptr);
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
@@ -751,97 +621,90 @@ TEST(CredentialsTest, TestComputeEngineCredsSuccess) {
   GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
 
   /* First request: http get should be called. */
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      compute_engine_httpcli_get_success_override,
-      httpcli_post_should_not_be_called);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  request_metadata_state* state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
+  grpc_httpcli_set_override(compute_engine_httpcli_get_success_override,
+                            httpcli_post_should_not_be_called);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
 
   /* Second request: the cached token should be served directly. */
-  state = RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      httpcli_post_should_not_be_called);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
+  grpc_httpcli_set_override(httpcli_get_should_not_be_called,
+                            httpcli_post_should_not_be_called);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
 
-  GPR_ASSERT(
-      strcmp(creds->debug_string().c_str(), expected_creds_debug_string) == 0);
   creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
+  grpc_httpcli_set_override(nullptr, nullptr);
 }
 
-TEST(CredentialsTest, TestComputeEngineCredsFailure) {
+static void test_compute_engine_creds_failure(void) {
   grpc_core::ExecCtx exec_ctx;
-  const char expected_creds_debug_string[] =
-      "GoogleComputeEngineTokenFetcherCredentials{"
-      "OAuth2TokenFetcherCredentials}";
-  RequestMetadataState* state = RequestMetadataState::NewInstance(
+  request_metadata_state* state = make_request_metadata_state(
       GRPC_ERROR_CREATE_FROM_STATIC_STRING(
           "Error occurred when fetching oauth2 token."),
-      {});
+      nullptr, 0);
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
   grpc_call_credentials* creds =
       grpc_google_compute_engine_credentials_create(nullptr);
-  grpc_core::HttpRequest::SetOverride(
-      compute_engine_httpcli_get_failure_override,
-      httpcli_post_should_not_be_called);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
-  GPR_ASSERT(
-      strcmp(creds->debug_string().c_str(), expected_creds_debug_string) == 0);
+  grpc_httpcli_set_override(compute_engine_httpcli_get_failure_override,
+                            httpcli_post_should_not_be_called);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
+  grpc_httpcli_set_override(nullptr, nullptr);
 }
 
 static void validate_refresh_token_http_request(
-    const grpc_http_request* request, const char* host, const char* path,
-    const char* body, size_t body_size) {
+    const grpc_httpcli_request* request, const char* body, size_t body_size) {
   /* The content of the assertion is tested extensively in json_token_test. */
+  char* expected_body = nullptr;
   GPR_ASSERT(body != nullptr);
   GPR_ASSERT(body_size != 0);
-  std::string expected_body = absl::StrFormat(
-      GRPC_REFRESH_TOKEN_POST_BODY_FORMAT_STRING,
-      "32555999999.apps.googleusercontent.com", "EmssLNjJy1332hD4KFsecret",
-      "1/Blahblasj424jladJDSGNf-u4Sua3HDA2ngjd42");
-  GPR_ASSERT(expected_body.size() == body_size);
-  GPR_ASSERT(memcmp(expected_body.data(), body, body_size) == 0);
-  GPR_ASSERT(strcmp(host, GRPC_GOOGLE_OAUTH2_SERVICE_HOST) == 0);
-  GPR_ASSERT(strcmp(path, GRPC_GOOGLE_OAUTH2_SERVICE_TOKEN_PATH) == 0);
-  GPR_ASSERT(request->hdr_count == 1);
-  GPR_ASSERT(strcmp(request->hdrs[0].key, "Content-Type") == 0);
+  gpr_asprintf(&expected_body, GRPC_REFRESH_TOKEN_POST_BODY_FORMAT_STRING,
+               "32555999999.apps.googleusercontent.com",
+               "EmssLNjJy1332hD4KFsecret",
+               "1/Blahblasj424jladJDSGNf-u4Sua3HDA2ngjd42");
+  GPR_ASSERT(strlen(expected_body) == body_size);
+  GPR_ASSERT(memcmp(expected_body, body, body_size) == 0);
+  gpr_free(expected_body);
+  GPR_ASSERT(request->handshaker == &grpc_httpcli_ssl);
+  GPR_ASSERT(strcmp(request->host, GRPC_GOOGLE_OAUTH2_SERVICE_HOST) == 0);
   GPR_ASSERT(
-      strcmp(request->hdrs[0].value, "application/x-www-form-urlencoded") == 0);
+      strcmp(request->http.path, GRPC_GOOGLE_OAUTH2_SERVICE_TOKEN_PATH) == 0);
+  GPR_ASSERT(request->http.hdr_count == 1);
+  GPR_ASSERT(strcmp(request->http.hdrs[0].key, "Content-Type") == 0);
+  GPR_ASSERT(strcmp(request->http.hdrs[0].value,
+                    "application/x-www-form-urlencoded") == 0);
 }
 
 static int refresh_token_httpcli_post_success(
-    const grpc_http_request* request, const char* host, const char* path,
-    const char* body, size_t body_size, grpc_millis /*deadline*/,
-    grpc_closure* on_done, grpc_http_response* response) {
-  validate_refresh_token_http_request(request, host, path, body, body_size);
+    const grpc_httpcli_request* request, const char* body, size_t body_size,
+    grpc_millis /*deadline*/, grpc_closure* on_done,
+    grpc_httpcli_response* response) {
+  validate_refresh_token_http_request(request, body, body_size);
   *response = http_response(200, valid_oauth2_json_response);
   grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
   return 1;
 }
 
-static int token_httpcli_post_failure(
-    const grpc_http_request* /*request*/, const char* /*host*/,
-    const char* /*path*/, const char* /*body*/, size_t /*body_size*/,
-    grpc_millis /*deadline*/, grpc_closure* on_done,
-    grpc_http_response* response) {
+static int token_httpcli_post_failure(const grpc_httpcli_request* /*request*/,
+                                      const char* /*body*/,
+                                      size_t /*body_size*/,
+                                      grpc_millis /*deadline*/,
+                                      grpc_closure* on_done,
+                                      grpc_httpcli_response* response) {
   *response = http_response(403, "Not Authorized.");
   grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
   return 1;
 }
 
-TEST(CredentialsTest, TestRefreshTokenCredsSuccess) {
+static void test_refresh_token_creds_success(void) {
   grpc_core::ExecCtx exec_ctx;
-  std::map<std::string, std::string> emd = {
+  expected_md emd[] = {
       {"authorization", "Bearer ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_"}};
-  const char expected_creds_debug_string[] =
-      "GoogleRefreshToken{ClientID:32555999999.apps.googleusercontent.com,"
-      "OAuth2TokenFetcherCredentials}";
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
   grpc_call_credentials* creds = grpc_google_refresh_token_credentials_create(
@@ -851,50 +714,43 @@ TEST(CredentialsTest, TestRefreshTokenCredsSuccess) {
   GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
 
   /* First request: http put should be called. */
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      refresh_token_httpcli_post_success);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  request_metadata_state* state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
+  grpc_httpcli_set_override(httpcli_get_should_not_be_called,
+                            refresh_token_httpcli_post_success);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
 
   /* Second request: the cached token should be served directly. */
-  state = RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      httpcli_post_should_not_be_called);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
+  grpc_httpcli_set_override(httpcli_get_should_not_be_called,
+                            httpcli_post_should_not_be_called);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
-  GPR_ASSERT(
-      strcmp(creds->debug_string().c_str(), expected_creds_debug_string) == 0);
 
   creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
+  grpc_httpcli_set_override(nullptr, nullptr);
 }
 
-TEST(CredentialsTest, TestRefreshTokenCredsFailure) {
+static void test_refresh_token_creds_failure(void) {
   grpc_core::ExecCtx exec_ctx;
-  const char expected_creds_debug_string[] =
-      "GoogleRefreshToken{ClientID:32555999999.apps.googleusercontent.com,"
-      "OAuth2TokenFetcherCredentials}";
-  RequestMetadataState* state = RequestMetadataState::NewInstance(
+  request_metadata_state* state = make_request_metadata_state(
       GRPC_ERROR_CREATE_FROM_STATIC_STRING(
           "Error occurred when fetching oauth2 token."),
-      {});
+      nullptr, 0);
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
   grpc_call_credentials* creds = grpc_google_refresh_token_credentials_create(
       test_refresh_token_str, nullptr);
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      token_httpcli_post_failure);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
-  GPR_ASSERT(
-      strcmp(creds->debug_string().c_str(), expected_creds_debug_string) == 0);
-
+  grpc_httpcli_set_override(httpcli_get_should_not_be_called,
+                            token_httpcli_post_failure);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
+  grpc_httpcli_set_override(nullptr, nullptr);
 }
 
-TEST(CredentialsTest, TestValidStsCredsOptions) {
+static void test_valid_sts_creds_options(void) {
   grpc_sts_credentials_options valid_options = {
       test_sts_endpoint_url,        // sts_endpoint_url
       nullptr,                      // resource
@@ -906,17 +762,20 @@ TEST(CredentialsTest, TestValidStsCredsOptions) {
       nullptr,                      // actor_token_path
       nullptr                       // actor_token_type
   };
-  absl::StatusOr<grpc_core::URI> sts_url =
-      grpc_core::ValidateStsCredentialsOptions(&valid_options);
-  GPR_ASSERT(sts_url.ok());
-  absl::string_view host;
-  absl::string_view port;
-  GPR_ASSERT(grpc_core::SplitHostPort(sts_url->authority(), &host, &port));
+  grpc_uri* sts_url;
+  grpc_error* error =
+      grpc_core::ValidateStsCredentialsOptions(&valid_options, &sts_url);
+  GPR_ASSERT(error == GRPC_ERROR_NONE);
+  GPR_ASSERT(sts_url != nullptr);
+  grpc_core::StringView host;
+  grpc_core::StringView port;
+  GPR_ASSERT(grpc_core::SplitHostPort(sts_url->authority, &host, &port));
   GPR_ASSERT(host == "foo.com");
   GPR_ASSERT(port == "5555");
+  grpc_uri_destroy(sts_url);
 }
 
-TEST(CredentialsTest, TestInvalidStsCredsOptions) {
+static void test_invalid_sts_creds_options(void) {
   grpc_sts_credentials_options invalid_options = {
       test_sts_endpoint_url,       // sts_endpoint_url
       nullptr,                     // resource
@@ -928,9 +787,12 @@ TEST(CredentialsTest, TestInvalidStsCredsOptions) {
       nullptr,                     // actor_token_path
       nullptr                      // actor_token_type
   };
-  absl::StatusOr<grpc_core::URI> url_should_be_invalid =
-      grpc_core::ValidateStsCredentialsOptions(&invalid_options);
-  GPR_ASSERT(!url_should_be_invalid.ok());
+  grpc_uri* url_should_be_null;
+  grpc_error* error = grpc_core::ValidateStsCredentialsOptions(
+      &invalid_options, &url_should_be_null);
+  GPR_ASSERT(error != GRPC_ERROR_NONE);
+  GRPC_ERROR_UNREF(error);
+  GPR_ASSERT(url_should_be_null == nullptr);
 
   invalid_options = {
       test_sts_endpoint_url,        // sts_endpoint_url
@@ -943,9 +805,11 @@ TEST(CredentialsTest, TestInvalidStsCredsOptions) {
       nullptr,                      // actor_token_path
       nullptr                       // actor_token_type
   };
-  url_should_be_invalid =
-      grpc_core::ValidateStsCredentialsOptions(&invalid_options);
-  GPR_ASSERT(!url_should_be_invalid.ok());
+  error = grpc_core::ValidateStsCredentialsOptions(&invalid_options,
+                                                   &url_should_be_null);
+  GPR_ASSERT(error != GRPC_ERROR_NONE);
+  GRPC_ERROR_UNREF(error);
+  GPR_ASSERT(url_should_be_null == nullptr);
 
   invalid_options = {
       nullptr,                      // sts_endpoint_url (Required)
@@ -958,9 +822,11 @@ TEST(CredentialsTest, TestInvalidStsCredsOptions) {
       nullptr,                      // actor_token_path
       nullptr                       // actor_token_type
   };
-  url_should_be_invalid =
-      grpc_core::ValidateStsCredentialsOptions(&invalid_options);
-  GPR_ASSERT(!url_should_be_invalid.ok());
+  error = grpc_core::ValidateStsCredentialsOptions(&invalid_options,
+                                                   &url_should_be_null);
+  GPR_ASSERT(error != GRPC_ERROR_NONE);
+  GRPC_ERROR_UNREF(error);
+  GPR_ASSERT(url_should_be_null == nullptr);
 
   invalid_options = {
       "not_a_valid_uri",            // sts_endpoint_url
@@ -973,9 +839,11 @@ TEST(CredentialsTest, TestInvalidStsCredsOptions) {
       nullptr,                      // actor_token_path
       nullptr                       // actor_token_type
   };
-  url_should_be_invalid =
-      grpc_core::ValidateStsCredentialsOptions(&invalid_options);
-  GPR_ASSERT(!url_should_be_invalid.ok());
+  error = grpc_core::ValidateStsCredentialsOptions(&invalid_options,
+                                                   &url_should_be_null);
+  GPR_ASSERT(error != GRPC_ERROR_NONE);
+  GRPC_ERROR_UNREF(error);
+  GPR_ASSERT(url_should_be_null == nullptr);
 
   invalid_options = {
       "ftp://ftp.is.not.a.valid.scheme/bar",  // sts_endpoint_url
@@ -988,82 +856,69 @@ TEST(CredentialsTest, TestInvalidStsCredsOptions) {
       nullptr,                                // actor_token_path
       nullptr                                 // actor_token_type
   };
-  url_should_be_invalid =
-      grpc_core::ValidateStsCredentialsOptions(&invalid_options);
-  GPR_ASSERT(!url_should_be_invalid.ok());
+  error = grpc_core::ValidateStsCredentialsOptions(&invalid_options,
+                                                   &url_should_be_null);
+  GPR_ASSERT(error != GRPC_ERROR_NONE);
+  GRPC_ERROR_UNREF(error);
+  GPR_ASSERT(url_should_be_null == nullptr);
 }
 
-static void assert_query_parameters(const grpc_core::URI& uri,
-                                    absl::string_view expected_key,
-                                    absl::string_view expected_val) {
-  const auto it = uri.query_parameter_map().find(expected_key);
-  GPR_ASSERT(it != uri.query_parameter_map().end());
-  if (it->second != expected_val) {
-    gpr_log(GPR_ERROR, "%s!=%s", std::string(it->second).c_str(),
-            std::string(expected_val).c_str());
-  }
-  GPR_ASSERT(it->second == expected_val);
-}
-
-static void validate_sts_token_http_request(const grpc_http_request* request,
-                                            const char* host, const char* path,
+static void validate_sts_token_http_request(const grpc_httpcli_request* request,
                                             const char* body, size_t body_size,
                                             bool expect_actor_token) {
   // Check that the body is constructed properly.
   GPR_ASSERT(body != nullptr);
   GPR_ASSERT(body_size != 0);
-  std::string get_url_equivalent =
-      absl::StrFormat("%s?%s", test_sts_endpoint_url, body);
-  absl::StatusOr<grpc_core::URI> url =
-      grpc_core::URI::Parse(get_url_equivalent);
-  if (!url.ok()) {
-    gpr_log(GPR_ERROR, "%s", url.status().ToString().c_str());
-    GPR_ASSERT(url.ok());
-  }
-  assert_query_parameters(*url, "resource", "resource");
-  assert_query_parameters(*url, "audience", "audience");
-  assert_query_parameters(*url, "scope", "scope");
-  assert_query_parameters(*url, "requested_token_type", "requested_token_type");
-  assert_query_parameters(*url, "subject_token", test_signed_jwt);
-  assert_query_parameters(*url, "subject_token_type",
-                          test_signed_jwt_token_type);
+  GPR_ASSERT(request->handshaker == &grpc_httpcli_ssl);
+  char* get_url_equivalent;
+  gpr_asprintf(&get_url_equivalent, "%s?%s", test_sts_endpoint_url, body);
+  grpc_uri* url = grpc_uri_parse(get_url_equivalent, false);
+  GPR_ASSERT(strcmp(grpc_uri_get_query_arg(url, "resource"), "resource") == 0);
+  GPR_ASSERT(strcmp(grpc_uri_get_query_arg(url, "audience"), "audience") == 0);
+  GPR_ASSERT(strcmp(grpc_uri_get_query_arg(url, "scope"), "scope") == 0);
+  GPR_ASSERT(strcmp(grpc_uri_get_query_arg(url, "requested_token_type"),
+                    "requested_token_type") == 0);
+  GPR_ASSERT(strcmp(grpc_uri_get_query_arg(url, "subject_token"),
+                    test_signed_jwt) == 0);
+  GPR_ASSERT(strcmp(grpc_uri_get_query_arg(url, "subject_token_type"),
+                    test_signed_jwt_token_type) == 0);
   if (expect_actor_token) {
-    assert_query_parameters(*url, "actor_token", test_signed_jwt2);
-    assert_query_parameters(*url, "actor_token_type",
-                            test_signed_jwt_token_type2);
+    GPR_ASSERT(strcmp(grpc_uri_get_query_arg(url, "actor_token"),
+                      test_signed_jwt2) == 0);
+    GPR_ASSERT(strcmp(grpc_uri_get_query_arg(url, "actor_token_type"),
+                      test_signed_jwt_token_type2) == 0);
   } else {
-    GPR_ASSERT(url->query_parameter_map().find("actor_token") ==
-               url->query_parameter_map().end());
-    GPR_ASSERT(url->query_parameter_map().find("actor_token_type") ==
-               url->query_parameter_map().end());
+    GPR_ASSERT(grpc_uri_get_query_arg(url, "actor_token") == nullptr);
+    GPR_ASSERT(grpc_uri_get_query_arg(url, "actor_token_type") == nullptr);
   }
+  grpc_uri_destroy(url);
+  gpr_free(get_url_equivalent);
 
   // Check the rest of the request.
-  GPR_ASSERT(strcmp(host, "foo.com:5555") == 0);
-  GPR_ASSERT(strcmp(path, "/v1/token-exchange") == 0);
-  GPR_ASSERT(request->hdr_count == 1);
-  GPR_ASSERT(strcmp(request->hdrs[0].key, "Content-Type") == 0);
-  GPR_ASSERT(
-      strcmp(request->hdrs[0].value, "application/x-www-form-urlencoded") == 0);
+  GPR_ASSERT(strcmp(request->host, "foo.com:5555") == 0);
+  GPR_ASSERT(strcmp(request->http.path, "/v1/token-exchange") == 0);
+  GPR_ASSERT(request->http.hdr_count == 1);
+  GPR_ASSERT(strcmp(request->http.hdrs[0].key, "Content-Type") == 0);
+  GPR_ASSERT(strcmp(request->http.hdrs[0].value,
+                    "application/x-www-form-urlencoded") == 0);
 }
 
-static int sts_token_httpcli_post_success(const grpc_http_request* request,
-                                          const char* host, const char* path,
+static int sts_token_httpcli_post_success(const grpc_httpcli_request* request,
                                           const char* body, size_t body_size,
                                           grpc_millis /*deadline*/,
                                           grpc_closure* on_done,
-                                          grpc_http_response* response) {
-  validate_sts_token_http_request(request, host, path, body, body_size, true);
+                                          grpc_httpcli_response* response) {
+  validate_sts_token_http_request(request, body, body_size, true);
   *response = http_response(200, valid_sts_json_response);
   grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
   return 1;
 }
 
 static int sts_token_httpcli_post_success_no_actor_token(
-    const grpc_http_request* request, const char* host, const char* path,
-    const char* body, size_t body_size, grpc_millis /*deadline*/,
-    grpc_closure* on_done, grpc_http_response* response) {
-  validate_sts_token_http_request(request, host, path, body, body_size, false);
+    const grpc_httpcli_request* request, const char* body, size_t body_size,
+    grpc_millis /*deadline*/, grpc_closure* on_done,
+    grpc_httpcli_response* response) {
+  validate_sts_token_http_request(request, body, body_size, false);
   *response = http_response(200, valid_sts_json_response);
   grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
   return 1;
@@ -1080,13 +935,10 @@ static char* write_tmp_jwt_file(const char* jwt_contents) {
   return path;
 }
 
-TEST(CredentialsTest, TestStsCredsSuccess) {
+static void test_sts_creds_success(void) {
   grpc_core::ExecCtx exec_ctx;
-  std::map<std::string, std::string> emd = {
+  expected_md emd[] = {
       {"authorization", "Bearer ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_"}};
-  const char expected_creds_debug_string[] =
-      "StsTokenFetcherCredentials{Path:/v1/"
-      "token-exchange,Authority:foo.com:5555,OAuth2TokenFetcherCredentials}";
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
   char* subject_token_path = write_tmp_jwt_file(test_signed_jwt);
@@ -1109,29 +961,28 @@ TEST(CredentialsTest, TestStsCredsSuccess) {
   GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
 
   /* First request: http put should be called. */
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      sts_token_httpcli_post_success);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  request_metadata_state* state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
+  grpc_httpcli_set_override(httpcli_get_should_not_be_called,
+                            sts_token_httpcli_post_success);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
 
   /* Second request: the cached token should be served directly. */
-  state = RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      httpcli_post_should_not_be_called);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
+  grpc_httpcli_set_override(httpcli_get_should_not_be_called,
+                            httpcli_post_should_not_be_called);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
-  GPR_ASSERT(
-      strcmp(creds->debug_string().c_str(), expected_creds_debug_string) == 0);
 
   creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
+  grpc_httpcli_set_override(nullptr, nullptr);
   gpr_free(subject_token_path);
   gpr_free(actor_token_path);
 }
 
-TEST(CredentialsTest, TestStsCredsTokenFileNotFound) {
+static void test_sts_creds_token_file_not_found(void) {
   grpc_core::ExecCtx exec_ctx;
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
@@ -1152,27 +1003,24 @@ TEST(CredentialsTest, TestStsCredsTokenFileNotFound) {
   /* Check security level. */
   GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
 
-  RequestMetadataState* state = RequestMetadataState::NewInstance(
+  request_metadata_state* state = make_request_metadata_state(
       GRPC_ERROR_CREATE_FROM_STATIC_STRING(
           "Error occurred when fetching oauth2 token."),
-      {});
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      httpcli_post_should_not_be_called);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+      nullptr, 0);
+  grpc_httpcli_set_override(httpcli_get_should_not_be_called,
+                            httpcli_post_should_not_be_called);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
 
   /* Cleanup. */
   creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
+  grpc_httpcli_set_override(nullptr, nullptr);
 }
 
-TEST(CredentialsTest, TestStsCredsNoActorTokenSuccess) {
+static void test_sts_creds_no_actor_token_success(void) {
   grpc_core::ExecCtx exec_ctx;
-  std::map<std::string, std::string> emd = {
+  expected_md emd[] = {
       {"authorization", "Bearer ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_"}};
-  const char expected_creds_debug_string[] =
-      "StsTokenFetcherCredentials{Path:/v1/"
-      "token-exchange,Authority:foo.com:5555,OAuth2TokenFetcherCredentials}";
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
   char* subject_token_path = write_tmp_jwt_file(test_signed_jwt);
@@ -1194,37 +1042,32 @@ TEST(CredentialsTest, TestStsCredsNoActorTokenSuccess) {
   GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
 
   /* First request: http put should be called. */
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      httpcli_get_should_not_be_called,
-      sts_token_httpcli_post_success_no_actor_token);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  request_metadata_state* state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
+  grpc_httpcli_set_override(httpcli_get_should_not_be_called,
+                            sts_token_httpcli_post_success_no_actor_token);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
 
   /* Second request: the cached token should be served directly. */
-  state = RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      httpcli_post_should_not_be_called);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
+  grpc_httpcli_set_override(httpcli_get_should_not_be_called,
+                            httpcli_post_should_not_be_called);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
-  GPR_ASSERT(
-      strcmp(creds->debug_string().c_str(), expected_creds_debug_string) == 0);
 
   creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
+  grpc_httpcli_set_override(nullptr, nullptr);
   gpr_free(subject_token_path);
 }
 
-TEST(CredentialsTest, TestStsCredsLoadTokenFailure) {
-  const char expected_creds_debug_string[] =
-      "StsTokenFetcherCredentials{Path:/v1/"
-      "token-exchange,Authority:foo.com:5555,OAuth2TokenFetcherCredentials}";
+static void test_sts_creds_load_token_failure(void) {
   grpc_core::ExecCtx exec_ctx;
-  RequestMetadataState* state = RequestMetadataState::NewInstance(
+  request_metadata_state* state = make_request_metadata_state(
       GRPC_ERROR_CREATE_FROM_STATIC_STRING(
           "Error occurred when fetching oauth2 token."),
-      {});
+      nullptr, 0);
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
   char* test_signed_jwt_path = write_tmp_jwt_file(test_signed_jwt);
@@ -1240,26 +1083,20 @@ TEST(CredentialsTest, TestStsCredsLoadTokenFailure) {
       nullptr                      // actor_token_type
   };
   grpc_call_credentials* creds = grpc_sts_credentials_create(&options, nullptr);
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      httpcli_post_should_not_be_called);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
-  GPR_ASSERT(
-      strcmp(creds->debug_string().c_str(), expected_creds_debug_string) == 0);
-
+  grpc_httpcli_set_override(httpcli_get_should_not_be_called,
+                            httpcli_post_should_not_be_called);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
+  grpc_httpcli_set_override(nullptr, nullptr);
   gpr_free(test_signed_jwt_path);
 }
 
-TEST(CredentialsTest, TestStsCredsHttpFailure) {
-  const char expected_creds_debug_string[] =
-      "StsTokenFetcherCredentials{Path:/v1/"
-      "token-exchange,Authority:foo.com:5555,OAuth2TokenFetcherCredentials}";
+static void test_sts_creds_http_failure(void) {
   grpc_core::ExecCtx exec_ctx;
-  RequestMetadataState* state = RequestMetadataState::NewInstance(
+  request_metadata_state* state = make_request_metadata_state(
       GRPC_ERROR_CREATE_FROM_STATIC_STRING(
           "Error occurred when fetching oauth2 token."),
-      {});
+      nullptr, 0);
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
   char* test_signed_jwt_path = write_tmp_jwt_file(test_signed_jwt);
@@ -1276,13 +1113,11 @@ TEST(CredentialsTest, TestStsCredsHttpFailure) {
   };
   grpc_call_credentials* creds =
       grpc_sts_credentials_create(&valid_options, nullptr);
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      token_httpcli_post_failure);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
-  GPR_ASSERT(
-      strcmp(creds->debug_string().c_str(), expected_creds_debug_string) == 0);
+  grpc_httpcli_set_override(httpcli_get_should_not_be_called,
+                            token_httpcli_post_failure);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
+  grpc_httpcli_set_override(nullptr, nullptr);
   gpr_free(test_signed_jwt_path);
 }
 
@@ -1306,17 +1141,13 @@ static void validate_jwt_encode_and_sign_params(
                     "777-abaslkan11hlb6nmim3bpspl31ud@developer."
                     "gserviceaccount.com") == 0);
   if (scope != nullptr) GPR_ASSERT(strcmp(scope, test_scope) == 0);
-  GPR_ASSERT(gpr_time_cmp(token_lifetime, grpc_max_auth_token_lifetime()) == 0);
+  GPR_ASSERT(!gpr_time_cmp(token_lifetime, grpc_max_auth_token_lifetime()));
 }
 
 static char* encode_and_sign_jwt_success(const grpc_auth_json_key* json_key,
-                                         const char* audience,
+                                         const char* /*audience*/,
                                          gpr_timespec token_lifetime,
                                          const char* scope) {
-  if (strcmp(audience, test_service_url_no_service_name) != 0 &&
-      strcmp(audience, other_test_service_url_no_service_name) != 0) {
-    return nullptr;
-  }
   validate_jwt_encode_and_sign_params(json_key, scope, token_lifetime);
   return gpr_strdup(test_signed_jwt);
 }
@@ -1343,10 +1174,9 @@ static grpc_service_account_jwt_access_credentials* creds_as_jwt(
   return reinterpret_cast<grpc_service_account_jwt_access_credentials*>(creds);
 }
 
-TEST(CredentialsTest, TestJwtCredsLifetime) {
+static void test_jwt_creds_lifetime(void) {
   char* json_key_string = test_json_key_str();
-  const char expected_creds_debug_string_prefix[] =
-      "JWTAccessCredentials{ExpirationTime:";
+
   // Max lifetime.
   grpc_call_credentials* jwt_creds =
       grpc_service_account_jwt_access_credentials_create(
@@ -1355,9 +1185,6 @@ TEST(CredentialsTest, TestJwtCredsLifetime) {
                           grpc_max_auth_token_lifetime()) == 0);
   /* Check security level. */
   GPR_ASSERT(jwt_creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  GPR_ASSERT(strncmp(expected_creds_debug_string_prefix,
-                     jwt_creds->debug_string().c_str(),
-                     strlen(expected_creds_debug_string_prefix)) == 0);
   grpc_call_credentials_release(jwt_creds);
 
   // Shorter lifetime.
@@ -1367,9 +1194,6 @@ TEST(CredentialsTest, TestJwtCredsLifetime) {
       json_key_string, token_lifetime, nullptr);
   GPR_ASSERT(gpr_time_cmp(creds_as_jwt(jwt_creds)->jwt_lifetime(),
                           token_lifetime) == 0);
-  GPR_ASSERT(strncmp(expected_creds_debug_string_prefix,
-                     jwt_creds->debug_string().c_str(),
-                     strlen(expected_creds_debug_string_prefix)) == 0);
   grpc_call_credentials_release(jwt_creds);
 
   // Cropped lifetime.
@@ -1379,90 +1203,69 @@ TEST(CredentialsTest, TestJwtCredsLifetime) {
       json_key_string, token_lifetime, nullptr);
   GPR_ASSERT(gpr_time_cmp(creds_as_jwt(jwt_creds)->jwt_lifetime(),
                           grpc_max_auth_token_lifetime()) == 0);
-  GPR_ASSERT(strncmp(expected_creds_debug_string_prefix,
-                     jwt_creds->debug_string().c_str(),
-                     strlen(expected_creds_debug_string_prefix)) == 0);
   grpc_call_credentials_release(jwt_creds);
 
   gpr_free(json_key_string);
 }
 
-TEST(CredentialsTest, TestRemoveServiceFromJwtUri) {
-  const char wrong_uri[] = "hello world";
-  GPR_ASSERT(!grpc_core::RemoveServiceNameFromJwtUri(wrong_uri).ok());
-  const char valid_uri[] = "https://foo.com/get/";
-  const char expected_uri[] = "https://foo.com/";
-  auto output = grpc_core::RemoveServiceNameFromJwtUri(valid_uri);
-  GPR_ASSERT(output.ok());
-  GPR_ASSERT(strcmp(output->c_str(), expected_uri) == 0);
-}
-
-TEST(CredentialsTest, TestJwtCredsSuccess) {
-  const char expected_creds_debug_string_prefix[] =
-      "JWTAccessCredentials{ExpirationTime:";
-
+static void test_jwt_creds_success(void) {
   char* json_key_string = test_json_key_str();
   grpc_core::ExecCtx exec_ctx;
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
-  std::string expected_md_value = absl::StrCat("Bearer ", test_signed_jwt);
-  std::map<std::string, std::string> emd = {
-      {"authorization", expected_md_value.c_str()}};
+  char* expected_md_value;
+  gpr_asprintf(&expected_md_value, "Bearer %s", test_signed_jwt);
+  expected_md emd[] = {{"authorization", expected_md_value}};
   grpc_call_credentials* creds =
       grpc_service_account_jwt_access_credentials_create(
           json_key_string, grpc_max_auth_token_lifetime(), nullptr);
 
   /* First request: jwt_encode_and_sign should be called. */
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
+  request_metadata_state* state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
   grpc_jwt_encode_and_sign_set_override(encode_and_sign_jwt_success);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
 
   /* Second request: the cached token should be served directly. */
-  state = RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
+  state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
   grpc_jwt_encode_and_sign_set_override(
       encode_and_sign_jwt_should_not_be_called);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
 
   /* Third request: Different service url so jwt_encode_and_sign should be
      called again (no caching). */
-  state = RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
+  state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
   auth_md_ctx.service_url = other_test_service_url;
   grpc_jwt_encode_and_sign_set_override(encode_and_sign_jwt_success);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  run_request_metadata_test(creds, auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
-  GPR_ASSERT(strncmp(expected_creds_debug_string_prefix,
-                     creds->debug_string().c_str(),
-                     strlen(expected_creds_debug_string_prefix)) == 0);
 
   creds->Unref();
   gpr_free(json_key_string);
+  gpr_free(expected_md_value);
   grpc_jwt_encode_and_sign_set_override(nullptr);
 }
 
-TEST(CredentialsTest, TestJwtCredsSigningFailure) {
-  const char expected_creds_debug_string_prefix[] =
-      "JWTAccessCredentials{ExpirationTime:";
+static void test_jwt_creds_signing_failure(void) {
   char* json_key_string = test_json_key_str();
   grpc_core::ExecCtx exec_ctx;
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
-  RequestMetadataState* state = RequestMetadataState::NewInstance(
-      GRPC_ERROR_CREATE_FROM_STATIC_STRING("Could not generate JWT."), {});
+  request_metadata_state* state = make_request_metadata_state(
+      GRPC_ERROR_CREATE_FROM_STATIC_STRING("Could not generate JWT."), nullptr,
+      0);
   grpc_call_credentials* creds =
       grpc_service_account_jwt_access_credentials_create(
           json_key_string, grpc_max_auth_token_lifetime(), nullptr);
 
   grpc_jwt_encode_and_sign_set_override(encode_and_sign_jwt_failure);
-  state->RunRequestMetadataTest(creds, auth_md_ctx);
+  run_request_metadata_test(creds, auth_md_ctx, state);
 
   gpr_free(json_key_string);
-  GPR_ASSERT(strncmp(expected_creds_debug_string_prefix,
-                     creds->debug_string().c_str(),
-                     strlen(expected_creds_debug_string_prefix)) == 0);
-
   creds->Unref();
   grpc_jwt_encode_and_sign_set_override(nullptr);
 }
@@ -1480,24 +1283,16 @@ static void set_google_default_creds_env_var_with_file_contents(
   gpr_free(creds_file_name);
 }
 
-static bool test_gce_tenancy_checker(void) {
-  g_test_gce_tenancy_checker_called = true;
-  return g_test_is_on_gce;
-}
-
-TEST(CredentialsTest, TestGoogleDefaultCredsAuthKey) {
+static void test_google_default_creds_auth_key(void) {
   grpc_core::ExecCtx exec_ctx;
   grpc_composite_channel_credentials* creds;
   char* json_key = test_json_key_str();
   grpc_flush_cached_google_default_credentials();
-  set_gce_tenancy_checker_for_testing(test_gce_tenancy_checker);
-  g_test_gce_tenancy_checker_called = false;
-  g_test_is_on_gce = true;
   set_google_default_creds_env_var_with_file_contents(
       "json_key_google_default_creds", json_key);
   gpr_free(json_key);
   creds = reinterpret_cast<grpc_composite_channel_credentials*>(
-      grpc_google_default_credentials_create(nullptr));
+      grpc_google_default_credentials_create());
   auto* default_creds =
       reinterpret_cast<const grpc_google_default_channel_credentials*>(
           creds->inner_creds());
@@ -1509,19 +1304,18 @@ TEST(CredentialsTest, TestGoogleDefaultCredsAuthKey) {
       strcmp(jwt->key().client_id,
              "777-abaslkan11hlb6nmim3bpspl31ud.apps.googleusercontent.com") ==
       0);
-  GPR_ASSERT(g_test_gce_tenancy_checker_called == false);
   creds->Unref();
   gpr_setenv(GRPC_GOOGLE_CREDENTIALS_ENV_VAR, ""); /* Reset. */
 }
 
-TEST(CredentialsTest, TestGoogleDefaultCredsRefreshToken) {
+static void test_google_default_creds_refresh_token(void) {
   grpc_core::ExecCtx exec_ctx;
   grpc_composite_channel_credentials* creds;
   grpc_flush_cached_google_default_credentials();
   set_google_default_creds_env_var_with_file_contents(
       "refresh_token_google_default_creds", test_refresh_token_str);
   creds = reinterpret_cast<grpc_composite_channel_credentials*>(
-      grpc_google_default_credentials_create(nullptr));
+      grpc_google_default_credentials_create());
   auto* default_creds =
       reinterpret_cast<const grpc_google_default_channel_credentials*>(
           creds->inner_creds());
@@ -1535,75 +1329,9 @@ TEST(CredentialsTest, TestGoogleDefaultCredsRefreshToken) {
   gpr_setenv(GRPC_GOOGLE_CREDENTIALS_ENV_VAR, ""); /* Reset. */
 }
 
-TEST(CredentialsTest, TestGoogleDefaultCredsExternalAccountCredentials) {
-  grpc_core::ExecCtx exec_ctx;
-  grpc_composite_channel_credentials* creds;
-  grpc_flush_cached_google_default_credentials();
-  set_google_default_creds_env_var_with_file_contents(
-      "google_default_creds_external_account_credentials",
-      test_external_account_credentials_str);
-  creds = reinterpret_cast<grpc_composite_channel_credentials*>(
-      grpc_google_default_credentials_create(nullptr));
-  auto* default_creds =
-      reinterpret_cast<const grpc_google_default_channel_credentials*>(
-          creds->inner_creds());
-  GPR_ASSERT(default_creds->ssl_creds() != nullptr);
-  auto* external =
-      reinterpret_cast<const grpc_core::ExternalAccountCredentials*>(
-          creds->call_creds());
-  GPR_ASSERT(external != nullptr);
-  creds->Unref();
-  gpr_setenv(GRPC_GOOGLE_CREDENTIALS_ENV_VAR, ""); /* Reset. */
-}
-
-TEST(CredentialsTest,
-     TestGoogleDefaultCredsExternalAccountCredentialsMultiPatternSts) {
-  grpc_core::ExecCtx exec_ctx;
-  grpc_composite_channel_credentials* creds;
-  grpc_flush_cached_google_default_credentials();
-  set_google_default_creds_env_var_with_file_contents(
-      "google_default_creds_external_account_credentials",
-      test_external_account_credentials_multi_pattern_sts_str);
-  creds = reinterpret_cast<grpc_composite_channel_credentials*>(
-      grpc_google_default_credentials_create(nullptr));
-  auto* default_creds =
-      reinterpret_cast<const grpc_google_default_channel_credentials*>(
-          creds->inner_creds());
-  GPR_ASSERT(default_creds->ssl_creds() != nullptr);
-  auto* external =
-      reinterpret_cast<const grpc_core::ExternalAccountCredentials*>(
-          creds->call_creds());
-  GPR_ASSERT(external != nullptr);
-  creds->Unref();
-  gpr_setenv(GRPC_GOOGLE_CREDENTIALS_ENV_VAR, ""); /* Reset. */
-}
-
-TEST(CredentialsTest,
-     TestGoogleDefaultCredsExternalAccountCredentialsMultiPatternIam) {
-  grpc_core::ExecCtx exec_ctx;
-  grpc_composite_channel_credentials* creds;
-  grpc_flush_cached_google_default_credentials();
-  set_google_default_creds_env_var_with_file_contents(
-      "google_default_creds_external_account_credentials",
-      test_external_account_credentials_multi_pattern_iam_str);
-  creds = reinterpret_cast<grpc_composite_channel_credentials*>(
-      grpc_google_default_credentials_create(nullptr));
-  auto* default_creds =
-      reinterpret_cast<const grpc_google_default_channel_credentials*>(
-          creds->inner_creds());
-  GPR_ASSERT(default_creds->ssl_creds() != nullptr);
-  auto* external =
-      reinterpret_cast<const grpc_core::ExternalAccountCredentials*>(
-          creds->call_creds());
-  GPR_ASSERT(external != nullptr);
-  creds->Unref();
-  gpr_setenv(GRPC_GOOGLE_CREDENTIALS_ENV_VAR, ""); /* Reset. */
-}
-
 static int default_creds_metadata_server_detection_httpcli_get_success_override(
-    const grpc_http_request* /*request*/, const char* host, const char* path,
-    grpc_millis /*deadline*/, grpc_closure* on_done,
-    grpc_http_response* response) {
+    const grpc_httpcli_request* request, grpc_millis /*deadline*/,
+    grpc_closure* on_done, grpc_httpcli_response* response) {
   *response = http_response(200, "");
   grpc_http_header* headers =
       static_cast<grpc_http_header*>(gpr_malloc(sizeof(*headers) * 1));
@@ -1611,20 +1339,25 @@ static int default_creds_metadata_server_detection_httpcli_get_success_override(
   headers[0].value = gpr_strdup("Google");
   response->hdr_count = 1;
   response->hdrs = headers;
-  GPR_ASSERT(strcmp(path, "/") == 0);
-  GPR_ASSERT(strcmp(host, "metadata.google.internal.") == 0);
+  GPR_ASSERT(strcmp(request->http.path, "/") == 0);
+  GPR_ASSERT(strcmp(request->host, "metadata.google.internal.") == 0);
   grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
   return 1;
 }
 
-static std::string null_well_known_creds_path_getter(void) { return ""; }
+static char* null_well_known_creds_path_getter(void) { return nullptr; }
 
-TEST(CredentialsTest, TestGoogleDefaultCredsGce) {
+static bool test_gce_tenancy_checker(void) {
+  g_test_gce_tenancy_checker_called = true;
+  return g_test_is_on_gce;
+}
+
+static void test_google_default_creds_gce(void) {
   grpc_core::ExecCtx exec_ctx;
-  std::map<std::string, std::string> emd = {
+  expected_md emd[] = {
       {"authorization", "Bearer ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_"}};
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
+  request_metadata_state* state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
   grpc_flush_cached_google_default_credentials();
@@ -1638,31 +1371,30 @@ TEST(CredentialsTest, TestGoogleDefaultCredsGce) {
   /* Simulate a successful detection of GCE. */
   grpc_composite_channel_credentials* creds =
       reinterpret_cast<grpc_composite_channel_credentials*>(
-          grpc_google_default_credentials_create(nullptr));
+          grpc_google_default_credentials_create());
 
   /* Verify that the default creds actually embeds a GCE creds. */
   GPR_ASSERT(creds != nullptr);
   GPR_ASSERT(creds->call_creds() != nullptr);
-  grpc_core::HttpRequest::SetOverride(
-      compute_engine_httpcli_get_success_override,
-      httpcli_post_should_not_be_called);
-  state->RunRequestMetadataTest(creds->mutable_call_creds(), auth_md_ctx);
+  grpc_httpcli_set_override(compute_engine_httpcli_get_success_override,
+                            httpcli_post_should_not_be_called);
+  run_request_metadata_test(creds->mutable_call_creds(), auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
 
   GPR_ASSERT(g_test_gce_tenancy_checker_called == true);
 
   /* Cleanup. */
   creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
+  grpc_httpcli_set_override(nullptr, nullptr);
   grpc_override_well_known_credentials_path_getter(nullptr);
 }
 
-TEST(CredentialsTest, TestGoogleDefaultCredsNonGce) {
+static void test_google_default_creds_non_gce(void) {
   grpc_core::ExecCtx exec_ctx;
-  std::map<std::string, std::string> emd = {
+  expected_md emd[] = {
       {"authorization", "Bearer ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_"}};
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
+  request_metadata_state* state =
+      make_request_metadata_state(GRPC_ERROR_NONE, emd, GPR_ARRAY_SIZE(emd));
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
   grpc_flush_cached_google_default_credentials();
@@ -1673,40 +1405,38 @@ TEST(CredentialsTest, TestGoogleDefaultCredsNonGce) {
   g_test_gce_tenancy_checker_called = false;
   g_test_is_on_gce = false;
   /* Simulate a successful detection of metadata server. */
-  grpc_core::HttpRequest::SetOverride(
+  grpc_httpcli_set_override(
       default_creds_metadata_server_detection_httpcli_get_success_override,
       httpcli_post_should_not_be_called);
   grpc_composite_channel_credentials* creds =
       reinterpret_cast<grpc_composite_channel_credentials*>(
-          grpc_google_default_credentials_create(nullptr));
+          grpc_google_default_credentials_create());
   /* Verify that the default creds actually embeds a GCE creds. */
   GPR_ASSERT(creds != nullptr);
   GPR_ASSERT(creds->call_creds() != nullptr);
-  grpc_core::HttpRequest::SetOverride(
-      compute_engine_httpcli_get_success_override,
-      httpcli_post_should_not_be_called);
-  state->RunRequestMetadataTest(creds->mutable_call_creds(), auth_md_ctx);
+  grpc_httpcli_set_override(compute_engine_httpcli_get_success_override,
+                            httpcli_post_should_not_be_called);
+  run_request_metadata_test(creds->mutable_call_creds(), auth_md_ctx, state);
   grpc_core::ExecCtx::Get()->Flush();
   GPR_ASSERT(g_test_gce_tenancy_checker_called == true);
   /* Cleanup. */
   creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
+  grpc_httpcli_set_override(nullptr, nullptr);
   grpc_override_well_known_credentials_path_getter(nullptr);
 }
 
 static int default_creds_gce_detection_httpcli_get_failure_override(
-    const grpc_http_request* /*request*/, const char* host, const char* path,
-    grpc_millis /*deadline*/, grpc_closure* on_done,
-    grpc_http_response* response) {
+    const grpc_httpcli_request* request, grpc_millis /*deadline*/,
+    grpc_closure* on_done, grpc_httpcli_response* response) {
   /* No magic header. */
-  GPR_ASSERT(strcmp(path, "/") == 0);
-  GPR_ASSERT(strcmp(host, "metadata.google.internal.") == 0);
+  GPR_ASSERT(strcmp(request->http.path, "/") == 0);
+  GPR_ASSERT(strcmp(request->host, "metadata.google.internal.") == 0);
   *response = http_response(200, "");
   grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
   return 1;
 }
 
-TEST(CredentialsTest, TestNoGoogleDefaultCreds) {
+static void test_no_google_default_creds(void) {
   grpc_flush_cached_google_default_credentials();
   gpr_setenv(GRPC_GOOGLE_CREDENTIALS_ENV_VAR, ""); /* Reset. */
   grpc_override_well_known_credentials_path_getter(
@@ -1714,107 +1444,18 @@ TEST(CredentialsTest, TestNoGoogleDefaultCreds) {
   set_gce_tenancy_checker_for_testing(test_gce_tenancy_checker);
   g_test_gce_tenancy_checker_called = false;
   g_test_is_on_gce = false;
-  grpc_core::HttpRequest::SetOverride(
+  grpc_httpcli_set_override(
       default_creds_gce_detection_httpcli_get_failure_override,
       httpcli_post_should_not_be_called);
   /* Simulate a successful detection of GCE. */
-  GPR_ASSERT(grpc_google_default_credentials_create(nullptr) == nullptr);
+  GPR_ASSERT(grpc_google_default_credentials_create() == nullptr);
   /* Try a second one. GCE detection should occur again. */
   g_test_gce_tenancy_checker_called = false;
-  GPR_ASSERT(grpc_google_default_credentials_create(nullptr) == nullptr);
+  GPR_ASSERT(grpc_google_default_credentials_create() == nullptr);
   GPR_ASSERT(g_test_gce_tenancy_checker_called == true);
   /* Cleanup. */
   grpc_override_well_known_credentials_path_getter(nullptr);
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-}
-
-TEST(CredentialsTest, TestGoogleDefaultCredsCallCredsSpecified) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer ya29.AHES6ZRN3-HlhAPya30GnW_bHSb_"}};
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_flush_cached_google_default_credentials();
-  grpc_call_credentials* call_creds =
-      grpc_google_compute_engine_credentials_create(nullptr);
-  set_gce_tenancy_checker_for_testing(test_gce_tenancy_checker);
-  g_test_gce_tenancy_checker_called = false;
-  g_test_is_on_gce = true;
-  grpc_core::HttpRequest::SetOverride(
-      default_creds_metadata_server_detection_httpcli_get_success_override,
-      httpcli_post_should_not_be_called);
-  grpc_composite_channel_credentials* channel_creds =
-      reinterpret_cast<grpc_composite_channel_credentials*>(
-          grpc_google_default_credentials_create(call_creds));
-  GPR_ASSERT(g_test_gce_tenancy_checker_called == false);
-  GPR_ASSERT(channel_creds != nullptr);
-  GPR_ASSERT(channel_creds->call_creds() != nullptr);
-  grpc_core::HttpRequest::SetOverride(
-      compute_engine_httpcli_get_success_override,
-      httpcli_post_should_not_be_called);
-  state->RunRequestMetadataTest(channel_creds->mutable_call_creds(),
-                                auth_md_ctx);
-
-  grpc_core::ExecCtx::Get()->Flush();
-  channel_creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-}
-
-struct fake_call_creds : public grpc_call_credentials {
- public:
-  fake_call_creds() : grpc_call_credentials("fake") {}
-
-  bool get_request_metadata(grpc_polling_entity* /*pollent*/,
-                            grpc_auth_metadata_context /*context*/,
-                            grpc_core::CredentialsMetadataArray* md_array,
-                            grpc_closure* /*on_request_metadata*/,
-                            grpc_error_handle* /*error*/) override {
-    md_array->emplace_back(grpc_core::Slice::FromStaticString("foo"),
-                           grpc_core::Slice::FromStaticString("oof"));
-    return true;
-  }
-
-  void cancel_get_request_metadata(
-      grpc_core::CredentialsMetadataArray* /*md_array*/,
-      grpc_error_handle /*error*/) override {}
-
- private:
-  int cmp_impl(const grpc_call_credentials* other) const override {
-    // TODO(yashykt): Check if we can do something better here
-    return grpc_core::QsortCompare(
-        static_cast<const grpc_call_credentials*>(this), other);
-  }
-};
-
-TEST(CredentialsTest, TestGoogleDefaultCredsNotDefault) {
-  std::map<std::string, std::string> emd = {{"foo", "oof"}};
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_flush_cached_google_default_credentials();
-  grpc_core::RefCountedPtr<grpc_call_credentials> call_creds =
-      grpc_core::MakeRefCounted<fake_call_creds>();
-  set_gce_tenancy_checker_for_testing(test_gce_tenancy_checker);
-  g_test_gce_tenancy_checker_called = false;
-  g_test_is_on_gce = true;
-  grpc_core::HttpRequest::SetOverride(
-      default_creds_metadata_server_detection_httpcli_get_success_override,
-      httpcli_post_should_not_be_called);
-  grpc_composite_channel_credentials* channel_creds =
-      reinterpret_cast<grpc_composite_channel_credentials*>(
-          grpc_google_default_credentials_create(call_creds.release()));
-  GPR_ASSERT(g_test_gce_tenancy_checker_called == false);
-  GPR_ASSERT(channel_creds != nullptr);
-  GPR_ASSERT(channel_creds->call_creds() != nullptr);
-  state->RunRequestMetadataTest(channel_creds->mutable_call_creds(),
-                                auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  channel_creds->Unref();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
+  grpc_httpcli_set_override(nullptr, nullptr);
 }
 
 typedef enum {
@@ -1823,8 +1464,7 @@ typedef enum {
   PLUGIN_DESTROY_CALLED_STATE
 } plugin_state;
 
-static const std::map<std::string, std::string> plugin_md = {{"foo", "bar"},
-                                                             {"hi", "there"}};
+static const expected_md plugin_md[] = {{"foo", "bar"}, {"hi", "there"}};
 
 static int plugin_get_metadata_success(
     void* state, grpc_auth_metadata_context context,
@@ -1836,17 +1476,16 @@ static int plugin_get_metadata_success(
   GPR_ASSERT(strcmp(context.method_name, test_method) == 0);
   GPR_ASSERT(context.channel_auth_context == nullptr);
   GPR_ASSERT(context.reserved == nullptr);
-  GPR_ASSERT(plugin_md.size() < GRPC_METADATA_CREDENTIALS_PLUGIN_SYNC_MAX);
+  GPR_ASSERT(GPR_ARRAY_SIZE(plugin_md) <
+             GRPC_METADATA_CREDENTIALS_PLUGIN_SYNC_MAX);
   plugin_state* s = static_cast<plugin_state*>(state);
   *s = PLUGIN_GET_METADATA_CALLED_STATE;
-  size_t i = 0;
-  for (auto const& md : plugin_md) {
+  for (size_t i = 0; i < GPR_ARRAY_SIZE(plugin_md); ++i) {
     memset(&creds_md[i], 0, sizeof(grpc_metadata));
-    creds_md[i].key = grpc_slice_from_copied_string(md.first.c_str());
-    creds_md[i].value = grpc_slice_from_copied_string(md.second.c_str());
-    i += 1;
+    creds_md[i].key = grpc_slice_from_copied_string(plugin_md[i].key);
+    creds_md[i].value = grpc_slice_from_copied_string(plugin_md[i].value);
   }
-  *num_creds_md = plugin_md.size();
+  *num_creds_md = GPR_ARRAY_SIZE(plugin_md);
   return true;  // Synchronous return.
 }
 
@@ -1874,89 +1513,61 @@ static void plugin_destroy(void* state) {
   *s = PLUGIN_DESTROY_CALLED_STATE;
 }
 
-static char* plugin_debug_string(void* state) {
-  plugin_state* s = static_cast<plugin_state*>(state);
-  char* ret = nullptr;
-  switch (*s) {
-    case PLUGIN_INITIAL_STATE:
-      gpr_asprintf(&ret, "TestPluginCredentials{state:INITIAL}");
-      break;
-    case PLUGIN_GET_METADATA_CALLED_STATE:
-      gpr_asprintf(&ret, "TestPluginCredentials{state:GET_METADATA_CALLED}");
-      break;
-    case PLUGIN_DESTROY_CALLED_STATE:
-      gpr_asprintf(&ret, "TestPluginCredentials{state:DESTROY}");
-      break;
-    default:
-      gpr_asprintf(&ret, "TestPluginCredentials{state:UNKNOWN}");
-      break;
-  }
-  return ret;
-}
-
-TEST(CredentialsTest, TestMetadataPluginSuccess) {
-  const char expected_creds_debug_string[] =
-      "TestPluginCredentials{state:GET_METADATA_CALLED}";
+static void test_metadata_plugin_success(void) {
   plugin_state state = PLUGIN_INITIAL_STATE;
   grpc_metadata_credentials_plugin plugin;
   grpc_core::ExecCtx exec_ctx;
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
-  RequestMetadataState* md_state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, plugin_md);
+  request_metadata_state* md_state = make_request_metadata_state(
+      GRPC_ERROR_NONE, plugin_md, GPR_ARRAY_SIZE(plugin_md));
 
   plugin.state = &state;
   plugin.get_metadata = plugin_get_metadata_success;
   plugin.destroy = plugin_destroy;
-  plugin.debug_string = plugin_debug_string;
 
   grpc_call_credentials* creds = grpc_metadata_credentials_create_from_plugin(
       plugin, GRPC_PRIVACY_AND_INTEGRITY, nullptr);
   /* Check security level. */
   GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
   GPR_ASSERT(state == PLUGIN_INITIAL_STATE);
-  md_state->RunRequestMetadataTest(creds, auth_md_ctx);
+  run_request_metadata_test(creds, auth_md_ctx, md_state);
   GPR_ASSERT(state == PLUGIN_GET_METADATA_CALLED_STATE);
-  GPR_ASSERT(
-      strcmp(creds->debug_string().c_str(), expected_creds_debug_string) == 0);
   creds->Unref();
 
   GPR_ASSERT(state == PLUGIN_DESTROY_CALLED_STATE);
 }
 
-TEST(CredentialsTest, TestMetadataPluginFailure) {
-  const char expected_creds_debug_string[] =
-      "TestPluginCredentials{state:GET_METADATA_CALLED}";
-
+static void test_metadata_plugin_failure(void) {
   plugin_state state = PLUGIN_INITIAL_STATE;
   grpc_metadata_credentials_plugin plugin;
   grpc_core::ExecCtx exec_ctx;
   grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
                                             nullptr, nullptr};
-  RequestMetadataState* md_state = RequestMetadataState::NewInstance(
-      GRPC_ERROR_CREATE_FROM_CPP_STRING(
-          absl::StrCat("Getting metadata from plugin failed with error: ",
-                       plugin_error_details)),
-      {});
+  char* expected_error;
+  gpr_asprintf(&expected_error,
+               "Getting metadata from plugin failed with error: %s",
+               plugin_error_details);
+  request_metadata_state* md_state = make_request_metadata_state(
+      GRPC_ERROR_CREATE_FROM_COPIED_STRING(expected_error), nullptr, 0);
+  gpr_free(expected_error);
 
   plugin.state = &state;
   plugin.get_metadata = plugin_get_metadata_failure;
   plugin.destroy = plugin_destroy;
-  plugin.debug_string = plugin_debug_string;
 
   grpc_call_credentials* creds = grpc_metadata_credentials_create_from_plugin(
       plugin, GRPC_PRIVACY_AND_INTEGRITY, nullptr);
   GPR_ASSERT(state == PLUGIN_INITIAL_STATE);
-  md_state->RunRequestMetadataTest(creds, auth_md_ctx);
+  run_request_metadata_test(creds, auth_md_ctx, md_state);
   GPR_ASSERT(state == PLUGIN_GET_METADATA_CALLED_STATE);
-  GPR_ASSERT(
-      strcmp(creds->debug_string().c_str(), expected_creds_debug_string) == 0);
   creds->Unref();
 
   GPR_ASSERT(state == PLUGIN_DESTROY_CALLED_STATE);
 }
 
-TEST(CredentialsTest, TestGetWellKnownGoogleCredentialsFilePath) {
+static void test_get_well_known_google_credentials_file_path(void) {
+  char* path;
   char* home = gpr_getenv("HOME");
   bool restore_home_env = false;
 #if defined(GRPC_BAZEL_BUILD) && \
@@ -1967,13 +1578,15 @@ TEST(CredentialsTest, TestGetWellKnownGoogleCredentialsFilePath) {
   gpr_setenv("HOME", "/fake/home/for/bazel");
 #endif /* defined(GRPC_BAZEL_BUILD) && (defined(GPR_POSIX_ENV) || \
           defined(GPR_LINUX_ENV)) */
-  std::string path = grpc_get_well_known_google_credentials_file_path();
-  GPR_ASSERT(!path.empty());
+  path = grpc_get_well_known_google_credentials_file_path();
+  GPR_ASSERT(path != nullptr);
+  gpr_free(path);
 #if defined(GPR_POSIX_ENV) || defined(GPR_LINUX_ENV)
   restore_home_env = true;
   gpr_unsetenv("HOME");
   path = grpc_get_well_known_google_credentials_file_path();
-  GPR_ASSERT(path.empty());
+  GPR_ASSERT(path == nullptr);
+  gpr_free(path);
 #endif /* GPR_POSIX_ENV || GPR_LINUX_ENV */
   if (restore_home_env) {
     if (home) {
@@ -1985,9 +1598,7 @@ TEST(CredentialsTest, TestGetWellKnownGoogleCredentialsFilePath) {
   gpr_free(home);
 }
 
-TEST(CredentialsTest, TestChannelCredsDuplicateWithoutCallCreds) {
-  const char expected_creds_debug_string[] =
-      "AccessTokenCredentials{Token:present}";
+static void test_channel_creds_duplicate_without_call_creds(void) {
   grpc_core::ExecCtx exec_ctx;
 
   grpc_channel_credentials* channel_creds =
@@ -2003,9 +1614,6 @@ TEST(CredentialsTest, TestChannelCredsDuplicateWithoutCallCreds) {
   grpc_channel_credentials* composite_creds =
       grpc_composite_channel_credentials_create(channel_creds, call_creds,
                                                 nullptr);
-  GPR_ASSERT(strcmp(call_creds->debug_string().c_str(),
-                    expected_creds_debug_string) == 0);
-
   call_creds->Unref();
   dup = composite_creds->duplicate_without_call_credentials();
   GPR_ASSERT(dup == channel_creds);
@@ -2023,7 +1631,7 @@ typedef struct {
   const char* desired_method_name;
 } auth_metadata_context_test_case;
 
-TEST(CredentialsTest, TestAuthMetadataContext) {
+static void test_auth_metadata_context(void) {
   auth_metadata_context_test_case test_cases[] = {
       // No service nor method.
       {"https", "www.foo.com", "", "https://www.foo.com", ""},
@@ -2086,1596 +1694,48 @@ TEST(CredentialsTest, TestAuthMetadataContext) {
   }
 }
 
-static void validate_external_account_creds_token_exchage_request(
-    const grpc_http_request* request, const char* host, const char* path,
-    const char* body, size_t body_size, bool /*expect_actor_token*/) {
-  // Check that the body is constructed properly.
-  GPR_ASSERT(body != nullptr);
-  GPR_ASSERT(body_size != 0);
-  std::string get_url_equivalent =
-      absl::StrFormat("%s?%s", "https://foo.com:5555/token", body);
-  absl::StatusOr<grpc_core::URI> uri =
-      grpc_core::URI::Parse(get_url_equivalent);
-  if (!uri.ok()) {
-    gpr_log(GPR_ERROR, "%s", uri.status().ToString().c_str());
-    GPR_ASSERT(uri.ok());
-  }
-  assert_query_parameters(*uri, "audience", "audience");
-  assert_query_parameters(*uri, "grant_type",
-                          "urn:ietf:params:oauth:grant-type:token-exchange");
-  assert_query_parameters(*uri, "requested_token_type",
-                          "urn:ietf:params:oauth:token-type:access_token");
-  assert_query_parameters(*uri, "subject_token", "test_subject_token");
-  assert_query_parameters(*uri, "subject_token_type", "subject_token_type");
-  assert_query_parameters(*uri, "scope",
-                          "https://www.googleapis.com/auth/cloud-platform");
-
-  // Check the rest of the request.
-  GPR_ASSERT(strcmp(host, "foo.com:5555") == 0);
-  GPR_ASSERT(strcmp(path, "/token") == 0);
-  GPR_ASSERT(request->hdr_count == 2);
-  GPR_ASSERT(strcmp(request->hdrs[0].key, "Content-Type") == 0);
-  GPR_ASSERT(
-      strcmp(request->hdrs[0].value, "application/x-www-form-urlencoded") == 0);
-  GPR_ASSERT(strcmp(request->hdrs[1].key, "Authorization") == 0);
-  GPR_ASSERT(strcmp(request->hdrs[1].value,
-                    "Basic Y2xpZW50X2lkOmNsaWVudF9zZWNyZXQ=") == 0);
-}
-
-static void
-validate_external_account_creds_token_exchage_request_with_url_encode(
-    const grpc_http_request* request, const char* host, const char* path,
-    const char* body, size_t body_size, bool /*expect_actor_token*/) {
-  // Check that the body is constructed properly.
-  GPR_ASSERT(body != nullptr);
-  GPR_ASSERT(body_size != 0);
-  GPR_ASSERT(
-      strcmp(
-          std::string(body, body_size).c_str(),
-          "audience=audience_!%40%23%24&grant_type=urn%3Aietf%3Aparams%3Aoauth%"
-          "3Agrant-type%3Atoken-exchange&requested_token_type=urn%3Aietf%"
-          "3Aparams%3Aoauth%3Atoken-type%3Aaccess_token&subject_token_type="
-          "subject_token_type_!%40%23%24&subject_token=test_subject_token&"
-          "scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform&"
-          "options=%7B%7D") == 0);
-
-  // Check the rest of the request.
-  GPR_ASSERT(strcmp(host, "foo.com:5555") == 0);
-  GPR_ASSERT(strcmp(path, "/token_url_encode") == 0);
-  GPR_ASSERT(request->hdr_count == 2);
-  GPR_ASSERT(strcmp(request->hdrs[0].key, "Content-Type") == 0);
-  GPR_ASSERT(
-      strcmp(request->hdrs[0].value, "application/x-www-form-urlencoded") == 0);
-  GPR_ASSERT(strcmp(request->hdrs[1].key, "Authorization") == 0);
-  GPR_ASSERT(strcmp(request->hdrs[1].value,
-                    "Basic Y2xpZW50X2lkOmNsaWVudF9zZWNyZXQ=") == 0);
-}
-
-static void
-validate_external_account_creds_service_account_impersonation_request(
-    const grpc_http_request* request, const char* host, const char* path,
-    const char* body, size_t body_size, bool /*expect_actor_token*/) {
-  // Check that the body is constructed properly.
-  GPR_ASSERT(body != nullptr);
-  GPR_ASSERT(body_size != 0);
-  GPR_ASSERT(strcmp(body, "scope=scope_1 scope_2") == 0);
-  // Check the rest of the request.
-  GPR_ASSERT(strcmp(host, "foo.com:5555") == 0);
-  GPR_ASSERT(strcmp(path, "/service_account_impersonation") == 0);
-  GPR_ASSERT(request->hdr_count == 2);
-  GPR_ASSERT(strcmp(request->hdrs[0].key, "Content-Type") == 0);
-  GPR_ASSERT(
-      strcmp(request->hdrs[0].value, "application/x-www-form-urlencoded") == 0);
-  GPR_ASSERT(strcmp(request->hdrs[1].key, "Authorization") == 0);
-  GPR_ASSERT(strcmp(request->hdrs[1].value,
-                    "Bearer token_exchange_access_token") == 0);
-}
-
-static int external_account_creds_httpcli_post_success(
-    const grpc_http_request* request, const char* host, const char* path,
-    const char* body, size_t body_size, grpc_millis /*deadline*/,
-    grpc_closure* on_done, grpc_http_response* response) {
-  if (strcmp(path, "/token") == 0) {
-    validate_external_account_creds_token_exchage_request(
-        request, host, path, body, body_size, true);
-    *response = http_response(
-        200, valid_external_account_creds_token_exchange_response);
-  } else if (strcmp(path, "/service_account_impersonation") == 0) {
-    validate_external_account_creds_service_account_impersonation_request(
-        request, host, path, body, body_size, true);
-    *response = http_response(
-        200,
-        valid_external_account_creds_service_account_impersonation_response);
-  } else if (strcmp(path, "/token_url_encode") == 0) {
-    validate_external_account_creds_token_exchage_request_with_url_encode(
-        request, host, path, body, body_size, true);
-    *response = http_response(
-        200, valid_external_account_creds_token_exchange_response);
-  }
-  grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
-  return 1;
-}
-
-static int
-external_account_creds_httpcli_post_failure_token_exchange_response_missing_access_token(
-    const grpc_http_request* /*request*/, const char* /*host*/,
-    const char* path, const char* /*body*/, size_t /*body_size*/,
-    grpc_millis /*deadline*/, grpc_closure* on_done,
-    grpc_http_response* response) {
-  if (strcmp(path, "/token") == 0) {
-    *response = http_response(200,
-                              "{\"not_access_token\":\"not_access_token\","
-                              "\"expires_in\":3599,"
-                              " \"token_type\":\"Bearer\"}");
-  } else if (strcmp(path, "/service_account_impersonation") == 0) {
-    *response = http_response(
-        200,
-        valid_external_account_creds_service_account_impersonation_response);
-  }
-  grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
-  return 1;
-}
-
-static int url_external_account_creds_httpcli_get_success(
-    const grpc_http_request* /*request*/, const char* /*host*/,
-    const char* path, grpc_millis /*deadline*/, grpc_closure* on_done,
-    grpc_http_response* response) {
-  if (strcmp(path, "/generate_subject_token_format_text") == 0) {
-    *response = http_response(
-        200,
-        valid_url_external_account_creds_retrieve_subject_token_response_format_text);
-  } else if (strcmp(path, "/path/to/url/creds?p1=v1&p2=v2") == 0) {
-    *response = http_response(
-        200,
-        valid_url_external_account_creds_retrieve_subject_token_response_format_text);
-  } else if (strcmp(path, "/generate_subject_token_format_json") == 0) {
-    *response = http_response(
-        200,
-        valid_url_external_account_creds_retrieve_subject_token_response_format_json);
-  }
-  grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
-  return 1;
-}
-
-static void validate_aws_external_account_creds_token_exchage_request(
-    const grpc_http_request* request, const char* host, const char* path,
-    const char* body, size_t body_size, bool /*expect_actor_token*/) {
-  // Check that the body is constructed properly.
-  GPR_ASSERT(body != nullptr);
-  GPR_ASSERT(body_size != 0);
-  // Check that the regional_cred_verification_url got constructed
-  // with the correct AWS Region ("test_regionz" or "test_region").
-  GPR_ASSERT(strstr(body, "regional_cred_verification_url_test_region"));
-  std::string get_url_equivalent =
-      absl::StrFormat("%s?%s", "https://foo.com:5555/token", body);
-  absl::StatusOr<grpc_core::URI> uri =
-      grpc_core::URI::Parse(get_url_equivalent);
-  GPR_ASSERT(uri.ok());
-  assert_query_parameters(*uri, "audience", "audience");
-  assert_query_parameters(*uri, "grant_type",
-                          "urn:ietf:params:oauth:grant-type:token-exchange");
-  assert_query_parameters(*uri, "requested_token_type",
-                          "urn:ietf:params:oauth:token-type:access_token");
-  assert_query_parameters(*uri, "subject_token_type", "subject_token_type");
-  assert_query_parameters(*uri, "scope",
-                          "https://www.googleapis.com/auth/cloud-platform");
-  // Check the rest of the request.
-  GPR_ASSERT(strcmp(host, "foo.com:5555") == 0);
-  GPR_ASSERT(strcmp(path, "/token") == 0);
-  GPR_ASSERT(request->hdr_count == 2);
-  GPR_ASSERT(strcmp(request->hdrs[0].key, "Content-Type") == 0);
-  GPR_ASSERT(
-      strcmp(request->hdrs[0].value, "application/x-www-form-urlencoded") == 0);
-  GPR_ASSERT(strcmp(request->hdrs[1].key, "Authorization") == 0);
-  GPR_ASSERT(strcmp(request->hdrs[1].value,
-                    "Basic Y2xpZW50X2lkOmNsaWVudF9zZWNyZXQ=") == 0);
-}
-
-static int aws_external_account_creds_httpcli_get_success(
-    const grpc_http_request* /*request*/, const char* /*host*/,
-    const char* path, grpc_millis /*deadline*/, grpc_closure* on_done,
-    grpc_http_response* response) {
-  if (strcmp(path, "/region_url") == 0) {
-    *response = http_response(200, "test_regionz");
-  } else if (strcmp(path, "/url") == 0) {
-    *response = http_response(200, "test_role_name");
-  } else if (strcmp(path, "/url_no_role_name") == 0) {
-    *response = http_response(200, "");
-  } else if (strcmp(path, "/url/test_role_name") == 0) {
-    *response = http_response(
-        200, valid_aws_external_account_creds_retrieve_signing_keys_response);
-  }
-  grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
-  return 1;
-}
-
-static int aws_external_account_creds_httpcli_post_success(
-    const grpc_http_request* request, const char* host, const char* path,
-    const char* body, size_t body_size, grpc_millis /*deadline*/,
-    grpc_closure* on_done, grpc_http_response* response) {
-  if (strcmp(path, "/token") == 0) {
-    validate_aws_external_account_creds_token_exchage_request(
-        request, host, path, body, body_size, true);
-    *response = http_response(
-        200, valid_external_account_creds_token_exchange_response);
-  }
-  grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_done, GRPC_ERROR_NONE);
-  return 1;
-}
-
-// The subclass of ExternalAccountCredentials for testing.
-// ExternalAccountCredentials is an abstract class so we can't directly test
-// against it.
-class TestExternalAccountCredentials final
-    : public grpc_core::ExternalAccountCredentials {
- public:
-  TestExternalAccountCredentials(Options options,
-                                 std::vector<std::string> scopes)
-      : ExternalAccountCredentials(std::move(options), std::move(scopes)) {}
-
- protected:
-  void RetrieveSubjectToken(
-      HTTPRequestContext* /*ctx*/, const Options& /*options*/,
-      std::function<void(std::string, grpc_error_handle)> cb) override {
-    cb("test_subject_token", GRPC_ERROR_NONE);
-  }
-};
-
-TEST(CredentialsTest, TestExternalAccountCredsSuccess) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_core::Json credential_source("");
-  TestExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  TestExternalAccountCredentials creds(options, {});
-  /* Check security level. */
-  GPR_ASSERT(creds.min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  /* First request: http put should be called. */
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      httpcli_get_should_not_be_called,
-      external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(&creds, auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  /* Second request: the cached token should be served directly. */
-  state = RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      httpcli_post_should_not_be_called);
-  state->RunRequestMetadataTest(&creds, auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-}
-
-TEST(CredentialsTest, TestExternalAccountCredsSuccessWithUrlEncode) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_core::Json credential_source("");
-  TestExternalAccountCredentials::Options options = {
-      "external_account",         // type;
-      "audience_!@#$",            // audience;
-      "subject_token_type_!@#$",  // subject_token_type;
-      "",                         // service_account_impersonation_url;
-      "https://foo.com:5555/token_url_encode",  // token_url;
-      "https://foo.com:5555/token_info",        // token_info_url;
-      credential_source,                        // credential_source;
-      "quota_project_id",                       // quota_project_id;
-      "client_id",                              // client_id;
-      "client_secret",                          // client_secret;
-      "",                                       // workforce_pool_user_project;
-  };
-  TestExternalAccountCredentials creds(options, {});
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      httpcli_get_should_not_be_called,
-      external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(&creds, auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-}
-
-TEST(CredentialsTest,
-     TestExternalAccountCredsSuccessWithServiceAccountImpersonation) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer service_account_impersonation_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_core::Json credential_source("");
-  TestExternalAccountCredentials::Options options = {
-      "external_account",    // type;
-      "audience",            // audience;
-      "subject_token_type",  // subject_token_type;
-      "https://foo.com:5555/service_account_impersonation",  // service_account_impersonation_url;
-      "https://foo.com:5555/token",                          // token_url;
-      "https://foo.com:5555/token_info",                     // token_info_url;
-      credential_source,   // credential_source;
-      "quota_project_id",  // quota_project_id;
-      "client_id",         // client_id;
-      "client_secret",     // client_secret;
-      "",                  // workforce_pool_user_project;
-  };
-  TestExternalAccountCredentials creds(options, {"scope_1", "scope_2"});
-  /* Check security level. */
-  GPR_ASSERT(creds.min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  /* First request: http put should be called. */
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      httpcli_get_should_not_be_called,
-      external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(&creds, auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-}
-
-TEST(CredentialsTest, TestExternalAccountCredsFailureInvalidTokenUrl) {
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_core::Json credential_source("");
-  TestExternalAccountCredentials::Options options = {
-      "external_account",    // type;
-      "audience",            // audience;
-      "subject_token_type",  // subject_token_type;
-      "https://foo.com:5555/service_account_impersonation",  // service_account_impersonation_url;
-      "invalid_token_url",                                   // token_url;
-      "https://foo.com:5555/token_info",                     // token_info_url;
-      credential_source,   // credential_source;
-      "quota_project_id",  // quota_project_id;
-      "client_id",         // client_id;
-      "client_secret",     // client_secret;
-      "",                  // workforce_pool_user_project;
-  };
-  TestExternalAccountCredentials creds(options, {});
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      httpcli_post_should_not_be_called);
-  grpc_error_handle error = GRPC_ERROR_CREATE_FROM_STATIC_STRING(
-      "Invalid token url: invalid_token_url.");
-  grpc_error_handle expected_error =
-      GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
-          "Error occurred when fetching oauth2 token.", &error, 1);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(expected_error, {});
-  state->RunRequestMetadataTest(&creds, auth_md_ctx);
-  GRPC_ERROR_UNREF(error);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-}
-
-TEST(CredentialsTest,
-     TestExternalAccountCredsFailureInvalidServiceAccountImpersonationUrl) {
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_core::Json credential_source("");
-  TestExternalAccountCredentials::Options options = {
-      "external_account",                           // type;
-      "audience",                                   // audience;
-      "subject_token_type",                         // subject_token_type;
-      "invalid_service_account_impersonation_url",  // service_account_impersonation_url;
-      "https://foo.com:5555/token",                 // token_url;
-      "https://foo.com:5555/token_info",            // token_info_url;
-      credential_source,                            // credential_source;
-      "quota_project_id",                           // quota_project_id;
-      "client_id",                                  // client_id;
-      "client_secret",                              // client_secret;
-      "",  // workforce_pool_user_project;
-  };
-  TestExternalAccountCredentials creds(options, {});
-  grpc_core::HttpRequest::SetOverride(
-      httpcli_get_should_not_be_called,
-      external_account_creds_httpcli_post_success);
-  grpc_error_handle error = GRPC_ERROR_CREATE_FROM_STATIC_STRING(
-      "Invalid service account impersonation url: "
-      "invalid_service_account_impersonation_url.");
-  grpc_error_handle expected_error =
-      GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
-          "Error occurred when fetching oauth2 token.", &error, 1);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(expected_error, {});
-  state->RunRequestMetadataTest(&creds, auth_md_ctx);
-  GRPC_ERROR_UNREF(error);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-}
-
-TEST(CredentialsTest,
-     TestExternalAccountCredsFailureTokenExchangeResponseMissingAccessToken) {
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_core::Json credential_source("");
-  TestExternalAccountCredentials::Options options = {
-      "external_account",    // type;
-      "audience",            // audience;
-      "subject_token_type",  // subject_token_type;
-      "https://foo.com:5555/service_account_impersonation",  // service_account_impersonation_url;
-      "https://foo.com:5555/token",                          // token_url;
-      "https://foo.com:5555/token_info",                     // token_info_url;
-      credential_source,   // credential_source;
-      "quota_project_id",  // quota_project_id;
-      "client_id",         // client_id;
-      "client_secret",     // client_secret;
-      "",                  // workforce_pool_user_project;
-  };
-  TestExternalAccountCredentials creds(options, {});
-  grpc_core::HttpRequest::SetOverride(
-      httpcli_get_should_not_be_called,
-      external_account_creds_httpcli_post_failure_token_exchange_response_missing_access_token);
-  grpc_error_handle error = GRPC_ERROR_CREATE_FROM_STATIC_STRING(
-      "Missing or invalid access_token in "
-      "{\"not_access_token\":\"not_access_token\",\"expires_in\":3599,\"token_"
-      "type\":\"Bearer\"}.");
-  grpc_error_handle expected_error =
-      GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
-          "Error occurred when fetching oauth2 token.", &error, 1);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(expected_error, {});
-  state->RunRequestMetadataTest(&creds, auth_md_ctx);
-  GRPC_ERROR_UNREF(error);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-}
-
-TEST(CredentialsTest, TestUrlExternalAccountCredsSuccessFormatText) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      valid_url_external_account_creds_options_credential_source_format_text,
-      &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::UrlExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      url_external_account_creds_httpcli_get_success,
-      external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-}
-
-TEST(CredentialsTest,
-     TestUrlExternalAccountCredsSuccessWithQureyParamsFormatText) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      valid_url_external_account_creds_options_credential_source_with_qurey_params_format_text,
-      &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::UrlExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      url_external_account_creds_httpcli_get_success,
-      external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-}
-
-TEST(CredentialsTest, TestUrlExternalAccountCredsSuccessFormatJson) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      valid_url_external_account_creds_options_credential_source_format_json,
-      &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::UrlExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      url_external_account_creds_httpcli_get_success,
-      external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-}
-
-TEST(CredentialsTest,
-     TestUrlExternalAccountCredsFailureInvalidCredentialSourceUrl) {
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      invalid_url_external_account_creds_options_credential_source, &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::UrlExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds == nullptr);
-  std::string actual_error;
-  GPR_ASSERT(
-      grpc_error_get_str(error, GRPC_ERROR_STR_DESCRIPTION, &actual_error));
-  GPR_ASSERT(absl::StartsWith(actual_error, "Invalid credential source url."));
-  GRPC_ERROR_UNREF(error);
-}
-
-TEST(CredentialsTest, TestFileExternalAccountCredsSuccessFormatText) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  char* subject_token_path = write_tmp_jwt_file("test_subject_token");
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      absl::StrFormat(
-          "{\"file\":\"%s\"}",
-          absl::StrReplaceAll(subject_token_path, {{"\\", "\\\\"}})),
-      &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::FileExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      httpcli_get_should_not_be_called,
-      external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  GRPC_ERROR_UNREF(error);
-  gpr_free(subject_token_path);
-}
-
-TEST(CredentialsTest, TestFileExternalAccountCredsSuccessFormatJson) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  char* subject_token_path =
-      write_tmp_jwt_file("{\"access_token\":\"test_subject_token\"}");
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      absl::StrFormat(
-          "{\n"
-          "\"file\":\"%s\",\n"
-          "\"format\":\n"
-          "{\n"
-          "\"type\":\"json\",\n"
-          "\"subject_token_field_name\":\"access_token\"\n"
-          "}\n"
-          "}",
-          absl::StrReplaceAll(subject_token_path, {{"\\", "\\\\"}})),
-      &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::FileExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      httpcli_get_should_not_be_called,
-      external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  GRPC_ERROR_UNREF(error);
-  gpr_free(subject_token_path);
-}
-
-TEST(CredentialsTest, TestFileExternalAccountCredsFailureFileNotFound) {
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source =
-      grpc_core::Json::Parse("{\"file\":\"non_exisiting_file\"}", &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::FileExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      httpcli_post_should_not_be_called);
-  error = GRPC_ERROR_CREATE_FROM_STATIC_STRING("Failed to load file");
-  grpc_error_handle expected_error =
-      GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
-          "Error occurred when fetching oauth2 token.", &error, 1);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(expected_error, {});
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  GRPC_ERROR_UNREF(error);
-}
-
-TEST(CredentialsTest, TestFileExternalAccountCredsFailureInvalidJsonContent) {
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  char* subject_token_path = write_tmp_jwt_file("not_a_valid_json_file");
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      absl::StrFormat(
-          "{\n"
-          "\"file\":\"%s\",\n"
-          "\"format\":\n"
-          "{\n"
-          "\"type\":\"json\",\n"
-          "\"subject_token_field_name\":\"access_token\"\n"
-          "}\n"
-          "}",
-          absl::StrReplaceAll(subject_token_path, {{"\\", "\\\\"}})),
-      &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::FileExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::HttpRequest::SetOverride(httpcli_get_should_not_be_called,
-                                      httpcli_post_should_not_be_called);
-  error = GRPC_ERROR_CREATE_FROM_STATIC_STRING(
-      "The content of the file is not a valid json object.");
-  grpc_error_handle expected_error =
-      GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
-          "Error occurred when fetching oauth2 token.", &error, 1);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(expected_error, {});
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  GRPC_ERROR_UNREF(error);
-  gpr_free(subject_token_path);
-}
-
-TEST(CredentialsTest, TestAwsExternalAccountCredsSuccess) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      valid_aws_external_account_creds_options_credential_source, &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      aws_external_account_creds_httpcli_get_success,
-      aws_external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-}
-
-TEST(CredentialsTest, TestAwsExternalAccountCredsSuccessPathRegionEnvKeysUrl) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  gpr_setenv("AWS_REGION", "test_regionz");
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      valid_aws_external_account_creds_options_credential_source, &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      aws_external_account_creds_httpcli_get_success,
-      aws_external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  gpr_unsetenv("AWS_REGION");
-}
-
-TEST(CredentialsTest,
-     TestAwsExternalAccountCredsSuccessPathDefaultRegionEnvKeysUrl) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  gpr_setenv("AWS_DEFAULT_REGION", "test_regionz");
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      valid_aws_external_account_creds_options_credential_source, &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      aws_external_account_creds_httpcli_get_success,
-      aws_external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  gpr_unsetenv("AWS_DEFAULT_REGION");
-}
-
-TEST(CredentialsTest,
-     TestAwsExternalAccountCredsSuccessPathDuplicateRegionEnvKeysUrl) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  // Make sure that AWS_REGION gets used over AWS_DEFAULT_REGION
-  gpr_setenv("AWS_REGION", "test_regionz");
-  gpr_setenv("AWS_DEFAULT_REGION", "ERROR_REGION");
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      valid_aws_external_account_creds_options_credential_source, &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      aws_external_account_creds_httpcli_get_success,
-      aws_external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  gpr_unsetenv("AWS_REGION");
-  gpr_unsetenv("AWS_DEFAULT_REGION");
-}
-
-TEST(CredentialsTest, TestAwsExternalAccountCredsSuccessPathRegionUrlKeysEnv) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  gpr_setenv("AWS_ACCESS_KEY_ID", "test_access_key_id");
-  gpr_setenv("AWS_SECRET_ACCESS_KEY", "test_secret_access_key");
-  gpr_setenv("AWS_SESSION_TOKEN", "test_token");
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      valid_aws_external_account_creds_options_credential_source, &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      aws_external_account_creds_httpcli_get_success,
-      aws_external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  gpr_unsetenv("AWS_ACCESS_KEY_ID");
-  gpr_unsetenv("AWS_SECRET_ACCESS_KEY");
-  gpr_unsetenv("AWS_SESSION_TOKEN");
-}
-
-TEST(CredentialsTest, TestAwsExternalAccountCredsSuccessPathRegionEnvKeysEnv) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  gpr_setenv("AWS_REGION", "test_regionz");
-  gpr_setenv("AWS_ACCESS_KEY_ID", "test_access_key_id");
-  gpr_setenv("AWS_SECRET_ACCESS_KEY", "test_secret_access_key");
-  gpr_setenv("AWS_SESSION_TOKEN", "test_token");
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      valid_aws_external_account_creds_options_credential_source, &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      aws_external_account_creds_httpcli_get_success,
-      aws_external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  gpr_unsetenv("AWS_REGION");
-  gpr_unsetenv("AWS_ACCESS_KEY_ID");
-  gpr_unsetenv("AWS_SECRET_ACCESS_KEY");
-  gpr_unsetenv("AWS_SESSION_TOKEN");
-}
-
-TEST(CredentialsTest,
-     TestAwsExternalAccountCredsSuccessPathDefaultRegionEnvKeysEnv) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  gpr_setenv("AWS_DEFAULT_REGION", "test_regionz");
-  gpr_setenv("AWS_ACCESS_KEY_ID", "test_access_key_id");
-  gpr_setenv("AWS_SECRET_ACCESS_KEY", "test_secret_access_key");
-  gpr_setenv("AWS_SESSION_TOKEN", "test_token");
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      valid_aws_external_account_creds_options_credential_source, &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      aws_external_account_creds_httpcli_get_success,
-      aws_external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  gpr_unsetenv("AWS_DEFAULT_REGION");
-  gpr_unsetenv("AWS_ACCESS_KEY_ID");
-  gpr_unsetenv("AWS_SECRET_ACCESS_KEY");
-  gpr_unsetenv("AWS_SESSION_TOKEN");
-}
-
-TEST(CredentialsTest,
-     TestAwsExternalAccountCredsSuccessPathDuplicateRegionEnvKeysEnv) {
-  std::map<std::string, std::string> emd = {
-      {"authorization", "Bearer token_exchange_access_token"}};
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  // Make sure that AWS_REGION gets used over AWS_DEFAULT_REGION
-  gpr_setenv("AWS_REGION", "test_regionz");
-  gpr_setenv("AWS_DEFAULT_REGION", "ERROR_REGION");
-  gpr_setenv("AWS_ACCESS_KEY_ID", "test_access_key_id");
-  gpr_setenv("AWS_SECRET_ACCESS_KEY", "test_secret_access_key");
-  gpr_setenv("AWS_SESSION_TOKEN", "test_token");
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      valid_aws_external_account_creds_options_credential_source, &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(GRPC_ERROR_NONE, emd);
-  grpc_core::HttpRequest::SetOverride(
-      aws_external_account_creds_httpcli_get_success,
-      aws_external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  gpr_unsetenv("AWS_REGION");
-  gpr_unsetenv("AWS_DEFAULT_REGION");
-  gpr_unsetenv("AWS_ACCESS_KEY_ID");
-  gpr_unsetenv("AWS_SECRET_ACCESS_KEY");
-  gpr_unsetenv("AWS_SESSION_TOKEN");
-}
-
-TEST(CredentialsTest,
-     TestAwsExternalAccountCredsFailureUnmatchedEnvironmentId) {
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      invalid_aws_external_account_creds_options_credential_source_unmatched_environment_id,
-      &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds == nullptr);
-  std::string expected_error = "environment_id does not match.";
-  std::string actual_error;
-  GPR_ASSERT(
-      grpc_error_get_str(error, GRPC_ERROR_STR_DESCRIPTION, &actual_error));
-  GPR_ASSERT(expected_error == actual_error);
-  GRPC_ERROR_UNREF(error);
-}
-
-TEST(CredentialsTest, TestAwsExternalAccountCredsFailureInvalidRegionUrl) {
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      invalid_aws_external_account_creds_options_credential_source_invalid_region_url,
-      &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  error = GRPC_ERROR_CREATE_FROM_STATIC_STRING(
-      "Invalid region url: invalid_region_url.");
-  grpc_error_handle expected_error =
-      GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
-          "Error occurred when fetching oauth2 token.", &error, 1);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(expected_error, {});
-  grpc_core::HttpRequest::SetOverride(
-      aws_external_account_creds_httpcli_get_success,
-      aws_external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  GRPC_ERROR_UNREF(error);
-}
-
-TEST(CredentialsTest, TestAwsExternalAccountCredsFailureInvalidUrl) {
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      invalid_aws_external_account_creds_options_credential_source_invalid_url,
-      &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  error = GRPC_ERROR_CREATE_FROM_STATIC_STRING("Invalid url: invalid_url.");
-  grpc_error_handle expected_error =
-      GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
-          "Error occurred when fetching oauth2 token.", &error, 1);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(expected_error, {});
-  grpc_core::HttpRequest::SetOverride(
-      aws_external_account_creds_httpcli_get_success,
-      aws_external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  GRPC_ERROR_UNREF(error);
-}
-
-TEST(CredentialsTest, TestAwsExternalAccountCredsFailureMissingRoleName) {
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      invalid_aws_external_account_creds_options_credential_source_missing_role_name,
-      &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  error = GRPC_ERROR_CREATE_FROM_STATIC_STRING(
-      "Missing role name when retrieving signing keys.");
-  grpc_error_handle expected_error =
-      GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
-          "Error occurred when fetching oauth2 token.", &error, 1);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(expected_error, {});
-  grpc_core::HttpRequest::SetOverride(
-      aws_external_account_creds_httpcli_get_success,
-      aws_external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  GRPC_ERROR_UNREF(error);
-}
-
-TEST(CredentialsTest,
-     TestAwsExternalAccountCredsFailureInvalidRegionalCredVerificationUrl) {
-  grpc_core::ExecCtx exec_ctx;
-  grpc_auth_metadata_context auth_md_ctx = {test_service_url, test_method,
-                                            nullptr, nullptr};
-  grpc_error_handle error = GRPC_ERROR_NONE;
-  grpc_core::Json credential_source = grpc_core::Json::Parse(
-      invalid_aws_external_account_creds_options_credential_source_invalid_regional_cred_verification_url,
-      &error);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  grpc_core::ExternalAccountCredentials::Options options = {
-      "external_account",                 // type;
-      "audience",                         // audience;
-      "subject_token_type",               // subject_token_type;
-      "",                                 // service_account_impersonation_url;
-      "https://foo.com:5555/token",       // token_url;
-      "https://foo.com:5555/token_info",  // token_info_url;
-      credential_source,                  // credential_source;
-      "quota_project_id",                 // quota_project_id;
-      "client_id",                        // client_id;
-      "client_secret",                    // client_secret;
-      "",                                 // workforce_pool_user_project;
-  };
-  auto creds =
-      grpc_core::AwsExternalAccountCredentials::Create(options, {}, &error);
-  GPR_ASSERT(creds != nullptr);
-  GPR_ASSERT(error == GRPC_ERROR_NONE);
-  GPR_ASSERT(creds->min_security_level() == GRPC_PRIVACY_AND_INTEGRITY);
-  error = GRPC_ERROR_CREATE_FROM_STATIC_STRING(
-      "Creating aws request signer failed.");
-  grpc_error_handle expected_error =
-      GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
-          "Error occurred when fetching oauth2 token.", &error, 1);
-  RequestMetadataState* state =
-      RequestMetadataState::NewInstance(expected_error, {});
-  grpc_core::HttpRequest::SetOverride(
-      aws_external_account_creds_httpcli_get_success,
-      aws_external_account_creds_httpcli_post_success);
-  state->RunRequestMetadataTest(creds.get(), auth_md_ctx);
-  grpc_core::ExecCtx::Get()->Flush();
-  grpc_core::HttpRequest::SetOverride(nullptr, nullptr);
-  GRPC_ERROR_UNREF(error);
-}
-
-TEST(CredentialsTest, TestExternalAccountCredentialsCreateSuccess) {
-  // url credentials
-  const char* url_options_string =
-      "{\"type\":\"external_account\",\"audience\":\"audience\",\"subject_"
-      "token_type\":\"subject_token_type\",\"service_account_impersonation_"
-      "url\":\"service_account_impersonation_url\",\"token_url\":\"https://"
-      "foo.com:5555/token\",\"token_info_url\":\"https://foo.com:5555/"
-      "token_info\",\"credential_source\":{\"url\":\"https://foo.com:5555/"
-      "generate_subject_token_format_json\",\"headers\":{\"Metadata-Flavor\":"
-      "\"Google\"},\"format\":{\"type\":\"json\",\"subject_token_field_name\":"
-      "\"access_token\"}},\"quota_project_id\":\"quota_"
-      "project_id\",\"client_id\":\"client_id\",\"client_secret\":\"client_"
-      "secret\"}";
-  const char* url_scopes_string = "scope1,scope2";
-  grpc_call_credentials* url_creds = grpc_external_account_credentials_create(
-      url_options_string, url_scopes_string);
-  GPR_ASSERT(url_creds != nullptr);
-  url_creds->Unref();
-  // file credentials
-  const char* file_options_string =
-      "{\"type\":\"external_account\",\"audience\":\"audience\",\"subject_"
-      "token_type\":\"subject_token_type\",\"service_account_impersonation_"
-      "url\":\"service_account_impersonation_url\",\"token_url\":\"https://"
-      "foo.com:5555/token\",\"token_info_url\":\"https://foo.com:5555/"
-      "token_info\",\"credential_source\":{\"file\":\"credentials_file_path\"},"
-      "\"quota_project_id\":\"quota_"
-      "project_id\",\"client_id\":\"client_id\",\"client_secret\":\"client_"
-      "secret\"}";
-  const char* file_scopes_string = "scope1,scope2";
-  grpc_call_credentials* file_creds = grpc_external_account_credentials_create(
-      file_options_string, file_scopes_string);
-  GPR_ASSERT(file_creds != nullptr);
-  file_creds->Unref();
-  // aws credentials
-  const char* aws_options_string =
-      "{\"type\":\"external_account\",\"audience\":\"audience\",\"subject_"
-      "token_type\":\"subject_token_type\",\"service_account_impersonation_"
-      "url\":\"service_account_impersonation_url\",\"token_url\":\"https://"
-      "foo.com:5555/token\",\"token_info_url\":\"https://foo.com:5555/"
-      "token_info\",\"credential_source\":{\"environment_id\":\"aws1\","
-      "\"region_url\":\"https://foo.com:5555/region_url\",\"url\":\"https://"
-      "foo.com:5555/url\",\"regional_cred_verification_url\":\"https://"
-      "foo.com:5555/regional_cred_verification_url_{region}\"},"
-      "\"quota_project_id\":\"quota_"
-      "project_id\",\"client_id\":\"client_id\",\"client_secret\":\"client_"
-      "secret\"}";
-  const char* aws_scopes_string = "scope1,scope2";
-  grpc_call_credentials* aws_creds = grpc_external_account_credentials_create(
-      aws_options_string, aws_scopes_string);
-  GPR_ASSERT(aws_creds != nullptr);
-  aws_creds->Unref();
-}
-
-TEST(CredentialsTest,
-     TestExternalAccountCredentialsCreateFailureInvalidJsonFormat) {
-  const char* options_string = "invalid_json";
-  grpc_call_credentials* creds =
-      grpc_external_account_credentials_create(options_string, "");
-  GPR_ASSERT(creds == nullptr);
-}
-
-TEST(CredentialsTest,
-     TestExternalAccountCredentialsCreateFailureInvalidOptionsFormat) {
-  const char* options_string = "{\"random_key\":\"random_value\"}";
-  grpc_call_credentials* creds =
-      grpc_external_account_credentials_create(options_string, "");
-  GPR_ASSERT(creds == nullptr);
-}
-
-TEST(
-    CredentialsTest,
-    TestExternalAccountCredentialsCreateFailureInvalidOptionsCredentialSource) {
-  const char* options_string =
-      "{\"type\":\"external_account\",\"audience\":\"audience\",\"subject_"
-      "token_type\":\"subject_token_type\",\"service_account_impersonation_"
-      "url\":\"service_account_impersonation_url\",\"token_url\":\"https://"
-      "foo.com:5555/token\",\"token_info_url\":\"https://foo.com:5555/"
-      "token_info\",\"credential_source\":{\"random_key\":\"random_value\"},"
-      "\"quota_project_id\":\"quota_"
-      "project_id\",\"client_id\":\"client_id\",\"client_secret\":\"client_"
-      "secret\"}";
-  grpc_call_credentials* creds =
-      grpc_external_account_credentials_create(options_string, "");
-  GPR_ASSERT(creds == nullptr);
-}
-
-TEST(CredentialsTest,
-     TestExternalAccountCredentialsCreateSuccessWorkforcePool) {
-  const char* url_options_string =
-      "{\"type\":\"external_account\",\"audience\":\"//iam.googleapis.com/"
-      "locations/location/workforcePools/pool/providers/provider\",\"subject_"
-      "token_type\":\"subject_token_type\",\"service_account_impersonation_"
-      "url\":\"service_account_impersonation_url\",\"token_url\":\"https://"
-      "foo.com:5555/token\",\"token_info_url\":\"https://foo.com:5555/"
-      "token_info\",\"credential_source\":{\"url\":\"https://foo.com:5555/"
-      "generate_subject_token_format_json\",\"headers\":{\"Metadata-Flavor\":"
-      "\"Google\"},\"format\":{\"type\":\"json\",\"subject_token_field_name\":"
-      "\"access_token\"}},\"quota_project_id\":\"quota_"
-      "project_id\",\"client_id\":\"client_id\",\"client_secret\":\"client_"
-      "secret\",\"workforce_pool_user_project\":\"workforce_pool_user_"
-      "project\"}";
-  const char* url_scopes_string = "scope1,scope2";
-  grpc_call_credentials* url_creds = grpc_external_account_credentials_create(
-      url_options_string, url_scopes_string);
-  GPR_ASSERT(url_creds != nullptr);
-  url_creds->Unref();
-}
-
-TEST(CredentialsTest,
-     TestExternalAccountCredentialsCreateFailureInvalidWorkforcePoolAudience) {
-  const char* url_options_string =
-      "{\"type\":\"external_account\",\"audience\":\"invalid_workforce_pool_"
-      "audience\",\"subject_"
-      "token_type\":\"subject_token_type\",\"service_account_impersonation_"
-      "url\":\"service_account_impersonation_url\",\"token_url\":\"https://"
-      "foo.com:5555/token\",\"token_info_url\":\"https://foo.com:5555/"
-      "token_info\",\"credential_source\":{\"url\":\"https://foo.com:5555/"
-      "generate_subject_token_format_json\",\"headers\":{\"Metadata-Flavor\":"
-      "\"Google\"},\"format\":{\"type\":\"json\",\"subject_token_field_name\":"
-      "\"access_token\"}},\"quota_project_id\":\"quota_"
-      "project_id\",\"client_id\":\"client_id\",\"client_secret\":\"client_"
-      "secret\",\"workforce_pool_user_project\":\"workforce_pool_user_"
-      "project\"}";
-  const char* url_scopes_string = "scope1,scope2";
-  grpc_call_credentials* url_creds = grpc_external_account_credentials_create(
-      url_options_string, url_scopes_string);
-  GPR_ASSERT(url_creds == nullptr);
-}
-
-TEST(CredentialsTest, TestInsecureCredentialsCompareSuccess) {
-  auto insecure_creds_1 = grpc_insecure_credentials_create();
-  auto insecure_creds_2 = grpc_insecure_credentials_create();
-  ASSERT_EQ(insecure_creds_1->cmp(insecure_creds_2), 0);
-  grpc_arg arg_1 = grpc_channel_credentials_to_arg(insecure_creds_1);
-  grpc_channel_args args_1 = {1, &arg_1};
-  grpc_arg arg_2 = grpc_channel_credentials_to_arg(insecure_creds_2);
-  grpc_channel_args args_2 = {1, &arg_2};
-  EXPECT_EQ(grpc_channel_args_compare(&args_1, &args_2), 0);
-  grpc_channel_credentials_release(insecure_creds_1);
-  grpc_channel_credentials_release(insecure_creds_2);
-}
-
-TEST(CredentialsTest, TestInsecureCredentialsCompareFailure) {
-  auto* insecure_creds = grpc_insecure_credentials_create();
-  auto* fake_creds = grpc_fake_transport_security_credentials_create();
-  ASSERT_NE(insecure_creds->cmp(fake_creds), 0);
-  ASSERT_NE(fake_creds->cmp(insecure_creds), 0);
-  grpc_arg arg_1 = grpc_channel_credentials_to_arg(insecure_creds);
-  grpc_channel_args args_1 = {1, &arg_1};
-  grpc_arg arg_2 = grpc_channel_credentials_to_arg(fake_creds);
-  grpc_channel_args args_2 = {1, &arg_2};
-  EXPECT_NE(grpc_channel_args_compare(&args_1, &args_2), 0);
-  grpc_channel_credentials_release(fake_creds);
-  grpc_channel_credentials_release(insecure_creds);
-}
-
-TEST(CredentialsTest, TestInsecureCredentialsSingletonCreate) {
-  auto* insecure_creds_1 = grpc_insecure_credentials_create();
-  auto* insecure_creds_2 = grpc_insecure_credentials_create();
-  EXPECT_EQ(insecure_creds_1, insecure_creds_2);
-}
-
-TEST(CredentialsTest, TestFakeCallCredentialsCompareSuccess) {
-  auto call_creds = grpc_core::MakeRefCounted<fake_call_creds>();
-  GPR_ASSERT(call_creds->cmp(call_creds.get()) == 0);
-}
-
-TEST(CredentialsTest, TestFakeCallCredentialsCompareFailure) {
-  auto fake_creds = grpc_core::MakeRefCounted<fake_call_creds>();
-  auto* md_creds = grpc_md_only_test_credentials_create("key", "value", false);
-  GPR_ASSERT(fake_creds->cmp(md_creds) != 0);
-  GPR_ASSERT(md_creds->cmp(fake_creds.get()) != 0);
-  grpc_call_credentials_release(md_creds);
-}
-
-TEST(CredentialsTest, TestCompositeChannelCredsCompareSuccess) {
-  auto* insecure_creds = grpc_insecure_credentials_create();
-  auto* fake_channel_creds = grpc_fake_transport_security_credentials_create();
-  auto fake_creds = grpc_core::MakeRefCounted<fake_call_creds>();
-  auto* composite_creds_1 = grpc_composite_channel_credentials_create(
-      insecure_creds, fake_creds.get(), nullptr);
-  auto* composite_creds_2 = grpc_composite_channel_credentials_create(
-      fake_channel_creds, fake_creds.get(), nullptr);
-  EXPECT_NE(composite_creds_1->cmp(composite_creds_2), 0);
-  EXPECT_NE(composite_creds_2->cmp(composite_creds_1), 0);
-  grpc_channel_credentials_release(insecure_creds);
-  grpc_channel_credentials_release(composite_creds_1);
-  grpc_channel_credentials_release(composite_creds_2);
-}
-
-TEST(CredentialsTest,
-     TestCompositeChannelCredsCompareFailureDifferentChannelCreds) {
-  auto* insecure_creds = grpc_insecure_credentials_create();
-  auto fake_creds = grpc_core::MakeRefCounted<fake_call_creds>();
-  auto* md_creds = grpc_md_only_test_credentials_create("key", "value", false);
-  auto* composite_creds_1 = grpc_composite_channel_credentials_create(
-      insecure_creds, fake_creds.get(), nullptr);
-  auto* composite_creds_2 = grpc_composite_channel_credentials_create(
-      insecure_creds, md_creds, nullptr);
-  EXPECT_NE(composite_creds_1->cmp(composite_creds_2), 0);
-  EXPECT_NE(composite_creds_2->cmp(composite_creds_1), 0);
-  grpc_channel_credentials_release(insecure_creds);
-  grpc_call_credentials_release(md_creds);
-  grpc_channel_credentials_release(composite_creds_1);
-  grpc_channel_credentials_release(composite_creds_2);
-}
-
-TEST(CredentialsTest,
-     TestCompositeChannelCredsCompareFailureDifferentCallCreds) {
-  auto* insecure_creds = grpc_insecure_credentials_create();
-  auto fake_creds = grpc_core::MakeRefCounted<fake_call_creds>();
-  auto* md_creds = grpc_md_only_test_credentials_create("key", "value", false);
-  auto* composite_creds_1 = grpc_composite_channel_credentials_create(
-      insecure_creds, fake_creds.get(), nullptr);
-  auto* composite_creds_2 = grpc_composite_channel_credentials_create(
-      insecure_creds, md_creds, nullptr);
-  EXPECT_NE(composite_creds_1->cmp(composite_creds_2), 0);
-  EXPECT_NE(composite_creds_2->cmp(composite_creds_1), 0);
-  grpc_channel_credentials_release(insecure_creds);
-  grpc_call_credentials_release(md_creds);
-  grpc_channel_credentials_release(composite_creds_1);
-  grpc_channel_credentials_release(composite_creds_2);
-}
-
-TEST(CredentialsTest, TestXdsCredentialsCompareSucces) {
-  auto* insecure_creds = grpc_insecure_credentials_create();
-  auto* xds_creds_1 = grpc_xds_credentials_create(insecure_creds);
-  auto* xds_creds_2 = grpc_xds_credentials_create(insecure_creds);
-  EXPECT_EQ(xds_creds_1->cmp(xds_creds_2), 0);
-  EXPECT_EQ(xds_creds_2->cmp(xds_creds_1), 0);
-  grpc_channel_credentials_release(insecure_creds);
-  grpc_channel_credentials_release(xds_creds_1);
-  grpc_channel_credentials_release(xds_creds_2);
-}
-
-TEST(CredentialsTest, TestXdsCredentialsCompareFailure) {
-  auto* insecure_creds = grpc_insecure_credentials_create();
-  auto* fake_creds = grpc_fake_transport_security_credentials_create();
-  auto* xds_creds_1 = grpc_xds_credentials_create(insecure_creds);
-  auto* xds_creds_2 = grpc_xds_credentials_create(fake_creds);
-  EXPECT_NE(xds_creds_1->cmp(xds_creds_2), 0);
-  EXPECT_NE(xds_creds_2->cmp(xds_creds_1), 0);
-  grpc_channel_credentials_release(insecure_creds);
-  grpc_channel_credentials_release(fake_creds);
-  grpc_channel_credentials_release(xds_creds_1);
-  grpc_channel_credentials_release(xds_creds_2);
-}
-
 int main(int argc, char** argv) {
-  testing::InitGoogleTest(&argc, argv);
   grpc::testing::TestEnvironment env(argc, argv);
   grpc_init();
-  auto result = RUN_ALL_TESTS();
+  test_empty_md_array();
+  test_add_to_empty_md_array();
+  test_add_abunch_to_md_array();
+  test_oauth2_token_fetcher_creds_parsing_ok();
+  test_oauth2_token_fetcher_creds_parsing_bad_http_status();
+  test_oauth2_token_fetcher_creds_parsing_empty_http_body();
+  test_oauth2_token_fetcher_creds_parsing_invalid_json();
+  test_oauth2_token_fetcher_creds_parsing_missing_token();
+  test_oauth2_token_fetcher_creds_parsing_missing_token_type();
+  test_oauth2_token_fetcher_creds_parsing_missing_token_lifetime();
+  test_google_iam_creds();
+  test_access_token_creds();
+  test_channel_oauth2_composite_creds();
+  test_oauth2_google_iam_composite_creds();
+  test_channel_oauth2_google_iam_composite_creds();
+  test_compute_engine_creds_success();
+  test_compute_engine_creds_failure();
+  test_refresh_token_creds_success();
+  test_refresh_token_creds_failure();
+  test_valid_sts_creds_options();
+  test_invalid_sts_creds_options();
+  test_sts_creds_success();
+  test_sts_creds_no_actor_token_success();
+  test_sts_creds_load_token_failure();
+  test_sts_creds_http_failure();
+  test_sts_creds_token_file_not_found();
+  test_jwt_creds_lifetime();
+  test_jwt_creds_success();
+  test_jwt_creds_signing_failure();
+  test_google_default_creds_auth_key();
+  test_google_default_creds_refresh_token();
+  test_google_default_creds_gce();
+  test_google_default_creds_non_gce();
+  test_no_google_default_creds();
+  test_metadata_plugin_success();
+  test_metadata_plugin_failure();
+  test_get_well_known_google_credentials_file_path();
+  test_channel_creds_duplicate_without_call_creds();
+  test_auth_metadata_context();
   grpc_shutdown();
-  return result;
+  return 0;
 }

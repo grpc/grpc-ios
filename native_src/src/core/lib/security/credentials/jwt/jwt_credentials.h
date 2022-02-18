@@ -21,13 +21,6 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <string>
-
-#include "absl/strings/str_format.h"
-#include "absl/time/time.h"
-
-#include <grpc/support/time.h>
-
 #include "src/core/lib/security/credentials/credentials.h"
 #include "src/core/lib/security/credentials/jwt/json_token.h"
 
@@ -40,40 +33,27 @@ class grpc_service_account_jwt_access_credentials
 
   bool get_request_metadata(grpc_polling_entity* pollent,
                             grpc_auth_metadata_context context,
-                            grpc_core::CredentialsMetadataArray* md_array,
+                            grpc_credentials_mdelem_array* md_array,
                             grpc_closure* on_request_metadata,
-                            grpc_error_handle* error) override;
+                            grpc_error** error) override;
 
-  void cancel_get_request_metadata(
-      grpc_core::CredentialsMetadataArray* md_array,
-      grpc_error_handle error) override;
+  void cancel_get_request_metadata(grpc_credentials_mdelem_array* md_array,
+                                   grpc_error* error) override;
 
   const gpr_timespec& jwt_lifetime() const { return jwt_lifetime_; }
   const grpc_auth_json_key& key() const { return key_; }
 
-  std::string debug_string() override {
-    return absl::StrFormat(
-        "JWTAccessCredentials{ExpirationTime:%s}",
-        absl::FormatTime(absl::FromUnixMicros(
-            static_cast<int64_t>(gpr_timespec_to_micros(jwt_lifetime_)))));
-  };
-
  private:
-  int cmp_impl(const grpc_call_credentials* other) const override {
-    // TODO(yashykt): Check if we can do something better here
-    return grpc_core::QsortCompare(
-        static_cast<const grpc_call_credentials*>(this), other);
-  }
+  void reset_cache();
 
   // Have a simple cache for now with just 1 entry. We could have a map based on
   // the service_url for a more sophisticated one.
   gpr_mu cache_mu_;
-  struct Cache {
-    grpc_core::Slice jwt_value;
-    std::string service_url;
+  struct {
+    grpc_mdelem jwt_md = GRPC_MDNULL;
+    char* service_url = nullptr;
     gpr_timespec jwt_expiration;
-  };
-  absl::optional<Cache> cached_;
+  } cached_;
 
   grpc_auth_json_key key_;
   gpr_timespec jwt_lifetime_;
@@ -84,12 +64,5 @@ class grpc_service_account_jwt_access_credentials
 grpc_core::RefCountedPtr<grpc_call_credentials>
 grpc_service_account_jwt_access_credentials_create_from_auth_json_key(
     grpc_auth_json_key key, gpr_timespec token_lifetime);
-
-namespace grpc_core {
-
-// Exposed for testing purposes only.
-absl::StatusOr<std::string> RemoveServiceNameFromJwtUri(absl::string_view uri);
-
-}  // namespace grpc_core
 
 #endif /* GRPC_CORE_LIB_SECURITY_CREDENTIALS_JWT_JWT_CREDENTIALS_H */

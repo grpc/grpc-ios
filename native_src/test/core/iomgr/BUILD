@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//bazel:grpc_build_system.bzl", "grpc_cc_library", "grpc_cc_test", "grpc_package")
+load("//bazel:grpc_build_system.bzl", "grpc_cc_binary", "grpc_cc_library", "grpc_cc_test", "grpc_package")
 load("//bazel:custom_exec_properties.bzl", "LARGE_MACHINE")
 
-licenses(["notice"])
+licenses(["notice"])  # Apache v2
+
+load("//test/core/util:grpc_fuzzer.bzl", "grpc_fuzzer")
 
 grpc_package(
     name = "test/core/iomgr",
@@ -27,10 +29,7 @@ grpc_cc_library(
     srcs = ["endpoint_tests.cc"],
     hdrs = ["endpoint_tests.h"],
     language = "C++",
-    visibility = [
-        "//test:__subpackages__",
-        "@grpc:endpoint_tests",
-    ],
+    visibility = ["//test:__subpackages__"],
     deps = [
         "//:gpr",
         "//:grpc",
@@ -66,9 +65,6 @@ grpc_cc_test(
 grpc_cc_test(
     name = "error_test",
     srcs = ["error_test.cc"],
-    external_deps = [
-        "gtest",
-    ],
     language = "C++",
     uses_polling = False,
     deps = [
@@ -174,9 +170,6 @@ grpc_cc_test(
     args = [
         "--resolver=ares",
     ],
-    external_deps = [
-        "absl/strings",
-    ],
     language = "C++",
     tags = ["no_windows"],
     deps = [
@@ -192,9 +185,6 @@ grpc_cc_test(
     args = [
         "--resolver=native",
     ],
-    external_deps = [
-        "absl/strings",
-    ],
     language = "C++",
     tags = ["no_windows"],
     deps = [
@@ -207,34 +197,50 @@ grpc_cc_test(
 grpc_cc_test(
     name = "resolve_address_using_ares_resolver_test",
     srcs = ["resolve_address_test.cc"],
-    external_deps = [
-        "absl/strings",
-        "gtest",
+    args = [
+        "--resolver=ares",
     ],
     language = "C++",
     deps = [
         "//:gpr",
         "//:grpc",
-        "//test/core/util:fake_udp_and_tcp_server",
         "//test/core/util:grpc_test_util",
-        "//test/cpp/util:test_config",
     ],
 )
 
 grpc_cc_test(
     name = "resolve_address_using_native_resolver_test",
     srcs = ["resolve_address_test.cc"],
-    external_deps = [
-        "absl/strings",
-        "gtest",
+    args = [
+        "--resolver=native",
     ],
     language = "C++",
     deps = [
         "//:gpr",
         "//:grpc",
-        "//test/core/util:fake_udp_and_tcp_server",
         "//test/core/util:grpc_test_util",
-        "//test/cpp/util:test_config",
+    ],
+)
+
+grpc_cc_test(
+    name = "resource_quota_test",
+    srcs = ["resource_quota_test.cc"],
+    language = "C++",
+    deps = [
+        "//:gpr",
+        "//:grpc",
+        "//test/core/util:grpc_test_util",
+    ],
+)
+
+grpc_cc_test(
+    name = "sockaddr_utils_test",
+    srcs = ["sockaddr_utils_test.cc"],
+    language = "C++",
+    deps = [
+        "//:gpr",
+        "//:grpc",
+        "//test/core/util:grpc_test_util",
     ],
 )
 
@@ -350,21 +356,13 @@ grpc_cc_test(
 )
 
 grpc_cc_test(
-    name = "stranded_event_test",
-    srcs = ["stranded_event_test.cc"],
-    external_deps = [
-        "gtest",
-    ],
+    name = "udp_server_test",
+    srcs = ["udp_server_test.cc"],
     language = "C++",
-    tags = [
-        # TODO(apolcyn): This test is failing on Windows at entry, enable once passing.
-        # See e.g. https://source.cloud.google.com/results/invocations/6716596a-c9e1-4780-85ed-890d8758d582/targets
-        "no_windows",
-    ],
+    tags = ["no_windows"],
     deps = [
         "//:gpr",
         "//:grpc",
-        "//test/core/end2end:cq_verifier",
         "//test/core/util:grpc_test_util",
     ],
 )

@@ -1,7 +1,6 @@
 # absl CMake configuration file.
 
-include(CMakeFindDependencyMacro)
-find_dependency(Threads)
+include(FindThreads)
 
 @PACKAGE_INIT@
 

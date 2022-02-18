@@ -19,11 +19,10 @@
 #ifndef GRPCPP_SECURITY_ALTS_CONTEXT_H
 #define GRPCPP_SECURITY_ALTS_CONTEXT_H
 
-#include <map>
-#include <memory>
-
 #include <grpc/grpc_security_constants.h>
 #include <grpcpp/security/auth_context.h>
+
+#include <memory>
 
 struct grpc_gcp_AltsContext;
 
@@ -45,22 +44,21 @@ class AltsContext {
   AltsContext& operator=(const AltsContext&) = default;
   AltsContext(const AltsContext&) = default;
 
-  std::string application_protocol() const;
-  std::string record_protocol() const;
-  std::string peer_service_account() const;
-  std::string local_service_account() const;
+  grpc::string application_protocol() const;
+  grpc::string record_protocol() const;
+  grpc::string peer_service_account() const;
+  grpc::string local_service_account() const;
   grpc_security_level security_level() const;
   RpcProtocolVersions peer_rpc_versions() const;
-  const std::map<std::string, std::string>& peer_attributes() const;
 
  private:
-  std::string application_protocol_;
-  std::string record_protocol_;
-  std::string peer_service_account_;
-  std::string local_service_account_;
+  // TODO(ZhenLian): Also plumb field peer_attributes when it is in use
+  grpc::string application_protocol_;
+  grpc::string record_protocol_;
+  grpc::string peer_service_account_;
+  grpc::string local_service_account_;
   grpc_security_level security_level_ = GRPC_SECURITY_NONE;
   RpcProtocolVersions peer_rpc_versions_ = {{0, 0}, {0, 0}};
-  std::map<std::string, std::string> peer_attributes_map_;
 };
 
 }  // namespace experimental

@@ -17,18 +17,12 @@ require 'spec_helper'
 
 # A test message
 class EchoMsg
-  attr_reader :msg
-
-  def initialize(msg: '')
-    @msg = msg
+  def self.marshal(_o)
+    ''
   end
 
-  def self.marshal(o)
-    o.msg
-  end
-
-  def self.unmarshal(msg)
-    EchoMsg.new(msg: msg)
+  def self.unmarshal(_o)
+    EchoMsg.new
   end
 end
 

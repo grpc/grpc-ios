@@ -10,7 +10,7 @@ namespace {
 
 class TestReporter : public benchmark::ConsoleReporter {
  public:
-  virtual void ReportRuns(const std::vector<Run>& report) BENCHMARK_OVERRIDE {
+  virtual void ReportRuns(const std::vector<Run>& report) {
     all_runs_.insert(all_runs_.end(), begin(report), end(report));
     ConsoleReporter::ReportRuns(report);
   }
@@ -30,13 +30,13 @@ struct TestCase {
 
   void CheckRun(Run const& run) const {
     // clang-format off
-    BM_CHECK(name == run.benchmark_name()) << "expected " << name << " got "
+    CHECK(name == run.benchmark_name()) << "expected " << name << " got "
                                       << run.benchmark_name();
     if (label) {
-      BM_CHECK(run.report_label == label) << "expected " << label << " got "
+      CHECK(run.report_label == label) << "expected " << label << " got "
                                        << run.report_label;
     } else {
-      BM_CHECK(run.report_label == "");
+      CHECK(run.report_label == "");
     }
     // clang-format on
   }

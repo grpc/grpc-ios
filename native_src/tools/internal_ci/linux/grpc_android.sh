@@ -15,9 +15,6 @@
 
 set -ex
 
-# Accept the Android SDK licences.
-yes | /opt/android-sdk/current/tools/bin/sdkmanager --licenses
-
 # change to grpc repo root
 cd $(dirname $0)/../../..
 
@@ -26,24 +23,17 @@ REPO_ROOT="$(pwd)"
 git submodule update --init
 
 # Build protoc and grpc_cpp_plugin. Codegen is not cross-compiled to Android
-mkdir -p cmake/build
-pushd cmake/build
-cmake -DgRPC_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release ../..
-make protoc grpc_cpp_plugin -j2
-popd
-
-PROTOC=${REPO_ROOT}/cmake/build/third_party/protobuf/protoc
-PLUGIN=${REPO_ROOT}/cmake/build/grpc_cpp_plugin
+make HAS_SYSTEM_PROTOBUF=false
 
 # Build and run interop instrumentation tests on Firebase Test Lab
 
 cd "${REPO_ROOT}/src/android/test/interop/"
 ./gradlew assembleDebug \
-    "-Pprotoc=${PROTOC}" \
-    "-Pgrpc_cpp_plugin=${PLUGIN}"
+    "-Pprotoc=${REPO_ROOT}/third_party/protobuf/src/protoc" \
+    "-Pgrpc_cpp_plugin=${REPO_ROOT}/bins/opt/grpc_cpp_plugin"
 ./gradlew assembleDebugAndroidTest \
-    "-Pprotoc=${PROTOC}" \
-    "-Pgrpc_cpp_plugin=${PLUGIN}"
+    "-Pprotoc=${REPO_ROOT}/third_party/protobuf/src/protoc" \
+    "-Pgrpc_cpp_plugin=${REPO_ROOT}/bins/opt/grpc_cpp_plugin"
 gcloud firebase test android run \
     --type instrumentation \
     --app app/build/outputs/apk/debug/app-debug.apk \
@@ -62,5 +52,5 @@ gcloud firebase test android run \
 
 cd "${REPO_ROOT}/examples/android/helloworld"
 ./gradlew build \
-    "-Pprotoc=${PROTOC}" \
-    "-Pgrpc_cpp_plugin=${PLUGIN}"
+    "-Pprotoc=${REPO_ROOT}/third_party/protobuf/src/protoc" \
+    "-Pgrpc_cpp_plugin=${REPO_ROOT}/bins/opt/grpc_cpp_plugin"

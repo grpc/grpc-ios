@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2016 The gRPC Authors
+# Copyright 2016 gRPC authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,26 +13,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# This script is invoked by run_tests.py to accommodate "test under docker"
-# scenario. You should never need to call this script on your own.
-
-# shellcheck disable=SC2103
+# Builds docker image and runs a command under it.
+# You should never need to call this script on your own.
 
 set -ex
 
 cd "$(dirname "$0")/../../.."
 git_root=$(pwd)
-cd -
+cd - # shellcheck disable=SC2103
 
 # Inputs
 # DOCKERFILE_DIR - Directory in which Dockerfile file is located.
 # DOCKER_RUN_SCRIPT - Script to run under docker (relative to grpc repo root)
-# OUTPUT_DIR - Directory (relatively to git repo root) that will be copied from inside docker container after finishing.
+# OUTPUT_DIR - Directory that will be copied from inside docker after finishing.
 # DOCKERHUB_ORGANIZATION - If set, pull a prebuilt image from given dockerhub org.
-# $@ - Extra args to pass to the "docker run" command.
+# DOCKER_BASE_IMAGE - If set, pull the latest base image.
+# $@ - Extra args to pass to docker run
 
 # Use image name based on Dockerfile location checksum
-DOCKER_IMAGE_NAME=$(basename "$DOCKERFILE_DIR"):$(sha1sum "$DOCKERFILE_DIR/Dockerfile" | cut -f1 -d\ )
+DOCKER_IMAGE_NAME=$(basename "$DOCKERFILE_DIR")_$(sha1sum "$DOCKERFILE_DIR/Dockerfile" | cut -f1 -d\ )
+
+# Pull the base image to force an update
+if [ "$DOCKER_BASE_IMAGE" != "" ]
+then
+  time docker pull "$DOCKER_BASE_IMAGE"
+fi
 
 if [ "$DOCKERHUB_ORGANIZATION" != "" ]
 then
@@ -43,61 +48,42 @@ else
   docker build -t "$DOCKER_IMAGE_NAME" "$DOCKERFILE_DIR"
 fi
 
-if [[ -t 0 ]]; then
-  DOCKER_TTY_ARGS="-it"
-else
-  # The input device on kokoro is not a TTY, so -it does not work.
-  DOCKER_TTY_ARGS=
-fi
+# Choose random name for docker container
+CONTAINER_NAME="build_and_run_docker_$(uuidgen)"
 
-# Git root as seen by the docker instance
-# TODO(jtattermusch): rename to a more descriptive directory name
-# currently that's nontrivial because the name is hardcoded in many places.
-EXTERNAL_GIT_ROOT=/var/local/jenkins/grpc
-
-# temporary directory that will be mounted to the docker container
-# as a way to persist output files.
-# use unique name for the output directory to prevent clash between concurrent
-# runs of multiple docker containers
-TEMP_REPORT_DIR="$(mktemp -d)"
-TEMP_OUTPUT_DIR="$(mktemp -d)"
-
-# Run tests inside docker
-DOCKER_EXIT_CODE=0
-# TODO: silence complaint about $DOCKER_TTY_ARGS expansion in some other way
-# shellcheck disable=SC2086,SC2154
+# Run command inside docker
+# TODO: use a proper array instead of $EXTRA_DOCKER_ARGS
+# shellcheck disable=SC2086
 docker run \
   "$@" \
-  ${DOCKER_TTY_ARGS} \
-  ${EXTRA_DOCKER_ARGS} \
   --cap-add SYS_PTRACE \
-  -e "DOCKER_RUN_SCRIPT_COMMAND=${DOCKER_RUN_SCRIPT_COMMAND}" \
-  -e "EXTERNAL_GIT_ROOT=${EXTERNAL_GIT_ROOT}" \
-  -e "OUTPUT_DIR=${OUTPUT_DIR}" \
-  --env-file tools/run_tests/dockerize/docker_propagate_env.list \
-  --rm \
-  --sysctl net.ipv6.conf.all.disable_ipv6=0 \
-  -v "${git_root}:${EXTERNAL_GIT_ROOT}" \
-  -v "${TEMP_REPORT_DIR}:/var/local/report_dir" \
-  -v "${TEMP_OUTPUT_DIR}:/var/local/output_dir" \
-  "${DOCKER_IMAGE_NAME}" \
-  bash -l "/var/local/jenkins/grpc/${DOCKER_RUN_SCRIPT}" || DOCKER_EXIT_CODE=$?
+  -e EXTERNAL_GIT_ROOT="/var/local/jenkins/grpc" \
+  -e THIS_IS_REALLY_NEEDED='see https://github.com/docker/docker/issues/14203 for why docker is awful' \
+  -e "KOKORO_BUILD_ID=$KOKORO_BUILD_ID" \
+  -e "KOKORO_BUILD_NUMBER=$KOKORO_BUILD_NUMBER" \
+  -e "KOKORO_BUILD_URL=$KOKORO_BUILD_URL" \
+  -e "KOKORO_JOB_NAME=$KOKORO_JOB_NAME" \
+  -v "$git_root:/var/local/jenkins/grpc:ro" \
+  -w /var/local/git/grpc \
+  --name="$CONTAINER_NAME" \
+  $EXTRA_DOCKER_ARGS \
+  "$DOCKER_IMAGE_NAME" \
+  /bin/bash -l "/var/local/jenkins/grpc/$DOCKER_RUN_SCRIPT" || FAILED="true"
 
-# Copy reports stored by the container (if any)
-if [ "${GRPC_TEST_REPORT_BASE_DIR}" != "" ]
+# Copy output artifacts
+if [ "$OUTPUT_DIR" != "" ]
 then
-  mkdir -p "${GRPC_TEST_REPORT_BASE_DIR}"
-  cp -r "${TEMP_REPORT_DIR}"/* "${GRPC_TEST_REPORT_BASE_DIR}" || true
-else
-  cp -r "${TEMP_REPORT_DIR}"/* "${git_root}" || true
+  # Create the artifact directory in advance to avoid a race in "docker cp" if tasks
+  # that were running in parallel finish at the same time.
+  # see https://github.com/grpc/grpc/issues/16155
+  mkdir -p "$git_root/$OUTPUT_DIR"
+  docker cp "$CONTAINER_NAME:/var/local/git/grpc/$OUTPUT_DIR" "$git_root" || FAILED="true"
 fi
 
-# Copy contents of OUTPUT_DIR back under the git repo root
-if [ "${OUTPUT_DIR}" != "" ]
-then
-  # create the directory if it doesn't exist yet.
-  mkdir -p "${TEMP_OUTPUT_DIR}/${OUTPUT_DIR}"
-  cp -r "${TEMP_OUTPUT_DIR}/${OUTPUT_DIR}" "${git_root}" || DOCKER_EXIT_CODE=$?
-fi
+# remove the container, possibly killing it first
+docker rm -f "$CONTAINER_NAME" || true
 
-exit $DOCKER_EXIT_CODE
+if [ "$FAILED" != "" ]
+then
+  exit 1
+fi

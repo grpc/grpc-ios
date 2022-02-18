@@ -1,6 +1,4 @@
 /*-
- * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
- *
  * Copyright (c) 1996-1998 John D. Polstra.
  * All rights reserved.
  *
@@ -260,12 +258,5 @@ typedef struct {
 	Elf64_Half	si_boundto;	/* direct bindings - symbol bound to */
 	Elf64_Half	si_flags;	/* per symbol flags */
 } Elf64_Syminfo;
-
-typedef struct {
-	Elf64_Word	ch_type;
-	Elf64_Word	ch_reserved;
-	Elf64_Xword	ch_size;
-	Elf64_Xword	ch_addralign;
-} Elf64_Chdr;
 
 #endif /* !_FREEBSD_ELF_SYS_ELF64_H_ */

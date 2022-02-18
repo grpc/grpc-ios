@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC.
+// Copyright 2017 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,15 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 
 syntax = "proto3";
 
 package google.cloud.vision.v1p1beta1;
 
 import "google/api/annotations.proto";
-import "google/api/client.proto";
-import "google/api/field_behavior.proto";
 import "google/cloud/vision/v1p1beta1/geometry.proto";
 import "google/cloud/vision/v1p1beta1/text_annotation.proto";
 import "google/cloud/vision/v1p1beta1/web_detection.proto";
@@ -37,11 +34,6 @@ option java_package = "com.google.cloud.vision.v1p1beta1";
 // images, such as face, landmark, logo, label, and text detection. The
 // ImageAnnotator service returns detected entities from the images.
 service ImageAnnotator {
-  option (google.api.default_host) = "vision.googleapis.com";
-  option (google.api.oauth_scopes) =
-      "https://www.googleapis.com/auth/cloud-platform,"
-      "https://www.googleapis.com/auth/cloud-vision";
-
   // Run image detection and annotation for a batch of images.
   rpc BatchAnnotateImages(BatchAnnotateImagesRequest)
       returns (BatchAnnotateImagesResponse) {
@@ -49,7 +41,6 @@ service ImageAnnotator {
       post: "/v1p1beta1/images:annotate"
       body: "*"
     };
-    option (google.api.method_signature) = "requests";
   }
 }
 
@@ -348,8 +339,7 @@ message Property {
 // Set of detected entity features.
 message EntityAnnotation {
   // Opaque entity ID. Some IDs may be available in
-  // [Google Knowledge Graph Search
-  // API](https://developers.google.com/knowledge-graph/).
+  // [Google Knowledge Graph Search API](https://developers.google.com/knowledge-graph/).
   string mid = 1;
 
   // The language code for the locale in which the entity textual
@@ -490,16 +480,6 @@ message WebDetectionParams {
   bool include_geo_results = 2;
 }
 
-// Parameters for text detections. This is used to control TEXT_DETECTION and
-// DOCUMENT_TEXT_DETECTION features.
-message TextDetectionParams {
-
-  // By default, Cloud Vision API only includes confidence score for
-  // DOCUMENT_TEXT_DETECTION result. Set the flag to true to include confidence
-  // score for TEXT_DETECTION as well.
-  bool enable_text_detection_confidence_score = 9;
-}
-
 // Image context and/or feature-specific parameters.
 message ImageContext {
   // lat/long rectangle that specifies the location of the image.
@@ -512,7 +492,7 @@ message ImageContext {
   // setting a hint will help get better results (although it will be a
   // significant hindrance if the hint is wrong). Text detection returns an
   // error if one or more of the specified languages is not one of the
-  // [supported languages](https://cloud.google.com/vision/docs/languages).
+  // [supported languages](/vision/docs/languages).
   repeated string language_hints = 2;
 
   // Parameters for crop hints annotation request.
@@ -520,9 +500,6 @@ message ImageContext {
 
   // Parameters for web detection.
   WebDetectionParams web_detection_params = 6;
-
-  // Parameters for text detection and document text detection.
-  TextDetectionParams text_detection_params = 12;
 }
 
 // Request for performing Google Cloud Vision API tasks over a user-provided
@@ -581,8 +558,8 @@ message AnnotateImageResponse {
 
 // Multiple image annotation requests are batched into a single service call.
 message BatchAnnotateImagesRequest {
-  // Required. Individual image annotation requests for this batch.
-  repeated AnnotateImageRequest requests = 1 [(google.api.field_behavior) = REQUIRED];
+  // Individual image annotation requests for this batch.
+  repeated AnnotateImageRequest requests = 1;
 }
 
 // Response to a batch image annotation request.

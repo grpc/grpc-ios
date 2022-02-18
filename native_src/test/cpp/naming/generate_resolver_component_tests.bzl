@@ -13,13 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Houses generate_resolver_component_tests.
-"""
-
 load("//bazel:grpc_build_system.bzl", "grpc_cc_binary", "grpc_cc_test")
 
-# buildifier: disable=unnamed-macro
 def generate_resolver_component_tests():
     for unsecure_build_config_suffix in ["_unsecure", ""]:
         grpc_cc_test(
@@ -52,9 +47,9 @@ def generate_resolver_component_tests():
                 "gtest",
             ],
             deps = [
+                ":dns_test_util",
                 "//test/cpp/util:test_util%s" % unsecure_build_config_suffix,
                 "//test/core/util:grpc_test_util%s" % unsecure_build_config_suffix,
-                "//test/core/util:fake_udp_and_tcp_server",
                 "//:grpc++%s" % unsecure_build_config_suffix,
                 "//:grpc%s" % unsecure_build_config_suffix,
                 "//:gpr",
@@ -66,9 +61,6 @@ def generate_resolver_component_tests():
             name = "resolver_component_tests_runner_invoker%s" % unsecure_build_config_suffix,
             srcs = [
                 "resolver_component_tests_runner_invoker.cc",
-            ],
-            external_deps = [
-                "absl/flags:flag",
             ],
             deps = [
                 "//test/cpp/util:test_util",
@@ -90,8 +82,5 @@ def generate_resolver_component_tests():
                 "--test_bin_name=resolver_component_test%s" % unsecure_build_config_suffix,
                 "--running_under_bazel=true",
             ],
-            # The test is highly flaky on AWS workers that we use for running ARM64 tests.
-            # The "no_arm64" tag can be used to skip it.
-            # (see https://github.com/grpc/grpc/issues/25289).
-            tags = ["no_windows", "no_mac", "no_arm64"],
+            tags = ["no_windows", "no_mac"],
         )

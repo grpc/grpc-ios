@@ -318,7 +318,8 @@ namespace Grpc.Core
                 userAgentString = option.StringValue + " ";
             };
 
-            userAgentString += UserAgentStringProvider.DefaultInstance.GrpcCsharpUserAgentString;
+            // TODO(jtattermusch): it would be useful to also provide .NET/mono version.
+            userAgentString += string.Format("grpc-csharp/{0}", VersionInfo.CurrentVersion);
 
             options[ChannelOptions.PrimaryUserAgentString] = new ChannelOption(key, userAgentString);
         }

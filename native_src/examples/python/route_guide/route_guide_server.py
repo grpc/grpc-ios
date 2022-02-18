@@ -14,11 +14,12 @@
 """The Python implementation of the gRPC route guide server."""
 
 from concurrent import futures
-import logging
-import math
 import time
+import math
+import logging
 
 import grpc
+
 import route_guide_pb2
 import route_guide_pb2_grpc
 import route_guide_resources

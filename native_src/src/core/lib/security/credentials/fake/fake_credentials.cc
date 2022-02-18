@@ -49,13 +49,6 @@ class grpc_fake_channel_credentials final : public grpc_channel_credentials {
     return grpc_fake_channel_security_connector_create(
         this->Ref(), std::move(call_creds), target, args);
   }
-
- private:
-  int cmp_impl(const grpc_channel_credentials* other) const override {
-    // TODO(yashykt): Check if we can do something better here
-    return grpc_core::QsortCompare(
-        static_cast<const grpc_channel_credentials*>(this), other);
-  }
 };
 
 class grpc_fake_server_credentials final : public grpc_server_credentials {
@@ -66,7 +59,7 @@ class grpc_fake_server_credentials final : public grpc_server_credentials {
   ~grpc_fake_server_credentials() override = default;
 
   grpc_core::RefCountedPtr<grpc_server_security_connector>
-  create_security_connector(const grpc_channel_args* /*args*/) override {
+  create_security_connector() override {
     return grpc_fake_server_security_connector_create(this->Ref());
   }
 };
@@ -83,8 +76,7 @@ grpc_fake_transport_security_server_credentials_create() {
 
 grpc_arg grpc_fake_transport_expected_targets_arg(char* expected_targets) {
   return grpc_channel_arg_string_create(
-      const_cast<char*>(GRPC_ARG_FAKE_SECURITY_EXPECTED_TARGETS),
-      expected_targets);
+      (char*)GRPC_ARG_FAKE_SECURITY_EXPECTED_TARGETS, expected_targets);
 }
 
 const char* grpc_fake_transport_get_expected_targets(
@@ -98,9 +90,9 @@ const char* grpc_fake_transport_get_expected_targets(
 
 bool grpc_md_only_test_credentials::get_request_metadata(
     grpc_polling_entity* /*pollent*/, grpc_auth_metadata_context /*context*/,
-    grpc_core::CredentialsMetadataArray* md_array,
-    grpc_closure* on_request_metadata, grpc_error_handle* /*error*/) {
-  md_array->emplace_back(key_.Ref(), value_.Ref());
+    grpc_credentials_mdelem_array* md_array, grpc_closure* on_request_metadata,
+    grpc_error** /*error*/) {
+  grpc_credentials_mdelem_array_add(md_array, md_);
   if (is_async_) {
     grpc_core::ExecCtx::Run(DEBUG_LOCATION, on_request_metadata,
                             GRPC_ERROR_NONE);
@@ -110,8 +102,7 @@ bool grpc_md_only_test_credentials::get_request_metadata(
 }
 
 void grpc_md_only_test_credentials::cancel_get_request_metadata(
-    grpc_core::CredentialsMetadataArray* /*md_array*/,
-    grpc_error_handle error) {
+    grpc_credentials_mdelem_array* /*md_array*/, grpc_error* error) {
   GRPC_ERROR_UNREF(error);
 }
 

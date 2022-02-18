@@ -16,36 +16,26 @@ use Google\Protobuf\Internal\GPBUtil;
 class Payload extends \Google\Protobuf\Internal\Message
 {
     /**
+     * DEPRECATED, don't use. To be removed shortly.
      * The type of data in body.
      *
      * Generated from protobuf field <code>.grpc.testing.PayloadType type = 1;</code>
      */
-    protected $type = 0;
+    private $type = 0;
     /**
      * Primary contents of payload.
      *
      * Generated from protobuf field <code>bytes body = 2;</code>
      */
-    protected $body = '';
+    private $body = '';
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type int $type
-     *           The type of data in body.
-     *     @type string $body
-     *           Primary contents of payload.
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Messages::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**
+     * DEPRECATED, don't use. To be removed shortly.
      * The type of data in body.
      *
      * Generated from protobuf field <code>.grpc.testing.PayloadType type = 1;</code>
@@ -57,6 +47,7 @@ class Payload extends \Google\Protobuf\Internal\Message
     }
 
     /**
+     * DEPRECATED, don't use. To be removed shortly.
      * The type of data in body.
      *
      * Generated from protobuf field <code>.grpc.testing.PayloadType type = 1;</code>

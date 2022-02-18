@@ -66,7 +66,7 @@ grpc_slice GrpcLbLoadReportRequestCreate(
 
 // Deserialize a grpclb response.
 bool GrpcLbResponseParse(const grpc_slice& serialized_response,
-                         upb_arena* arena, GrpcLbResponse* result);
+                         upb_arena* arena, GrpcLbResponse* response);
 
 }  // namespace grpc_core
 

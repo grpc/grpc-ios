@@ -16,9 +16,10 @@
  *
  */
 
+#include "test/core/end2end/end2end_tests.h"
+
 #include <string.h>
 
-#include <grpc/grpc_security.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/sync.h>
@@ -29,7 +30,6 @@
 #include "src/core/lib/channel/connected_channel.h"
 #include "src/core/lib/surface/channel.h"
 #include "src/core/lib/surface/server.h"
-#include "test/core/end2end/end2end_tests.h"
 #include "test/core/end2end/fixtures/proxy.h"
 #include "test/core/util/port.h"
 #include "test/core/util/test_config.h"
@@ -39,20 +39,24 @@ typedef struct fullstack_fixture_data {
 } fullstack_fixture_data;
 
 static grpc_server* create_proxy_server(const char* port,
-                                        const grpc_channel_args* server_args) {
+                                        grpc_channel_args* server_args) {
   grpc_server* s = grpc_server_create(server_args, nullptr);
-  grpc_server_credentials* server_creds =
-      grpc_insecure_server_credentials_create();
-  GPR_ASSERT(grpc_server_add_http2_port(s, port, server_creds));
-  grpc_server_credentials_release(server_creds);
+  GPR_ASSERT(grpc_server_add_insecure_http2_port(s, port));
   return s;
 }
 
 static grpc_channel* create_proxy_client(const char* target,
-                                         const grpc_channel_args* client_args) {
-  grpc_channel_credentials* creds = grpc_insecure_credentials_create();
-  grpc_channel* channel = grpc_channel_create(target, creds, client_args);
-  grpc_channel_credentials_release(creds);
+                                         grpc_channel_args* client_args) {
+  // Disable retries in proxy client.
+  grpc_arg arg;
+  arg.type = GRPC_ARG_INTEGER;
+  arg.key = const_cast<char*>(GRPC_ARG_ENABLE_RETRIES);
+  arg.value.integer = 0;
+  grpc_channel_args* new_args =
+      grpc_channel_args_copy_and_add(client_args, &arg, 1);
+  grpc_channel* channel =
+      grpc_insecure_channel_create(target, new_args, nullptr);
+  grpc_channel_args_destroy(new_args);
   return channel;
 }
 
@@ -60,8 +64,7 @@ static const grpc_end2end_proxy_def proxy_def = {create_proxy_server,
                                                  create_proxy_client};
 
 static grpc_end2end_test_fixture chttp2_create_fixture_fullstack(
-    const grpc_channel_args* client_args,
-    const grpc_channel_args* server_args) {
+    grpc_channel_args* client_args, grpc_channel_args* server_args) {
   grpc_end2end_test_fixture f;
   fullstack_fixture_data* ffd = static_cast<fullstack_fixture_data*>(
       gpr_malloc(sizeof(fullstack_fixture_data)));
@@ -77,18 +80,16 @@ static grpc_end2end_test_fixture chttp2_create_fixture_fullstack(
 }
 
 void chttp2_init_client_fullstack(grpc_end2end_test_fixture* f,
-                                  const grpc_channel_args* client_args) {
+                                  grpc_channel_args* client_args) {
   fullstack_fixture_data* ffd =
       static_cast<fullstack_fixture_data*>(f->fixture_data);
-  grpc_channel_credentials* creds = grpc_insecure_credentials_create();
-  f->client = grpc_channel_create(
-      grpc_end2end_proxy_get_client_target(ffd->proxy), creds, client_args);
-  grpc_channel_credentials_release(creds);
+  f->client = grpc_insecure_channel_create(
+      grpc_end2end_proxy_get_client_target(ffd->proxy), client_args, nullptr);
   GPR_ASSERT(f->client);
 }
 
 void chttp2_init_server_fullstack(grpc_end2end_test_fixture* f,
-                                  const grpc_channel_args* server_args) {
+                                  grpc_channel_args* server_args) {
   fullstack_fixture_data* ffd =
       static_cast<fullstack_fixture_data*>(f->fixture_data);
   if (f->server) {
@@ -96,11 +97,8 @@ void chttp2_init_server_fullstack(grpc_end2end_test_fixture* f,
   }
   f->server = grpc_server_create(server_args, nullptr);
   grpc_server_register_completion_queue(f->server, f->cq, nullptr);
-  grpc_server_credentials* server_creds =
-      grpc_insecure_server_credentials_create();
-  GPR_ASSERT(grpc_server_add_http2_port(
-      f->server, grpc_end2end_proxy_get_server_port(ffd->proxy), server_creds));
-  grpc_server_credentials_release(server_creds);
+  GPR_ASSERT(grpc_server_add_insecure_http2_port(
+      f->server, grpc_end2end_proxy_get_server_port(ffd->proxy)));
   grpc_server_start(f->server);
 }
 

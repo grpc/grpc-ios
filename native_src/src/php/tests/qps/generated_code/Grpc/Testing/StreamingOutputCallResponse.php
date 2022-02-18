@@ -20,21 +20,11 @@ class StreamingOutputCallResponse extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>.grpc.testing.Payload payload = 1;</code>
      */
-    protected $payload = null;
+    private $payload = null;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type \Grpc\Testing\Payload $payload
-     *           Payload to increase response size.
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Messages::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

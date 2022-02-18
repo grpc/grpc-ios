@@ -16,8 +16,6 @@
  *
  */
 
-#include "upb/upb.hpp"
-
 #include <grpc/grpc_security.h>
 #include <grpc/support/log.h>
 #include <grpcpp/security/alts_context.h>

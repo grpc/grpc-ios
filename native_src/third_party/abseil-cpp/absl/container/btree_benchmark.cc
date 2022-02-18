@@ -26,7 +26,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "benchmark/benchmark.h"
 #include "absl/base/internal/raw_logging.h"
 #include "absl/container/btree_map.h"
 #include "absl/container/btree_set.h"
@@ -37,9 +36,9 @@
 #include "absl/flags/flag.h"
 #include "absl/hash/hash.h"
 #include "absl/memory/memory.h"
-#include "absl/strings/cord.h"
 #include "absl/strings/str_format.h"
 #include "absl/time/time.h"
+#include "benchmark/benchmark.h"
 
 namespace absl {
 ABSL_NAMESPACE_BEGIN
@@ -101,24 +100,36 @@ void BM_InsertSorted(benchmark::State& state) {
   BM_InsertImpl<T>(state, true);
 }
 
-// Benchmark inserting the first few elements in a container. In b-tree, this is
-// when the root node grows.
+// container::insert sometimes returns a pair<iterator, bool> and sometimes
+// returns an iterator (for multi- containers).
+template <typename Iter>
+Iter GetIterFromInsert(const std::pair<Iter, bool>& pair) {
+  return pair.first;
+}
+template <typename Iter>
+Iter GetIterFromInsert(const Iter iter) {
+  return iter;
+}
+
+// Benchmark insertion of values into a container at the end.
 template <typename T>
-void BM_InsertSmall(benchmark::State& state) {
+void BM_InsertEnd(benchmark::State& state) {
   using V = typename remove_pair_const<typename T::value_type>::type;
+  typename KeyOfValue<typename T::key_type, V>::type key_of_value;
 
-  const int kSize = 8;
-  std::vector<V> values = GenerateValues<V>(kSize);
   T container;
+  const int kSize = 10000;
+  for (int i = 0; i < kSize; ++i) {
+    container.insert(Generator<V>(kSize)(i));
+  }
+  V v = Generator<V>(kSize)(kSize - 1);
+  typename T::key_type k = key_of_value(v);
 
-  while (state.KeepRunningBatch(kSize)) {
-    for (int i = 0; i < kSize; ++i) {
-      benchmark::DoNotOptimize(container.insert(values[i]));
-    }
-    state.PauseTiming();
-    // Do not measure the time it takes to clear the container.
-    container.clear();
-    state.ResumeTiming();
+  auto it = container.find(k);
+  while (state.KeepRunning()) {
+    // Repeatedly removing then adding v.
+    container.erase(it);
+    it = GetIterFromInsert(container.insert(v));
   }
 }
 
@@ -427,7 +438,6 @@ using StdString = std::string;
 STL_ORDERED_TYPES(int32_t);
 STL_ORDERED_TYPES(int64_t);
 STL_ORDERED_TYPES(StdString);
-STL_ORDERED_TYPES(Cord);
 STL_ORDERED_TYPES(Time);
 
 #define STL_UNORDERED_TYPES(value)                                       \
@@ -447,8 +457,6 @@ STL_ORDERED_TYPES(Time);
   using stl_unordered_multiset_##value = std::unordered_multiset<value, hash>; \
   using stl_unordered_multimap_##value =                                       \
       std::unordered_multimap<value, intptr_t, hash>
-
-STL_UNORDERED_TYPES_CUSTOM_HASH(Cord, absl::Hash<absl::Cord>);
 
 STL_UNORDERED_TYPES(int32_t);
 STL_UNORDERED_TYPES(int64_t);
@@ -470,7 +478,6 @@ STL_UNORDERED_TYPES_CUSTOM_HASH(Time, absl::Hash<absl::Time>);
 BTREE_TYPES(int32_t);
 BTREE_TYPES(int64_t);
 BTREE_TYPES(StdString);
-BTREE_TYPES(Cord);
 BTREE_TYPES(Time);
 
 #define MY_BENCHMARK4(type, func)                                              \
@@ -480,7 +487,7 @@ BTREE_TYPES(Time);
 #define MY_BENCHMARK3(type)               \
   MY_BENCHMARK4(type, Insert);            \
   MY_BENCHMARK4(type, InsertSorted);      \
-  MY_BENCHMARK4(type, InsertSmall);       \
+  MY_BENCHMARK4(type, InsertEnd);         \
   MY_BENCHMARK4(type, Lookup);            \
   MY_BENCHMARK4(type, FullLookup);        \
   MY_BENCHMARK4(type, Delete);            \
@@ -519,7 +526,6 @@ BTREE_TYPES(Time);
 MY_BENCHMARK(int32_t);
 MY_BENCHMARK(int64_t);
 MY_BENCHMARK(StdString);
-MY_BENCHMARK(Cord);
 MY_BENCHMARK(Time);
 
 // Define a type whose size and cost of moving are independently customizable.
@@ -532,19 +538,19 @@ struct BigType {
   BigType() : BigType(0) {}
   explicit BigType(int x) { std::iota(values.begin(), values.end(), x); }
 
-  void Copy(const BigType& other) {
-    for (int i = 0; i < Size && i < Copies; ++i) values[i] = other.values[i];
+  void Copy(const BigType& x) {
+    for (int i = 0; i < Size && i < Copies; ++i) values[i] = x.values[i];
     // If Copies > Size, do extra copies.
     for (int i = Size, idx = 0; i < Copies; ++i) {
-      int64_t tmp = other.values[idx];
+      int64_t tmp = x.values[idx];
       benchmark::DoNotOptimize(tmp);
       idx = idx + 1 == Size ? 0 : idx + 1;
     }
   }
 
-  BigType(const BigType& other) { Copy(other); }
-  BigType& operator=(const BigType& other) {
-    Copy(other);
+  BigType(const BigType& x) { Copy(x); }
+  BigType& operator=(const BigType& x) {
+    Copy(x);
     return *this;
   }
 
@@ -635,14 +641,14 @@ struct BigTypePtr {
   explicit BigTypePtr(int x) {
     ptr = absl::make_unique<BigType<Size, Size>>(x);
   }
-  BigTypePtr(const BigTypePtr& other) {
-    ptr = absl::make_unique<BigType<Size, Size>>(*other.ptr);
+  BigTypePtr(const BigTypePtr& x) {
+    ptr = absl::make_unique<BigType<Size, Size>>(*x.ptr);
   }
-  BigTypePtr(BigTypePtr&& other) noexcept = default;
-  BigTypePtr& operator=(const BigTypePtr& other) {
-    ptr = absl::make_unique<BigType<Size, Size>>(*other.ptr);
+  BigTypePtr(BigTypePtr&& x) noexcept = default;
+  BigTypePtr& operator=(const BigTypePtr& x) {
+    ptr = absl::make_unique<BigType<Size, Size>>(*x.ptr);
   }
-  BigTypePtr& operator=(BigTypePtr&& other) noexcept = default;
+  BigTypePtr& operator=(BigTypePtr&& x) noexcept = default;
 
   bool operator<(const BigTypePtr& other) const { return *ptr < *other.ptr; }
   bool operator==(const BigTypePtr& other) const { return *ptr == *other.ptr; }

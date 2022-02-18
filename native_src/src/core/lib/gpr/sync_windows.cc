@@ -100,7 +100,7 @@ void gpr_cv_broadcast(gpr_cv* cv) { WakeAllConditionVariable(cv); }
 
 /*----------------------------------------*/
 
-static void* phony;
+static void* dummy;
 struct run_once_func_arg {
   void (*init_function)(void);
 };
@@ -113,7 +113,7 @@ static BOOL CALLBACK run_once_func(gpr_once* once, void* v, void** pv) {
 void gpr_once_init(gpr_once* once, void (*init_function)(void)) {
   struct run_once_func_arg arg;
   arg.init_function = init_function;
-  InitOnceExecuteOnce(once, run_once_func, &arg, &phony);
+  InitOnceExecuteOnce(once, run_once_func, &arg, &dummy);
 }
 
 #endif /* defined(GPR_WINDOWS) && !defined(GPR_ABSEIL_SYNC) && \

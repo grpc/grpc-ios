@@ -42,7 +42,6 @@ class WorkerServiceClient extends \Grpc\BaseStub {
      * this RPC.
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\ServerStatus
      */
     public function RunServer($metadata = [], $options = []) {
         return $this->_bidiRequest('/grpc.testing.WorkerService/RunServer',
@@ -59,7 +58,6 @@ class WorkerServiceClient extends \Grpc\BaseStub {
      * this RPC.
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\ClientStatus
      */
     public function RunClient($metadata = [], $options = []) {
         return $this->_bidiRequest('/grpc.testing.WorkerService/RunClient',
@@ -72,7 +70,6 @@ class WorkerServiceClient extends \Grpc\BaseStub {
      * @param \Grpc\Testing\CoreRequest $argument input argument
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\CoreResponse
      */
     public function CoreCount(\Grpc\Testing\CoreRequest $argument,
       $metadata = [], $options = []) {
@@ -87,7 +84,6 @@ class WorkerServiceClient extends \Grpc\BaseStub {
      * @param \Grpc\Testing\PBVoid $argument input argument
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\PBVoid
      */
     public function QuitWorker(\Grpc\Testing\PBVoid $argument,
       $metadata = [], $options = []) {

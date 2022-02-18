@@ -548,11 +548,13 @@ bool ssl_cert_check_key_usage(const CBS *in, enum ssl_key_usage_t bit) {
       // subjectPublicKeyInfo
       !CBS_get_asn1(&tbs_cert, NULL, CBS_ASN1_SEQUENCE) ||
       // issuerUniqueID
-      !CBS_get_optional_asn1(&tbs_cert, NULL, NULL,
-                             CBS_ASN1_CONTEXT_SPECIFIC | 1) ||
+      !CBS_get_optional_asn1(
+          &tbs_cert, NULL, NULL,
+          CBS_ASN1_CONSTRUCTED | CBS_ASN1_CONTEXT_SPECIFIC | 1) ||
       // subjectUniqueID
-      !CBS_get_optional_asn1(&tbs_cert, NULL, NULL,
-                             CBS_ASN1_CONTEXT_SPECIFIC | 2) ||
+      !CBS_get_optional_asn1(
+          &tbs_cert, NULL, NULL,
+          CBS_ASN1_CONSTRUCTED | CBS_ASN1_CONTEXT_SPECIFIC | 2) ||
       !CBS_get_optional_asn1(
           &tbs_cert, &outer_extensions, &has_extensions,
           CBS_ASN1_CONSTRUCTED | CBS_ASN1_CONTEXT_SPECIFIC | 3)) {
@@ -819,13 +821,16 @@ static bool ssl_can_serve_dc(const SSL_HANDSHAKE *hs) {
   }
 
   // Check that the DC signature algorithm is supported by the peer.
-  Span<const uint16_t> peer_sigalgs = hs->peer_delegated_credential_sigalgs;
+  Span<const uint16_t> peer_sigalgs = tls1_get_peer_verify_algorithms(hs);
+  bool sigalg_found = false;
   for (uint16_t peer_sigalg : peer_sigalgs) {
     if (dc->expected_cert_verify_algorithm == peer_sigalg) {
-      return true;
+      sigalg_found = true;
+      break;
     }
   }
-  return false;
+
+  return sigalg_found;
 }
 
 bool ssl_signing_with_dc(const SSL_HANDSHAKE *hs) {
@@ -889,10 +894,6 @@ int SSL_CTX_set_chain_and_key(SSL_CTX *ctx, CRYPTO_BUFFER *const *certs,
                               const SSL_PRIVATE_KEY_METHOD *privkey_method) {
   return cert_set_chain_and_key(ctx->cert.get(), certs, num_certs, privkey,
                                 privkey_method);
-}
-
-const STACK_OF(CRYPTO_BUFFER)* SSL_CTX_get0_chain(const SSL_CTX *ctx) {
-  return ctx->cert->chain.get();
 }
 
 int SSL_CTX_use_certificate_ASN1(SSL_CTX *ctx, size_t der_len,

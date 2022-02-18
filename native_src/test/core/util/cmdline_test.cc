@@ -16,14 +16,13 @@
  *
  */
 
-#include "test/core/util/cmdline.h"
-
 #include <string.h>
 
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 
 #include "src/core/lib/gpr/useful.h"
+#include "test/core/util/cmdline.h"
 #include "test/core/util/test_config.h"
 
 #define LOG_TEST() gpr_log(GPR_INFO, "test at %s:%d", __FILE__, __LINE__)
@@ -31,7 +30,7 @@
 static void test_simple_int(void) {
   int x = 1;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("-foo"),
+  char* args[] = {(char*)__FILE__, const_cast<char*>("-foo"),
                   const_cast<char*>("3")};
 
   LOG_TEST();
@@ -47,7 +46,7 @@ static void test_simple_int(void) {
 static void test_eq_int(void) {
   int x = 1;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("-foo=3")};
+  char* args[] = {(char*)__FILE__, const_cast<char*>("-foo=3")};
 
   LOG_TEST();
 
@@ -62,7 +61,7 @@ static void test_eq_int(void) {
 static void test_2dash_int(void) {
   int x = 1;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("--foo"),
+  char* args[] = {(char*)__FILE__, const_cast<char*>("--foo"),
                   const_cast<char*>("3")};
 
   LOG_TEST();
@@ -78,7 +77,7 @@ static void test_2dash_int(void) {
 static void test_2dash_eq_int(void) {
   int x = 1;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("--foo=3")};
+  char* args[] = {(char*)__FILE__, const_cast<char*>("--foo=3")};
 
   LOG_TEST();
 
@@ -93,7 +92,7 @@ static void test_2dash_eq_int(void) {
 static void test_simple_string(void) {
   const char* x = nullptr;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("-foo"),
+  char* args[] = {(char*)__FILE__, const_cast<char*>("-foo"),
                   const_cast<char*>("3")};
 
   LOG_TEST();
@@ -109,7 +108,7 @@ static void test_simple_string(void) {
 static void test_eq_string(void) {
   const char* x = nullptr;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("-foo=3")};
+  char* args[] = {(char*)__FILE__, const_cast<char*>("-foo=3")};
 
   LOG_TEST();
 
@@ -124,7 +123,7 @@ static void test_eq_string(void) {
 static void test_2dash_string(void) {
   const char* x = nullptr;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("--foo"),
+  char* args[] = {(char*)__FILE__, const_cast<char*>("--foo"),
                   const_cast<char*>("3")};
 
   LOG_TEST();
@@ -140,7 +139,7 @@ static void test_2dash_string(void) {
 static void test_2dash_eq_string(void) {
   const char* x = nullptr;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("--foo=3")};
+  char* args[] = {(char*)__FILE__, const_cast<char*>("--foo=3")};
 
   LOG_TEST();
 
@@ -155,7 +154,7 @@ static void test_2dash_eq_string(void) {
 static void test_flag_on(void) {
   int x = 2;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("--foo")};
+  char* args[] = {(char*)__FILE__, const_cast<char*>("--foo")};
 
   LOG_TEST();
 
@@ -170,7 +169,7 @@ static void test_flag_on(void) {
 static void test_flag_no(void) {
   int x = 2;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("--no-foo")};
+  char* args[] = {(char*)__FILE__, const_cast<char*>("--no-foo")};
 
   LOG_TEST();
 
@@ -185,7 +184,7 @@ static void test_flag_no(void) {
 static void test_flag_val_1(void) {
   int x = 2;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("--foo=1")};
+  char* args[] = {(char*)__FILE__, const_cast<char*>("--foo=1")};
 
   LOG_TEST();
 
@@ -200,7 +199,7 @@ static void test_flag_val_1(void) {
 static void test_flag_val_0(void) {
   int x = 2;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("--foo=0")};
+  char* args[] = {(char*)__FILE__, const_cast<char*>("--foo=0")};
 
   LOG_TEST();
 
@@ -215,7 +214,7 @@ static void test_flag_val_0(void) {
 static void test_flag_val_true(void) {
   int x = 2;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("--foo=true")};
+  char* args[] = {(char*)__FILE__, const_cast<char*>("--foo=true")};
 
   LOG_TEST();
 
@@ -230,8 +229,7 @@ static void test_flag_val_true(void) {
 static void test_flag_val_false(void) {
   int x = 2;
   gpr_cmdline* cl;
-  char* args[] = {const_cast<char*>(__FILE__),
-                  const_cast<char*>("--foo=false")};
+  char* args[] = {(char*)__FILE__, const_cast<char*>("--foo=false")};
 
   LOG_TEST();
 
@@ -249,7 +247,7 @@ static void test_many(void) {
   int flag = 2;
   gpr_cmdline* cl;
 
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("--str"),
+  char* args[] = {(char*)__FILE__, const_cast<char*>("--str"),
                   const_cast<char*>("hello"), const_cast<char*>("-x=4"),
                   const_cast<char*>("-no-flag")};
 
@@ -277,7 +275,7 @@ static void extra_arg_cb(void* user_data, const char* arg) {
 static void test_extra(void) {
   gpr_cmdline* cl;
   int count = 0;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("a"),
+  char* args[] = {(char*)__FILE__, const_cast<char*>("a"),
                   const_cast<char*>("b"), const_cast<char*>("c")};
 
   LOG_TEST();
@@ -293,7 +291,7 @@ static void test_extra(void) {
 static void test_extra_dashdash(void) {
   gpr_cmdline* cl;
   int count = 0;
-  char* args[] = {const_cast<char*>(__FILE__), const_cast<char*>("--"),
+  char* args[] = {(char*)__FILE__, const_cast<char*>("--"),
                   const_cast<char*>("a"), const_cast<char*>("b"),
                   const_cast<char*>("c")};
 
@@ -309,6 +307,7 @@ static void test_extra_dashdash(void) {
 
 static void test_usage(void) {
   gpr_cmdline* cl;
+  char* usage;
 
   const char* str = nullptr;
   int x = 0;
@@ -323,15 +322,17 @@ static void test_usage(void) {
   gpr_cmdline_on_extra_arg(cl, "file", "filenames to process", extra_arg_cb,
                            nullptr);
 
-  std::string usage = gpr_cmdline_usage_string(cl, "test");
-  GPR_ASSERT(usage ==
-             "Usage: test [--str=string] [--x=int] "
-             "[--flag|--no-flag] [file...]\n");
+  usage = gpr_cmdline_usage_string(cl, "test");
+  GPR_ASSERT(0 == strcmp(usage,
+                         "Usage: test [--str=string] [--x=int] "
+                         "[--flag|--no-flag] [file...]\n"));
+  gpr_free(usage);
 
   usage = gpr_cmdline_usage_string(cl, "/foo/test");
-  GPR_ASSERT(usage ==
-             "Usage: test [--str=string] [--x=int] "
-             "[--flag|--no-flag] [file...]\n");
+  GPR_ASSERT(0 == strcmp(usage,
+                         "Usage: test [--str=string] [--x=int] "
+                         "[--flag|--no-flag] [file...]\n"));
+  gpr_free(usage);
 
   gpr_cmdline_destroy(cl);
 }
@@ -343,7 +344,7 @@ static void test_help(void) {
   int x = 0;
   int flag = 2;
 
-  char* help[] = {const_cast<char*>(__FILE__), const_cast<char*>("-h")};
+  char* help[] = {(char*)__FILE__, const_cast<char*>("-h")};
 
   LOG_TEST();
 
@@ -367,8 +368,7 @@ static void test_badargs1(void) {
   int x = 0;
   int flag = 2;
 
-  char* bad_arg_name[] = {const_cast<char*>(__FILE__),
-                          const_cast<char*>("--y")};
+  char* bad_arg_name[] = {(char*)__FILE__, const_cast<char*>("--y")};
 
   LOG_TEST();
 
@@ -393,8 +393,7 @@ static void test_badargs2(void) {
   int x = 0;
   int flag = 2;
 
-  char* bad_int_value[] = {const_cast<char*>(__FILE__),
-                           const_cast<char*>("--x"),
+  char* bad_int_value[] = {(char*)__FILE__, const_cast<char*>("--x"),
                            const_cast<char*>("henry")};
 
   LOG_TEST();
@@ -420,8 +419,7 @@ static void test_badargs3(void) {
   int x = 0;
   int flag = 2;
 
-  char* bad_bool_value[] = {const_cast<char*>(__FILE__),
-                            const_cast<char*>("--flag=henry")};
+  char* bad_bool_value[] = {(char*)__FILE__, const_cast<char*>("--flag=henry")};
 
   LOG_TEST();
 
@@ -446,8 +444,7 @@ static void test_badargs4(void) {
   int x = 0;
   int flag = 2;
 
-  char* bad_bool_value[] = {const_cast<char*>(__FILE__),
-                            const_cast<char*>("--no-str")};
+  char* bad_bool_value[] = {(char*)__FILE__, const_cast<char*>("--no-str")};
 
   LOG_TEST();
 

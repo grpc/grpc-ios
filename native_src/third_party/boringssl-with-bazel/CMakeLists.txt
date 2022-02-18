@@ -4,7 +4,7 @@
 
 # This file is created by generate_build_files.py. Do not edit manually.
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.0)
 
 project(BoringSSL LANGUAGES C CXX)
 
@@ -18,7 +18,12 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CLANG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
   endif()
 
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden -fno-common -std=c11")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden -fno-common")
+  if((CMAKE_C_COMPILER_VERSION VERSION_GREATER "4.8.99") OR CLANG)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11")
+  else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+  endif()
 endif()
 
 # pthread_rwlock_t requires a feature flag.
@@ -48,7 +53,7 @@ add_definitions(-DBORINGSSL_IMPLEMENTATION)
 # builds.
 if(NOT OPENSSL_NO_ASM AND CMAKE_OSX_ARCHITECTURES)
   list(LENGTH CMAKE_OSX_ARCHITECTURES NUM_ARCHES)
-  if(NOT NUM_ARCHES EQUAL 1)
+  if(NOT ${NUM_ARCHES} EQUAL 1)
     message(FATAL_ERROR "Universal binaries not supported.")
   endif()
   list(GET CMAKE_OSX_ARCHITECTURES 0 CMAKE_SYSTEM_PROCESSOR)
@@ -57,36 +62,36 @@ endif()
 if(OPENSSL_NO_ASM)
   add_definitions(-DOPENSSL_NO_ASM)
   set(ARCH "generic")
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
   set(ARCH "x86_64")
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "amd64")
   set(ARCH "x86_64")
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "AMD64")
   # cmake reports AMD64 on Windows, but we might be building for 32-bit.
-  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  if(CMAKE_CL_64)
     set(ARCH "x86_64")
   else()
     set(ARCH "x86")
   endif()
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86")
   set(ARCH "x86")
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "i386")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i386")
   set(ARCH "x86")
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "i686")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i686")
   set(ARCH "x86")
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
   set(ARCH "aarch64")
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")
   set(ARCH "aarch64")
 # Apple A12 Bionic chipset which is added in iPhone XS/XS Max/XR uses arm64e architecture.
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64e")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64e")
   set(ARCH "aarch64")
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm*")
+elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^arm*")
   set(ARCH "arm")
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "mips")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "mips")
   # Just to avoid the “unknown processor” error.
   set(ARCH "generic")
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc64le")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "ppc64le")
   set(ARCH "ppc64le")
 else()
   message(FATAL_ERROR "Unknown processor:" ${CMAKE_SYSTEM_PROCESSOR})
@@ -283,21 +288,6 @@ set(
 )
 
 set(
-  CRYPTO_win_aarch64_SOURCES
-
-  win-aarch64/crypto/chacha/chacha-armv8.S
-  win-aarch64/crypto/fipsmodule/aesv8-armx64.S
-  win-aarch64/crypto/fipsmodule/armv8-mont.S
-  win-aarch64/crypto/fipsmodule/ghash-neon-armv8.S
-  win-aarch64/crypto/fipsmodule/ghashv8-armx64.S
-  win-aarch64/crypto/fipsmodule/sha1-armv8.S
-  win-aarch64/crypto/fipsmodule/sha256-armv8.S
-  win-aarch64/crypto/fipsmodule/sha512-armv8.S
-  win-aarch64/crypto/fipsmodule/vpaes-armv8.S
-  win-aarch64/crypto/test/trampoline-armv8.S
-)
-
-set(
   CRYPTO_win_x86_SOURCES
 
   win-x86/crypto/chacha/chacha-x86.asm
@@ -339,9 +329,9 @@ set(
   win-x86_64/crypto/test/trampoline-x86_64.asm
 )
 
-if(APPLE AND ARCH STREQUAL "aarch64")
+if(APPLE AND ${ARCH} STREQUAL "aarch64")
   set(CRYPTO_ARCH_SOURCES ${CRYPTO_ios_aarch64_SOURCES})
-elseif(APPLE AND ARCH STREQUAL "arm")
+elseif(APPLE AND ${ARCH} STREQUAL "arm")
   set(CRYPTO_ARCH_SOURCES ${CRYPTO_ios_arm_SOURCES})
 elseif(APPLE)
   set(CRYPTO_ARCH_SOURCES ${CRYPTO_mac_${ARCH}_SOURCES})
@@ -368,7 +358,6 @@ add_library(
   src/crypto/asn1/a_object.c
   src/crypto/asn1/a_octet.c
   src/crypto/asn1/a_print.c
-  src/crypto/asn1/a_strex.c
   src/crypto/asn1/a_strnid.c
   src/crypto/asn1/a_time.c
   src/crypto/asn1/a_type.c
@@ -377,6 +366,7 @@ add_library(
   src/crypto/asn1/asn1_lib.c
   src/crypto/asn1/asn1_par.c
   src/crypto/asn1/asn_pack.c
+  src/crypto/asn1/f_enum.c
   src/crypto/asn1/f_int.c
   src/crypto/asn1/f_string.c
   src/crypto/asn1/tasn_dec.c
@@ -397,7 +387,6 @@ add_library(
   src/crypto/bio/printf.c
   src/crypto/bio/socket.c
   src/crypto/bio/socket_helper.c
-  src/crypto/blake2/blake2.c
   src/crypto/bn_extra/bn_asn1.c
   src/crypto/bn_extra/convert.c
   src/crypto/buf/buf.c
@@ -422,22 +411,21 @@ add_library(
   src/crypto/conf/conf.c
   src/crypto/cpu-aarch64-fuchsia.c
   src/crypto/cpu-aarch64-linux.c
-  src/crypto/cpu-aarch64-win.c
   src/crypto/cpu-arm-linux.c
   src/crypto/cpu-arm.c
   src/crypto/cpu-intel.c
   src/crypto/cpu-ppc64le.c
   src/crypto/crypto.c
-  src/crypto/curve25519/curve25519.c
   src/crypto/curve25519/spake25519.c
-  src/crypto/dh_extra/dh_asn1.c
-  src/crypto/dh_extra/params.c
+  src/crypto/dh/check.c
+  src/crypto/dh/dh.c
+  src/crypto/dh/dh_asn1.c
+  src/crypto/dh/params.c
   src/crypto/digest_extra/digest_extra.c
   src/crypto/dsa/dsa.c
   src/crypto/dsa/dsa_asn1.c
   src/crypto/ec_extra/ec_asn1.c
   src/crypto/ec_extra/ec_derive.c
-  src/crypto/ec_extra/hash_to_curve.c
   src/crypto/ecdh_extra/ecdh_extra.c
   src/crypto/ecdsa_extra/ecdsa_asn1.c
   src/crypto/engine/engine.c
@@ -462,8 +450,8 @@ add_library(
   src/crypto/ex_data.c
   src/crypto/fipsmodule/bcm.c
   src/crypto/fipsmodule/fips_shared_support.c
+  src/crypto/fipsmodule/is_fips.c
   src/crypto/hkdf/hkdf.c
-  src/crypto/hpke/hpke.c
   src/crypto/hrss/hrss.c
   src/crypto/lhash/lhash.c
   src/crypto/mem.c
@@ -489,7 +477,6 @@ add_library(
   src/crypto/rand_extra/deterministic.c
   src/crypto/rand_extra/forkunsafe.c
   src/crypto/rand_extra/fuchsia.c
-  src/crypto/rand_extra/passive.c
   src/crypto/rand_extra/rand_extra.c
   src/crypto/rand_extra/windows.c
   src/crypto/rc4/rc4.c
@@ -503,18 +490,15 @@ add_library(
   src/crypto/thread_none.c
   src/crypto/thread_pthread.c
   src/crypto/thread_win.c
-  src/crypto/trust_token/pmbtoken.c
-  src/crypto/trust_token/trust_token.c
-  src/crypto/trust_token/voprf.c
   src/crypto/x509/a_digest.c
   src/crypto/x509/a_sign.c
+  src/crypto/x509/a_strex.c
   src/crypto/x509/a_verify.c
   src/crypto/x509/algorithm.c
   src/crypto/x509/asn1_gen.c
   src/crypto/x509/by_dir.c
   src/crypto/x509/by_file.c
   src/crypto/x509/i2d_pr.c
-  src/crypto/x509/name_print.c
   src/crypto/x509/rsa_pss.c
   src/crypto/x509/t_crl.c
   src/crypto/x509/t_req.c
@@ -528,6 +512,7 @@ add_library(
   src/crypto/x509/x509_ext.c
   src/crypto/x509/x509_lu.c
   src/crypto/x509/x509_obj.c
+  src/crypto/x509/x509_r2x.c
   src/crypto/x509/x509_req.c
   src/crypto/x509/x509_set.c
   src/crypto/x509/x509_trs.c
@@ -580,11 +565,14 @@ add_library(
   src/crypto/x509v3/v3_pci.c
   src/crypto/x509v3/v3_pcia.c
   src/crypto/x509v3/v3_pcons.c
+  src/crypto/x509v3/v3_pku.c
   src/crypto/x509v3/v3_pmaps.c
   src/crypto/x509v3/v3_prn.c
   src/crypto/x509v3/v3_purp.c
   src/crypto/x509v3/v3_skey.c
+  src/crypto/x509v3/v3_sxnet.c
   src/crypto/x509v3/v3_utl.c
+  src/third_party/fiat/curve25519.c
 )
 
 add_library(
@@ -597,8 +585,6 @@ add_library(
   src/ssl/d1_srtp.cc
   src/ssl/dtls_method.cc
   src/ssl/dtls_record.cc
-  src/ssl/encrypted_client_hello.cc
-  src/ssl/extensions.cc
   src/ssl/handoff.cc
   src/ssl/handshake.cc
   src/ssl/handshake_client.cc
@@ -621,6 +607,7 @@ add_library(
   src/ssl/ssl_versions.cc
   src/ssl/ssl_x509.cc
   src/ssl/t1_enc.cc
+  src/ssl/t1_lib.cc
   src/ssl/tls13_both.cc
   src/ssl/tls13_client.cc
   src/ssl/tls13_enc.cc
@@ -637,9 +624,7 @@ add_executable(
   src/tool/client.cc
   src/tool/const.cc
   src/tool/digest.cc
-  src/tool/fd.cc
   src/tool/file.cc
-  src/tool/generate_ech.cc
   src/tool/generate_ed25519.cc
   src/tool/genrsa.cc
   src/tool/pkcs12.cc
@@ -653,11 +638,7 @@ add_executable(
 
 target_link_libraries(bssl ssl crypto)
 
-if(NOT WIN32 AND NOT ANDROID)
+if(NOT MSVC AND NOT ANDROID)
   target_link_libraries(crypto pthread)
-endif()
-
-if(WIN32)
-  target_link_libraries(bssl ws2_32)
 endif()
 

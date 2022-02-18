@@ -16,17 +16,15 @@
  *
  */
 
-#include "src/core/tsi/ssl/session_cache/ssl_session_cache.h"
-
 #include <string>
 #include <unordered_set>
 
-#include <gtest/gtest.h>
+#include "src/core/tsi/ssl/session_cache/ssl_session_cache.h"
+#include "test/core/util/test_config.h"
 
 #include <grpc/grpc.h>
 #include <grpc/support/log.h>
-
-#include "test/core/util/test_config.h"
+#include <gtest/gtest.h>
 
 namespace grpc_core {
 
@@ -74,8 +72,8 @@ class SessionTracker {
     return tsi::SslSessionPtr(cb(ssl_context_));
   }
 
-  static void DestroyExData(void* /*parent*/, void* ptr, CRYPTO_EX_DATA* /*ad*/,
-                            int /*index*/, long /*argl*/, void* /*argp*/) {
+  static void DestroyExData(void* parent, void* ptr, CRYPTO_EX_DATA* ad,
+                            int index, long argl, void* argp) {
     SessionExDataId* data = static_cast<SessionExDataId*>(ptr);
     data->tracker->alive_sessions_.erase(data->id);
     delete data;

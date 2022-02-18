@@ -15,19 +15,9 @@ class ServerArgs extends \Google\Protobuf\Internal\Message
 {
     protected $argtype;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type \Grpc\Testing\ServerConfig $setup
-     *     @type \Grpc\Testing\Mark $mark
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Control::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

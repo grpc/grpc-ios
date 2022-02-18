@@ -31,10 +31,8 @@
 #ifndef GOOGLE_PROTOBUF_PYTHON_CPP_MAP_CONTAINER_H__
 #define GOOGLE_PROTOBUF_PYTHON_CPP_MAP_CONTAINER_H__
 
-#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-#include <cstdint>
 #include <memory>
 
 #include <google/protobuf/descriptor.h>
@@ -56,9 +54,12 @@ struct MapContainer : public ContainerBase {
   // Use to get a mutable message when necessary.
   Message* GetMutableMessage();
 
+  // Cache some descriptors, used to convert keys and values.
+  const FieldDescriptor* key_field_descriptor;
+  const FieldDescriptor* value_field_descriptor;
   // We bump this whenever we perform a mutation, to invalidate existing
   // iterators.
-  uint64_t version;
+  uint64 version;
 };
 
 struct MessageMapContainer : public MapContainer {

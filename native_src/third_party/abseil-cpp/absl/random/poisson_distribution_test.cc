@@ -30,7 +30,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/random/internal/chi_square.h"
 #include "absl/random/internal/distribution_test_util.h"
-#include "absl/random/internal/pcg_engine.h"
 #include "absl/random/internal/sequence_urbg.h"
 #include "absl/random/random.h"
 #include "absl/strings/str_cat.h"
@@ -258,10 +257,7 @@ class PoissonDistributionZTest : public testing::TestWithParam<ZParam>,
   template <typename D>
   bool SingleZTest(const double p, const size_t samples);
 
-  // We use a fixed bit generator for distribution accuracy tests.  This allows
-  // these tests to be deterministic, while still testing the qualify of the
-  // implementation.
-  absl::random_internal::pcg64_2018_engine rng_{0x2B7E151628AED2A6};
+  absl::InsecureBitGen rng_;
 };
 
 template <typename D>
@@ -361,13 +357,9 @@ class PoissonDistributionChiSquaredTest : public testing::TestWithParam<double>,
  private:
   void InitChiSquaredTest(const double buckets);
 
+  absl::InsecureBitGen rng_;
   std::vector<size_t> cutoffs_;
   std::vector<double> expected_;
-
-  // We use a fixed bit generator for distribution accuracy tests.  This allows
-  // these tests to be deterministic, while still testing the qualify of the
-  // implementation.
-  absl::random_internal::pcg64_2018_engine rng_{0x2B7E151628AED2A6};
 };
 
 void PoissonDistributionChiSquaredTest::InitChiSquaredTest(

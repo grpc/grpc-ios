@@ -49,13 +49,12 @@ PACKAGE_DIRECTORIES = {
 }
 
 INSTALL_REQUIRES = (
-    'protobuf>=3.12.0',
+    'protobuf>=3.6.0',
     'grpcio>={version}'.format(version=grpc_version.VERSION),
 )
 
 try:
     import testing_commands as _testing_commands
-
     # we are in the build environment, otherwise the above import fails
     COMMAND_CLASS = {
         # Run preprocess from the repository *before* doing any packaging!

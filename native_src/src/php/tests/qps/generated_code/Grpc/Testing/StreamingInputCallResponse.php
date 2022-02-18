@@ -20,21 +20,11 @@ class StreamingInputCallResponse extends \Google\Protobuf\Internal\Message
      *
      * Generated from protobuf field <code>int32 aggregated_payload_size = 1;</code>
      */
-    protected $aggregated_payload_size = 0;
+    private $aggregated_payload_size = 0;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type int $aggregated_payload_size
-     *           Aggregated size of payloads received from the client.
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Messages::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

@@ -31,7 +31,7 @@ static const GRPCTransportID kFakeTransportID = "io.grpc.transport.unittest.fake
 dispatch_once_t initFakeTransportFactory;
 static GRPCFakeTransportFactory *fakeTransportFactory;
 
-@interface GRPCFakeTransportFactory : NSObject <GRPCTransportFactory>
+@interface GRPCFakeTransportFactory : NSObject<GRPCTransportFactory>
 
 @property(atomic) GRPCTransport *nextTransportInstance;
 - (void)setTransportInterceptorFactories:(NSArray<id<GRPCInterceptorFactory>> *)factories;
@@ -68,13 +68,13 @@ static GRPCFakeTransportFactory *fakeTransportFactory;
 
 @end
 
-@interface PhonyInterceptor : GRPCInterceptor
+@interface DummyInterceptor : GRPCInterceptor
 
 @property(atomic) BOOL hit;
 
 @end
 
-@implementation PhonyInterceptor {
+@implementation DummyInterceptor {
   GRPCInterceptorManager *_manager;
   BOOL _passthrough;
 }
@@ -114,15 +114,15 @@ static GRPCFakeTransportFactory *fakeTransportFactory;
 
 @end
 
-@interface PhonyInterceptorFactory : NSObject <GRPCInterceptorFactory>
+@interface DummyInterceptorFactory : NSObject<GRPCInterceptorFactory>
 
 - (instancetype)initWithPassthrough:(BOOL)passthrough;
 
-@property(nonatomic, readonly) PhonyInterceptor *lastInterceptor;
+@property(nonatomic, readonly) DummyInterceptor *lastInterceptor;
 
 @end
 
-@implementation PhonyInterceptorFactory {
+@implementation DummyInterceptorFactory {
   BOOL _passthrough;
 }
 
@@ -134,7 +134,7 @@ static GRPCFakeTransportFactory *fakeTransportFactory;
 }
 
 - (GRPCInterceptor *)createInterceptorWithManager:(GRPCInterceptorManager *)interceptorManager {
-  _lastInterceptor = [[PhonyInterceptor alloc]
+  _lastInterceptor = [[DummyInterceptor alloc]
       initWithInterceptorManager:interceptorManager
                    dispatchQueue:dispatch_queue_create(NULL, DISPATCH_QUEUE_SERIAL)
                      passthrough:_passthrough];
@@ -143,7 +143,7 @@ static GRPCFakeTransportFactory *fakeTransportFactory;
 
 @end
 
-@interface TestsBlockCallbacks : NSObject <GRPCResponseHandler>
+@interface TestsBlockCallbacks : NSObject<GRPCResponseHandler>
 
 - (instancetype)initWithInitialMetadataCallback:(void (^)(NSDictionary *))initialMetadataCallback
                                    dataCallback:(void (^)(id))dataCallback
@@ -214,8 +214,8 @@ static GRPCFakeTransportFactory *fakeTransportFactory;
       [self expectationWithDescription:@"Expect call complete"];
   [GRPCFakeTransportFactory sharedInstance].nextTransportInstance = nil;
 
-  PhonyInterceptorFactory *factory = [[PhonyInterceptorFactory alloc] initWithPassthrough:YES];
-  PhonyInterceptorFactory *factory2 = [[PhonyInterceptorFactory alloc] initWithPassthrough:NO];
+  DummyInterceptorFactory *factory = [[DummyInterceptorFactory alloc] initWithPassthrough:YES];
+  DummyInterceptorFactory *factory2 = [[DummyInterceptorFactory alloc] initWithPassthrough:NO];
   [[GRPCFakeTransportFactory sharedInstance]
       setTransportInterceptorFactories:@[ factory, factory2 ]];
   GRPCRequestOptions *requestOptions =

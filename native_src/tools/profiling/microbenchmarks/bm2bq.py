@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2.7
 #
 # Copyright 2017 gRPC authors.
 #
@@ -17,17 +17,16 @@
 # Convert google-benchmark json output to something that can be uploaded to
 # BigQuery
 
+import sys
+import json
 import csv
+import bm_json
 import json
 import subprocess
-import sys
-
-import bm_json
 
 columns = []
 
 for row in json.loads(
-        # TODO(jtattermusch): make sure the dataset name is not hardcoded
         subprocess.check_output(
             ['bq', '--format=json', 'show',
              'microbenchmarks.microbenchmarks']))['schema']['fields']:
@@ -41,10 +40,8 @@ SANITIZE = {
     'timestamp': str,
 }
 
-# TODO(jtattermusch): add proper argparse argument, rather than trying
-# to emulate with manual argv inspection.
 if sys.argv[1] == '--schema':
-    print(',\n'.join('%s:%s' % (k, t.upper()) for k, t in columns))
+    print ',\n'.join('%s:%s' % (k, t.upper()) for k, t in columns)
     sys.exit(0)
 
 with open(sys.argv[1]) as f:
@@ -63,7 +60,6 @@ for row in bm_json.expand_json(js, js2):
     sane_row = {}
     for name, sql_type in columns:
         if name in row:
-            if row[name] == '':
-                continue
+            if row[name] == '': continue
             sane_row[name] = SANITIZE[sql_type](row[name])
     writer.writerow(sane_row)

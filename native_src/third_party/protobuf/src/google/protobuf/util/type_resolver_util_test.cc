@@ -30,7 +30,6 @@
 
 #include <google/protobuf/util/type_resolver_util.h>
 
-#include <cstdint>
 #include <limits>
 #include <memory>
 #include <string>
@@ -136,12 +135,12 @@ class DescriptorPoolTypeResolverTest : public testing::Test {
   }
 
   bool HasInt32Option(const RepeatedPtrField<Option>& options,
-                      const std::string& name, int32_t value) {
+                      const std::string& name, int32 value) {
     return HasOption<Int32Value>(options, name, value);
   }
 
   bool HasUInt64Option(const RepeatedPtrField<Option>& options,
-                       const std::string& name, uint64_t value) {
+                       const std::string& name, uint64 value) {
     return HasOption<UInt64Value>(options, name, value);
   }
 
@@ -159,7 +158,7 @@ class DescriptorPoolTypeResolverTest : public testing::Test {
     return false;
   }
 
-  std::string GetTypeUrl(std::string full_name) {
+  string GetTypeUrl(std::string full_name) {
     return kUrlPrefix + std::string("/") + full_name;
   }
 

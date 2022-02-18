@@ -36,7 +36,6 @@ struct grpc_channel_credentials;
 
 @property(nonatomic, readonly) NSString *address;
 @property(nonatomic, copy, nullable) NSString *userAgentPrefix;
-@property(nonatomic, copy, nullable) NSString *userAgentSuffix;
 @property(nonatomic) grpc_compression_algorithm compressAlgorithm;
 @property(nonatomic) int keepaliveInterval;
 @property(nonatomic) int keepaliveTimeout;

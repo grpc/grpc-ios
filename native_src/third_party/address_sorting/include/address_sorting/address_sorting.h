@@ -41,8 +41,6 @@
 #ifndef ADDRESS_SORTING_H
 #define ADDRESS_SORTING_H
 
-#include <stddef.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -25,7 +25,6 @@
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/impl/codegen/config_protobuf.h>
-
 #include "src/proto/grpc/reflection/v1alpha/reflection.grpc.pb.h"
 
 namespace grpc {
@@ -41,7 +40,7 @@ class ProtoReflectionDescriptorDatabase : public protobuf::DescriptorDatabase {
   explicit ProtoReflectionDescriptorDatabase(
       const std::shared_ptr<grpc::Channel>& channel);
 
-  ~ProtoReflectionDescriptorDatabase() override;
+  virtual ~ProtoReflectionDescriptorDatabase();
 
   // The following four methods implement DescriptorDatabase interfaces.
   //
@@ -75,7 +74,7 @@ class ProtoReflectionDescriptorDatabase : public protobuf::DescriptorDatabase {
                                std::vector<int>* output) override;
 
   // Provide a list of full names of registered services
-  bool GetServices(std::vector<std::string>* output);
+  bool GetServices(std::vector<grpc::string>* output);
 
  private:
   typedef ClientReaderWriter<
@@ -83,13 +82,13 @@ class ProtoReflectionDescriptorDatabase : public protobuf::DescriptorDatabase {
       grpc::reflection::v1alpha::ServerReflectionResponse>
       ClientStream;
 
-  protobuf::FileDescriptorProto ParseFileDescriptorProtoResponse(
-      const std::string& byte_fd_proto);
+  const protobuf::FileDescriptorProto ParseFileDescriptorProtoResponse(
+      const grpc::string& byte_fd_proto);
 
   void AddFileFromResponse(
       const grpc::reflection::v1alpha::FileDescriptorResponse& response);
 
-  std::shared_ptr<ClientStream> GetStream();
+  const std::shared_ptr<ClientStream> GetStream();
 
   bool DoOneRequest(
       const grpc::reflection::v1alpha::ServerReflectionRequest& request,

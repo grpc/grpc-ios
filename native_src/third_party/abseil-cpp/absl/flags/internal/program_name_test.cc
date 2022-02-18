@@ -25,7 +25,7 @@ namespace {
 
 namespace flags = absl::flags_internal;
 
-TEST(FlagsPathUtilTest, TestProgamNameInterfaces) {
+TEST(FlagsPathUtilTest, TestInitialProgamName) {
   flags::SetProgramInvocationName("absl/flags/program_name_test");
   std::string program_name = flags::ProgramInvocationName();
   for (char& c : program_name)
@@ -43,7 +43,9 @@ TEST(FlagsPathUtilTest, TestProgamNameInterfaces) {
 
   EXPECT_TRUE(absl::EndsWith(program_name, expect_name)) << program_name;
   EXPECT_EQ(flags::ShortProgramInvocationName(), expect_basename);
+}
 
+TEST(FlagsPathUtilTest, TestProgamNameInterfaces) {
   flags::SetProgramInvocationName("a/my_test");
 
   EXPECT_EQ(flags::ProgramInvocationName(), "a/my_test");

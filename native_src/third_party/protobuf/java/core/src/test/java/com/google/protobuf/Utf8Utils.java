@@ -171,19 +171,20 @@ final class Utf8Utils {
           codePoint = rnd.nextInt(distribution[3]);
           if (codePoint < distribution[0]) {
             // 1 bytes
-            sb.append((char) 0x7F);
+            sb.append(0x7F);
           } else if (codePoint < distribution[1]) {
             // 2 bytes
-            sb.append((char) 0x7FF);
+            sb.append(0x7FF);
           } else if (codePoint < distribution[2]) {
             // 3 bytes
-            sb.append((char) (MIN_SURROGATE - 1));
+            sb.append(MIN_SURROGATE - 1);
           } else {
             // 4 bytes
             sb.append(MIN_HIGH_SURROGATE);
             sb.append(MIN_LOW_SURROGATE);
           }
         } while (Utf8Utils.isSurrogate(codePoint));
+        sb.appendCodePoint(codePoint);
       }
       strings[i] = sb.toString();
     }

@@ -56,12 +56,10 @@
 
 #include <openssl/asn1.h>
 
-#include <assert.h>
-
 #include <openssl/asn1t.h>
 #include <openssl/mem.h>
 
-#include "internal.h"
+#include "asn1_locl.h"
 
 /* Free up an ASN1 structure */
 
@@ -79,11 +77,18 @@ void asn1_item_combine_free(ASN1_VALUE **pval, const ASN1_ITEM *it, int combine)
 {
     const ASN1_TEMPLATE *tt = NULL, *seqtt;
     const ASN1_EXTERN_FUNCS *ef;
+    const ASN1_COMPAT_FUNCS *cf;
+    const ASN1_AUX *aux = it->funcs;
+    ASN1_aux_cb *asn1_cb;
     int i;
     if (!pval)
         return;
     if ((it->itype != ASN1_ITYPE_PRIMITIVE) && !*pval)
         return;
+    if (aux && aux->asn1_cb)
+        asn1_cb = aux->asn1_cb;
+    else
+        asn1_cb = 0;
 
     switch (it->itype) {
 
@@ -98,9 +103,7 @@ void asn1_item_combine_free(ASN1_VALUE **pval, const ASN1_ITEM *it, int combine)
         ASN1_primitive_free(pval, it);
         break;
 
-    case ASN1_ITYPE_CHOICE: {
-        const ASN1_AUX *aux = it->funcs;
-        ASN1_aux_cb *asn1_cb = aux != NULL ? aux->asn1_cb : NULL;
+    case ASN1_ITYPE_CHOICE:
         if (asn1_cb) {
             i = asn1_cb(ASN1_OP_FREE_PRE, pval, it, NULL);
             if (i == 2)
@@ -120,7 +123,12 @@ void asn1_item_combine_free(ASN1_VALUE **pval, const ASN1_ITEM *it, int combine)
             *pval = NULL;
         }
         break;
-    }
+
+    case ASN1_ITYPE_COMPAT:
+        cf = it->funcs;
+        if (cf && cf->asn1_free)
+            cf->asn1_free(*pval);
+        break;
 
     case ASN1_ITYPE_EXTERN:
         ef = it->funcs;
@@ -128,11 +136,10 @@ void asn1_item_combine_free(ASN1_VALUE **pval, const ASN1_ITEM *it, int combine)
             ef->asn1_ex_free(pval, it);
         break;
 
-    case ASN1_ITYPE_SEQUENCE: {
+    case ASN1_ITYPE_NDEF_SEQUENCE:
+    case ASN1_ITYPE_SEQUENCE:
         if (!asn1_refcount_dec_and_test_zero(pval, it))
             return;
-        const ASN1_AUX *aux = it->funcs;
-        ASN1_aux_cb *asn1_cb = aux != NULL ? aux->asn1_cb : NULL;
         if (asn1_cb) {
             i = asn1_cb(ASN1_OP_FREE_PRE, pval, it, NULL);
             if (i == 2)
@@ -161,7 +168,6 @@ void asn1_item_combine_free(ASN1_VALUE **pval, const ASN1_ITEM *it, int combine)
         }
         break;
     }
-    }
 }
 
 void ASN1_template_free(ASN1_VALUE **pval, const ASN1_TEMPLATE *tt)
@@ -184,15 +190,20 @@ void ASN1_template_free(ASN1_VALUE **pval, const ASN1_TEMPLATE *tt)
 void ASN1_primitive_free(ASN1_VALUE **pval, const ASN1_ITEM *it)
 {
     int utype;
-    /* Historically, |it->funcs| for primitive types contained an
-     * |ASN1_PRIMITIVE_FUNCS| table of calbacks. */
-    assert(it == NULL || it->funcs == NULL);
+    if (it) {
+        const ASN1_PRIMITIVE_FUNCS *pf;
+        pf = it->funcs;
+        if (pf && pf->prim_free) {
+            pf->prim_free(pval, it);
+            return;
+        }
+    }
     /* Special case: if 'it' is NULL free contents of ASN1_TYPE */
     if (!it) {
         ASN1_TYPE *typ = (ASN1_TYPE *)*pval;
         utype = typ->type;
         pval = &typ->value.asn1_value;
-        if (utype != V_ASN1_BOOLEAN && !*pval)
+        if (!*pval)
             return;
     } else if (it->itype == ASN1_ITYPE_MSTRING) {
         utype = -1;

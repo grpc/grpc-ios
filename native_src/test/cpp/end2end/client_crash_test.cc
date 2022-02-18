@@ -16,10 +16,6 @@
  *
  */
 
-#include <gtest/gtest.h>
-
-#include "absl/memory/memory.h"
-
 #include <grpc/grpc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/time.h>
@@ -36,8 +32,11 @@
 #include "test/core/util/test_config.h"
 #include "test/cpp/util/subprocess.h"
 
+#include <gtest/gtest.h>
+
 using grpc::testing::EchoRequest;
 using grpc::testing::EchoResponse;
+using std::chrono::system_clock;
 
 static std::string g_root;
 
@@ -55,7 +54,7 @@ class CrashTest : public ::testing::Test {
     std::ostringstream addr_stream;
     addr_stream << "localhost:" << port;
     auto addr = addr_stream.str();
-    server_ = absl::make_unique<SubProcess>(std::vector<std::string>({
+    server_.reset(new SubProcess({
         g_root + "/client_crash_test_server",
         "--address=" + addr,
     }));

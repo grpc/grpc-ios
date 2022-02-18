@@ -29,8 +29,7 @@ for arg in "$@"
 do
   if [[ "$arg" == "--skip-persistent-channel-tests" ]]; then
     SKIP_PERSISTENT_CHANNEL_TESTS=true
-  elif [[ "$arg" == "--ignore-valgrind-undef-errors" ]]; then
-    VALGRIND_UNDEF_VALUE_ERRORS="--undef-value-errors=no"
+    break
   fi
 done
 
@@ -44,7 +43,6 @@ export USE_ZEND_ALLOC=0
 # Detect whether valgrind is executable
 if [ -x "$(command -v valgrind)" ]; then
   $(which valgrind) --error-exitcode=10 --leak-check=yes \
-    $VALGRIND_UNDEF_VALUE_ERRORS \
     $(which php) $extension_dir -d max_execution_time=300 \
     ../tests/MemoryLeakTest/MemoryLeakTest.php
 fi

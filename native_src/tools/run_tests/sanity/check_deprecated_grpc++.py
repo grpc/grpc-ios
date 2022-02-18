@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Copyright 2018 gRPC authors.
 #
@@ -13,6 +13,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from __future__ import print_function
 
 import os
 import sys
@@ -134,9 +136,9 @@ if path_files.sort() != expected_files.sort():
     diff_plus = [file for file in path_files if file not in expected_files]
     diff_minus = [file for file in expected_files if file not in path_files]
     for file in diff_minus:
-        print(('- ', file))
+        print('- ', file)
     for file in diff_plus:
-        print(('+ ', file))
+        print('+ ', file)
     errors += 1
 
 if errors > 0:
@@ -161,7 +163,7 @@ for path_file in expected_files:
         fo.write(expected_content)
 
     if 0 != os.system('diff %s %s' % (path_file_expected, path_file)):
-        print(('Difference found in file:', path_file))
+        print('Difference found in file:', path_file)
         errors += 1
 
     os.remove(path_file_expected)
@@ -177,9 +179,9 @@ for root, dirs, files in os.walk('src'):
                     with open(path_file, "r") as fi:
                         content = fi.read()
                         if '#include <grpc++/' in content:
-                            print((
+                            print(
                                 'Failed: invalid include of deprecated headers in include/grpc++ in %s'
-                                % path_file))
+                                % path_file)
                             errors += 1
                 except IOError:
                     pass

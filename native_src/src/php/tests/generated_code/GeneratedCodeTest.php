@@ -20,18 +20,15 @@ require_once dirname(__FILE__).'/AbstractGeneratedCodeTest.php';
 
 class GeneratedCodeTest extends AbstractGeneratedCodeTest
 {
-    public function setUp(): void
+    public function setUp()
     {
         self::$client = new Math\MathClient(
             getenv('GRPC_TEST_HOST'), [
-                'credentials' => Grpc\ChannelCredentials::createSsl(
-                    file_get_contents(dirname(__FILE__).'/../data/ca.pem')),
-                'grpc.ssl_target_name_override' => 'foo.test.google.fr',
-            ] + self::$clientOptions
-        );
+                'credentials' => Grpc\ChannelCredentials::createInsecure(),
+            ]);
     }
 
-    public function tearDown(): void
+    public function tearDown()
     {
         self::$client->close();
     }

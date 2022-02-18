@@ -18,8 +18,7 @@
 
 #include <grpc/support/port_platform.h>
 
-#include "src/core/lib/surface/api_trace.h"
-
 #include "src/core/lib/debug/trace.h"
+#include "src/core/lib/surface/api_trace.h"
 
 grpc_core::TraceFlag grpc_api_trace(false, "api");

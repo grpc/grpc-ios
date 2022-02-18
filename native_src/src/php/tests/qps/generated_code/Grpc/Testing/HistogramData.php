@@ -22,41 +22,27 @@ class HistogramData extends \Google\Protobuf\Internal\Message
     /**
      * Generated from protobuf field <code>double min_seen = 2;</code>
      */
-    protected $min_seen = 0.0;
+    private $min_seen = 0.0;
     /**
      * Generated from protobuf field <code>double max_seen = 3;</code>
      */
-    protected $max_seen = 0.0;
+    private $max_seen = 0.0;
     /**
      * Generated from protobuf field <code>double sum = 4;</code>
      */
-    protected $sum = 0.0;
+    private $sum = 0.0;
     /**
      * Generated from protobuf field <code>double sum_of_squares = 5;</code>
      */
-    protected $sum_of_squares = 0.0;
+    private $sum_of_squares = 0.0;
     /**
      * Generated from protobuf field <code>double count = 6;</code>
      */
-    protected $count = 0.0;
+    private $count = 0.0;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type int[]|\Google\Protobuf\Internal\RepeatedField $bucket
-     *     @type float $min_seen
-     *     @type float $max_seen
-     *     @type float $sum
-     *     @type float $sum_of_squares
-     *     @type float $count
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Stats::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

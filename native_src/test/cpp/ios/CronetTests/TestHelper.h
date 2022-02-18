@@ -20,7 +20,6 @@
 #define TESTHELPER_H
 
 #import <XCTest/XCTest.h>
-
 #import <map>
 #import <sstream>
 
@@ -28,21 +27,20 @@
 #import <grpcpp/impl/codegen/config.h>
 #import <grpcpp/impl/codegen/string_ref.h>
 #import <grpcpp/support/client_interceptor.h>
-
-#import "src/proto/grpc/testing/echo.grpc.pb.h"
+#import <src/proto/grpc/testing/echo.grpc.pb.h>
 
 const char* const kServerFinishAfterNReads = "server_finish_after_n_reads";
 const char* const kServerResponseStreamsToSend = "server_responses_to_send";
 const int kServerDefaultResponseStreamsToSend = 3;
 const char* const kDebugInfoTrailerKey = "debug-info-bin";
 
-std::string ToString(const grpc::string_ref& r);
+grpc::string ToString(const grpc::string_ref& r);
 void configureCronet(void);
-bool CheckIsLocalhost(const std::string& addr);
+bool CheckIsLocalhost(const grpc::string& addr);
 
-class PhonyInterceptor : public grpc::experimental::Interceptor {
+class DummyInterceptor : public grpc::experimental::Interceptor {
  public:
-  PhonyInterceptor() {}
+  DummyInterceptor() {}
   virtual void Intercept(grpc::experimental::InterceptorBatchMethods* methods);
   static void Reset();
   static int GetNumTimesRun();
@@ -52,12 +50,12 @@ class PhonyInterceptor : public grpc::experimental::Interceptor {
   static std::atomic<int> num_times_run_reverse_;
 };
 
-class PhonyInterceptorFactory
+class DummyInterceptorFactory
     : public grpc::experimental::ClientInterceptorFactoryInterface {
  public:
   virtual grpc::experimental::Interceptor* CreateClientInterceptor(
       grpc::experimental::ClientRpcInfo* info) override {
-    return new PhonyInterceptor();
+    return new DummyInterceptor();
   }
 };
 

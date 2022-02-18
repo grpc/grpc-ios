@@ -16,8 +16,6 @@
  *
  */
 
-#include "src/core/lib/iomgr/load_file.h"
-
 #include <stdio.h>
 #include <string.h>
 
@@ -28,6 +26,7 @@
 
 #include "src/core/lib/gpr/string.h"
 #include "src/core/lib/gpr/tmpfile.h"
+#include "src/core/lib/iomgr/load_file.h"
 #include "test/core/util/test_config.h"
 
 #define LOG_TEST_NAME(x) gpr_log(GPR_INFO, "%s", x)
@@ -38,7 +37,7 @@ static void test_load_empty_file(void) {
   FILE* tmp = nullptr;
   grpc_slice slice;
   grpc_slice slice_with_null_term;
-  grpc_error_handle error;
+  grpc_error* error;
   char* tmp_name;
 
   LOG_TEST_NAME("test_load_empty_file");
@@ -66,7 +65,7 @@ static void test_load_empty_file(void) {
 static void test_load_failure(void) {
   FILE* tmp = nullptr;
   grpc_slice slice;
-  grpc_error_handle error;
+  grpc_error* error;
   char* tmp_name;
 
   LOG_TEST_NAME("test_load_failure");
@@ -89,7 +88,7 @@ static void test_load_small_file(void) {
   FILE* tmp = nullptr;
   grpc_slice slice;
   grpc_slice slice_with_null_term;
-  grpc_error_handle error;
+  grpc_error* error;
   char* tmp_name;
   const char* blah = "blah";
 
@@ -121,7 +120,7 @@ static void test_load_small_file(void) {
 static void test_load_big_file(void) {
   FILE* tmp = nullptr;
   grpc_slice slice;
-  grpc_error_handle error;
+  grpc_error* error;
   char* tmp_name;
   static const size_t buffer_size = 124631;
   unsigned char* buffer = static_cast<unsigned char*>(gpr_malloc(buffer_size));

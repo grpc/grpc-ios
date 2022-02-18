@@ -3,7 +3,18 @@ gRPC
 
 .. module:: grpc
 
-For documentation, examples, and more, see the `Python gRPC <https://grpc.io/docs/languages/python/>`_ page on `grpc.io <https://grpc.io/>`_.
+Tutorial
+--------
+
+If you want to see gRPC in action first, visit the `Python Quickstart <https://grpc.io/docs/quickstart/python.html>`_.
+Or, if you would like dive in with more extensive usage of gRPC Python, check `gRPC Basics - Python <https://grpc.io/docs/tutorials/basic/python.html>`_ out.
+
+
+Example
+-------
+
+Go to `gRPC Python Examples <https://github.com/grpc/grpc/tree/master/examples/python>`_
+
 
 Module Contents
 ---------------
@@ -30,7 +41,6 @@ Create Client Credentials
 .. autofunction:: composite_call_credentials
 .. autofunction:: composite_channel_credentials
 .. autofunction:: local_channel_credentials(local_connect_type=grpc.LocalConnectionType.LOCAL_TCP)
-.. autofunction:: compute_engine_channel_credentials
 
 
 Create Server
@@ -176,10 +186,3 @@ Compression
 ^^^^^^^^^^^
 
 .. autoclass:: Compression
-
-Runtime Protobuf Parsing
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autofunction:: protos
-.. autofunction:: services
-.. autofunction:: protos_and_services

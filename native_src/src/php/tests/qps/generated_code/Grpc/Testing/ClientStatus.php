@@ -16,20 +16,11 @@ class ClientStatus extends \Google\Protobuf\Internal\Message
     /**
      * Generated from protobuf field <code>.grpc.testing.ClientStats stats = 1;</code>
      */
-    protected $stats = null;
+    private $stats = null;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type \Grpc\Testing\ClientStats $stats
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Control::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2018 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,13 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 
 syntax = "proto3";
 
 package google.cloud.vision.v1;
 
-import "google/cloud/vision/v1/geometry.proto";
 import "google/api/annotations.proto";
+import "google/cloud/vision/v1/geometry.proto";
 
 option cc_enable_arenas = true;
 option go_package = "google.golang.org/genproto/googleapis/cloud/vision/v1;vision";
@@ -25,6 +26,7 @@ option java_multiple_files = true;
 option java_outer_classname = "TextAnnotationProto";
 option java_package = "com.google.cloud.vision.v1";
 option objc_class_prefix = "GCVN";
+
 
 // TextAnnotation contains a structured representation of OCR extracted text.
 // The hierarchy of an OCR extracted text structure is like this:
@@ -157,7 +159,7 @@ message Block {
   //         |    |
   //         1----0
   //
-  //   and the vertex order will still be (0, 1, 2, 3).
+  //   and the vertice order will still be (0, 1, 2, 3).
   BoundingPoly bounding_box = 2;
 
   // List of paragraphs in this block (if this blocks is of type text).
@@ -189,10 +191,10 @@ message Paragraph {
   //      2----3
   //      |    |
   //      1----0
-  //   and the vertex order will still be (0, 1, 2, 3).
+  //   and the vertice order will still be (0, 1, 2, 3).
   BoundingPoly bounding_box = 2;
 
-  // List of all words in this paragraph.
+  // List of words in this paragraph.
   repeated Word words = 3;
 
   // Confidence of the OCR results for the paragraph. Range [0, 1].
@@ -218,7 +220,7 @@ message Word {
   //      2----3
   //      |    |
   //      1----0
-  //   and the vertex order will still be (0, 1, 2, 3).
+  //   and the vertice order will still be (0, 1, 2, 3).
   BoundingPoly bounding_box = 2;
 
   // List of symbols in the word.
@@ -248,7 +250,7 @@ message Symbol {
   //      2----3
   //      |    |
   //      1----0
-  //   and the vertex order will still be (0, 1, 2, 3).
+  //   and the vertice order will still be (0, 1, 2, 3).
   BoundingPoly bounding_box = 2;
 
   // The actual UTF-8 representation of the symbol.

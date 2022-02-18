@@ -20,24 +20,16 @@
 
 #ifdef GPR_POSIX_LOG
 
+#include <grpc/support/alloc.h>
+#include <grpc/support/log.h>
+#include <grpc/support/string_util.h>
+#include <grpc/support/time.h>
 #include <inttypes.h>
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-
-#include <string>
-
-#include "absl/strings/str_format.h"
-
-#include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
-#include <grpc/support/time.h>
-
-#include "src/core/lib/gprpp/examine_stack.h"
-
-int gpr_should_log_stacktrace(gpr_log_severity severity);
 
 static intptr_t sys_gettid(void) { return (intptr_t)pthread_self(); }
 
@@ -91,20 +83,13 @@ void gpr_default_log(gpr_log_func_args* args) {
     strcpy(time_buffer, "error:strftime");
   }
 
-  std::string prefix = absl::StrFormat(
-      "%s%s.%09d %7" PRIdPTR " %s:%d]", gpr_log_severity_string(args->severity),
-      time_buffer, (int)(now.tv_nsec), sys_gettid(), display_file, args->line);
+  char* prefix;
+  gpr_asprintf(&prefix, "%s%s.%09d %7" PRIdPTR " %s:%d]",
+               gpr_log_severity_string(args->severity), time_buffer,
+               (int)(now.tv_nsec), sys_gettid(), display_file, args->line);
 
-  absl::optional<std::string> stack_trace =
-      gpr_should_log_stacktrace(args->severity)
-          ? grpc_core::GetCurrentStackTrace()
-          : absl::nullopt;
-  if (stack_trace) {
-    fprintf(stderr, "%-70s %s\n%s\n", prefix.c_str(), args->message,
-            stack_trace->c_str());
-  } else {
-    fprintf(stderr, "%-70s %s\n", prefix.c_str(), args->message);
-  }
+  fprintf(stderr, "%-70s %s\n", prefix, args->message);
+  gpr_free(prefix);
 }
 
 #endif /* defined(GPR_POSIX_LOG) */

@@ -13,30 +13,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #endregion
-using System.Threading.Tasks;
+using System;
+using System.Runtime.InteropServices;
+using System.Threading;
 using Grpc.Core;
 
 namespace Math
 {
     class MathClient
     {
-        public static async Task Main(string[] args)
+        public static void Main(string[] args)
         {
             var channel = new Channel("127.0.0.1", 23456, ChannelCredentials.Insecure);
             Math.MathClient client = new Math.MathClient(channel);
             MathExamples.DivExample(client);
 
-            await MathExamples.DivAsyncExample(client);
+            MathExamples.DivAsyncExample(client).Wait();
 
-            await MathExamples.FibExample(client);
+            MathExamples.FibExample(client).Wait();
 
-            await MathExamples.SumExample(client);
+            MathExamples.SumExample(client).Wait();
 
-            await MathExamples.DivManyExample(client);
+            MathExamples.DivManyExample(client).Wait();
 
-            await MathExamples.DependentRequestsExample(client);
+            MathExamples.DependendRequestsExample(client).Wait();
 
-            await channel.ShutdownAsync();
+            channel.ShutdownAsync().Wait();
         }
     }
 }

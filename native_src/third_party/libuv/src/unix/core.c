@@ -71,11 +71,19 @@ extern char** environ;
 # include <sys/sysctl.h>
 # include <sys/filio.h>
 # include <sys/wait.h>
-# if defined(__FreeBSD__)
+# if defined(__FreeBSD__) && __FreeBSD__ >= 10
 #  define uv__accept4 accept4
 # endif
 # if defined(__NetBSD__)
 #  define uv__accept4(a, b, c, d) paccept((a), (b), (c), NULL, (d))
+# endif
+# if (defined(__FreeBSD__) && __FreeBSD__ >= 10) || \
+      defined(__NetBSD__) || defined(__OpenBSD__)
+#  define UV__SOCK_NONBLOCK SOCK_NONBLOCK
+#  define UV__SOCK_CLOEXEC  SOCK_CLOEXEC
+# endif
+# if !defined(F_DUP2FD_CLOEXEC) && defined(_F_DUP2FD_CLOEXEC)
+#  define F_DUP2FD_CLOEXEC  _F_DUP2FD_CLOEXEC
 # endif
 #endif
 
@@ -88,8 +96,7 @@ extern char** environ;
 #endif
 
 #if defined(__linux__)
-# include <sys/syscall.h>
-# define uv__accept4 accept4
+#include <sys/syscall.h>
 #endif
 
 static int uv__run_pending(uv_loop_t* loop);
@@ -172,7 +179,9 @@ void uv_close(uv_handle_t* handle, uv_close_cb close_cb) {
 
   case UV_SIGNAL:
     uv__signal_close((uv_signal_t*) handle);
-    break;
+    /* Signal handles may not be closed immediately. The signal code will
+     * itself close uv__make_close_pending whenever appropriate. */
+    return;
 
   default:
     assert(0);
@@ -237,8 +246,6 @@ int uv__getiovmax(void) {
 
 
 static void uv__finish_close(uv_handle_t* handle) {
-  uv_signal_t* sh;
-
   /* Note: while the handle is in the UV_HANDLE_CLOSING state now, it's still
    * possible for it to be active in the sense that uv__is_active() returns
    * true.
@@ -261,20 +268,7 @@ static void uv__finish_close(uv_handle_t* handle) {
     case UV_FS_EVENT:
     case UV_FS_POLL:
     case UV_POLL:
-      break;
-
     case UV_SIGNAL:
-      /* If there are any caught signals "trapped" in the signal pipe,
-       * we can't call the close callback yet. Reinserting the handle
-       * into the closing queue makes the event loop spin but that's
-       * okay because we only need to deliver the pending events.
-       */
-      sh = (uv_signal_t*) handle;
-      if (sh->caught_signals > sh->dispatched_signals) {
-        handle->flags ^= UV_HANDLE_CLOSED;
-        uv__make_close_pending(handle);  /* Back into the queue. */
-        return;
-      }
       break;
 
     case UV_NAMED_PIPE:
@@ -478,32 +472,52 @@ int uv__accept(int sockfd) {
   int peerfd;
   int err;
 
-  (void) &err;
   assert(sockfd >= 0);
 
-  do
-#ifdef uv__accept4
-    peerfd = uv__accept4(sockfd, NULL, NULL, SOCK_NONBLOCK|SOCK_CLOEXEC);
-#else
+  while (1) {
+#if defined(__linux__)                          || \
+    (defined(__FreeBSD__) && __FreeBSD__ >= 10) || \
+    defined(__NetBSD__)
+    static int no_accept4;
+
+    if (no_accept4)
+      goto skip;
+
+    peerfd = uv__accept4(sockfd,
+                         NULL,
+                         NULL,
+                         UV__SOCK_NONBLOCK|UV__SOCK_CLOEXEC);
+    if (peerfd != -1)
+      return peerfd;
+
+    if (errno == EINTR)
+      continue;
+
+    if (errno != ENOSYS)
+      return UV__ERR(errno);
+
+    no_accept4 = 1;
+skip:
+#endif
+
     peerfd = accept(sockfd, NULL, NULL);
-#endif
-  while (peerfd == -1 && errno == EINTR);
+    if (peerfd == -1) {
+      if (errno == EINTR)
+        continue;
+      return UV__ERR(errno);
+    }
 
-  if (peerfd == -1)
-    return UV__ERR(errno);
+    err = uv__cloexec(peerfd, 1);
+    if (err == 0)
+      err = uv__nonblock(peerfd, 1);
 
-#ifndef uv__accept4
-  err = uv__cloexec(peerfd, 1);
-  if (err == 0)
-    err = uv__nonblock(peerfd, 1);
+    if (err) {
+      uv__close(peerfd);
+      return err;
+    }
 
-  if (err != 0) {
-    uv__close(peerfd);
-    return err;
+    return peerfd;
   }
-#endif
-
-  return peerfd;
 }
 
 
@@ -519,7 +533,7 @@ int uv__close_nocancel(int fd) {
 #if defined(__APPLE__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdollar-in-identifier-extension"
-#if defined(__LP64__) || TARGET_OS_IPHONE
+#if defined(__LP64__)
   extern int close$NOCANCEL(int);
   return close$NOCANCEL(fd);
 #else
@@ -835,8 +849,8 @@ static void maybe_resize(uv_loop_t* loop, unsigned int len) {
   }
 
   nwatchers = next_power_of_two(len + 2) - 2;
-  watchers = uv__reallocf(loop->watchers,
-                          (nwatchers + 2) * sizeof(loop->watchers[0]));
+  watchers = uv__realloc(loop->watchers,
+                         (nwatchers + 2) * sizeof(loop->watchers[0]));
 
   if (watchers == NULL)
     abort();
@@ -1017,30 +1031,54 @@ int uv__open_cloexec(const char* path, int flags) {
 
 
 int uv__dup2_cloexec(int oldfd, int newfd) {
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__linux__)
   int r;
-
+#if (defined(__FreeBSD__) && __FreeBSD__ >= 10) || defined(__NetBSD__)
   r = dup3(oldfd, newfd, O_CLOEXEC);
   if (r == -1)
     return UV__ERR(errno);
-
   return r;
-#else
-  int err;
-  int r;
-
-  r = dup2(oldfd, newfd);  /* Never retry. */
-  if (r == -1)
+#elif defined(__FreeBSD__) && defined(F_DUP2FD_CLOEXEC)
+  r = fcntl(oldfd, F_DUP2FD_CLOEXEC, newfd);
+  if (r != -1)
+    return r;
+  if (errno != EINVAL)
     return UV__ERR(errno);
-
-  err = uv__cloexec(newfd, 1);
-  if (err != 0) {
-    uv__close(newfd);
-    return err;
+  /* Fall through. */
+#elif defined(__linux__)
+  static int no_dup3;
+  if (!no_dup3) {
+    do
+      r = uv__dup3(oldfd, newfd, O_CLOEXEC);
+    while (r == -1 && errno == EBUSY);
+    if (r != -1)
+      return r;
+    if (errno != ENOSYS)
+      return UV__ERR(errno);
+    /* Fall through. */
+    no_dup3 = 1;
   }
-
-  return r;
 #endif
+  {
+    int err;
+    do
+      r = dup2(oldfd, newfd);
+#if defined(__linux__)
+    while (r == -1 && errno == EBUSY);
+#else
+    while (0);  /* Never retry. */
+#endif
+
+    if (r == -1)
+      return UV__ERR(errno);
+
+    err = uv__cloexec(newfd, 1);
+    if (err) {
+      uv__close(newfd);
+      return err;
+    }
+
+    return r;
+  }
 }
 
 
@@ -1258,7 +1296,7 @@ int uv_os_environ(uv_env_item_t** envitems, int* count) {
 
   *envitems = uv__calloc(i, sizeof(**envitems));
 
-  if (*envitems == NULL)
+  if (envitems == NULL)
     return UV_ENOMEM;
 
   for (j = 0, cnt = 0; j < i; j++) {

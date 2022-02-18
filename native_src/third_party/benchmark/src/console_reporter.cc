@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "benchmark/benchmark.h"
+#include "complexity.h"
+#include "counter.h"
+
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
 #include <iostream>
 #include <string>
 #include <tuple>
 #include <vector>
 
-#include "benchmark/benchmark.h"
 #include "check.h"
 #include "colorprint.h"
 #include "commandlineflags.h"
-#include "complexity.h"
-#include "counter.h"
 #include "internal_macros.h"
 #include "string_util.h"
 #include "timers.h"
@@ -142,16 +142,10 @@ void ConsoleReporter::PrintRunData(const Run& result) {
   } else if (result.report_rms) {
     printer(Out, COLOR_YELLOW, "%10.0f %-4s %10.0f %-4s ", real_time * 100, "%",
             cpu_time * 100, "%");
-  } else if (result.run_type != Run::RT_Aggregate ||
-             result.aggregate_unit == StatisticUnit::kTime) {
+  } else {
     const char* timeLabel = GetTimeUnitString(result.time_unit);
     printer(Out, COLOR_YELLOW, "%s %-4s %s %-4s ", real_time_str.c_str(), timeLabel,
             cpu_time_str.c_str(), timeLabel);
-  } else {
-    assert(result.aggregate_unit == StatisticUnit::kPercentage);
-    printer(Out, COLOR_YELLOW, "%10.2f %-4s %10.2f %-4s ",
-            (100. * result.real_accumulated_time), "%",
-            (100. * result.cpu_accumulated_time), "%");
   }
 
   if (!result.report_big_o && !result.report_rms) {
@@ -161,22 +155,17 @@ void ConsoleReporter::PrintRunData(const Run& result) {
   for (auto& c : result.counters) {
     const std::size_t cNameLen = std::max(std::string::size_type(10),
                                           c.first.length());
-    std::string s;
-    const char* unit = "";
-    if (result.run_type == Run::RT_Aggregate &&
-        result.aggregate_unit == StatisticUnit::kPercentage) {
-      s = StrFormat("%.2f", 100. * c.second.value);
-      unit = "%";
-    } else {
-      s = HumanReadableNumber(c.second.value, c.second.oneK);
-      if (c.second.flags & Counter::kIsRate)
-        unit = (c.second.flags & Counter::kInvert) ? "s" : "/s";
-    }
+    auto const& s = HumanReadableNumber(c.second.value, c.second.oneK);
     if (output_options_ & OO_Tabular) {
-      printer(Out, COLOR_DEFAULT, " %*s%s", cNameLen - strlen(unit), s.c_str(),
-              unit);
+      if (c.second.flags & Counter::kIsRate) {
+        printer(Out, COLOR_DEFAULT, " %*s/s", cNameLen - 2, s.c_str());
+      } else {
+        printer(Out, COLOR_DEFAULT, " %*s", cNameLen, s.c_str());
+      }
     } else {
-      printer(Out, COLOR_DEFAULT, " %s=%s%s", c.first.c_str(), s.c_str(), unit);
+      const char* unit = (c.second.flags & Counter::kIsRate) ? "/s" : "";
+      printer(Out, COLOR_DEFAULT, " %s=%s%s", c.first.c_str(), s.c_str(),
+              unit);
     }
   }
 

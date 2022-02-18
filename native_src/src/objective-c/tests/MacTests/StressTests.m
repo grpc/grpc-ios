@@ -34,7 +34,7 @@
 extern const char *kCFStreamVarName;
 
 // Convenience class to use blocks as callbacks
-@interface MacTestsBlockCallbacks : NSObject <GRPCProtoResponseHandler>
+@interface MacTestsBlockCallbacks : NSObject<GRPCProtoResponseHandler>
 
 - (instancetype)initWithInitialMetadataCallback:(void (^)(NSDictionary *))initialMetadataCallback
                                 messageCallback:(void (^)(id))messageCallback
@@ -179,6 +179,7 @@ extern const char *kCFStreamVarName;
                                    }
                                  }
                                  closeCallback:^(NSDictionary *trailingMetadata, NSError *error) {
+
                                    @synchronized(self) {
                                      if (error == nil && !address_removed) {
                                        system([[NSString
@@ -187,9 +188,9 @@ extern const char *kCFStreamVarName;
                                            UTF8String]);
                                        address_removed = YES;
                                      } else if (error != nil && !address_readded) {
-                                       system([[NSString
-                                           stringWithFormat:@"sudo ifconfig lo0 alias %@",
-                                                            [[self class] hostAddress]]
+                                       system([
+                                           [NSString stringWithFormat:@"sudo ifconfig lo0 alias %@",
+                                                                      [[self class] hostAddress]]
                                            UTF8String]);
                                        address_readded = YES;
                                      }

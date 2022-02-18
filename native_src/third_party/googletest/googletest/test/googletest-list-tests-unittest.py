@@ -38,7 +38,7 @@ Google Test) the command line flags.
 """
 
 import re
-from googletest.test import gtest_test_utils
+import gtest_test_utils
 
 # Constants.
 

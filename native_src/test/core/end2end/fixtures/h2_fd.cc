@@ -21,19 +21,18 @@
 // This test won't work except with posix sockets enabled
 #ifdef GRPC_POSIX_SOCKET
 
+#include "test/core/end2end/end2end_tests.h"
+
 #include <fcntl.h>
 #include <string.h>
 
 #include <grpc/grpc.h>
 #include <grpc/grpc_posix.h>
-#include <grpc/grpc_security.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
-
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/iomgr/socket_utils_posix.h"
 #include "src/core/lib/iomgr/unix_sockets_posix.h"
-#include "test/core/end2end/end2end_tests.h"
 #include "test/core/util/test_config.h"
 
 typedef struct {
@@ -52,8 +51,7 @@ static void create_sockets(int sv[2]) {
 }
 
 static grpc_end2end_test_fixture chttp2_create_fixture_socketpair(
-    const grpc_channel_args* /*client_args*/,
-    const grpc_channel_args* /*server_args*/) {
+    grpc_channel_args* /*client_args*/, grpc_channel_args* /*server_args*/) {
   sp_fixture_data* fixture_data =
       static_cast<sp_fixture_data*>(gpr_malloc(sizeof(*fixture_data)));
 
@@ -68,21 +66,19 @@ static grpc_end2end_test_fixture chttp2_create_fixture_socketpair(
   return f;
 }
 
-static void chttp2_init_client_socketpair(
-    grpc_end2end_test_fixture* f, const grpc_channel_args* client_args) {
+static void chttp2_init_client_socketpair(grpc_end2end_test_fixture* f,
+                                          grpc_channel_args* client_args) {
   grpc_core::ExecCtx exec_ctx;
   sp_fixture_data* sfd = static_cast<sp_fixture_data*>(f->fixture_data);
 
   GPR_ASSERT(!f->client);
-  grpc_channel_credentials* creds = grpc_insecure_credentials_create();
-  f->client = grpc_channel_create_from_fd("fixture_client", sfd->fd_pair[0],
-                                          creds, client_args);
-  grpc_channel_credentials_release(creds);
+  f->client = grpc_insecure_channel_create_from_fd(
+      "fixture_client", sfd->fd_pair[0], client_args);
   GPR_ASSERT(f->client);
 }
 
-static void chttp2_init_server_socketpair(
-    grpc_end2end_test_fixture* f, const grpc_channel_args* server_args) {
+static void chttp2_init_server_socketpair(grpc_end2end_test_fixture* f,
+                                          grpc_channel_args* server_args) {
   grpc_core::ExecCtx exec_ctx;
   sp_fixture_data* sfd = static_cast<sp_fixture_data*>(f->fixture_data);
   GPR_ASSERT(!f->server);
@@ -90,9 +86,8 @@ static void chttp2_init_server_socketpair(
   GPR_ASSERT(f->server);
   grpc_server_register_completion_queue(f->server, f->cq, nullptr);
   grpc_server_start(f->server);
-  grpc_server_credentials* creds = grpc_insecure_server_credentials_create();
-  grpc_server_add_channel_from_fd(f->server, sfd->fd_pair[1], creds);
-  grpc_server_credentials_release(creds);
+
+  grpc_server_add_insecure_channel_from_fd(f->server, nullptr, sfd->fd_pair[1]);
 }
 
 static void chttp2_tear_down_socketpair(grpc_end2end_test_fixture* f) {
@@ -124,6 +119,6 @@ int main(int argc, char** argv) {
 
 #else /* GRPC_POSIX_SOCKET */
 
-int main(int /* argc */, char** /* argv */) { return 1; }
+int main(int argc, char** argv) { return 1; }
 
 #endif /* GRPC_POSIX_SOCKET */

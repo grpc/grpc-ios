@@ -29,8 +29,6 @@ powershell -Command "Add-Type -Assembly 'System.IO.Compression.FileSystem'; [Sys
 @rem set absolute path to OpenSSL with forward slashes
 set OPENSSL_DIR=%cd:\=/%/OpenSSL-Win32
 
-@rem TODO(jtattermusch): add support for GRPC_CPP_DISTRIBTEST_BUILD_COMPILER_JOBS env variable
-
 @rem Install absl
 mkdir third_party\abseil-cpp\cmake\build
 pushd third_party\abseil-cpp\cmake\build
@@ -49,13 +47,6 @@ popd
 mkdir third_party\protobuf\cmake\build
 pushd third_party\protobuf\cmake\build
 cmake -DCMAKE_INSTALL_PREFIX=%INSTALL_DIR% -DZLIB_ROOT=%INSTALL_DIR% -Dprotobuf_MSVC_STATIC_RUNTIME=OFF -Dprotobuf_BUILD_TESTS=OFF ..
-cmake --build . --config Release --target install || goto :error
-popd
-
-@rem Install re2
-mkdir third_party\re2\cmake\build
-pushd third_party\re2\cmake\build
-cmake -DCMAKE_INSTALL_PREFIX=%INSTALL_DIR% ..\..
 cmake --build . --config Release --target install || goto :error
 popd
 
@@ -80,11 +71,9 @@ cmake ^
   -DZLIB_ROOT=%INSTALL_DIR% ^
   -DgRPC_INSTALL=ON ^
   -DgRPC_BUILD_TESTS=OFF ^
-  -DgRPC_BUILD_MSVC_MP_COUNT=-1 ^
   -DgRPC_ABSL_PROVIDER=package ^
   -DgRPC_CARES_PROVIDER=package ^
   -DgRPC_PROTOBUF_PROVIDER=package ^
-  -DgRPC_RE2_PROVIDER=package ^
   -DgRPC_SSL_PROVIDER=package ^
   -DgRPC_ZLIB_PROVIDER=package ^
   ../.. || goto :error

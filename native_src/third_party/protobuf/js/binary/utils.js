@@ -32,7 +32,6 @@
  * @fileoverview This file contains helper code used by jspb.BinaryReader
  * and BinaryWriter.
  *
- * @suppress {missingRequire} TODO(b/152540451): this shouldn't be needed
  * @author aappleby@google.com (Austin Appleby)
  */
 
@@ -118,7 +117,7 @@ jspb.utils.splitInt64 = function(value) {
 
 
 /**
- * Converts a signed Javascript integer into zigzag format, splits it into two
+ * Convers a signed Javascript integer into zigzag format, splits it into two
  * 32-bit halves, and stores it in the temp values above.
  * @param {number} value The number to split.
  */
@@ -202,11 +201,7 @@ jspb.utils.splitFloat32 = function(value) {
 
   exp = Math.floor(Math.log(value) / Math.LN2);
   mant = value * Math.pow(2, -exp);
-  mant = Math.round(mant * jspb.BinaryConstants.TWO_TO_23);
-  if (mant >= 0x1000000) {
-    ++exp;
-  }
-  mant = mant & 0x7FFFFF;
+  mant = Math.round(mant * jspb.BinaryConstants.TWO_TO_23) & 0x7FFFFF;
 
   jspb.utils.split64High = 0;
   jspb.utils.split64Low = ((sign << 31) | ((exp + 127) << 23) | mant) >>> 0;
@@ -263,7 +258,7 @@ jspb.utils.splitFloat64 = function(value) {
   // Compute the least significant exponent needed to represent the magnitude of
   // the value by repeadly dividing/multiplying by 2 until the magnitude
   // crosses 2. While tempting to use log math to find the exponent, at the
-  // boundaries of precision, the result can be off by one.
+  // bounadaries of precision, the result can be off by one.
   var maxDoubleExponent = 1023;
   var minDoubleExponent = -1022;
   var x = value;
@@ -515,7 +510,7 @@ jspb.utils.joinUnsignedDecimalString = function(bitsLow, bitsHigh) {
   // Skip the expensive conversion if the number is small enough to use the
   // built-in conversions.
   if (bitsHigh <= 0x1FFFFF) {
-    return '' + jspb.utils.joinUint64(bitsLow, bitsHigh);
+    return '' + (jspb.BinaryConstants.TWO_TO_32 * bitsHigh + bitsLow);
   }
 
   // What this code is doing is essentially converting the input number from

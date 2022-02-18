@@ -22,21 +22,11 @@ class DebugInfo extends \Google\Protobuf\Internal\Message
     /**
      * Generated from protobuf field <code>string detail = 2;</code>
      */
-    protected $detail = '';
+    private $detail = '';
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type string[]|\Google\Protobuf\Internal\RepeatedField $stack_entries
-     *     @type string $detail
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\EchoMessages::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

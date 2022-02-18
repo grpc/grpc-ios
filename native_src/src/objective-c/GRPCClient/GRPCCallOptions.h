@@ -26,10 +26,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 /**
  * Immutable user configurable options for a gRPC call.
- * Caller can obtain a mutable copy of type \b GRPCMutableCallOptions by calling [option
- * mutableCopy]
  */
-@interface GRPCCallOptions : NSObject <NSCopying, NSMutableCopying>
+@interface GRPCCallOptions : NSObject<NSCopying, NSMutableCopying>
 
 // Call parameters
 /**
@@ -82,10 +80,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 /**
  * Initial metadata key-value pairs that should be included in the request.
- * Dictionary key is of type NSString, value should be either NSString or NSData containing binary
- * bytes data.
  */
-@property(copy, readonly, nullable) GRPCMetadataDictionary *initialMetadata;
+@property(copy, readonly, nullable) NSDictionary *initialMetadata;
 
 // Channel parameters; take into account of channel signature.
 
@@ -94,12 +90,6 @@ NS_ASSUME_NONNULL_BEGIN
  * user-agent string.
  */
 @property(copy, readonly, nullable) NSString *userAgentPrefix;
-
-/**
- * Custom string that is suffixed to a request's user-agent header field after gRPC's internal
- * user-agent string.
- */
-@property(copy, readonly, nullable) NSString *userAgentSuffix;
 
 /**
  * The size limit for the response received from server. If it is exceeded, an error with status
@@ -120,24 +110,6 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @property(readonly) BOOL retryEnabled;
 
-/**
- * Maximum interval in seconds between two consecutive retries.
- * Internal-only property used for GTMSessionFetcher transport retry policy.
- */
-@property(readonly) NSTimeInterval maxRetryInterval;
-
-/**
- * Minimum interval in seconds between two consecutive retries.
- * Internal-only property used for GTMSessionFetcher transport retry policy.
- */
-@property(readonly) NSTimeInterval minRetryInterval;
-
-/**
- * Multiplier used to increase the interval between retries.
- * Internal-only property used for GTMSessionFetcher transport retry policy.
- */
-@property(readonly) double retryFactor;
-
 // HTTP/2 keep-alive feature. The parameter \a keepaliveInterval specifies the interval between two
 // PING frames. The parameter \a keepaliveTimeout specifies the length of the period for which the
 // call should wait for PING ACK. If PING ACK is not received after this period, the call fails.
@@ -156,7 +128,7 @@ NS_ASSUME_NONNULL_BEGIN
  * Specify channel args to be used for this call. For a list of channel args available, see
  * grpc/grpc_types.h
  */
-@property(copy, readonly, nullable) GRPCMetadataDictionary *additionalChannelArgs;
+@property(copy, readonly, nullable) NSDictionary *additionalChannelArgs;
 
 // Parameters for SSL authentication.
 
@@ -227,9 +199,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 /**
  * Mutable user configurable options for a gRPC call.
- * Caller can obtain an immutable copy of type \b GRPCCallOptions by calling [option copy]
  */
-@interface GRPCMutableCallOptions : GRPCCallOptions <NSCopying, NSMutableCopying>
+@interface GRPCMutableCallOptions : GRPCCallOptions<NSCopying, NSMutableCopying>
 
 // Call parameters
 /**
@@ -288,10 +259,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 /**
  * Initial metadata key-value pairs that should be included in the request.
- * Dictionary key is of type NSString, value should be either NSString or NSData containing binary
- * bytes data.
  */
-@property(copy, readwrite, nullable) GRPCMetadataDictionary *initialMetadata;
+@property(copy, readwrite, nullable) NSDictionary *initialMetadata;
 
 // Channel parameters; take into account of channel signature.
 
@@ -300,12 +269,6 @@ NS_ASSUME_NONNULL_BEGIN
  * user-agent string.
  */
 @property(copy, readwrite, nullable) NSString *userAgentPrefix;
-
-/**
- * Custom string that is suffixed to a request's user-agent header field after gRPC's internal
- * user-agent string.
- */
-@property(copy, readwrite, nullable) NSString *userAgentSuffix;
 
 /**
  * The size limit for the response received from server. If it is exceeded, an error with status
@@ -325,24 +288,6 @@ NS_ASSUME_NONNULL_BEGIN
  * https://github.com/grpc/proposal/blob/master/A6-client-retries.md
  */
 @property(readwrite) BOOL retryEnabled;
-
-/**
- * Maximum interval in seconds between two consecutive retries. Pass 0 to use default.
- * Internal-only property used for GTMSessionFetcher transport retry policy.
- */
-@property(readwrite) NSTimeInterval maxRetryInterval;
-
-/**
- * Minimum interval in seconds between two consecutive retries. Pass 0 to use default.
- * Internal-only property used for GTMSessionFetcher transport retry policy.
- */
-@property(readwrite) NSTimeInterval minRetryInterval;
-
-/**
- * Multiplier used to increase the interval between retries. Pass 0 to use default.
- * Internal-only property used for GTMSessionFetcher transport retry policy.
- */
-@property(readwrite) double retryFactor;
 
 // HTTP/2 keep-alive feature. The parameter \a keepaliveInterval specifies the interval between two
 // PING frames. The parameter \a keepaliveTimeout specifies the length of the period for which the
@@ -364,7 +309,7 @@ NS_ASSUME_NONNULL_BEGIN
  * Specify channel args to be used for this call. For a list of channel args available, see
  * grpc/grpc_types.h
  */
-@property(copy, readwrite, nullable) GRPCMetadataDictionary *additionalChannelArgs;
+@property(copy, readwrite, nullable) NSDictionary *additionalChannelArgs;
 
 // Parameters for SSL authentication.
 

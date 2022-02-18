@@ -14,12 +14,11 @@
 """The Python client used to test negative http2 conditions."""
 
 import argparse
-import time
 
 import grpc
-
-from src.proto.grpc.testing import messages_pb2
+import time
 from src.proto.grpc.testing import test_pb2_grpc
+from src.proto.grpc.testing import messages_pb2
 
 
 def _validate_payload_type_and_length(response, expected_type, expected_length):

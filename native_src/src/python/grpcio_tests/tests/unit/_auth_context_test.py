@@ -13,17 +13,17 @@
 # limitations under the License.
 """Tests exposure of SSL auth context"""
 
-import logging
 import pickle
 import unittest
+import logging
 
 import grpc
 from grpc import _channel
 from grpc.experimental import session_cache
 import six
 
-from tests.unit import resources
 from tests.unit import test_common
+from tests.unit import resources
 
 _REQUEST = b'\x00\x00\x00'
 _RESPONSE = b'\x00\x00\x00'
@@ -78,11 +78,7 @@ class AuthContextTest(unittest.TestCase):
         auth_data = pickle.loads(response)
         self.assertIsNone(auth_data[_ID])
         self.assertIsNone(auth_data[_ID_KEY])
-        self.assertDictEqual(
-            {
-                'security_level': [b'TSI_SECURITY_NONE'],
-                'transport_security_type': [b'insecure'],
-            }, auth_data[_AUTH_CTX])
+        self.assertDictEqual({}, auth_data[_AUTH_CTX])
 
     def testSecureNoCert(self):
         handler = grpc.method_handlers_generic_handler('test', {

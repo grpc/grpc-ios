@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Copyright 2016 gRPC authors.
 #
@@ -14,12 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
+
+import sys
+import yaml
 import os
 import re
 import subprocess
-import sys
-
-import yaml
 
 errors = 0
 
@@ -31,7 +32,7 @@ from expand_version import Version
 
 try:
     branch_name = subprocess.check_output('git rev-parse --abbrev-ref HEAD',
-                                          shell=True).decode()
+                                          shell=True)
 except:
     print('WARNING: not a git repository')
     branch_name = None
@@ -55,7 +56,7 @@ if branch_name is not None:
 else:
     check_version = lambda version: True
 
-with open('build_handwritten.yaml', 'r') as f:
+with open('build.yaml', 'r') as f:
     build_yaml = yaml.load(f.read())
 
 settings = build_yaml['settings']
@@ -63,22 +64,22 @@ settings = build_yaml['settings']
 top_version = Version(settings['version'])
 if not check_version(top_version):
     errors += 1
-    print((warning % ('version', top_version)))
+    print(warning % ('version', top_version))
 
-for tag, value in list(settings.items()):
+for tag, value in settings.iteritems():
     if re.match(r'^[a-z]+_version$', tag):
         value = Version(value)
         if tag != 'core_version':
             if value.major != top_version.major:
                 errors += 1
-                print(('major version mismatch on %s: %d vs %d' %
-                       (tag, value.major, top_version.major)))
+                print('major version mismatch on %s: %d vs %d' %
+                      (tag, value.major, top_version.major))
             if value.minor != top_version.minor:
                 errors += 1
-                print(('minor version mismatch on %s: %d vs %d' %
-                       (tag, value.minor, top_version.minor)))
+                print('minor version mismatch on %s: %d vs %d' %
+                      (tag, value.minor, top_version.minor))
         if not check_version(value):
             errors += 1
-            print((warning % (tag, value)))
+            print(warning % (tag, value))
 
 sys.exit(errors)

@@ -25,12 +25,17 @@
 #import "GRPCTransport.h"
 #import "private/GRPCTransport+Private.h"
 
+NSString *const kGRPCHeadersKey = @"io.grpc.HeadersKey";
+NSString *const kGRPCTrailersKey = @"io.grpc.TrailersKey";
+
+NSString *const kGRPCErrorDomain = @"io.grpc";
+
 /**
  * The response dispatcher creates its own serial dispatch queue and target the queue to the
  * dispatch queue of a user provided response handler. It removes the requirement of having to use
  * serial dispatch queue in the user provided response handler.
  */
-@interface GRPCResponseDispatcher : NSObject <GRPCResponseHandler>
+@interface GRPCResponseDispatcher : NSObject<GRPCResponseHandler>
 
 - (nullable instancetype)initWithResponseHandler:(id<GRPCResponseHandler>)responseHandler;
 
@@ -112,9 +117,8 @@
 }
 
 - (id)copyWithZone:(NSZone *)zone {
-  GRPCRequestOptions *request = [[GRPCRequestOptions alloc] initWithHost:_host
-                                                                    path:_path
-                                                                  safety:_safety];
+  GRPCRequestOptions *request =
+      [[GRPCRequestOptions alloc] initWithHost:_host path:_path safety:_safety];
 
   return request;
 }
@@ -217,9 +221,8 @@
 
 - (instancetype)initWithRequestOptions:(GRPCRequestOptions *)requestOptions
                        responseHandler:(id<GRPCResponseHandler>)responseHandler {
-  return [self initWithRequestOptions:requestOptions
-                      responseHandler:responseHandler
-                          callOptions:nil];
+  return
+      [self initWithRequestOptions:requestOptions responseHandler:responseHandler callOptions:nil];
 }
 
 - (void)start {

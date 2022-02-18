@@ -3,4 +3,3 @@
 .*.sw?
 /bloaty
 !tests/testdata/**
-*.dSYM

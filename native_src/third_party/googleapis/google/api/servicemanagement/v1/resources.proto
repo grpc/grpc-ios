@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC.
+// Copyright 2018 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 
 syntax = "proto3";
 
@@ -19,13 +18,12 @@ package google.api.servicemanagement.v1;
 
 import "google/api/annotations.proto";
 import "google/api/config_change.proto";
-import "google/api/field_behavior.proto";
 import "google/api/metric.proto";
-import "google/api/quota.proto";
 import "google/api/service.proto";
 import "google/longrunning/operations.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "google/rpc/status.proto";
 
@@ -36,12 +34,12 @@ option java_outer_classname = "ResourcesProto";
 option java_package = "com.google.api.servicemanagement.v1";
 option objc_class_prefix = "GASM";
 option php_namespace = "Google\\Cloud\\ServiceManagement\\V1";
-option ruby_package = "Google::Cloud::ServiceManagement::V1";
+
 
 // The full representation of a Service that is managed by
 // Google Service Management.
 message ManagedService {
-  // The name of the service. See the [overview](https://cloud.google.com/service-management/overview)
+  // The name of the service. See the [overview](/service-management/overview)
   // for naming requirements.
   string service_name = 2;
 
@@ -198,7 +196,7 @@ message ChangeReport {
 message Rollout {
   // Strategy that specifies how clients of Google Service Controller want to
   // send traffic to use different config versions. This is generally
-  // used by API proxy to split traffic based on your configured percentage for
+  // used by API proxy to split traffic based on your configured precentage for
   // each config version.
   //
   // One example of how to gradually rollout a new service configuration using
@@ -265,15 +263,15 @@ message Rollout {
     FAILED_ROLLED_BACK = 6;
   }
 
-  // Optional. Unique identifier of this Rollout. Must be no longer than 63 characters
-  // and only lower case letters, digits, '.', '_' and '-' are allowed.
+  // Optional unique identifier of this Rollout. Only lower case letters, digits
+  //  and '-' are allowed.
   //
   // If not specified by client, the server will generate one. The generated id
   // will have the form of <date><revision number>, where "date" is the create
   // date in ISO 8601 format.  "revision number" is a monotonically increasing
   // positive number that is reset every day for each service.
   // An example of the generated rollout_id is '2016-02-16r1'
-  string rollout_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string rollout_id = 1;
 
   // Creation time of the rollout. Readonly.
   google.protobuf.Timestamp create_time = 2;

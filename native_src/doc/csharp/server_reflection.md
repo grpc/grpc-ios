@@ -21,7 +21,7 @@ server = new Server()
     Services =
     {
         // the server will serve 2 services, the Greeter and the ServerReflection
-        Greeter.BindService(new GreeterImpl()),
+        ServerReflection.BindService(new GreeterImpl()),
         ServerReflection.BindService(reflectionServiceImpl)
     },
     Ports = { { "localhost", 50051, ServerCredentials.Insecure } }

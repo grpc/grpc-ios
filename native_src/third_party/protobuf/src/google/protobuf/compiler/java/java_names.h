@@ -90,8 +90,20 @@ std::string FileJavaPackage(const FileDescriptor* descriptor);
 // Requires:
 //   descriptor != NULL
 // Returns:
-//   Capitalized camel case name field name.
+//   Captialized camel case name field name.
 std::string CapitalizedFieldName(const FieldDescriptor* descriptor);
+
+// Requires:
+//   descriptor != NULL
+// Returns:
+//   Primitive Java type name for the field.
+const char* PrimitiveTypeName(const FieldDescriptor* descriptor);
+
+// Requires:
+//   descriptor != NULL
+// Returns:
+//   Boes primitive Java type name for the field.
+const char* BoxedPrimitiveTypeName(const FieldDescriptor* descriptor);
 
 }  // namespace java
 }  // namespace compiler

@@ -56,7 +56,7 @@ class DefaultHealthCheckService final : public HealthCheckServiceInterface {
     HealthCheckServiceImpl(DefaultHealthCheckService* database,
                            std::unique_ptr<ServerCompletionQueue> cq);
 
-    ~HealthCheckServiceImpl() override;
+    ~HealthCheckServiceImpl();
 
     void StartServingThread();
 
@@ -194,7 +194,7 @@ class DefaultHealthCheckService final : public HealthCheckServiceInterface {
       HealthCheckServiceImpl* service_;
 
       ByteBuffer request_;
-      std::string service_name_;
+      grpc::string service_name_;
       GenericServerAsyncWriter stream_;
       ServerContext ctx_;
 
@@ -213,7 +213,7 @@ class DefaultHealthCheckService final : public HealthCheckServiceInterface {
 
     // Returns true on success.
     static bool DecodeRequest(const ByteBuffer& request,
-                              std::string* service_name);
+                              grpc::string* service_name);
     static bool EncodeResponse(ServingStatus status, ByteBuffer* response);
 
     // Needed to appease Windows compilers, which don't seem to allow
@@ -234,12 +234,13 @@ class DefaultHealthCheckService final : public HealthCheckServiceInterface {
 
   DefaultHealthCheckService();
 
-  void SetServingStatus(const std::string& service_name, bool serving) override;
+  void SetServingStatus(const grpc::string& service_name,
+                        bool serving) override;
   void SetServingStatus(bool serving) override;
 
   void Shutdown() override;
 
-  ServingStatus GetServingStatus(const std::string& service_name) const;
+  ServingStatus GetServingStatus(const grpc::string& service_name) const;
 
   HealthCheckServiceImpl* GetHealthCheckService(
       std::unique_ptr<ServerCompletionQueue> cq);
@@ -266,16 +267,16 @@ class DefaultHealthCheckService final : public HealthCheckServiceInterface {
   };
 
   void RegisterCallHandler(
-      const std::string& service_name,
+      const grpc::string& service_name,
       std::shared_ptr<HealthCheckServiceImpl::CallHandler> handler);
 
   void UnregisterCallHandler(
-      const std::string& service_name,
+      const grpc::string& service_name,
       const std::shared_ptr<HealthCheckServiceImpl::CallHandler>& handler);
 
   mutable grpc_core::Mutex mu_;
-  bool shutdown_ = false;                            // Guarded by mu_.
-  std::map<std::string, ServiceData> services_map_;  // Guarded by mu_.
+  bool shutdown_ = false;                             // Guarded by mu_.
+  std::map<grpc::string, ServiceData> services_map_;  // Guarded by mu_.
   std::unique_ptr<HealthCheckServiceImpl> impl_;
 };
 

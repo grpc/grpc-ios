@@ -35,7 +35,6 @@ class ProxyClientServiceClient extends \Grpc\BaseStub {
      * @param \Grpc\Testing\PBVoid $argument input argument
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\ClientConfig
      */
     public function GetConfig(\Grpc\Testing\PBVoid $argument,
       $metadata = [], $options = []) {
@@ -48,7 +47,6 @@ class ProxyClientServiceClient extends \Grpc\BaseStub {
     /**
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\PBVoid
      */
     public function ReportTime($metadata = [], $options = []) {
         return $this->_clientStreamRequest('/grpc.testing.ProxyClientService/ReportTime',
@@ -59,7 +57,6 @@ class ProxyClientServiceClient extends \Grpc\BaseStub {
     /**
      * @param array $metadata metadata
      * @param array $options call options
-     * @return \Grpc\Testing\PBVoid
      */
     public function ReportHist($metadata = [], $options = []) {
         return $this->_clientStreamRequest('/grpc.testing.ProxyClientService/ReportHist',

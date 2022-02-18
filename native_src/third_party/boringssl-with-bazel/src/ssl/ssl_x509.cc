@@ -149,6 +149,7 @@
 #include <openssl/stack.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
+#include <openssl/x509_vfy.h>
 
 #include "internal.h"
 #include "../crypto/internal.h"
@@ -367,34 +368,25 @@ static bool ssl_crypto_x509_session_verify_cert_chain(SSL_SESSION *session,
     return false;
   }
 
-  SSL *const ssl = hs->ssl;
-  SSL_CTX *ssl_ctx = ssl->ctx.get();
+  SSL_CTX *ssl_ctx = hs->ssl->ctx.get();
   X509_STORE *verify_store = ssl_ctx->cert_store;
   if (hs->config->cert->verify_store != nullptr) {
     verify_store = hs->config->cert->verify_store;
   }
 
   X509 *leaf = sk_X509_value(cert_chain, 0);
-  const char *name;
-  size_t name_len;
-  SSL_get0_ech_name_override(ssl, &name, &name_len);
-  UniquePtr<X509_STORE_CTX> ctx(X509_STORE_CTX_new());
-  if (!ctx ||
-      !X509_STORE_CTX_init(ctx.get(), verify_store, leaf, cert_chain) ||
-      !X509_STORE_CTX_set_ex_data(ctx.get(),
-                                  SSL_get_ex_data_X509_STORE_CTX_idx(), ssl) ||
+  ScopedX509_STORE_CTX ctx;
+  if (!X509_STORE_CTX_init(ctx.get(), verify_store, leaf, cert_chain) ||
+      !X509_STORE_CTX_set_ex_data(
+          ctx.get(), SSL_get_ex_data_X509_STORE_CTX_idx(), hs->ssl) ||
       // We need to inherit the verify parameters. These can be determined by
       // the context: if its a server it will verify SSL client certificates or
       // vice versa.
-      !X509_STORE_CTX_set_default(ctx.get(),
-                                  ssl->server ? "ssl_client" : "ssl_server") ||
+      !X509_STORE_CTX_set_default(
+          ctx.get(), hs->ssl->server ? "ssl_client" : "ssl_server") ||
       // Anything non-default in "param" should overwrite anything in the ctx.
       !X509_VERIFY_PARAM_set1(X509_STORE_CTX_get0_param(ctx.get()),
-                              hs->config->param) ||
-      // ClientHelloOuter connections use a different name.
-      (name_len != 0 &&
-       !X509_VERIFY_PARAM_set1_host(X509_STORE_CTX_get0_param(ctx.get()), name,
-                                    name_len))) {
+                              hs->config->param)) {
     OPENSSL_PUT_ERROR(SSL, ERR_R_X509_LIB);
     return false;
   }
@@ -411,11 +403,11 @@ static bool ssl_crypto_x509_session_verify_cert_chain(SSL_SESSION *session,
     verify_ret = X509_verify_cert(ctx.get());
   }
 
-  session->verify_result = X509_STORE_CTX_get_error(ctx.get());
+  session->verify_result = ctx->error;
 
   // If |SSL_VERIFY_NONE|, the error is non-fatal, but we keep the result.
   if (verify_ret <= 0 && hs->config->verify_mode != SSL_VERIFY_NONE) {
-    *out_alert = SSL_alert_from_verify_result(session->verify_result);
+    *out_alert = SSL_alert_from_verify_result(ctx->error);
     return false;
   }
 
@@ -464,9 +456,9 @@ static bool ssl_crypto_x509_ssl_auto_chain_if_needed(SSL_HANDSHAKE *hs) {
     return false;
   }
 
-  UniquePtr<X509_STORE_CTX> ctx(X509_STORE_CTX_new());
-  if (!ctx || !X509_STORE_CTX_init(ctx.get(), hs->ssl->ctx->cert_store,
-                                   leaf.get(), nullptr)) {
+  ScopedX509_STORE_CTX ctx;
+  if (!X509_STORE_CTX_init(ctx.get(), hs->ssl->ctx->cert_store, leaf.get(),
+                           NULL)) {
     OPENSSL_PUT_ERROR(SSL, ERR_R_X509_LIB);
     return false;
   }
@@ -476,13 +468,9 @@ static bool ssl_crypto_x509_ssl_auto_chain_if_needed(SSL_HANDSHAKE *hs) {
   ERR_clear_error();
 
   // Remove the leaf from the generated chain.
-  UniquePtr<STACK_OF(X509)> chain(X509_STORE_CTX_get1_chain(ctx.get()));
-  if (!chain) {
-    return false;
-  }
-  X509_free(sk_X509_shift(chain.get()));
+  X509_free(sk_X509_shift(ctx->chain));
 
-  if (!ssl_cert_set_chain(hs->config->cert.get(), chain.get())) {
+  if (!ssl_cert_set_chain(hs->config->cert.get(), ctx->chain)) {
     return false;
   }
 
@@ -708,6 +696,13 @@ int SSL_CTX_load_verify_locations(SSL_CTX *ctx, const char *ca_file,
                                   const char *ca_dir) {
   check_ssl_ctx_x509_method(ctx);
   return X509_STORE_load_locations(ctx->cert_store, ca_file, ca_dir);
+}
+
+void SSL_set_verify_result(SSL *ssl, long result) {
+  check_ssl_x509_method(ssl);
+  if (result != X509_V_OK) {
+    abort();
+  }
 }
 
 long SSL_get_verify_result(const SSL *ssl) {

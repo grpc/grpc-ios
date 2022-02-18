@@ -84,7 +84,7 @@ inline bool isprint(char c) {
 //    Replaces any occurrence of the character 'remove' (or the characters
 //    in 'remove') with the character 'replacewith'.
 // ----------------------------------------------------------------------
-void ReplaceCharacters(std::string *s, const char *remove, char replacewith) {
+void ReplaceCharacters(string *s, const char *remove, char replacewith) {
   const char *str_start = s->c_str();
   const char *str = str_start;
   for (str = strpbrk(str, remove);
@@ -94,7 +94,7 @@ void ReplaceCharacters(std::string *s, const char *remove, char replacewith) {
   }
 }
 
-void StripWhitespace(std::string *str) {
+void StripWhitespace(string* str) {
   int str_length = str->length();
 
   // Strip off leading whitespace.
@@ -118,7 +118,7 @@ void StripWhitespace(std::string *str) {
     --last;
   }
   if (last != (str_length - 1) && last >= 0) {
-    str->erase(last + 1, std::string::npos);
+    str->erase(last + 1, string::npos);
   }
 }
 
@@ -129,19 +129,19 @@ void StripWhitespace(std::string *str) {
 //    it only replaces the first instance of "old."
 // ----------------------------------------------------------------------
 
-void StringReplace(const std::string &s, const std::string &oldsub,
-                   const std::string &newsub, bool replace_all,
-                   std::string *res) {
+void StringReplace(const string& s, const string& oldsub,
+                   const string& newsub, bool replace_all,
+                   string* res) {
   if (oldsub.empty()) {
     res->append(s);  // if empty, append the given string.
     return;
   }
 
-  std::string::size_type start_pos = 0;
-  std::string::size_type pos;
+  string::size_type start_pos = 0;
+  string::size_type pos;
   do {
     pos = s.find(oldsub, start_pos);
-    if (pos == std::string::npos) {
+    if (pos == string::npos) {
       break;
     }
     res->append(s, start_pos, pos - start_pos);
@@ -160,9 +160,9 @@ void StringReplace(const std::string &s, const std::string &oldsub,
 //    happened or not.
 // ----------------------------------------------------------------------
 
-std::string StringReplace(const std::string &s, const std::string &oldsub,
-                          const std::string &newsub, bool replace_all) {
-  std::string ret;
+string StringReplace(const string& s, const string& oldsub,
+                     const string& newsub, bool replace_all) {
+  string ret;
   StringReplace(s, oldsub, newsub, replace_all, &ret);
   return ret;
 }
@@ -176,8 +176,10 @@ std::string StringReplace(const std::string &s, const std::string &oldsub,
 // the characters in the string, not the entire string as a single delimiter.
 // ----------------------------------------------------------------------
 template <typename ITR>
-static inline void SplitStringToIteratorUsing(StringPiece full,
-                                              const char *delim, ITR &result) {
+static inline
+void SplitStringToIteratorUsing(const string& full,
+                                const char* delim,
+                                ITR& result) {
   // Optimize the common case where delim is a single character.
   if (delim[0] != '\0' && delim[1] == '\0') {
     char c = delim[0];
@@ -189,29 +191,29 @@ static inline void SplitStringToIteratorUsing(StringPiece full,
       } else {
         const char* start = p;
         while (++p != end && *p != c);
-        *result++ = std::string(start, p - start);
+        *result++ = string(start, p - start);
       }
     }
     return;
   }
 
-  std::string::size_type begin_index, end_index;
+  string::size_type begin_index, end_index;
   begin_index = full.find_first_not_of(delim);
-  while (begin_index != std::string::npos) {
+  while (begin_index != string::npos) {
     end_index = full.find_first_of(delim, begin_index);
-    if (end_index == std::string::npos) {
-      *result++ = std::string(full.substr(begin_index));
+    if (end_index == string::npos) {
+      *result++ = full.substr(begin_index);
       return;
     }
-    *result++ =
-        std::string(full.substr(begin_index, (end_index - begin_index)));
+    *result++ = full.substr(begin_index, (end_index - begin_index));
     begin_index = full.find_first_not_of(delim, end_index);
   }
 }
 
-void SplitStringUsing(StringPiece full, const char *delim,
-                      std::vector<std::string> *result) {
-  std::back_insert_iterator<std::vector<std::string> > it(*result);
+void SplitStringUsing(const string& full,
+                      const char* delim,
+                      std::vector<string>* result) {
+  std::back_insert_iterator< std::vector<string> > it(*result);
   SplitStringToIteratorUsing(full, delim, it);
 }
 
@@ -226,29 +228,30 @@ void SplitStringUsing(StringPiece full, const char *delim,
 //
 // If "pieces" is negative for some reason, it returns the whole string
 // ----------------------------------------------------------------------
-template <typename ITR>
-static inline void SplitStringToIteratorAllowEmpty(StringPiece full,
-                                                   const char *delim,
-                                                   int pieces, ITR &result) {
-  std::string::size_type begin_index, end_index;
+template <typename StringType, typename ITR>
+static inline
+void SplitStringToIteratorAllowEmpty(const StringType& full,
+                                     const char* delim,
+                                     int pieces,
+                                     ITR& result) {
+  string::size_type begin_index, end_index;
   begin_index = 0;
 
   for (int i = 0; (i < pieces-1) || (pieces == 0); i++) {
     end_index = full.find_first_of(delim, begin_index);
-    if (end_index == std::string::npos) {
-      *result++ = std::string(full.substr(begin_index));
+    if (end_index == string::npos) {
+      *result++ = full.substr(begin_index);
       return;
     }
-    *result++ =
-        std::string(full.substr(begin_index, (end_index - begin_index)));
+    *result++ = full.substr(begin_index, (end_index - begin_index));
     begin_index = end_index + 1;
   }
-  *result++ = std::string(full.substr(begin_index));
+  *result++ = full.substr(begin_index);
 }
 
-void SplitStringAllowEmpty(StringPiece full, const char *delim,
-                           std::vector<std::string> *result) {
-  std::back_insert_iterator<std::vector<std::string> > it(*result);
+void SplitStringAllowEmpty(const string& full, const char* delim,
+                           std::vector<string>* result) {
+  std::back_insert_iterator<std::vector<string> > it(*result);
   SplitStringToIteratorAllowEmpty(full, delim, 0, it);
 }
 
@@ -259,8 +262,10 @@ void SplitStringAllowEmpty(StringPiece full, const char *delim,
 //
 // ----------------------------------------------------------------------
 template <class ITERATOR>
-static void JoinStringsIterator(const ITERATOR &start, const ITERATOR &end,
-                                const char *delim, std::string *result) {
+static void JoinStringsIterator(const ITERATOR& start,
+                                const ITERATOR& end,
+                                const char* delim,
+                                string* result) {
   GOOGLE_CHECK(result != nullptr);
   result->clear();
   int delim_length = strlen(delim);
@@ -284,8 +289,9 @@ static void JoinStringsIterator(const ITERATOR &start, const ITERATOR &end,
   }
 }
 
-void JoinStrings(const std::vector<std::string> &components, const char *delim,
-                 std::string *result) {
+void JoinStrings(const std::vector<string>& components,
+                 const char* delim,
+                 string * result) {
   JoinStringsIterator(components.begin(), components.end(), delim, result);
 }
 
@@ -311,8 +317,8 @@ int UnescapeCEscapeSequences(const char* source, char* dest) {
   return UnescapeCEscapeSequences(source, dest, nullptr);
 }
 
-int UnescapeCEscapeSequences(const char *source, char *dest,
-                             std::vector<std::string> *errors) {
+int UnescapeCEscapeSequences(const char* source, char* dest,
+                             std::vector<string> *errors) {
   GOOGLE_DCHECK(errors == nullptr) << "Error reporting not implemented.";
 
   char* d = dest;
@@ -367,10 +373,8 @@ int UnescapeCEscapeSequences(const char *source, char *dest,
           while (isxdigit(p[1]))  // arbitrarily many hex digits
             ch = (ch << 4) + hex_digit_to_int(*++p);
           if (ch > 0xFF)
-            LOG_STRING(ERROR, errors)
-                << "Value of "
-                << "\\" << std::string(hex_start, p + 1 - hex_start)
-                << " exceeds 8 bits";
+            LOG_STRING(ERROR, errors) << "Value of " <<
+              "\\" << string(hex_start, p+1-hex_start) << " exceeds 8 bits";
           *d++ = ch;
           break;
         }
@@ -385,7 +389,7 @@ int UnescapeCEscapeSequences(const char *source, char *dest,
             } else {
               LOG_STRING(ERROR, errors)
                 << "\\u must be followed by 4 hex digits: \\"
-                <<  std::string(hex_start, p+1-hex_start);
+                <<  string(hex_start, p+1-hex_start);
               break;
             }
           }
@@ -404,7 +408,7 @@ int UnescapeCEscapeSequences(const char *source, char *dest,
               if (newrune > 0x10FFFF) {
                 LOG_STRING(ERROR, errors)
                   << "Value of \\"
-                  << std::string(hex_start, p + 1 - hex_start)
+                  << string(hex_start, p + 1 - hex_start)
                   << " exceeds Unicode limit (0x10FFFF)";
                 break;
               } else {
@@ -413,7 +417,7 @@ int UnescapeCEscapeSequences(const char *source, char *dest,
             } else {
               LOG_STRING(ERROR, errors)
                 << "\\U must be followed by 8 hex digits: \\"
-                <<  std::string(hex_start, p+1-hex_start);
+                <<  string(hex_start, p+1-hex_start);
               break;
             }
           }
@@ -445,12 +449,12 @@ int UnescapeCEscapeSequences(const char *source, char *dest,
 //    In the first and second calls, the length of dest is returned. In the
 //    the third call, the new string is returned.
 // ----------------------------------------------------------------------
-int UnescapeCEscapeString(const std::string &src, std::string *dest) {
+int UnescapeCEscapeString(const string& src, string* dest) {
   return UnescapeCEscapeString(src, dest, nullptr);
 }
 
-int UnescapeCEscapeString(const std::string &src, std::string *dest,
-                          std::vector<std::string> *errors) {
+int UnescapeCEscapeString(const string& src, string* dest,
+                          std::vector<string> *errors) {
   std::unique_ptr<char[]> unescaped(new char[src.size() + 1]);
   int len = UnescapeCEscapeSequences(src.c_str(), unescaped.get(), errors);
   GOOGLE_CHECK(dest);
@@ -458,10 +462,10 @@ int UnescapeCEscapeString(const std::string &src, std::string *dest,
   return len;
 }
 
-std::string UnescapeCEscapeString(const std::string &src) {
+string UnescapeCEscapeString(const string& src) {
   std::unique_ptr<char[]> unescaped(new char[src.size() + 1]);
   int len = UnescapeCEscapeSequences(src.c_str(), unescaped.get(), nullptr);
-  return std::string(unescaped.get(), len);
+  return string(unescaped.get(), len);
 }
 
 // ----------------------------------------------------------------------
@@ -545,7 +549,7 @@ static inline size_t CEscapedLength(StringPiece src) {
   };
 
   size_t escaped_len = 0;
-  for (StringPiece::size_type i = 0; i < src.size(); ++i) {
+  for (int i = 0; i < src.size(); ++i) {
     unsigned char c = static_cast<unsigned char>(src[i]);
     escaped_len += c_escaped_len[c];
   }
@@ -558,7 +562,7 @@ static inline size_t CEscapedLength(StringPiece src) {
 // the required space using a lookup table, and also does not do any special
 // handling for Hex or UTF-8 characters.
 // ----------------------------------------------------------------------
-void CEscapeAndAppend(StringPiece src, std::string *dest) {
+void CEscapeAndAppend(StringPiece src, string* dest) {
   size_t escaped_len = CEscapedLength(src);
   if (escaped_len == src.size()) {
     dest->append(src.data(), src.size());
@@ -569,7 +573,7 @@ void CEscapeAndAppend(StringPiece src, std::string *dest) {
   dest->resize(cur_dest_len + escaped_len);
   char* append_ptr = &(*dest)[cur_dest_len];
 
-  for (StringPiece::size_type i = 0; i < src.size(); ++i) {
+  for (int i = 0; i < src.size(); ++i) {
     unsigned char c = static_cast<unsigned char>(src[i]);
     switch (c) {
       case '\n': *append_ptr++ = '\\'; *append_ptr++ = 'n'; break;
@@ -592,30 +596,30 @@ void CEscapeAndAppend(StringPiece src, std::string *dest) {
   }
 }
 
-std::string CEscape(const std::string &src) {
-  std::string dest;
+string CEscape(const string& src) {
+  string dest;
   CEscapeAndAppend(src, &dest);
   return dest;
 }
 
 namespace strings {
 
-std::string Utf8SafeCEscape(const std::string &src) {
+string Utf8SafeCEscape(const string& src) {
   const int dest_length = src.size() * 4 + 1; // Maximum possible expansion
   std::unique_ptr<char[]> dest(new char[dest_length]);
   const int len = CEscapeInternal(src.data(), src.size(),
                                   dest.get(), dest_length, false, true);
   GOOGLE_DCHECK_GE(len, 0);
-  return std::string(dest.get(), len);
+  return string(dest.get(), len);
 }
 
-std::string CHexEscape(const std::string &src) {
+string CHexEscape(const string& src) {
   const int dest_length = src.size() * 4 + 1; // Maximum possible expansion
   std::unique_ptr<char[]> dest(new char[dest_length]);
   const int len = CEscapeInternal(src.data(), src.size(),
                                   dest.get(), dest_length, true, false);
   GOOGLE_DCHECK_GE(len, 0);
-  return std::string(dest.get(), len);
+  return string(dest.get(), len);
 }
 
 }  // namespace strings
@@ -663,8 +667,8 @@ uint32 strtou32_adaptor(const char *nptr, char **endptr, int base) {
   return static_cast<uint32>(result);
 }
 
-inline bool safe_parse_sign(std::string *text /*inout*/,
-                            bool *negative_ptr /*output*/) {
+inline bool safe_parse_sign(string* text  /*inout*/,
+                            bool* negative_ptr  /*output*/) {
   const char* start = text->data();
   const char* end = start + text->size();
 
@@ -691,8 +695,9 @@ inline bool safe_parse_sign(std::string *text /*inout*/,
   return true;
 }
 
-template <typename IntType>
-bool safe_parse_positive_int(std::string text, IntType *value_p) {
+template<typename IntType>
+bool safe_parse_positive_int(
+    string text, IntType* value_p) {
   int base = 10;
   IntType value = 0;
   const IntType vmax = std::numeric_limits<IntType>::max();
@@ -724,8 +729,9 @@ bool safe_parse_positive_int(std::string text, IntType *value_p) {
   return true;
 }
 
-template <typename IntType>
-bool safe_parse_negative_int(const std::string &text, IntType *value_p) {
+template<typename IntType>
+bool safe_parse_negative_int(
+    const string& text, IntType* value_p) {
   int base = 10;
   IntType value = 0;
   const IntType vmin = std::numeric_limits<IntType>::min();
@@ -764,8 +770,8 @@ bool safe_parse_negative_int(const std::string &text, IntType *value_p) {
   return true;
 }
 
-template <typename IntType>
-bool safe_int_internal(std::string text, IntType *value_p) {
+template<typename IntType>
+bool safe_int_internal(string text, IntType* value_p) {
   *value_p = 0;
   bool negative;
   if (!safe_parse_sign(&text, &negative)) {
@@ -778,8 +784,8 @@ bool safe_int_internal(std::string text, IntType *value_p) {
   }
 }
 
-template <typename IntType>
-bool safe_uint_internal(std::string text, IntType *value_p) {
+template<typename IntType>
+bool safe_uint_internal(string text, IntType* value_p) {
   *value_p = 0;
   bool negative;
   if (!safe_parse_sign(&text, &negative) || negative) {
@@ -1113,46 +1119,46 @@ char* FastInt64ToBufferLeft(int64 i, char* buffer) {
 //    Return value: string
 // ----------------------------------------------------------------------
 
-std::string SimpleItoa(int i) {
+string SimpleItoa(int i) {
   char buffer[kFastToBufferSize];
   return (sizeof(i) == 4) ?
     FastInt32ToBuffer(i, buffer) :
     FastInt64ToBuffer(i, buffer);
 }
 
-std::string SimpleItoa(unsigned int i) {
+string SimpleItoa(unsigned int i) {
   char buffer[kFastToBufferSize];
-  return std::string(buffer, (sizeof(i) == 4)
-                                 ? FastUInt32ToBufferLeft(i, buffer)
-                                 : FastUInt64ToBufferLeft(i, buffer));
+  return string(buffer, (sizeof(i) == 4) ?
+    FastUInt32ToBufferLeft(i, buffer) :
+    FastUInt64ToBufferLeft(i, buffer));
 }
 
-std::string SimpleItoa(long i) {
+string SimpleItoa(long i) {
   char buffer[kFastToBufferSize];
   return (sizeof(i) == 4) ?
     FastInt32ToBuffer(i, buffer) :
     FastInt64ToBuffer(i, buffer);
 }
 
-std::string SimpleItoa(unsigned long i) {
+string SimpleItoa(unsigned long i) {
   char buffer[kFastToBufferSize];
-  return std::string(buffer, (sizeof(i) == 4)
-                                 ? FastUInt32ToBufferLeft(i, buffer)
-                                 : FastUInt64ToBufferLeft(i, buffer));
+  return string(buffer, (sizeof(i) == 4) ?
+    FastUInt32ToBufferLeft(i, buffer) :
+    FastUInt64ToBufferLeft(i, buffer));
 }
 
-std::string SimpleItoa(long long i) {
+string SimpleItoa(long long i) {
   char buffer[kFastToBufferSize];
   return (sizeof(i) == 4) ?
     FastInt32ToBuffer(i, buffer) :
     FastInt64ToBuffer(i, buffer);
 }
 
-std::string SimpleItoa(unsigned long long i) {
+string SimpleItoa(unsigned long long i) {
   char buffer[kFastToBufferSize];
-  return std::string(buffer, (sizeof(i) == 4)
-                                 ? FastUInt32ToBufferLeft(i, buffer)
-                                 : FastUInt64ToBufferLeft(i, buffer));
+  return string(buffer, (sizeof(i) == 4) ?
+    FastUInt32ToBufferLeft(i, buffer) :
+    FastUInt64ToBufferLeft(i, buffer));
 }
 
 // ----------------------------------------------------------------------
@@ -1196,12 +1202,12 @@ std::string SimpleItoa(unsigned long long i) {
 //    implementation.
 // ----------------------------------------------------------------------
 
-std::string SimpleDtoa(double value) {
+string SimpleDtoa(double value) {
   char buffer[kDoubleToBufferSize];
   return DoubleToBuffer(value, buffer);
 }
 
-std::string SimpleFtoa(float value) {
+string SimpleFtoa(float value) {
   char buffer[kFloatToBufferSize];
   return FloatToBuffer(value, buffer);
 }
@@ -1244,7 +1250,7 @@ char* DoubleToBuffer(double value, char* buffer) {
   // platforms these days.  Just in case some system exists where DBL_DIG
   // is significantly larger -- and risks overflowing our buffer -- we have
   // this assert.
-  static_assert(DBL_DIG < 20, "DBL_DIG_is_too_big");
+  GOOGLE_COMPILE_ASSERT(DBL_DIG < 20, DBL_DIG_is_too_big);
 
   if (value == std::numeric_limits<double>::infinity()) {
     strcpy(buffer, "inf");
@@ -1272,8 +1278,8 @@ char* DoubleToBuffer(double value, char* buffer) {
   // truncated to a double.
   volatile double parsed_value = internal::NoLocaleStrtod(buffer, nullptr);
   if (parsed_value != value) {
-    snprintf_result =
-        snprintf(buffer, kDoubleToBufferSize, "%.*g", DBL_DIG + 2, value);
+    int snprintf_result =
+      snprintf(buffer, kDoubleToBufferSize, "%.*g", DBL_DIG+2, value);
 
     // Should never overflow; see above.
     GOOGLE_DCHECK(snprintf_result > 0 && snprintf_result < kDoubleToBufferSize);
@@ -1287,7 +1293,7 @@ static int memcasecmp(const char *s1, const char *s2, size_t len) {
   const unsigned char *us1 = reinterpret_cast<const unsigned char *>(s1);
   const unsigned char *us2 = reinterpret_cast<const unsigned char *>(s2);
 
-  for (size_t i = 0; i < len; i++) {
+  for ( int i = 0; i < len; i++ ) {
     const int diff =
       static_cast<int>(static_cast<unsigned char>(ascii_tolower(us1[i]))) -
       static_cast<int>(static_cast<unsigned char>(ascii_tolower(us2[i])));
@@ -1341,19 +1347,19 @@ bool safe_strtod(const char* str, double* value) {
   return *str != '\0' && *endptr == '\0';
 }
 
-bool safe_strto32(const std::string &str, int32 *value) {
+bool safe_strto32(const string& str, int32* value) {
   return safe_int_internal(str, value);
 }
 
-bool safe_strtou32(const std::string &str, uint32 *value) {
+bool safe_strtou32(const string& str, uint32* value) {
   return safe_uint_internal(str, value);
 }
 
-bool safe_strto64(const std::string &str, int64 *value) {
+bool safe_strto64(const string& str, int64* value) {
   return safe_int_internal(str, value);
 }
 
-bool safe_strtou64(const std::string &str, uint64 *value) {
+bool safe_strtou64(const string& str, uint64* value) {
   return safe_uint_internal(str, value);
 }
 
@@ -1362,7 +1368,7 @@ char* FloatToBuffer(float value, char* buffer) {
   // platforms these days.  Just in case some system exists where FLT_DIG
   // is significantly larger -- and risks overflowing our buffer -- we have
   // this assert.
-  static_assert(FLT_DIG < 10, "FLT_DIG_is_too_big");
+  GOOGLE_COMPILE_ASSERT(FLT_DIG < 10, FLT_DIG_is_too_big);
 
   if (value == std::numeric_limits<double>::infinity()) {
     strcpy(buffer, "inf");
@@ -1384,8 +1390,8 @@ char* FloatToBuffer(float value, char* buffer) {
 
   float parsed_value;
   if (!safe_strtof(buffer, &parsed_value) || parsed_value != value) {
-    snprintf_result =
-        snprintf(buffer, kFloatToBufferSize, "%.*g", FLT_DIG + 3, value);
+    int snprintf_result =
+      snprintf(buffer, kFloatToBufferSize, "%.*g", FLT_DIG+3, value);
 
     // Should never overflow; see above.
     GOOGLE_DCHECK(snprintf_result > 0 && snprintf_result < kFloatToBufferSize);
@@ -1429,48 +1435,36 @@ AlphaNum::AlphaNum(strings::Hex hex) {
 // after the area just overwritten.  It comes in multiple flavors to minimize
 // call overhead.
 static char *Append1(char *out, const AlphaNum &x) {
-  if (x.size() > 0) {
-    memcpy(out, x.data(), x.size());
-    out += x.size();
-  }
-  return out;
+  memcpy(out, x.data(), x.size());
+  return out + x.size();
 }
 
 static char *Append2(char *out, const AlphaNum &x1, const AlphaNum &x2) {
-  if (x1.size() > 0) {
-    memcpy(out, x1.data(), x1.size());
-    out += x1.size();
-  }
-  if (x2.size() > 0) {
-    memcpy(out, x2.data(), x2.size());
-    out += x2.size();
-  }
-  return out;
+  memcpy(out, x1.data(), x1.size());
+  out += x1.size();
+
+  memcpy(out, x2.data(), x2.size());
+  return out + x2.size();
 }
 
-static char *Append4(char *out, const AlphaNum &x1, const AlphaNum &x2,
+static char *Append4(char *out,
+                     const AlphaNum &x1, const AlphaNum &x2,
                      const AlphaNum &x3, const AlphaNum &x4) {
-  if (x1.size() > 0) {
-    memcpy(out, x1.data(), x1.size());
-    out += x1.size();
-  }
-  if (x2.size() > 0) {
-    memcpy(out, x2.data(), x2.size());
-    out += x2.size();
-  }
-  if (x3.size() > 0) {
-    memcpy(out, x3.data(), x3.size());
-    out += x3.size();
-  }
-  if (x4.size() > 0) {
-    memcpy(out, x4.data(), x4.size());
-    out += x4.size();
-  }
-  return out;
+  memcpy(out, x1.data(), x1.size());
+  out += x1.size();
+
+  memcpy(out, x2.data(), x2.size());
+  out += x2.size();
+
+  memcpy(out, x3.data(), x3.size());
+  out += x3.size();
+
+  memcpy(out, x4.data(), x4.size());
+  return out + x4.size();
 }
 
-std::string StrCat(const AlphaNum &a, const AlphaNum &b) {
-  std::string result;
+string StrCat(const AlphaNum &a, const AlphaNum &b) {
+  string result;
   result.resize(a.size() + b.size());
   char *const begin = &*result.begin();
   char *out = Append2(begin, a, b);
@@ -1478,8 +1472,8 @@ std::string StrCat(const AlphaNum &a, const AlphaNum &b) {
   return result;
 }
 
-std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c) {
-  std::string result;
+string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c) {
+  string result;
   result.resize(a.size() + b.size() + c.size());
   char *const begin = &*result.begin();
   char *out = Append2(begin, a, b);
@@ -1488,9 +1482,9 @@ std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c) {
   return result;
 }
 
-std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
-                   const AlphaNum &d) {
-  std::string result;
+string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
+              const AlphaNum &d) {
+  string result;
   result.resize(a.size() + b.size() + c.size() + d.size());
   char *const begin = &*result.begin();
   char *out = Append4(begin, a, b, c, d);
@@ -1498,9 +1492,9 @@ std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
   return result;
 }
 
-std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
-                   const AlphaNum &d, const AlphaNum &e) {
-  std::string result;
+string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
+              const AlphaNum &d, const AlphaNum &e) {
+  string result;
   result.resize(a.size() + b.size() + c.size() + d.size() + e.size());
   char *const begin = &*result.begin();
   char *out = Append4(begin, a, b, c, d);
@@ -1509,9 +1503,9 @@ std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
   return result;
 }
 
-std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
-                   const AlphaNum &d, const AlphaNum &e, const AlphaNum &f) {
-  std::string result;
+string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
+              const AlphaNum &d, const AlphaNum &e, const AlphaNum &f) {
+  string result;
   result.resize(a.size() + b.size() + c.size() + d.size() + e.size() +
                 f.size());
   char *const begin = &*result.begin();
@@ -1521,10 +1515,10 @@ std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
   return result;
 }
 
-std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
-                   const AlphaNum &d, const AlphaNum &e, const AlphaNum &f,
-                   const AlphaNum &g) {
-  std::string result;
+string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
+              const AlphaNum &d, const AlphaNum &e, const AlphaNum &f,
+              const AlphaNum &g) {
+  string result;
   result.resize(a.size() + b.size() + c.size() + d.size() + e.size() +
                 f.size() + g.size());
   char *const begin = &*result.begin();
@@ -1535,10 +1529,10 @@ std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
   return result;
 }
 
-std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
-                   const AlphaNum &d, const AlphaNum &e, const AlphaNum &f,
-                   const AlphaNum &g, const AlphaNum &h) {
-  std::string result;
+string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
+              const AlphaNum &d, const AlphaNum &e, const AlphaNum &f,
+              const AlphaNum &g, const AlphaNum &h) {
+  string result;
   result.resize(a.size() + b.size() + c.size() + d.size() + e.size() +
                 f.size() + g.size() + h.size());
   char *const begin = &*result.begin();
@@ -1548,10 +1542,10 @@ std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
   return result;
 }
 
-std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
-                   const AlphaNum &d, const AlphaNum &e, const AlphaNum &f,
-                   const AlphaNum &g, const AlphaNum &h, const AlphaNum &i) {
-  std::string result;
+string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
+              const AlphaNum &d, const AlphaNum &e, const AlphaNum &f,
+              const AlphaNum &g, const AlphaNum &h, const AlphaNum &i) {
+  string result;
   result.resize(a.size() + b.size() + c.size() + d.size() + e.size() +
                 f.size() + g.size() + h.size() + i.size());
   char *const begin = &*result.begin();
@@ -1570,27 +1564,27 @@ std::string StrCat(const AlphaNum &a, const AlphaNum &b, const AlphaNum &c,
     GOOGLE_DCHECK_GT(uintptr_t((src).data() - (dest).data()), \
                      uintptr_t((dest).size()))
 
-void StrAppend(std::string *result, const AlphaNum &a) {
+void StrAppend(string *result, const AlphaNum &a) {
   GOOGLE_DCHECK_NO_OVERLAP(*result, a);
   result->append(a.data(), a.size());
 }
 
-void StrAppend(std::string *result, const AlphaNum &a, const AlphaNum &b) {
+void StrAppend(string *result, const AlphaNum &a, const AlphaNum &b) {
   GOOGLE_DCHECK_NO_OVERLAP(*result, a);
   GOOGLE_DCHECK_NO_OVERLAP(*result, b);
-  std::string::size_type old_size = result->size();
+  string::size_type old_size = result->size();
   result->resize(old_size + a.size() + b.size());
   char *const begin = &*result->begin();
   char *out = Append2(begin + old_size, a, b);
   GOOGLE_DCHECK_EQ(out, begin + result->size());
 }
 
-void StrAppend(std::string *result, const AlphaNum &a, const AlphaNum &b,
-               const AlphaNum &c) {
+void StrAppend(string *result,
+               const AlphaNum &a, const AlphaNum &b, const AlphaNum &c) {
   GOOGLE_DCHECK_NO_OVERLAP(*result, a);
   GOOGLE_DCHECK_NO_OVERLAP(*result, b);
   GOOGLE_DCHECK_NO_OVERLAP(*result, c);
-  std::string::size_type old_size = result->size();
+  string::size_type old_size = result->size();
   result->resize(old_size + a.size() + b.size() + c.size());
   char *const begin = &*result->begin();
   char *out = Append2(begin + old_size, a, b);
@@ -1598,32 +1592,33 @@ void StrAppend(std::string *result, const AlphaNum &a, const AlphaNum &b,
   GOOGLE_DCHECK_EQ(out, begin + result->size());
 }
 
-void StrAppend(std::string *result, const AlphaNum &a, const AlphaNum &b,
+void StrAppend(string *result,
+               const AlphaNum &a, const AlphaNum &b,
                const AlphaNum &c, const AlphaNum &d) {
   GOOGLE_DCHECK_NO_OVERLAP(*result, a);
   GOOGLE_DCHECK_NO_OVERLAP(*result, b);
   GOOGLE_DCHECK_NO_OVERLAP(*result, c);
   GOOGLE_DCHECK_NO_OVERLAP(*result, d);
-  std::string::size_type old_size = result->size();
+  string::size_type old_size = result->size();
   result->resize(old_size + a.size() + b.size() + c.size() + d.size());
   char *const begin = &*result->begin();
   char *out = Append4(begin + old_size, a, b, c, d);
   GOOGLE_DCHECK_EQ(out, begin + result->size());
 }
 
-int GlobalReplaceSubstring(const std::string &substring,
-                           const std::string &replacement, std::string *s) {
+int GlobalReplaceSubstring(const string& substring,
+                           const string& replacement,
+                           string* s) {
   GOOGLE_CHECK(s != nullptr);
   if (s->empty() || substring.empty())
     return 0;
-  std::string tmp;
+  string tmp;
   int num_replacements = 0;
   int pos = 0;
-  for (StringPiece::size_type match_pos =
-           s->find(substring.data(), pos, substring.length());
-       match_pos != std::string::npos; pos = match_pos + substring.length(),
-                              match_pos = s->find(substring.data(), pos,
-                                                  substring.length())) {
+  for (int match_pos = s->find(substring.data(), pos, substring.length());
+       match_pos != string::npos;
+       pos = match_pos + substring.length(),
+           match_pos = s->find(substring.data(), pos, substring.length())) {
     ++num_replacements;
     // Append the original content before the match.
     tmp.append(*s, pos, match_pos - pos);
@@ -2053,8 +2048,8 @@ int WebSafeBase64Unescape(const char *src, int szsrc, char *dest, int szdest) {
   return Base64UnescapeInternal(src, szsrc, dest, szdest, kUnWebSafeBase64);
 }
 
-static bool Base64UnescapeInternal(const char *src, int slen, std::string *dest,
-                                   const signed char *unbase64) {
+static bool Base64UnescapeInternal(const char* src, int slen, string* dest,
+                                   const signed char* unbase64) {
   // Determine the size of the output string.  Base64 encodes every 3 bytes into
   // 4 characters.  any leftover chars are added directly for good measure.
   // This is documented in the base64 RFC: http://tools.ietf.org/html/rfc3548
@@ -2078,11 +2073,11 @@ static bool Base64UnescapeInternal(const char *src, int slen, std::string *dest,
   return true;
 }
 
-bool Base64Unescape(StringPiece src, std::string *dest) {
+bool Base64Unescape(StringPiece src, string* dest) {
   return Base64UnescapeInternal(src.data(), src.size(), dest, kUnBase64);
 }
 
-bool WebSafeBase64Unescape(StringPiece src, std::string *dest) {
+bool WebSafeBase64Unescape(StringPiece src, string* dest) {
   return Base64UnescapeInternal(src.data(), src.size(), dest, kUnWebSafeBase64);
 }
 
@@ -2101,7 +2096,7 @@ int Base64EscapeInternal(const unsigned char *src, int szsrc,
   char *limit_dest = dest + szdest;
   const unsigned char *limit_src = src + szsrc;
 
-  // Three bytes of data encodes to four characters of ciphertext.
+  // Three bytes of data encodes to four characters of cyphertext.
   // So we can pump through three-byte chunks atomically.
   while (cur_src < limit_src - 3) {  // keep going as long as we have >= 32 bits
     uint32 in = BigEndian::Load32(cur_src) >> 8;
@@ -2128,7 +2123,7 @@ int Base64EscapeInternal(const unsigned char *src, int szsrc,
       break;
     case 1: {
       // One byte left: this encodes to two characters, and (optionally)
-      // two pad characters to round out the four-character cipherblock.
+      // two pad characters to round out the four-character cypherblock.
       if ((szdest -= 2) < 0) return 0;
       uint32 in = cur_src[0];
       cur_dest[0] = base64[in >> 2];
@@ -2145,7 +2140,7 @@ int Base64EscapeInternal(const unsigned char *src, int szsrc,
     }
     case 2: {
       // Two bytes left: this encodes to three characters, and (optionally)
-      // one pad character to round out the four-character cipherblock.
+      // one pad character to round out the four-character cypherblock.
       if ((szdest -= 3) < 0) return 0;
       uint32 in = BigEndian::Load16(cur_src);
       cur_dest[0] = base64[in >> 10];
@@ -2201,9 +2196,9 @@ int WebSafeBase64Escape(const unsigned char *src, int szsrc, char *dest,
                               kWebSafeBase64Chars, do_padding);
 }
 
-void Base64EscapeInternal(const unsigned char *src, int szsrc,
-                          std::string *dest, bool do_padding,
-                          const char *base64_chars) {
+void Base64EscapeInternal(const unsigned char* src, int szsrc,
+                          string* dest, bool do_padding,
+                          const char* base64_chars) {
   const int calc_escaped_size =
     CalculateBase64EscapedLen(szsrc, do_padding);
   dest->resize(calc_escaped_size);
@@ -2216,27 +2211,27 @@ void Base64EscapeInternal(const unsigned char *src, int szsrc,
   dest->erase(escaped_len);
 }
 
-void Base64Escape(const unsigned char *src, int szsrc, std::string *dest,
-                  bool do_padding) {
+void Base64Escape(const unsigned char *src, int szsrc,
+                  string* dest, bool do_padding) {
   Base64EscapeInternal(src, szsrc, dest, do_padding, kBase64Chars);
 }
 
-void WebSafeBase64Escape(const unsigned char *src, int szsrc, std::string *dest,
-                         bool do_padding) {
+void WebSafeBase64Escape(const unsigned char *src, int szsrc,
+                         string *dest, bool do_padding) {
   Base64EscapeInternal(src, szsrc, dest, do_padding, kWebSafeBase64Chars);
 }
 
-void Base64Escape(StringPiece src, std::string *dest) {
+void Base64Escape(StringPiece src, string* dest) {
   Base64Escape(reinterpret_cast<const unsigned char*>(src.data()),
                src.size(), dest, true);
 }
 
-void WebSafeBase64Escape(StringPiece src, std::string *dest) {
+void WebSafeBase64Escape(StringPiece src, string* dest) {
   WebSafeBase64Escape(reinterpret_cast<const unsigned char*>(src.data()),
                       src.size(), dest, false);
 }
 
-void WebSafeBase64EscapeWithPadding(StringPiece src, std::string *dest) {
+void WebSafeBase64EscapeWithPadding(StringPiece src, string* dest) {
   WebSafeBase64Escape(reinterpret_cast<const unsigned char*>(src.data()),
                       src.size(), dest, true);
 }
@@ -2277,19 +2272,16 @@ int EncodeAsUTF8Char(uint32 code_point, char* output) {
 
 // Table of UTF-8 character lengths, based on first byte
 static const unsigned char kUTF8LenTbl[256] = {
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
 
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2,
-    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-    2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-    3, 3, 4, 4, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2,
+  3,3,3,3,3,3,3,3, 3,3,3,3,3,3,3,3, 4,4,4,4,4,4,4,4, 4,4,4,4,4,4,4,4
+};
 
 // Return length of a single UTF-8 source character
 int UTF8FirstLetterNumBytes(const char* src, int len) {
@@ -2332,19 +2324,19 @@ int UTF8FirstLetterNumBytes(const char* src, int len) {
 //       (1) determines the presence of LF (first one is ok)
 //       (2) if yes, removes any CR, else convert every CR to LF
 
-void CleanStringLineEndings(const std::string &src, std::string *dst,
+void CleanStringLineEndings(const string &src, string *dst,
                             bool auto_end_last_line) {
   if (dst->empty()) {
     dst->append(src);
     CleanStringLineEndings(dst, auto_end_last_line);
   } else {
-    std::string tmp = src;
+    string tmp = src;
     CleanStringLineEndings(&tmp, auto_end_last_line);
     dst->append(tmp);
   }
 }
 
-void CleanStringLineEndings(std::string *str, bool auto_end_last_line) {
+void CleanStringLineEndings(string *str, bool auto_end_last_line) {
   ptrdiff_t output_pos = 0;
   bool r_seen = false;
   ptrdiff_t len = str->size();
@@ -2375,7 +2367,7 @@ void CleanStringLineEndings(std::string *str, bool auto_end_last_line) {
         continue;
       }
     }
-    std::string::const_reference in = p[input_pos];
+    string::const_reference in = p[input_pos];
     if (in == '\r') {
       if (r_seen) p[output_pos++] = '\n';
       r_seen = true;

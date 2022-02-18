@@ -21,12 +21,13 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <cinttypes>
-#include <memory>
-
 #include <grpc/support/log.h>
 #include <grpc/support/sync.h>
 
+#include <cinttypes>
+#include <memory>
+
+#include "src/core/lib/debug/trace.h"
 #include "src/core/lib/gprpp/debug_location.h"
 #include "src/core/lib/gprpp/memory.h"
 #include "src/core/lib/gprpp/ref_counted.h"
@@ -72,7 +73,7 @@ inline OrphanablePtr<T> MakeOrphanable(Args&&... args) {
 }
 
 // A type of Orphanable with internal ref-counting.
-template <typename Child, UnrefBehavior UnrefBehaviorArg = kUnrefDelete>
+template <typename Child>
 class InternallyRefCounted : public Orphanable {
  public:
   // Not copyable nor movable.
@@ -84,11 +85,14 @@ class InternallyRefCounted : public Orphanable {
   template <typename T>
   friend class RefCountedPtr;
 
-  // Note: Tracing is a no-op on non-debug builds.
-  explicit InternallyRefCounted(const char* trace = nullptr,
+  // TraceFlagT is defined to accept both DebugOnlyTraceFlag and TraceFlag.
+  // Note: RefCount tracing is only enabled on debug builds, even when a
+  //       TraceFlag is used.
+  template <typename TraceFlagT = TraceFlag>
+  explicit InternallyRefCounted(TraceFlagT* trace_flag = nullptr,
                                 intptr_t initial_refcount = 1)
-      : refs_(initial_refcount, trace) {}
-  ~InternallyRefCounted() override = default;
+      : refs_(initial_refcount, trace_flag) {}
+  virtual ~InternallyRefCounted() = default;
 
   RefCountedPtr<Child> Ref() GRPC_MUST_USE_RESULT {
     IncrementRefCount();
@@ -102,12 +106,12 @@ class InternallyRefCounted : public Orphanable {
 
   void Unref() {
     if (GPR_UNLIKELY(refs_.Unref())) {
-      internal::Delete<Child, UnrefBehaviorArg>(static_cast<Child*>(this));
+      delete this;
     }
   }
   void Unref(const DebugLocation& location, const char* reason) {
     if (GPR_UNLIKELY(refs_.Unref(location, reason))) {
-      internal::Delete<Child, UnrefBehaviorArg>(static_cast<Child*>(this));
+      delete this;
     }
   }
 
@@ -117,7 +121,7 @@ class InternallyRefCounted : public Orphanable {
     refs_.Ref(location, reason);
   }
 
-  RefCount refs_;
+  grpc_core::RefCount refs_;
 };
 
 }  // namespace grpc_core

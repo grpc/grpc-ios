@@ -19,11 +19,7 @@
 /* Benchmark channel */
 
 #include <benchmark/benchmark.h>
-
 #include <grpc/grpc.h>
-#include <grpc/grpc_security.h>
-
-#include "test/core/util/test_config.h"
 #include "test/cpp/microbenchmarks/helpers.h"
 #include "test/cpp/util/test_config.h"
 
@@ -45,9 +41,7 @@ class InsecureChannelFixture : public ChannelDestroyerFixture {
  public:
   InsecureChannelFixture() {}
   void Init() override {
-    grpc_channel_credentials* creds = grpc_insecure_credentials_create();
-    channel_ = grpc_channel_create("localhost:1234", creds, nullptr);
-    grpc_channel_credentials_release(creds);
+    channel_ = grpc_insecure_channel_create("localhost:1234", nullptr, nullptr);
   }
 };
 
@@ -87,7 +81,6 @@ void RunTheBenchmarksNamespaced() { RunSpecifiedBenchmarks(); }
 }  // namespace benchmark
 
 int main(int argc, char** argv) {
-  grpc::testing::TestEnvironment env(argc, argv);
   LibraryInitializer libInit;
   ::benchmark::Initialize(&argc, argv);
   ::grpc::testing::InitTest(&argc, &argv, false);

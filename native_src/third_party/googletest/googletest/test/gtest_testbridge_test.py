@@ -31,7 +31,7 @@
 
 import os
 
-from googletest.test import gtest_test_utils
+import gtest_test_utils
 
 binary_name = 'gtest_testbridge_test_'
 COMMAND = gtest_test_utils.GetTestExecutablePath(binary_name)

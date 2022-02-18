@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2017 gRPC authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -81,7 +80,7 @@ _BM_SPECS = {
         'dyn': ['end_of_stream', 'request_size'],
     },
     'BM_HpackParserParseHeader': {
-        'tpl': ['fixture'],
+        'tpl': ['fixture', 'on_header'],
         'dyn': [],
     },
     'BM_CallCreateDestroy': {
@@ -121,8 +120,7 @@ _BM_SPECS = {
 
 def numericalize(s):
     """Convert abbreviations like '100M' or '10k' to a number."""
-    if not s:
-        return ''
+    if not s: return ''
     if s[-1] == 'k':
         return float(s[:-1]) * 1024
     if s[-1] == 'M':
@@ -179,10 +177,8 @@ def parse_name(name):
 
 
 def expand_json(js, js2=None):
-    if not js and not js2:
-        raise StopIteration()
-    if not js:
-        js = js2
+    if not js and not js2: raise StopIteration()
+    if not js: js = js2
     for bm in js['benchmarks']:
         if bm['name'].endswith('_stddev') or bm['name'].endswith('_mean'):
             continue
@@ -198,23 +194,14 @@ def expand_json(js, js2=None):
             labels = dict(labels_list)
         else:
             labels = {}
-        # TODO(jtattermusch): grabbing kokoro env values shouldn't be buried
-        # deep in the JSON conversion logic.
-        # Link the data to a kokoro job run by adding
-        # well known kokoro env variables as metadata for each row
         row = {
-            'jenkins_build': os.environ.get('KOKORO_BUILD_NUMBER', ''),
-            'jenkins_job': os.environ.get('KOKORO_JOB_NAME', ''),
+            'jenkins_build': os.environ.get('BUILD_NUMBER', ''),
+            'jenkins_job': os.environ.get('JOB_NAME', ''),
         }
         row.update(context)
         row.update(bm)
         row.update(parse_name(row['name']))
         row.update(labels)
-        # TODO(jtattermusch): add a comment explaining what's the point
-        # of merging values of some of the columns js2 into the row.
-        # Empirically, the js contains data from "counters" config
-        # and js2 contains data from the "opt" config, but the point of merging
-        # really deserves further explanation.
         if js2:
             for bm2 in js2['benchmarks']:
                 if bm['name'] == bm2['name'] and 'already_used' not in bm2:

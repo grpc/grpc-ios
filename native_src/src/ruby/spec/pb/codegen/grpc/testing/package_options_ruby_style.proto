@@ -17,7 +17,6 @@ syntax = "proto3";
 package grpc.testing;
 
 import "grpc/testing/package_options_import.proto";
-import "grpc/testing/package_options_import2.proto";
 
 // For sanity checking package definitions
 option ruby_package = "RPC::Test::New::Package::Options";
@@ -28,14 +27,8 @@ message AnotherTestResponse { }
 
 message Foo { }
 
-message Bar {
-  message Baz { }
-}
-
 service AnotherTestService {
   rpc GetTest(AnotherTestRequest) returns (AnotherTestResponse) { }
   rpc OtherTest(Thing) returns (Thing) { }
-  rpc PackageTest(grpc.testing.Thing) returns (grpc.foo.Foo.Bar) { }
   rpc FooTest(Foo) returns (Foo) { }
-  rpc NestedMessageTest(Foo) returns (Bar.Baz) { }
 }

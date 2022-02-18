@@ -19,10 +19,6 @@
 #include <memory>
 #include <thread>
 
-#include <gtest/gtest.h>
-
-#include "absl/memory/memory.h"
-
 #include <grpc/grpc.h>
 #include <grpc/support/time.h>
 #include <grpcpp/channel.h>
@@ -41,14 +37,17 @@
 #include "test/core/util/test_config.h"
 #include "test/cpp/util/byte_buffer_proto_helper.h"
 
+#include <gtest/gtest.h>
+
 using grpc::testing::EchoRequest;
 using grpc::testing::EchoResponse;
+using std::chrono::system_clock;
 
 namespace grpc {
 namespace testing {
 namespace {
 
-void* tag(int i) { return reinterpret_cast<void*>(i); }
+void* tag(int i) { return (void*)static_cast<intptr_t>(i); }
 
 void verify_ok(CompletionQueue* cq, int i, bool expect_ok) {
   bool ok;
@@ -86,10 +85,10 @@ class GenericEnd2endTest : public ::testing::Test {
       bool ignored_ok;
       cli_cq_.Shutdown();
       srv_cq_->Shutdown();
-      while (cli_cq_.Next(&ignored_tag, &ignored_ok)) {
-      }
-      while (srv_cq_->Next(&ignored_tag, &ignored_ok)) {
-      }
+      while (cli_cq_.Next(&ignored_tag, &ignored_ok))
+        ;
+      while (srv_cq_->Next(&ignored_tag, &ignored_ok))
+        ;
       shut_down_ = true;
     }
   }
@@ -99,7 +98,7 @@ class GenericEnd2endTest : public ::testing::Test {
     std::shared_ptr<Channel> channel = grpc::CreateChannel(
         server_address_.str(), InsecureChannelCredentials());
     stub_ = grpc::testing::EchoTestService::NewStub(channel);
-    generic_stub_ = absl::make_unique<GenericStub>(channel);
+    generic_stub_.reset(new GenericStub(channel));
   }
 
   void server_ok(int i) { verify_ok(srv_cq_.get(), i, true); }
@@ -112,7 +111,7 @@ class GenericEnd2endTest : public ::testing::Test {
   }
 
   void SendRpc(int num_rpcs, bool check_deadline, gpr_timespec deadline) {
-    const std::string kMethodName("/grpc.cpp.test.util.EchoTestService/Echo");
+    const grpc::string kMethodName("/grpc.cpp.test.util.EchoTestService/Echo");
     for (int i = 0; i < num_rpcs; i++) {
       EchoRequest send_request;
       EchoRequest recv_request;
@@ -134,14 +133,13 @@ class GenericEnd2endTest : public ::testing::Test {
       // Rather than using the original kMethodName, make a short-lived
       // copy to also confirm that we don't refer to this object beyond
       // the initial call preparation
-      const std::string* method_name = new std::string(kMethodName);
+      const grpc::string* method_name = new grpc::string(kMethodName);
 
       std::unique_ptr<GenericClientAsyncReaderWriter> call =
           generic_stub_->PrepareCall(&cli_ctx, *method_name, &cli_cq_);
 
       delete method_name;  // Make sure that this is not needed after invocation
 
-      std::thread request_call([this]() { server_ok(4); });
       call->StartCall(tag(1));
       client_ok(1);
       std::unique_ptr<ByteBuffer> send_buffer =
@@ -156,7 +154,7 @@ class GenericEnd2endTest : public ::testing::Test {
       generic_service_.RequestCall(&srv_ctx, &stream, srv_cq_.get(),
                                    srv_cq_.get(), tag(4));
 
-      request_call.join();
+      verify_ok(srv_cq_.get(), 4, true);
       EXPECT_EQ(server_host_, srv_ctx.host().substr(0, server_host_.length()));
       EXPECT_EQ(kMethodName, srv_ctx.method());
 
@@ -247,7 +245,7 @@ class GenericEnd2endTest : public ::testing::Test {
   std::unique_ptr<grpc::GenericStub> generic_stub_;
   std::unique_ptr<Server> server_;
   AsyncGenericService generic_service_;
-  const std::string server_host_;
+  const grpc::string server_host_;
   std::ostringstream server_address_;
   bool shutting_down_;
   bool shut_down_;
@@ -267,7 +265,7 @@ TEST_F(GenericEnd2endTest, SequentialRpcs) {
 TEST_F(GenericEnd2endTest, SequentialUnaryRpcs) {
   ResetStub();
   const int num_rpcs = 10;
-  const std::string kMethodName("/grpc.cpp.test.util.EchoTestService/Echo");
+  const grpc::string kMethodName("/grpc.cpp.test.util.EchoTestService/Echo");
   for (int i = 0; i < num_rpcs; i++) {
     EchoRequest send_request;
     EchoRequest recv_request;
@@ -284,10 +282,10 @@ TEST_F(GenericEnd2endTest, SequentialUnaryRpcs) {
 
     std::unique_ptr<ByteBuffer> cli_send_buffer =
         SerializeToByteBuffer(&send_request);
-    std::thread request_call([this]() { server_ok(4); });
+    // Use the same cq as server so that events can be polled in time.
     std::unique_ptr<GenericClientAsyncResponseReader> call =
-        generic_stub_->PrepareUnaryCall(&cli_ctx, kMethodName, *cli_send_buffer,
-                                        &cli_cq_);
+        generic_stub_->PrepareUnaryCall(&cli_ctx, kMethodName,
+                                        *cli_send_buffer.get(), &cli_cq_);
     call->StartCall();
     ByteBuffer cli_recv_buffer;
     call->Finish(&cli_recv_buffer, &recv_status, tag(1));
@@ -295,7 +293,8 @@ TEST_F(GenericEnd2endTest, SequentialUnaryRpcs) {
 
     generic_service_.RequestCall(&srv_ctx, &stream, srv_cq_.get(),
                                  srv_cq_.get(), tag(4));
-    request_call.join();
+
+    server_ok(4);
     EXPECT_EQ(server_host_, srv_ctx.host().substr(0, server_host_.length()));
     EXPECT_EQ(kMethodName, srv_ctx.method());
 
@@ -325,7 +324,7 @@ TEST_F(GenericEnd2endTest, SequentialUnaryRpcs) {
 TEST_F(GenericEnd2endTest, SimpleBidiStreaming) {
   ResetStub();
 
-  const std::string kMethodName(
+  const grpc::string kMethodName(
       "/grpc.cpp.test.util.EchoTestService/BidiStream");
   EchoRequest send_request;
   EchoRequest recv_request;
@@ -338,7 +337,6 @@ TEST_F(GenericEnd2endTest, SimpleBidiStreaming) {
 
   cli_ctx.set_compression_algorithm(GRPC_COMPRESS_GZIP);
   send_request.set_message("Hello");
-  std::thread request_call([this]() { server_ok(2); });
   std::unique_ptr<GenericClientAsyncReaderWriter> cli_stream =
       generic_stub_->PrepareCall(&cli_ctx, kMethodName, &cli_cq_);
   cli_stream->StartCall(tag(1));
@@ -346,8 +344,8 @@ TEST_F(GenericEnd2endTest, SimpleBidiStreaming) {
 
   generic_service_.RequestCall(&srv_ctx, &srv_stream, srv_cq_.get(),
                                srv_cq_.get(), tag(2));
-  request_call.join();
 
+  verify_ok(srv_cq_.get(), 2, true);
   EXPECT_EQ(server_host_, srv_ctx.host().substr(0, server_host_.length()));
   EXPECT_EQ(kMethodName, srv_ctx.method());
 

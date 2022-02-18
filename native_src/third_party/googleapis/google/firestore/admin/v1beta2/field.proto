@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC.
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,14 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 
 syntax = "proto3";
 
 package google.firestore.admin.v1beta2;
 
-import "google/firestore/admin/v1beta2/index.proto";
 import "google/api/annotations.proto";
+import "google/firestore/admin/v1beta2/index.proto";
 
 option csharp_namespace = "Google.Cloud.Firestore.Admin.V1Beta2";
 option go_package = "google.golang.org/genproto/googleapis/firestore/admin/v1beta2;admin";
@@ -26,6 +25,7 @@ option java_multiple_files = true;
 option java_outer_classname = "FieldProto";
 option java_package = "com.google.firestore.admin.v1beta2";
 option objc_class_prefix = "GCFS";
+
 
 // Represents a single field in the database.
 //
@@ -37,12 +37,14 @@ message Field {
     // The indexes supported for this field.
     repeated Index indexes = 1;
 
-    // Output only. When true, the `Field`'s index configuration is set from the
+    // Output only.
+    // When true, the `Field`'s index configuration is set from the
     // configuration specified by the `ancestor_field`.
     // When false, the `Field`'s index configuration is defined explicitly.
     bool uses_ancestor_config = 2;
 
-    // Output only. Specifies the resource name of the `Field` from which this field's
+    // Output only.
+    // Specifies the resource name of the `Field` from which this field's
     // index configuration is set (when `uses_ancestor_config` is true),
     // or from which it *would* be set if this field had no index configuration
     // (when `uses_ancestor_config` is false).

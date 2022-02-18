@@ -19,8 +19,6 @@
 #ifndef GRPCPP_IMPL_CODEGEN_METADATA_MAP_H
 #define GRPCPP_IMPL_CODEGEN_METADATA_MAP_H
 
-// IWYU pragma: private
-
 #include <map>
 
 #include <grpc/impl/codegen/log.h>
@@ -38,12 +36,12 @@ class MetadataMap {
 
   ~MetadataMap() { Destroy(); }
 
-  std::string GetBinaryErrorDetails() {
+  grpc::string GetBinaryErrorDetails() {
     // if filled_, extract from the multimap for O(log(n))
     if (filled_) {
       auto iter = map_.find(kBinaryErrorDetailsKey);
       if (iter != map_.end()) {
-        return std::string(iter->second.begin(), iter->second.length());
+        return grpc::string(iter->second.begin(), iter->second.length());
       }
     }
     // if not yet filled, take the O(n) lookup to avoid allocating the
@@ -56,13 +54,13 @@ class MetadataMap {
                         GRPC_SLICE_START_PTR(arr_.metadata[i].key)),
                     kBinaryErrorDetailsKey,
                     GRPC_SLICE_LENGTH(arr_.metadata[i].key)) == 0) {
-          return std::string(reinterpret_cast<const char*>(
-                                 GRPC_SLICE_START_PTR(arr_.metadata[i].value)),
-                             GRPC_SLICE_LENGTH(arr_.metadata[i].value));
+          return grpc::string(reinterpret_cast<const char*>(
+                                  GRPC_SLICE_START_PTR(arr_.metadata[i].value)),
+                              GRPC_SLICE_LENGTH(arr_.metadata[i].value));
         }
       }
     }
-    return std::string();
+    return grpc::string();
   }
 
   std::multimap<grpc::string_ref, grpc::string_ref>* map() {

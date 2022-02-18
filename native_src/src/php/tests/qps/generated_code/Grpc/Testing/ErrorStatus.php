@@ -18,30 +18,19 @@ class ErrorStatus extends \Google\Protobuf\Internal\Message
     /**
      * Generated from protobuf field <code>int32 code = 1;</code>
      */
-    protected $code = 0;
+    private $code = 0;
     /**
      * Generated from protobuf field <code>string error_message = 2;</code>
      */
-    protected $error_message = '';
+    private $error_message = '';
     /**
      * Generated from protobuf field <code>string binary_error_details = 3;</code>
      */
-    protected $binary_error_details = '';
+    private $binary_error_details = '';
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type int $code
-     *     @type string $error_message
-     *     @type string $binary_error_details
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\EchoMessages::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

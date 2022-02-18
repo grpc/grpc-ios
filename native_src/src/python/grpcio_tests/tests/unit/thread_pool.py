@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from concurrent import futures
 import threading
+from concurrent import futures
 
 
 class RecordingThreadPool(futures.ThreadPoolExecutor):

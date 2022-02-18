@@ -21,9 +21,7 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <string>
-
-#include <grpc/impl/codegen/grpc_types.h>
+#include <grpc/grpc.h>
 
 #include "src/core/lib/surface/channel_stack_type.h"
 
@@ -117,19 +115,8 @@ grpc_arg grpc_channel_arg_pointer_create(char* name, void* value,
                                          const grpc_arg_pointer_vtable* vtable);
 
 // Returns a string representing channel args in human-readable form.
-std::string grpc_channel_args_string(const grpc_channel_args* args);
-
-namespace grpc_core {
-/** Remove any channel args prefixed with 'grpc.internal.'
- *  These are used for internal implementation details and are not intended to
- *  be exposed to users.
- *  Returns a new channel args instance.
- *  Does not take ownership of \a src.
- *  Should be called by any public API that receives channel args. */
-const grpc_channel_args* RemoveGrpcInternalArgs(const grpc_channel_args* src);
-/** Ensure no duplicate channel args, in preparation for moving to a map<> */
-const grpc_channel_args* UniquifyChannelArgKeys(const grpc_channel_args* src);
-}  // namespace grpc_core
+// Callers takes ownership of result.
+char* grpc_channel_args_string(const grpc_channel_args* args);
 
 // Takes ownership of the old_args
 typedef grpc_channel_args* (*grpc_channel_args_client_channel_creation_mutator)(

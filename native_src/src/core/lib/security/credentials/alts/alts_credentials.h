@@ -44,12 +44,6 @@ class grpc_alts_credentials final : public grpc_channel_credentials {
   const char* handshaker_service_url() const { return handshaker_service_url_; }
 
  private:
-  int cmp_impl(const grpc_channel_credentials* other) const override {
-    // TODO(yashykt): Check if we can do something better here
-    return grpc_core::QsortCompare(
-        static_cast<const grpc_channel_credentials*>(this), other);
-  }
-
   grpc_alts_credentials_options* options_;
   char* handshaker_service_url_;
 };
@@ -62,7 +56,7 @@ class grpc_alts_server_credentials final : public grpc_server_credentials {
   ~grpc_alts_server_credentials() override;
 
   grpc_core::RefCountedPtr<grpc_server_security_connector>
-  create_security_connector(const grpc_channel_args* /* args */) override;
+  create_security_connector() override;
 
   const grpc_alts_credentials_options* options() const { return options_; }
   grpc_alts_credentials_options* mutable_options() { return options_; }

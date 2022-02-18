@@ -61,8 +61,7 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
-#include "../x509/internal.h"
-#include "internal.h"
+#include "pcy_int.h"
 
 /*
  * Set policy mapping entries in cache. Note: this modifies the passed

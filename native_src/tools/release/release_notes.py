@@ -26,13 +26,13 @@ X will be v1.17.2. In both cases Y will be origin/v1.17.x.
 
 """
 
-import base64
 from collections import defaultdict
+import base64
 import json
 
 content_header = """Draft Release Notes For {version}
 --
-Final release notes will be generated from the PR titles that have *"release notes:yes"* label. If you have any additional notes please add them below. These will be appended to auto generated release notes. Previous release notes are [here](https://github.com/grpc/grpc/releases).
+Final release notes will be generated from the PR titles that have *"release notes:yes"* label. If you have any additional notes please add them below. These will be appended to auto generated release notes. Previous releases notes are [here](https://github.com/grpc/grpc/releases).
 
 **Also, look at the PRs listed below against your name.** Please apply the missing labels and make necessary corrections (like fixing the title) to the PR in Github. Final release notes will be generated just before the release on {date}.
 
@@ -69,9 +69,9 @@ Ruby
 
 """
 
-rl_header = """This is release {version} ([{name}](https://github.com/grpc/grpc/blob/master/doc/g_stands_for.md)) of gRPC Core.
+rl_header = """This is the {version} release ([{name}](https://github.com/grpc/grpc/blob/master/doc/g_stands_for.md)) of gRPC Core.
 
-For gRPC documentation, see [grpc.io](https://grpc.io/). For previous releases, see [Releases](https://github.com/grpc/grpc/releases).
+Please see the notes for the previous releases here: https://github.com/grpc/grpc/releases. Please consult https://grpc.io/ for all information regarding this product.
 
 This release contains refinements, improvements, and bug fixes, with highlights listed below.
 
@@ -83,31 +83,25 @@ API_URL = 'https://api.github.com/repos/grpc/grpc/pulls/'
 
 
 def get_commit_log(prevRelLabel, relBranch):
-    """Return the output of 'git log prevRelLabel..relBranch' """
+    """Return the output of 'git log --pretty=online --merges prevRelLabel..relBranch' """
 
     import subprocess
-    glg_command = [
-        "git", "log", "--pretty=oneline", "--committer=GitHub",
+    print("Running git log --pretty=oneline --merges " + prevRelLabel + ".." +
+          relBranch)
+    return subprocess.check_output([
+        "git", "log", "--pretty=oneline", "--merges",
         "%s..%s" % (prevRelLabel, relBranch)
-    ]
-    print(("Running ", " ".join(glg_command)))
-    return subprocess.check_output(glg_command).decode('utf-8', 'ignore')
+    ])
 
 
 def get_pr_data(pr_num):
     """Get the PR data from github. Return 'error' on exception"""
 
     try:
-        from urllib.error import HTTPError
-        from urllib.request import Request
-        from urllib.request import urlopen
+        from urllib2 import Request, urlopen, HTTPError
     except ImportError:
-        import urllib.error
-        import urllib.parse
-        import urllib.request
-        from urllib.request import HTTPError
-        from urllib.request import Request
-        from urllib.request import urlopen
+        import urllib
+        from urllib.request import Request, urlopen, HTTPError
     url = API_URL + pr_num
     req = Request(url)
     req.add_header('Authorization', 'token %s' % TOKEN)
@@ -118,7 +112,7 @@ def get_pr_data(pr_num):
     except HTTPError as e:
         response = json.loads(e.fp.read().decode('utf-8'))
         if 'message' in response:
-            print((response['message']))
+            print(response['message'])
         response = "error"
     return response
 
@@ -126,27 +120,18 @@ def get_pr_data(pr_num):
 def get_pr_titles(gitLogs):
     import re
     error_count = 0
-    # PRs with merge commits
-    match_merge_pr = "Merge pull request #(\d+)"
-    prlist_merge_pr = re.findall(match_merge_pr, gitLogs, re.MULTILINE)
+    match = b"Merge pull request #(\d+)"
+    prlist = re.findall(match, gitLogs, re.MULTILINE)
     print("\nPRs matching 'Merge pull request #<num>':")
-    print(prlist_merge_pr)
+    print(prlist)
     print("\n")
-    # PRs using Github's squash & merge feature
-    match_sq = "\(#(\d+)\)$"
-    prlist_sq = re.findall(match_sq, gitLogs, re.MULTILINE)
-    print("\nPRs matching '[PR Description](#<num>)$'")
-    print(prlist_sq)
-    print("\n")
-    prlist = prlist_merge_pr + prlist_sq
     langs_pr = defaultdict(list)
     for pr_num in prlist:
         pr_num = str(pr_num)
-        print(("---------- getting data for PR " + pr_num))
+        print("---------- getting data for PR " + pr_num)
         pr = get_pr_data(pr_num)
         if pr == "error":
-            print(
-                ("\n***ERROR*** Error in getting data for PR " + pr_num + "\n"))
+            print("\n***ERROR*** Error in getting data for PR " + pr_num + "\n")
             error_count += 1
             continue
         rl_no_found = False
@@ -165,26 +150,28 @@ def get_pr_titles(gitLogs):
         if not body.endswith("."):
             body = body + "."
         if not pr["merged_by"]:
-            print(("\n***ERROR***: No merge_by found for PR " + pr_num + "\n"))
+            print("\n***ERROR***: No merge_by found for PR " + pr_num + "\n")
             error_count += 1
             continue
 
         prline = "-  " + body + " ([#" + pr_num + "](" + HTML_URL + pr_num + "))"
         detail = "- " + pr["merged_by"]["login"] + "@ " + prline
+        prline = prline.encode('ascii', 'ignore')
+        detail = detail.encode('ascii', 'ignore')
         print(detail)
         #if no RL label
         if not rl_no_found and not rl_yes_found:
-            print(("Release notes label missing for " + pr_num))
+            print("Release notes label missing for " + pr_num)
             langs_pr["nolabel"].append(detail)
         elif rl_yes_found and not lang_found:
-            print(("Lang label missing for " + pr_num))
+            print("Lang label missing for " + pr_num)
             langs_pr["nolang"].append(detail)
         elif rl_no_found:
-            print(("'Release notes:no' found for " + pr_num))
+            print("'Release notes:no' found for " + pr_num)
             langs_pr["notinrel"].append(detail)
         elif rl_yes_found:
-            print(("'Release notes:yes' found for " + pr_num + " with lang " +
-                   lang))
+            print("'Release notes:yes' found for " + pr_num + " with lang " +
+                  lang)
             langs_pr["inrel"].append(detail)
             langs_pr[lang].append(prline)
 
@@ -361,7 +348,7 @@ def main():
     write_draft(langs_pr, file, version, date)
     file.truncate()
     file.close()
-    print(("\nDraft notes written to " + filename))
+    print("\nDraft notes written to " + filename)
 
     filename = os.path.abspath(rel_file)
     if os.path.exists(filename):
@@ -373,7 +360,7 @@ def main():
     write_rel_notes(langs_pr, file, version, name)
     file.truncate()
     file.close()
-    print(("\nRelease notes written to " + filename))
+    print("\nRelease notes written to " + filename)
     if error_count > 0:
         print("\n\n*** Errors were encountered. See log. *********\n")
 

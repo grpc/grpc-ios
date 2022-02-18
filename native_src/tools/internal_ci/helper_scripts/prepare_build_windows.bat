@@ -13,16 +13,8 @@
 @rem limitations under the License.
 
 @rem make sure msys binaries are preferred over cygwin binaries
-@rem set path to python3.7
-@rem set path to CMake
-set PATH=C:\tools\msys64\usr\bin;C:\Python37;C:\Program Files\CMake\bin;%PATH%
-
-@rem create "python3" link that normally doesn't exist
-dir C:\Python37\
-mklink C:\Python37\python3.exe C:\Python37\python.exe
-
-python --version
-python3 --version
+@rem set path to python 2.7
+set PATH=C:\tools\msys64\usr\bin;C:\Python27;%PATH%
 
 @rem If this is a PR using RUN_TESTS_FLAGS var, then add flags to filter tests
 if defined KOKORO_GITHUB_PULL_REQUEST_NUMBER if defined RUN_TESTS_FLAGS (
@@ -36,41 +28,21 @@ netsh interface ip set dns "Local Area Connection 8" static 169.254.169.254 prim
 netsh interface ip add dnsservers "Local Area Connection 8" 8.8.8.8 index=2
 netsh interface ip add dnsservers "Local Area Connection 8" 8.8.4.4 index=3
 
-@rem Install nasm (required for boringssl assembly optimized build as boringssl no long supports yasm)
-@rem Downloading from GCS should be very reliables when on a GCP VM.
-mkdir C:\nasm
-curl -sSL -o C:\nasm\nasm.exe https://storage.googleapis.com/grpc-build-helper/nasm-2.15.05/nasm.exe || goto :error
-set PATH=C:\nasm;%PATH%
-nasm
+@rem Needed for big_query_utils
+python -m pip install google-api-python-client
 
-@rem Only install C# dependencies if we are running C# tests
-If "%PREPARE_BUILD_INSTALL_DEPS_CSHARP%" == "true" (
-  @rem C# prerequisites: Install dotnet SDK
-  powershell -File src\csharp\install_dotnet_sdk.ps1 || goto :error
-)
-
-@rem Add dotnet on path and disable some unwanted dotnet
-@rem option regardless of PREPARE_BUILD_INSTALL_DEPS_CSHARP value.
-@rem Always setting the env vars is fine since its instantaneous,
-@rem it can't fail and it avoids possible issues with
-@rem "setlocal" and "EnableDelayedExpansion" which would be required if
-@rem we wanted to do the same under the IF block.
+@rem C# prerequisites: Install dotnet SDK
+powershell -File src\csharp\install_dotnet_sdk.ps1
 set PATH=%LOCALAPPDATA%\Microsoft\dotnet;%PATH%
+
+@rem Install Python 3.8.0
+@rem NOTE(lidiz): Python installer process may live longer than expected, and
+@rem has other side effects. It needs to be installed last to reduce impact.
+powershell -File tools\internal_ci\helper_scripts\install_python38.ps1
+
+@rem Disable some unwanted dotnet options
 set NUGET_XMLDOC_MODE=skip
 set DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
 set DOTNET_CLI_TELEMETRY_OPTOUT=true
 
-@rem Only install Python interpreters if we are running Python tests
-If "%PREPARE_BUILD_INSTALL_DEPS_PYTHON%" == "true" (
-    powershell -File tools\internal_ci\helper_scripts\install_python_interpreters.ps1 || goto :error
-)
-
-@rem Needed for uploading test results to bigquery
-python -m pip install google-api-python-client oauth2client six==1.16.0 || goto :error
-
-git submodule update --init || goto :error
-
-goto :EOF
-
-:error
-exit /b 1
+git submodule update --init

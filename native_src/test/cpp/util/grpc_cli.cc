@@ -22,8 +22,7 @@
 
   Example of talking to grpc interop server:
   grpc_cli call localhost:50051 UnaryCall "response_size:10" \
-      --protofiles=src/proto/grpc/testing/test.proto \
-      --channel_creds_type=insecure
+      --protofiles=src/proto/grpc/testing/test.proto --enable_ssl=false
 
   Options:
     1. --protofiles, use this flag to provide proto files if the server does
@@ -34,8 +33,7 @@
        provided.
     3. --metadata specifies metadata to be sent to the server, such as:
        --metadata="MyHeaderKey1:Value1:MyHeaderKey2:Value2"
-    4. --channel_creds_type, whether to use tls, insecure or platform-specific
-       options.
+    4. --enable_ssl, whether to use tls.
     5. --use_auth, if set to true, attach a GoogleDefaultCredentials to the call
     6. --infile, input filename (defaults to stdin)
     7. --outfile, output filename (defaults to stdout)
@@ -53,33 +51,27 @@
        --decode=grpc.testing.SimpleResponse \
        src/proto/grpc/testing/messages.proto \
        < output.bin > output.txt
-   10. --default_service_config, optional default service config to use
-       on the channel. Note that this may be ignored if the name resolver
-       returns a service config.
-   11. --display_peer_address, on CallMethod commands, log the peer socket
-       address of the connection that each RPC is made on to stderr.
 */
 
 #include <fstream>
 #include <functional>
 #include <iostream>
 
-#include "absl/flags/flag.h"
-
+#include <gflags/gflags.h>
 #include <grpcpp/support/config.h>
-
 #include "test/cpp/util/cli_credentials.h"
 #include "test/cpp/util/grpc_tool.h"
 #include "test/cpp/util/test_config.h"
 
-ABSL_FLAG(std::string, outfile, "", "Output file (default is stdout)");
+DEFINE_string(outfile, "", "Output file (default is stdout)");
 
-static bool SimplePrint(const std::string& outfile, const std::string& output) {
+static bool SimplePrint(const grpc::string& outfile,
+                        const grpc::string& output) {
   if (outfile.empty()) {
-    std::cout << output << std::flush;
+    std::cout << output << std::endl;
   } else {
     std::ofstream output_file(outfile, std::ios::app | std::ios::binary);
-    output_file << output << std::flush;
+    output_file << output << std::endl;
     output_file.close();
   }
   return true;
@@ -89,7 +81,6 @@ int main(int argc, char** argv) {
   grpc::testing::InitTest(&argc, &argv, true);
 
   return grpc::testing::GrpcToolMainLib(
-      argc, const_cast<const char**>(argv), grpc::testing::CliCredentials(),
-      std::bind(SimplePrint, absl::GetFlag(FLAGS_outfile),
-                std::placeholders::_1));
+      argc, (const char**)argv, grpc::testing::CliCredentials(),
+      std::bind(SimplePrint, FLAGS_outfile, std::placeholders::_1));
 }

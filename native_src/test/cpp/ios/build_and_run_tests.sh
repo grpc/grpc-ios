@@ -16,18 +16,25 @@
 # Don't run this script standalone. Instead, run from the repository root:
 # ./tools/run_tests/run_tests.py -l c++
 
-set -ex
-set -o pipefail  # preserve xcodebuild exit code when piping output
+set -ev
 
 cd "$(dirname "$0")"
 
-time ./build_tests.sh
+echo "TIME:  $(date)"
 
-XCODEBUILD_FILTER_OUTPUT_SCRIPT="../../../src/objective-c/tests/xcodebuild_filter_output.sh"
+./build_tests.sh | ./verbose_time.sh
 
-time xcodebuild \
+echo "TIME:  $(date)"
+
+set -o pipefail
+
+XCODEBUILD_FILTER='(^CompileC |^Ld |^ *[^ ]*clang |^ *cd |^ *export |^Libtool |^ *[^ ]*libtool |^CpHeader |^ *builtin-copy )'
+
+xcodebuild \
     -workspace Tests.xcworkspace \
     -scheme CronetTests \
     -destination name="iPhone 8" \
     test \
-    | "${XCODEBUILD_FILTER_OUTPUT_SCRIPT}"
+    | ./verbose_time.sh \
+    | egrep -v "$XCODEBUILD_FILTER" \
+    | egrep -v '^$' -

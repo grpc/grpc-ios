@@ -19,20 +19,11 @@ class ReconnectParams extends \Google\Protobuf\Internal\Message
     /**
      * Generated from protobuf field <code>int32 max_reconnect_backoff_ms = 1;</code>
      */
-    protected $max_reconnect_backoff_ms = 0;
+    private $max_reconnect_backoff_ms = 0;
 
-    /**
-     * Constructor.
-     *
-     * @param array $data {
-     *     Optional. Data for populating the Message object.
-     *
-     *     @type int $max_reconnect_backoff_ms
-     * }
-     */
-    public function __construct($data = NULL) {
+    public function __construct() {
         \GPBMetadata\Src\Proto\Grpc\Testing\Messages::initOnce();
-        parent::__construct($data);
+        parent::__construct();
     }
 
     /**

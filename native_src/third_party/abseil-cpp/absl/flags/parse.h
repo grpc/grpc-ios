@@ -23,6 +23,7 @@
 #ifndef ABSL_FLAGS_PARSE_H_
 #define ABSL_FLAGS_PARSE_H_
 
+#include <string>
 #include <vector>
 
 #include "absl/base/config.h"

@@ -28,7 +28,6 @@
 #include <grpc/slice_buffer.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
-
 #include "src/core/lib/gpr/string.h"
 #include "src/core/lib/profiling/timers.h"
 #include "src/core/lib/transport/transport.h"
@@ -39,12 +38,13 @@ typedef struct connected_channel_channel_data {
   grpc_transport* transport;
 } channel_data;
 
-struct callback_state {
+typedef struct {
   grpc_closure closure;
   grpc_closure* original_closure;
   grpc_core::CallCombiner* call_combiner;
   const char* reason;
-};
+} callback_state;
+
 typedef struct connected_channel_call_data {
   grpc_core::CallCombiner* call_combiner;
   // Closures used for returning results on the call combiner.
@@ -54,13 +54,13 @@ typedef struct connected_channel_call_data {
   callback_state recv_trailing_metadata_ready;
 } call_data;
 
-static void run_in_call_combiner(void* arg, grpc_error_handle error) {
+static void run_in_call_combiner(void* arg, grpc_error* error) {
   callback_state* state = static_cast<callback_state*>(arg);
   GRPC_CALL_COMBINER_START(state->call_combiner, state->original_closure,
                            GRPC_ERROR_REF(error), state->reason);
 }
 
-static void run_cancel_in_call_combiner(void* arg, grpc_error_handle error) {
+static void run_cancel_in_call_combiner(void* arg, grpc_error* error) {
   run_in_call_combiner(arg, error);
   gpr_free(arg);
 }
@@ -91,12 +91,9 @@ static callback_state* get_state_for_batch(
 /* We perform a small hack to locate transport data alongside the connected
    channel data in call allocations, to allow everything to be pulled in minimal
    cache line requests */
-#define TRANSPORT_STREAM_FROM_CALL_DATA(calld) \
-  ((grpc_stream*)(((char*)(calld)) +           \
-                  GPR_ROUND_UP_TO_ALIGNMENT_SIZE(sizeof(call_data))))
+#define TRANSPORT_STREAM_FROM_CALL_DATA(calld) ((grpc_stream*)((calld) + 1))
 #define CALL_DATA_FROM_TRANSPORT_STREAM(transport_stream) \
-  ((call_data*)(((char*)(transport_stream)) -             \
-                GPR_ROUND_UP_TO_ALIGNMENT_SIZE(sizeof(call_data))))
+  (((call_data*)(transport_stream)) - 1)
 
 /* Intercept a call operation and either push it directly up or translate it
    into transport stream operations */
@@ -147,7 +144,7 @@ static void connected_channel_start_transport_op(grpc_channel_element* elem,
 }
 
 /* Constructor for call_data */
-static grpc_error_handle connected_channel_init_call_elem(
+static grpc_error* connected_channel_init_call_elem(
     grpc_call_element* elem, const grpc_call_element_args* args) {
   call_data* calld = static_cast<call_data*>(elem->call_data);
   channel_data* chand = static_cast<channel_data*>(elem->channel_data);
@@ -180,7 +177,7 @@ static void connected_channel_destroy_call_elem(
 }
 
 /* Constructor for channel_data */
-static grpc_error_handle connected_channel_init_channel_elem(
+static grpc_error* connected_channel_init_channel_elem(
     grpc_channel_element* elem, grpc_channel_element_args* args) {
   channel_data* cd = static_cast<channel_data*>(elem->channel_data);
   GPR_ASSERT(args->is_last);
@@ -203,7 +200,6 @@ static void connected_channel_get_channel_info(
 
 const grpc_channel_filter grpc_connected_filter = {
     connected_channel_start_transport_stream_op_batch,
-    nullptr,
     connected_channel_start_transport_op,
     sizeof(call_data),
     connected_channel_init_call_elem,
@@ -233,15 +229,13 @@ static void bind_transport(grpc_channel_stack* channel_stack,
       grpc_transport_stream_size(static_cast<grpc_transport*>(t));
 }
 
-bool grpc_add_connected_filter(grpc_core::ChannelStackBuilder* builder) {
-  grpc_transport* t = builder->transport();
+bool grpc_add_connected_filter(grpc_channel_stack_builder* builder,
+                               void* arg_must_be_null) {
+  GPR_ASSERT(arg_must_be_null == nullptr);
+  grpc_transport* t = grpc_channel_stack_builder_get_transport(builder);
   GPR_ASSERT(t != nullptr);
-  builder->AppendFilter(
-      &grpc_connected_filter,
-      [t](grpc_channel_stack* stk, grpc_channel_element* elem) {
-        bind_transport(stk, elem, t);
-      });
-  return true;
+  return grpc_channel_stack_builder_append_filter(
+      builder, &grpc_connected_filter, bind_transport, t);
 }
 
 grpc_stream* grpc_connected_channel_get_stream(grpc_call_element* elem) {

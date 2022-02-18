@@ -28,13 +28,10 @@ cp -r /var/local/jenkins/service_account $HOME || true
 
 cd /var/local/git/grpc
 
-# Install the roots.pem
-mkdir -p /usr/local/share/grpc
-cp etc/roots.pem /usr/local/share/grpc/roots.pem
+make install-certs -j4
 
-# build C++ interop client, interop server and http2 interop client
-mkdir -p cmake/build
-cd cmake/build
-cmake -DgRPC_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release ../..
+# build C++ interop client & server
 make interop_client interop_server -j4
+
+# build C++ http2 client
 make http2_client -j4

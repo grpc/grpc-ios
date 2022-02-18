@@ -63,18 +63,6 @@ TEST(BlockingCounterTest, BasicFunctionality) {
   }
 }
 
-TEST(BlockingCounterTest, WaitZeroInitialCount) {
-  BlockingCounter counter(0);
-  counter.Wait();
-}
-
-#if GTEST_HAS_DEATH_TEST
-TEST(BlockingCounterTest, WaitNegativeInitialCount) {
-  EXPECT_DEATH(BlockingCounter counter(-1),
-               "BlockingCounter initial_count negative");
-}
-#endif
-
 }  // namespace
 ABSL_NAMESPACE_END
 }  // namespace absl

@@ -81,7 +81,19 @@ static int closesocket(int sock) {
 }
 #endif
 
+static int sock_new(BIO *bio) {
+  bio->init = 0;
+  bio->num = 0;
+  bio->ptr = NULL;
+  bio->flags = 0;
+  return 1;
+}
+
 static int sock_free(BIO *bio) {
+  if (bio == NULL) {
+    return 0;
+  }
+
   if (bio->shutdown) {
     if (bio->init) {
       closesocket(bio->num);
@@ -93,15 +105,17 @@ static int sock_free(BIO *bio) {
 }
 
 static int sock_read(BIO *b, char *out, int outl) {
+  int ret = 0;
+
   if (out == NULL) {
     return 0;
   }
 
   bio_clear_socket_error();
 #if defined(OPENSSL_WINDOWS)
-  int ret = recv(b->num, out, outl, 0);
+  ret = recv(b->num, out, outl, 0);
 #else
-  int ret = read(b->num, out, outl);
+  ret = read(b->num, out, outl);
 #endif
   BIO_clear_retry_flags(b);
   if (ret <= 0) {
@@ -172,7 +186,7 @@ static const BIO_METHOD methods_sockp = {
     BIO_TYPE_SOCKET, "socket",
     sock_write,      sock_read,
     NULL /* puts */, NULL /* gets, */,
-    sock_ctrl,       NULL /* create */,
+    sock_ctrl,       sock_new,
     sock_free,       NULL /* callback_ctrl */,
 };
 

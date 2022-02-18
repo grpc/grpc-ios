@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-licenses(["notice"])
+licenses(["notice"])  # Apache v2
 
 exports_files([
     "bundle.pem",

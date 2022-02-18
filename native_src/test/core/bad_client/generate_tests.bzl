@@ -37,7 +37,6 @@ BAD_CLIENT_TESTS = {
     "unknown_frame": test_options(),
 }
 
-# buildifier: disable=unnamed-macro
 def grpc_bad_client_tests():
     grpc_cc_library(
         name = "bad_client_test",

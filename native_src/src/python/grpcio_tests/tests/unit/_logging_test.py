@@ -13,12 +13,11 @@
 # limitations under the License.
 """Test of gRPC Python's interaction with the python logging module"""
 
+import unittest
 import logging
+import grpc
 import subprocess
 import sys
-import unittest
-
-import grpc
 
 INTERPRETER = sys.executable
 

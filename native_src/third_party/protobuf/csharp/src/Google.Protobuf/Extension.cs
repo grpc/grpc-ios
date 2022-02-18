@@ -55,8 +55,6 @@ namespace Google.Protobuf
         /// Gets the field number of this extension
         /// </summary>
         public int FieldNumber { get; }
-
-        internal abstract bool IsRepeated { get; }
     }
 
     /// <summary>
@@ -80,8 +78,6 @@ namespace Google.Protobuf
         internal TValue DefaultValue => codec.DefaultValue;
 
         internal override Type TargetType => typeof(TTarget);
-
-        internal override bool IsRepeated => false;
 
         internal override IExtensionValue CreateValue()
         {
@@ -108,8 +104,6 @@ namespace Google.Protobuf
         }
 
         internal override Type TargetType => typeof(TTarget);
-
-        internal override bool IsRepeated => true;
 
         internal override IExtensionValue CreateValue()
         {

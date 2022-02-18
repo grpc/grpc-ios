@@ -84,7 +84,7 @@ class PROTOBUF_EXPORT ArrayInputStream : public ZeroCopyInputStream {
 
 
  private:
-  const uint8_t* const data_;  // The byte array.
+  const uint8* const data_;  // The byte array.
   const int size_;           // Total size of the array.
   const int block_size_;     // How many bytes to return at a time.
 
@@ -116,7 +116,7 @@ class PROTOBUF_EXPORT ArrayOutputStream : public ZeroCopyOutputStream {
   int64_t ByteCount() const override;
 
  private:
-  uint8_t* const data_;     // The byte array.
+  uint8* const data_;     // The byte array.
   const int size_;        // Total size of the array.
   const int block_size_;  // How many bytes to return at a time.
 
@@ -150,7 +150,7 @@ class PROTOBUF_EXPORT StringOutputStream : public ZeroCopyOutputStream {
   int64_t ByteCount() const override;
 
  private:
-  static constexpr size_t kMinimumSize = 16;
+  static const int kMinimumSize = 16;
 
   std::string* target_;
 
@@ -231,16 +231,16 @@ class PROTOBUF_EXPORT CopyingInputStreamAdaptor : public ZeroCopyInputStream {
   CopyingInputStream* copying_stream_;
   bool owns_copying_stream_;
 
-  // True if we have seen a permanent error from the underlying stream.
+  // True if we have seen a permenant error from the underlying stream.
   bool failed_;
 
   // The current position of copying_stream_, relative to the point where
   // we started reading.
-  int64_t position_;
+  int64 position_;
 
   // Data is read into this buffer.  It may be NULL if no buffer is currently
   // in use.  Otherwise, it points to an array of size buffer_size_.
-  std::unique_ptr<uint8_t[]> buffer_;
+  std::unique_ptr<uint8[]> buffer_;
   const int buffer_size_;
 
   // Number of valid bytes currently in the buffer (i.e. the size last
@@ -307,8 +307,6 @@ class PROTOBUF_EXPORT CopyingOutputStreamAdaptor : public ZeroCopyOutputStream {
   bool Next(void** data, int* size) override;
   void BackUp(int count) override;
   int64_t ByteCount() const override;
-  bool WriteAliasedRaw(const void* data, int size) override;
-  bool AllowsAliasing() const override { return true; }
 
  private:
   // Write the current buffer, if it is present.
@@ -322,16 +320,16 @@ class PROTOBUF_EXPORT CopyingOutputStreamAdaptor : public ZeroCopyOutputStream {
   CopyingOutputStream* copying_stream_;
   bool owns_copying_stream_;
 
-  // True if we have seen a permanent error from the underlying stream.
+  // True if we have seen a permenant error from the underlying stream.
   bool failed_;
 
   // The current position of copying_stream_, relative to the point where
   // we started writing.
-  int64_t position_;
+  int64 position_;
 
   // Data is written from this buffer.  It may be NULL if no buffer is
   // currently in use.  Otherwise, it points to an array of size buffer_size_.
-  std::unique_ptr<uint8_t[]> buffer_;
+  std::unique_ptr<uint8[]> buffer_;
   const int buffer_size_;
 
   // Number of valid bytes currently in the buffer (i.e. the size last
@@ -348,7 +346,7 @@ class PROTOBUF_EXPORT CopyingOutputStreamAdaptor : public ZeroCopyOutputStream {
 // a particular byte count.
 class PROTOBUF_EXPORT LimitingInputStream : public ZeroCopyInputStream {
  public:
-  LimitingInputStream(ZeroCopyInputStream* input, int64_t limit);
+  LimitingInputStream(ZeroCopyInputStream* input, int64 limit);
   ~LimitingInputStream() override;
 
   // implements ZeroCopyInputStream ----------------------------------
@@ -360,8 +358,8 @@ class PROTOBUF_EXPORT LimitingInputStream : public ZeroCopyInputStream {
 
  private:
   ZeroCopyInputStream* input_;
-  int64_t limit_;  // Decreases as we go, becomes negative if we overshoot.
-  int64_t prior_bytes_read_;  // Bytes read on underlying stream at construction
+  int64 limit_;  // Decreases as we go, becomes negative if we overshoot.
+  int64 prior_bytes_read_;  // Bytes read on underlying stream at construction
 
   GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(LimitingInputStream);
 };

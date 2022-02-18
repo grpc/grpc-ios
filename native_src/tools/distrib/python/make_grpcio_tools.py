@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Copyright 2016 gRPC authors.
 #
@@ -94,13 +94,13 @@ def protobuf_submodule_commit_hash():
     os.chdir(GRPC_PROTOBUF_SUBMODULE_ROOT)
     output = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
     os.chdir(cwd)
-    return output.decode("ascii").splitlines()[0].strip()
+    return output.splitlines()[0].strip()
 
 
 def bazel_query(query):
     print('Running "bazel query %s"' % query)
     output = subprocess.check_output([BAZEL_DEPS, query])
-    return output.decode("ascii").splitlines()
+    return output.splitlines()
 
 
 def get_deps():
