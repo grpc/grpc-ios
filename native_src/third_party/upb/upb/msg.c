@@ -53,7 +53,7 @@ static bool realloc_internal(upb_msg *msg, size_t need, upb_arena *arena) {
   upb_msg_internal *in = upb_msg_getinternal(msg);
   if (!in->internal) {
     /* No internal data, allocate from scratch. */
-    size_t size = UPB_MAX(128, _upb_lg2ceilsize(need + overhead));
+    size_t size = UPB_MAX(128, _upb_lg2ceilsize((int)(need + overhead)));
     upb_msg_internaldata *internal = upb_arena_malloc(arena, size);
     if (!internal) return false;
     internal->size = size;
