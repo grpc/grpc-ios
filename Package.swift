@@ -80,6 +80,11 @@ let package = Package(
         .headerSearchPath("src/core/ext/upb-generated/"),
         .headerSearchPath("src/core/ext/upbdefs-generated/"),
         .define("GRPC_ARES", to: "0"),
+        .unsafeFlags([
+          "-Wno-shorten-64-to-32",
+          "-Wno-comma",
+          "-Wno-unreachable-code",
+        ]),
       ],
       linkerSettings: [
         .linkedFramework("CoreFoundation"),
@@ -117,6 +122,11 @@ let package = Package(
         .headerSearchPath("include/"),
         .headerSearchPath("third_party/upb/"),
         .headerSearchPath("src/core/ext/upb-generated"),
+        .unsafeFlags([
+          "-Wno-shorten-64-to-32",
+          "-Wno-comma",
+          "-Wno-unreachable-code",
+        ]),
       ]
     ),
     .testTarget(
