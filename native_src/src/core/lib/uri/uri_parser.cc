@@ -166,10 +166,6 @@ absl::Status MakeInvalidURIStatus(absl::string_view part_name,
 
 }  // namespace
 
-std::string URI::PercentEncodeAuthority(absl::string_view str) {
-  return PercentEncode(str, IsAuthorityChar);
-}
-
 std::string URI::PercentEncodePath(absl::string_view str) {
   return PercentEncode(str, IsPathChar);
 }

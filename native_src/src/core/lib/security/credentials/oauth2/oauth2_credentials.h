@@ -25,7 +25,6 @@
 
 #include <grpc/grpc_security.h>
 
-#include "src/core/lib/http/httpcli.h"
 #include "src/core/lib/json/json.h"
 #include "src/core/lib/security/credentials/credentials.h"
 #include "src/core/lib/uri/uri_parser.h"
@@ -59,19 +58,10 @@ grpc_auth_refresh_token grpc_auth_refresh_token_create_from_json(
 /// Destructs the object.
 void grpc_auth_refresh_token_destruct(grpc_auth_refresh_token* refresh_token);
 
-// -- Credentials Metadata Request. --
-
-struct grpc_credentials_metadata_request {
-  explicit grpc_credentials_metadata_request(
-      grpc_core::RefCountedPtr<grpc_call_credentials> creds)
-      : creds(std::move(creds)) {}
-  ~grpc_credentials_metadata_request() {
-    grpc_http_response_destroy(&response);
-  }
-
-  grpc_core::RefCountedPtr<grpc_call_credentials> creds;
-  grpc_http_response response;
-};
+// -- Oauth2 Token Fetcher credentials --
+//
+//  This object is a base for credentials that need to acquire an oauth2 token
+//  from an http service.
 
 struct grpc_oauth2_pending_get_request_metadata {
   grpc_core::CredentialsMetadataArray* md_array;
@@ -79,11 +69,6 @@ struct grpc_oauth2_pending_get_request_metadata {
   grpc_polling_entity* pollent;
   struct grpc_oauth2_pending_get_request_metadata* next;
 };
-
-// -- Oauth2 Token Fetcher credentials --
-//
-//  This object is a base for credentials that need to acquire an oauth2 token
-//  from an http service.
 
 class grpc_oauth2_token_fetcher_credentials : public grpc_call_credentials {
  public:
@@ -110,12 +95,6 @@ class grpc_oauth2_token_fetcher_credentials : public grpc_call_credentials {
                             grpc_millis deadline) = 0;
 
  private:
-  int cmp_impl(const grpc_call_credentials* other) const override {
-    // TODO(yashykt): Check if we can do something better here
-    return grpc_core::QsortCompare(
-        static_cast<const grpc_call_credentials*>(this), other);
-  }
-
   gpr_mu mu_;
   absl::optional<grpc_core::Slice> access_token_value_;
   gpr_timespec token_expiration_;
@@ -146,7 +125,6 @@ class grpc_google_refresh_token_credentials final
  private:
   grpc_auth_refresh_token refresh_token_;
   grpc_closure http_post_cb_closure_;
-  grpc_core::OrphanablePtr<grpc_core::HttpRequest> http_request_;
 };
 
 // Access token credentials.
@@ -167,12 +145,6 @@ class grpc_access_token_credentials final : public grpc_call_credentials {
   std::string debug_string() override;
 
  private:
-  int cmp_impl(const grpc_call_credentials* other) const override {
-    // TODO(yashykt): Check if we can do something better here
-    return grpc_core::QsortCompare(
-        static_cast<const grpc_call_credentials*>(this), other);
-  }
-
   const grpc_core::Slice access_token_value_;
 };
 

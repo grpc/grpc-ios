@@ -81,22 +81,30 @@ Fuzzing
 ### libFuzzer
 
 To fuzz the packet parsing code with libFuzzer, follow the main
-[libFuzzer instructions](http://llvm.org/docs/LibFuzzer.html):
+[libFuzzer build instructions](http://llvm.org/docs/LibFuzzer.html#building):
 
  - Configure the c-ares library and test suite with a recent Clang and a sanitizer, for example:
 
    ```console
-   % export CFLAGS="-fsanitize=fuzzer-no-link,address"
+   % export CFLAGS="-fsanitize=address -fsanitize-coverage=edge"
    % export CC=clang
    % ./configure --disable-shared && make
+   ```
+ - Download and build the libFuzzer code:
+
+   ```console
+   % cd test
+   % svn co http://llvm.org/svn/llvm-project/llvm/trunk/lib/Fuzzer
+   % clang++ -c -g -O2 -std=c++11 Fuzzer/*.cpp -IFuzzer
+   % ar ruv libFuzzer.a Fuzzer*.o
    ```
  - Link each of the fuzzer entrypoints in with `ares-fuzz.cc`:
 
    ```
-   % clang -I.. -c ares-test-fuzz.c
-   % clang -I.. -c ares-test-fuzz-name.c
-   % clang++ -fsanitize=fuzzer,address ares-test-fuzz.o ../.libs/libcares.a -o ares-libfuzzer
-   % clang++ -fsanitize=fuzzer,address ares-test-fuzz-name.o ../.libs/libcares.a -o ares-libfuzzer-name
+   % $CC $CFLAGS -I.. -c ares-test-fuzz.c
+   % $CC $CFLAGS -I.. -c ares-test-fuzz-name.c
+   % clang++ $CFLAGS ares-test-fuzz.o ../.libs/libcares.a libFuzzer.a -o ares-libfuzzer
+   % clang++ $CFLAGS ares-test-fuzz-name.o ../.libs/libcares.a libFuzzer.a -o ares-libfuzzer-name
    ```
  - Run the fuzzer using the starting corpus with:
 

@@ -96,7 +96,7 @@ void RbacFilter::CallData::RecvInitialMetadataReady(void* user_data,
                                  GRPC_STATUS_PERMISSION_DENIED);
     }
   } else {
-    (void)GRPC_ERROR_REF(error);
+    GRPC_ERROR_REF(error);
   }
   grpc_closure* closure = calld->original_recv_initial_metadata_ready_;
   calld->original_recv_initial_metadata_ready_ = nullptr;
@@ -109,7 +109,6 @@ void RbacFilter::CallData::RecvInitialMetadataReady(void* user_data,
 
 const grpc_channel_filter RbacFilter::kFilterVtable = {
     RbacFilter::CallData::StartTransportStreamOpBatch,
-    nullptr,
     grpc_channel_next_op,
     sizeof(RbacFilter::CallData),
     RbacFilter::CallData::Init,
@@ -134,17 +133,15 @@ grpc_error_handle RbacFilter::Init(grpc_channel_element* elem,
   if (auth_context == nullptr) {
     return GRPC_ERROR_CREATE_FROM_STATIC_STRING("No auth context found");
   }
-  auto* transport = grpc_channel_args_find_pointer<grpc_transport>(
-      args->channel_args, GRPC_ARG_TRANSPORT);
-  if (transport == nullptr) {
+  if (args->optional_transport == nullptr) {
     // This should never happen since the transport is always set on the server
     // side.
     return GRPC_ERROR_CREATE_FROM_STATIC_STRING("No transport configured");
   }
   new (elem->channel_data) RbacFilter(
       grpc_channel_stack_filter_instance_number(args->channel_stack, elem),
-      EvaluateArgs::PerChannelArgs(auth_context,
-                                   grpc_transport_get_endpoint(transport)));
+      EvaluateArgs::PerChannelArgs(
+          auth_context, grpc_transport_get_endpoint(args->optional_transport)));
   return GRPC_ERROR_NONE;
 }
 

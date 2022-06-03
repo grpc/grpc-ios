@@ -24,9 +24,6 @@
 extern "C" JNIEXPORT jstring JNICALL
 Java_io_grpc_binder_cpp_exampleclient_ButtonPressHandler_native_1entry(
     JNIEnv* env, jobject /*this*/, jobject application) {
-  // Lower the gRPC logging level, here it is just for demo and debugging
-  // purpose.
-  setenv("GRPC_VERBOSITY", "INFO", true);
   if (grpc::experimental::InitializeBinderChannelJavaClass(env)) {
     __android_log_print(ANDROID_LOG_INFO, "DemoClient",
                         "InitializeBinderChannelJavaClass succeed");
@@ -38,22 +35,12 @@ Java_io_grpc_binder_cpp_exampleclient_ButtonPressHandler_native_1entry(
   static std::shared_ptr<grpc::Channel> channel;
   if (first) {
     first = false;
-    JavaVM* jvm;
-    {
-      jint result = env->GetJavaVM(&jvm);
-      assert(result == 0);
-    }
-    grpc::ChannelArguments ch_args;
-    // This is not required since "grpc.io.action.BIND" is already the default.
-    ch_args.SetString("grpc.binder.custom_android_intent_action_name",
-                      "grpc.io.action.BIND");
-    channel = grpc::experimental::CreateCustomBinderChannel(
+    // TODO(mingcl): Use same signature security after it become available
+    channel = grpc::experimental::CreateBinderChannel(
         env, application, "io.grpc.binder.cpp.exampleserver",
         "io.grpc.binder.cpp.exampleserver.ExportedEndpointService",
         std::make_shared<
-            grpc::experimental::binder::SameSignatureSecurityPolicy>(
-            jvm, application),
-        ch_args);
+            grpc::experimental::binder::UntrustedSecurityPolicy>());
     return env->NewStringUTF("Clicked 1 time, channel created");
   } else {
     auto stub = helloworld::Greeter::NewStub(channel);
@@ -65,9 +52,6 @@ Java_io_grpc_binder_cpp_exampleclient_ButtonPressHandler_native_1entry(
     if (status.ok()) {
       return env->NewStringUTF(response.message().c_str());
     }
-    return env->NewStringUTF(
-        std::string("Clicked more than 1 time. Status not ok " +
-                    std::to_string(status.error_code()))
-            .c_str());
+    return env->NewStringUTF("Clicked more than 1 time. Status not ok");
   }
 }

@@ -2,12 +2,12 @@
 #ifndef ARES_TEST_H
 #define ARES_TEST_H
 
-#include "ares_setup.h"
-#include "ares.h"
-
 #include "dns-proto.h"
 // Include ares internal file for DNS protocol constants
-#include "ares_nameser.h"
+#include "nameser.h"
+
+#include "ares_setup.h"
+#include "ares.h"
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
@@ -136,7 +136,7 @@ class DefaultChannelModeTest
 // Mock DNS server to allow responses to be scripted by tests.
 class MockServer {
  public:
-  MockServer(int family, int port);
+  MockServer(int family, int port, int tcpport = 0);
   ~MockServer();
 
   // Mock method indicating the processing of a particular <name, RRtype>
@@ -279,30 +279,6 @@ struct NameInfoResult {
 };
 std::ostream& operator<<(std::ostream& os, const NameInfoResult& result);
 
-struct AddrInfoDeleter {
-  void operator() (ares_addrinfo *ptr) {
-    if (ptr) ares_freeaddrinfo(ptr);
-  }
-};
-
-// C++ wrapper for struct ares_addrinfo.
-using AddrInfo = std::unique_ptr<ares_addrinfo, AddrInfoDeleter>;
-
-std::ostream& operator<<(std::ostream& os, const AddrInfo& result);
-
-// Structure that describes the result of an ares_addrinfo_callback invocation.
-struct AddrInfoResult {
-  AddrInfoResult() : done_(false), status_(-1), timeouts_(0) {}
-  // Whether the callback has been invoked.
-  bool done_;
-  // Explicitly provided result information.
-  int status_;
-  int timeouts_;
-  // Contents of the ares_addrinfo structure, if provided.
-  AddrInfo ai_;
-};
-std::ostream& operator<<(std::ostream& os, const AddrInfoResult& result);
-
 // Standard implementation of ares callbacks that fill out the corresponding
 // structures.
 void HostCallback(void *data, int status, int timeouts,
@@ -311,8 +287,6 @@ void SearchCallback(void *data, int status, int timeouts,
                     unsigned char *abuf, int alen);
 void NameInfoCallback(void *data, int status, int timeouts,
                       char *node, char *service);
-void AddrInfoCallback(void *data, int status, int timeouts,
-                      struct ares_addrinfo *res);
 
 // Retrieve the name servers used by a channel.
 std::vector<std::string> GetNameServers(ares_channel channel);
@@ -348,40 +322,7 @@ class TempFile : public TransientFile {
   const char* filename() const { return filename_.c_str(); }
 };
 
-#ifdef _WIN32
-extern "C" {
-
-static int setenv(const char *name, const char *value, int overwrite)
-{
-  char  *buffer;
-  size_t buf_size;
-
-  if (name == NULL)
-    return -1;
-
-  if (value == NULL)
-    value = ""; /* For unset */
-
-  if (!overwrite && getenv(name) != NULL) {
-    return -1;
-  }
-
-  buf_size = strlen(name) + strlen(value) + 1 /* = */ + 1 /* NULL */;
-  buffer   = (char *)malloc(buf_size);
-  _snprintf(buffer, buf_size, "%s=%s", name, value);
-  _putenv(buffer);
-  free(buffer);
-  return 0;
-}
-
-static int unsetenv(const char *name)
-{
-  return setenv(name, NULL, 1);
-}
-
-} /* extern "C" */
-#endif
-
+#ifndef WIN32
 // RAII class for a temporary environment variable value.
 class EnvValue {
  public:
@@ -405,6 +346,7 @@ class EnvValue {
   bool restore_;
   std::string original_;
 };
+#endif
 
 
 #ifdef HAVE_CONTAINER
@@ -485,6 +427,7 @@ private:
     InnerTestBody();                                                            \
   }                                                                             \
   void VCLASS_NAME(casename, testname)::InnerTestBody()
+
 
 }  // namespace test
 }  // namespace ares

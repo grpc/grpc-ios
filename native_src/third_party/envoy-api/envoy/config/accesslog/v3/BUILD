@@ -7,6 +7,7 @@ licenses(["notice"])  # Apache 2
 api_proto_package(
     deps = [
         "//envoy/config/core/v3:pkg",
+        "//envoy/config/filter/accesslog/v2:pkg",
         "//envoy/config/route/v3:pkg",
         "//envoy/type/matcher/v3:pkg",
         "//envoy/type/v3:pkg",

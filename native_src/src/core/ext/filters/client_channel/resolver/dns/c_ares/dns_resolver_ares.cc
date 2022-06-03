@@ -40,6 +40,7 @@
 #include "src/core/lib/gpr/string.h"
 #include "src/core/lib/gprpp/manual_constructor.h"
 #include "src/core/lib/iomgr/gethostname.h"
+#include "src/core/lib/iomgr/iomgr_custom.h"
 #include "src/core/lib/iomgr/resolve_address.h"
 #include "src/core/lib/iomgr/timer.h"
 #include "src/core/lib/iomgr/work_serializer.h"
@@ -521,9 +522,7 @@ class AresDNSResolver : public DNSResolver {
         absl::MutexLock lock(&mu_);
         GRPC_CARES_TRACE_LOG("AresRequest:%p Orphan ares_request_:%p", this,
                              ares_request_.get());
-        if (ares_request_ != nullptr) {
-          grpc_cancel_ares_request(ares_request_.get());
-        }
+        grpc_cancel_ares_request(ares_request_.get());
       }
       Unref();
     }
@@ -604,8 +603,11 @@ class AresDNSResolver : public DNSResolver {
 };
 
 bool ShouldUseAres(const char* resolver_env) {
-  return resolver_env == nullptr || strlen(resolver_env) == 0 ||
-         gpr_stricmp(resolver_env, "ares") == 0;
+  // TODO(lidiz): Remove the "g_custom_iomgr_enabled" flag once c-ares support
+  // custom IO managers (e.g. gevent).
+  return !g_custom_iomgr_enabled &&
+         (resolver_env == nullptr || strlen(resolver_env) == 0 ||
+          gpr_stricmp(resolver_env, "ares") == 0);
 }
 
 bool g_use_ares_dns_resolver;

@@ -31,7 +31,6 @@
 #ifndef GOOGLE_PROTOBUF_PYTHON_CPP_DESCRIPTOR_POOL_H__
 #define GOOGLE_PROTOBUF_PYTHON_CPP_DESCRIPTOR_POOL_H__
 
-#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
 #include <unordered_map>

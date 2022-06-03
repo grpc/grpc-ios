@@ -3,7 +3,6 @@ package io.grpc.binder.cpp.exampleserver;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.content.Context;
 import io.grpc.binder.cpp.GrpcCppServerBuilder;
 
 /** Exposes gRPC services running in the main process */
@@ -13,7 +12,7 @@ public final class ExportedEndpointService extends Service {
   }
 
   public ExportedEndpointService() {
-    init_grpc_server(this);
+    init_grpc_server();
   }
 
   @Override
@@ -22,5 +21,5 @@ public final class ExportedEndpointService extends Service {
     return GrpcCppServerBuilder.GetEndpointBinder("binder:example.service");
   }
 
-  public native void init_grpc_server(Context context);
+  public native void init_grpc_server();
 }

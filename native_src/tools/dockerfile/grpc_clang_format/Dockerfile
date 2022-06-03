@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM silkeh/clang:13
+FROM debian:bullseye
+
+# Install clang-format
+RUN apt-get update && apt-get install -y clang-format-11
+ENV CLANG_FORMAT=clang-format-11
 
 ADD clang_format_all_the_things.sh /
 

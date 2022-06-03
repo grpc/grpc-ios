@@ -81,7 +81,7 @@ some configuration as environment variables that can be set.
   - rls_lb - traces the RLS load balancing policy
   - round_robin - traces the round_robin load balancing policy
   - queue_pluck
-  - grpc_authz_api - traces gRPC authorization
+  - sdk_authz - traces sdk authorization
   - server_channel - lightweight trace of significant server channel events
   - secure_endpoint - traces bytes flowing through encrypted channels
   - subchannel - traces the connectivity state of subchannel

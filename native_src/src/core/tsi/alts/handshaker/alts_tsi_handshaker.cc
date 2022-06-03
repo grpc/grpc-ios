@@ -26,7 +26,6 @@
 
 #include "upb/upb.hpp"
 
-#include <grpc/grpc_security.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/string_util.h>
@@ -498,10 +497,8 @@ static void alts_tsi_handshaker_create_channel(
       static_cast<alts_tsi_handshaker_continue_handshaker_next_args*>(arg);
   alts_tsi_handshaker* handshaker = next_args->handshaker;
   GPR_ASSERT(handshaker->channel == nullptr);
-  grpc_channel_credentials* creds = grpc_insecure_credentials_create();
-  handshaker->channel = grpc_channel_create(
-      next_args->handshaker->handshaker_service_url, creds, nullptr);
-  grpc_channel_credentials_release(creds);
+  handshaker->channel = grpc_insecure_channel_create(
+      next_args->handshaker->handshaker_service_url, nullptr, nullptr);
   tsi_result continue_next_result =
       alts_tsi_handshaker_continue_handshaker_next(
           handshaker, next_args->received_bytes.get(),

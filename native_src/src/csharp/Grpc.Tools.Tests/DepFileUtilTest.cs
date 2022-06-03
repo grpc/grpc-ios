@@ -146,17 +146,20 @@ obj\Release x64\net45\/FooGrpc.cs: C:/usr/include/google/protobuf/wrappers.proto
             Assert.Zero(deps.Length);
         }
 
+        // NB in our tests files are put into the temp directory but all have
+        // different names. Avoid adding files with the same directory path and
+        // name, or add reasonable handling for it if required. Tests are run in
+        // parallel and will collide otherwise.
         private string[] ReadDependencyInputFromFileData(string fileData, string protoName)
         {
-            string randomTempDir = Path.GetTempPath() + '/' + Path.GetRandomFileName();
-            Directory.CreateDirectory(randomTempDir);
-            string tempfile = DepFileUtil.GetDepFilenameForProto(randomTempDir, protoName);
+            string tempPath = Path.GetTempPath();
+            string tempfile = DepFileUtil.GetDepFilenameForProto(tempPath, protoName);
             try
             {
                 File.WriteAllText(tempfile, fileData);
                 var mockEng = new Moq.Mock<IBuildEngine>();
                 var log = new TaskLoggingHelper(mockEng.Object, "x");
-                return DepFileUtil.ReadDependencyInputs(randomTempDir, protoName, log);
+                return DepFileUtil.ReadDependencyInputs(tempPath, protoName, log);
             }
             finally
             {
