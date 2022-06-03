@@ -52,6 +52,9 @@ let package = Package(
         "third_party/re2/util/fuzz.cc",
         "third_party/upb/upb/bindings/",
         "third_party/upb/upb/msg_test.cc",
+        "src/core/lib/surface/init_unsecure.cc",
+        "src/core/ext/filters/client_channel/lb_policy/grpclb/grpclb_channel.cc",
+        "src/core/lib/security/authorization/authorization_policy_provider_null_vtable.cc",
       ],
       sources: [
         "src/core/ext/filters/",
@@ -61,7 +64,6 @@ let package = Package(
         "src/core/ext/xds/",
         "src/core/lib/",
         "src/core/plugin_registry/grpc_plugin_registry.cc",
-        "src/core/plugin_registry/grpc_plugin_registry_extra.cc",
         "src/core/tsi/",
         "third_party/re2/re2/",
         "third_party/re2/util/",
