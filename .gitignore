@@ -33,3 +33,4 @@ bazel_format_virtual_environment/
 # SPM
 .build/
 Package.resolved
+.swiftpm/

@@ -1,0 +1,12 @@
+//
+//  build.xcconfig
+//  gRPCSample
+//
+//  Created by Denny Dai on 6/2/22.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://help.apple.com/xcode/#/dev745c5c974
+
+
+GCC_TREAT_WARNINGS_AS_ERRORS = YES
