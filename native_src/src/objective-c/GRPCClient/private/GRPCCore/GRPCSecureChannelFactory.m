@@ -113,7 +113,7 @@
   }
   grpc_channel_args *coreChannelArgs = GRPCBuildChannelArgs(args);
   grpc_channel *unmanagedChannel =
-      grpc_channel_create(host.UTF8String, _channelCreds, coreChannelArgs);
+      grpc_secure_channel_create(_channelCreds, host.UTF8String, coreChannelArgs, NULL);
   GRPCFreeChannelArgs(coreChannelArgs);
   return unmanagedChannel;
 }

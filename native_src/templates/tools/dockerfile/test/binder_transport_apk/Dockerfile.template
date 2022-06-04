@@ -18,10 +18,6 @@
   <%include file="../../bazel.include"/>
 
   #========================
-  # Java
-  RUN apt-get install -y openjdk-8-jdk
-
-  #========================
   # Android SDK/NDK installation
   ENV SDK_ROOT=/opt/android-sdk
   RUN mkdir -p $SDK_ROOT

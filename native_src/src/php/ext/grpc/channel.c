@@ -241,12 +241,11 @@ void create_channel(
     grpc_channel_args args,
     wrapped_grpc_channel_credentials *creds) {
   if (creds == NULL) {
-    grpc_channel_credentials* insecure_creds = grpc_insecure_credentials_create();
-    channel->wrapper->wrapped = grpc_channel_create(target, insecure_creds, &args);
-    grpc_channel_credentials_release(insecure_creds);
+    channel->wrapper->wrapped = grpc_insecure_channel_create(target, &args,
+                                                             NULL);
   } else {
     channel->wrapper->wrapped =
-        grpc_channel_create(target, creds->wrapped, &args);
+        grpc_secure_channel_create(creds->wrapped, target, &args, NULL);
   }
   // There is an Grpc\Channel object refer to it.
   php_grpc_channel_ref(channel->wrapper);

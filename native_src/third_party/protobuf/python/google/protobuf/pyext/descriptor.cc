@@ -32,7 +32,6 @@
 
 #include <google/protobuf/pyext/descriptor.h>
 
-#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <frameobject.h>
 

@@ -31,6 +31,7 @@ def create_docker_jobspec(name,
                           timeout_seconds=30 * 60):
     """Creates jobspec for a task running under docker."""
     environ = environ.copy()
+    environ['RUN_COMMAND'] = shell_command
     # the entire repo will be cloned if copy_rel_path is not set.
     if copy_rel_path:
         environ['RELATIVE_COPY_PATH'] = copy_rel_path
@@ -40,8 +41,7 @@ def create_docker_jobspec(name,
         docker_args += ['-e', '%s=%s' % (k, v)]
     docker_env = {
         'DOCKERFILE_DIR': dockerfile_dir,
-        'DOCKER_RUN_SCRIPT': 'tools/run_tests/dockerize/docker_run.sh',
-        'DOCKER_RUN_SCRIPT_COMMAND': shell_command,
+        'DOCKER_RUN_SCRIPT': 'tools/run_tests/dockerize/docker_run.sh'
     }
     jobspec = jobset.JobSpec(
         cmdline=['tools/run_tests/dockerize/build_and_run_docker.sh'] +
@@ -322,12 +322,8 @@ class CppDistribTest(object):
         return []
 
     def build_jobspec(self, inner_jobs=None):
-        environ = {}
-        if inner_jobs is not None:
-            # set number of parallel jobs for the C++ build
-            environ['GRPC_CPP_DISTRIBTEST_BUILD_COMPILER_JOBS'] = str(
-                inner_jobs)
-
+        # TODO(jtattermusch): honor inner_jobs arg for this task.
+        del inner_jobs
         if self.platform == 'linux':
             return create_docker_jobspec(
                 self.name,
@@ -430,7 +426,6 @@ def targets():
         PythonDistribTest('linux', 'x64', 'fedora34'),
         PythonDistribTest('linux', 'x64', 'opensuse'),
         PythonDistribTest('linux', 'x64', 'arch'),
-        PythonDistribTest('linux', 'x64', 'alpine'),
         PythonDistribTest('linux', 'x64', 'ubuntu1804'),
         PythonDistribTest('linux', 'aarch64', 'python38_buster',
                           presubmit=True),

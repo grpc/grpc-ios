@@ -77,7 +77,6 @@ static void free_call(void* arg, grpc_error_handle /*error*/) {
 static void test_create_channel_stack(void) {
   const grpc_channel_filter filter = {
       call_func,
-      nullptr,
       channel_func,
       sizeof(int),
       call_init_func,
@@ -112,7 +111,7 @@ static void test_create_channel_stack(void) {
   GPR_ASSERT(GRPC_LOG_IF_ERROR(
       "grpc_channel_stack_init",
       grpc_channel_stack_init(1, free_channel, channel_stack, &filters, 1,
-                              &chan_args, "test", channel_stack)));
+                              &chan_args, nullptr, "test", channel_stack)));
   GPR_ASSERT(channel_stack->count == 1);
   channel_elem = grpc_channel_stack_element(channel_stack, 0);
   channel_data = static_cast<int*>(channel_elem->channel_data);

@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include <grpc/grpc.h>
-#include <grpc/grpc_security.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 
@@ -46,9 +45,8 @@ void run_test(bool wait_for_ready) {
   grpc_channel_args args = {1, &arg};
 
   /* create a call, channel to a non existant server */
-  grpc_channel_credentials* creds = grpc_insecure_credentials_create();
-  grpc_channel* chan = grpc_channel_create("fake:nonexistant", creds, &args);
-  grpc_channel_credentials_release(creds);
+  grpc_channel* chan =
+      grpc_insecure_channel_create("fake:nonexistant", &args, nullptr);
   gpr_timespec deadline = grpc_timeout_seconds_to_deadline(2);
   grpc_call* call = grpc_channel_create_call(
       chan, nullptr, GRPC_PROPAGATE_DEFAULTS, cq,

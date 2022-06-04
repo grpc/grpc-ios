@@ -20,8 +20,13 @@ cd $(dirname $0)/../../..
 
 source tools/internal_ci/helper_scripts/prepare_build_linux_perf_rc
 
-CPUS=`python3 -c 'import multiprocessing; print(multiprocessing.cpu_count())'`
+tools/internal_ci/linux/run_performance_profile_hourly.sh || FAILED="true"
 
-./tools/run_tests/start_port_server.py || true
+# kill port_server.py to prevent the build from freezing
+ps aux | grep port_server\\.py | awk '{print $2}' | xargs kill -9
 
-tools/run_tests/run_microbenchmark.py --collect summary --bq_result_table microbenchmarks.microbenchmarks
+if [ "$FAILED" != "" ]
+then
+  exit 1
+fi
+

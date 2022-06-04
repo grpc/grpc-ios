@@ -62,8 +62,8 @@ class WorkSerializer::WorkSerializerImpl : public Orphanable {
   static uint32_t GetOwners(uint64_t ref_pair) {
     return static_cast<uint32_t>(ref_pair >> 48);
   }
-  static uint64_t GetSize(uint64_t ref_pair) {
-    return static_cast<uint64_t>(ref_pair & 0xffffffffffffu);
+  static uint32_t GetSize(uint64_t ref_pair) {
+    return static_cast<uint32_t>(ref_pair & 0xffffffffffffu);
   }
 
   // An initial size of 1 keeps track of whether the work serializer has been
@@ -121,9 +121,10 @@ void WorkSerializer::WorkSerializerImpl::Orphan() {
   if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
     gpr_log(GPR_INFO, "WorkSerializer::Orphan() %p", this);
   }
-  const uint64_t prev_ref_pair =
+  uint64_t prev_ref_pair =
       refs_.fetch_sub(MakeRefPair(0, 1), std::memory_order_acq_rel);
-  if (GetOwners(prev_ref_pair) == 0 && GetSize(prev_ref_pair) == 1) {
+  if (GetSize(prev_ref_pair) == 1) {
+    GPR_DEBUG_ASSERT(GetOwners(prev_ref_pair) == 0);
     if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
       gpr_log(GPR_INFO, "  Destroying");
     }
@@ -169,19 +170,13 @@ void WorkSerializer::WorkSerializerImpl::DrainQueueOwned() {
       return;
     }
     if (GetSize(prev_ref_pair) == 2) {
-      // Queue drained. Give up ownership but only if queue remains empty.
+      // Queue drained. Give up ownership but only if queue remains empty. Note
+      // that we are using relaxed memory order semantics for the load on
+      // failure since we don't care about that value.
       uint64_t expected = MakeRefPair(1, 1);
       if (refs_.compare_exchange_strong(expected, MakeRefPair(0, 1),
-                                        std::memory_order_acq_rel)) {
-        // Queue is drained.
-        return;
-      }
-      if (GetSize(expected) == 0) {
-        // WorkSerializer got orphaned while this was running
-        if (GRPC_TRACE_FLAG_ENABLED(grpc_work_serializer_trace)) {
-          gpr_log(GPR_INFO, "  Queue Drained. Destroying");
-        }
-        delete this;
+                                        std::memory_order_acq_rel,
+                                        std::memory_order_relaxed)) {
         return;
       }
     }

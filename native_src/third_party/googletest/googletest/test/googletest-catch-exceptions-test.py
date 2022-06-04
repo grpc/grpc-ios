@@ -35,7 +35,7 @@ googletest-catch-exceptions-ex-test_ (programs written with
 Google Test) and verifies their output.
 """
 
-from googletest.test import gtest_test_utils
+import gtest_test_utils
 
 # Constants.
 FLAG_PREFIX = '--gtest_'
@@ -147,19 +147,19 @@ class CatchCxxExceptionsTest(gtest_test_utils.TestCase):
     self.assertTrue(
         'CxxExceptionInConstructorTest::TearDownTestSuite() '
         'called as expected.' in EX_BINARY_OUTPUT, EX_BINARY_OUTPUT)
-    self.assertFalse(
+    self.assertTrue(
         'CxxExceptionInSetUpTestSuiteTest constructor '
         'called as expected.' in EX_BINARY_OUTPUT, EX_BINARY_OUTPUT)
-    self.assertFalse(
+    self.assertTrue(
         'CxxExceptionInSetUpTestSuiteTest destructor '
         'called as expected.' in EX_BINARY_OUTPUT, EX_BINARY_OUTPUT)
-    self.assertFalse(
+    self.assertTrue(
         'CxxExceptionInSetUpTestSuiteTest::SetUp() '
         'called as expected.' in EX_BINARY_OUTPUT, EX_BINARY_OUTPUT)
-    self.assertFalse(
+    self.assertTrue(
         'CxxExceptionInSetUpTestSuiteTest::TearDown() '
         'called as expected.' in EX_BINARY_OUTPUT, EX_BINARY_OUTPUT)
-    self.assertFalse(
+    self.assertTrue(
         'CxxExceptionInSetUpTestSuiteTest test body '
         'called as expected.' in EX_BINARY_OUTPUT, EX_BINARY_OUTPUT)
 

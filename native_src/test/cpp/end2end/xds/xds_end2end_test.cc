@@ -768,7 +768,7 @@ class XdsEnd2endTest : public ::testing::TestWithParam<TestType> {
     default_cluster_.set_name(kDefaultClusterName);
     default_cluster_.set_type(Cluster::EDS);
     auto* eds_config = default_cluster_.mutable_eds_cluster_config();
-    eds_config->mutable_eds_config()->mutable_self();
+    eds_config->mutable_eds_config()->mutable_ads();
     eds_config->set_service_name(kDefaultEdsServiceName);
     default_cluster_.set_lb_policy(Cluster::ROUND_ROBIN);
     if (GetParam().enable_load_reporting()) {
@@ -1432,7 +1432,7 @@ class XdsEnd2endTest : public ::testing::TestWithParam<TestType> {
     if (GetParam().enable_rds_testing()) {
       auto* rds = http_connection_manager.mutable_rds();
       rds->set_route_config_name(route_config.name());
-      rds->mutable_config_source()->mutable_self();
+      rds->mutable_config_source()->mutable_ads();
       balancer->ads_service()->SetRdsResource(route_config);
     } else {
       *http_connection_manager.mutable_route_config() = route_config;
@@ -2227,7 +2227,7 @@ TEST_P(XdsResolverOnlyTest, RestartsRequestsUponReconnection) {
       &http_connection_manager);
   auto* rds = http_connection_manager.mutable_rds();
   rds->set_route_config_name(kDefaultRouteConfigurationName);
-  rds->mutable_config_source()->mutable_self();
+  rds->mutable_config_source()->mutable_ads();
   listener.mutable_api_listener()->mutable_api_listener()->PackFrom(
       http_connection_manager);
   balancer_->ads_service()->SetLdsResource(listener);
@@ -2580,7 +2580,7 @@ TEST_P(GlobalXdsClientTest, InvalidListenerStillExistsIfPreviouslyCached) {
 
 class XdsFederationTest : public XdsEnd2endTest {
  protected:
-  XdsFederationTest() : XdsEnd2endTest(2, 3, 0, true) {
+  XdsFederationTest() : XdsEnd2endTest(2, 100, 0, true) {
     authority_balancer_ = CreateAndStartBalancer();
   }
 
@@ -2876,121 +2876,6 @@ TEST_P(XdsFederationTest, FederationServer) {
   gpr_unsetenv("GRPC_EXPERIMENTAL_XDS_FEDERATION");
 }
 
-using XdsFederationLoadReportingTest = XdsFederationTest;
-
-// Channel is created with URI "xds://xds.example.com/server.example.com".
-// Bootstrap entry for that authority specifies a client listener name template.
-// Sending traffic to both default balancer and authority balancer and checking
-// load reporting with each one.
-TEST_P(XdsFederationLoadReportingTest, FederationMultipleLoadReportingTest) {
-  gpr_setenv("GRPC_EXPERIMENTAL_XDS_FEDERATION", "true");
-  const char* kAuthority = "xds.example.com";
-  const char* kNewServerName = "whee%/server.example.com";
-  const char* kNewListenerTemplate =
-      "xdstp://xds.example.com/envoy.config.listener.v3.Listener/"
-      "client/%s?psm_project_id=1234";
-  const char* kNewListenerName =
-      "xdstp://xds.example.com/envoy.config.listener.v3.Listener/"
-      "client/whee%25/server.example.com?psm_project_id=1234";
-  const char* kNewRouteConfigName =
-      "xdstp://xds.example.com/envoy.config.route.v3.RouteConfiguration/"
-      "new_route_config_name";
-  const char* kNewEdsServiceName =
-      "xdstp://xds.example.com/envoy.config.endpoint.v3.ClusterLoadAssignment/"
-      "edsservice_name";
-  const char* kNewClusterName =
-      "xdstp://xds.example.com/envoy.config.cluster.v3.Cluster/"
-      "cluster_name";
-  const size_t kNumRpcsToDefaultBalancer = 5;
-  const size_t kNumRpcsToAuthorityBalancer = 10;
-  BootstrapBuilder builder = BootstrapBuilder();
-  builder.AddAuthority(kAuthority,
-                       absl::StrCat("localhost:", authority_balancer_->port()),
-                       kNewListenerTemplate);
-  CreateClientsAndServers(builder);
-  StartAllBackends();
-  // Eds for 2 balancers to ensure RPCs sent using current stub go to backend 0
-  // and RPCs sent using the new stub go to backend 1.
-  EdsResourceArgs args({{"locality0", CreateEndpointsForBackends(0, 1)}});
-  balancer_->ads_service()->SetEdsResource(BuildEdsResource(args));
-  args = EdsResourceArgs({{"locality0", CreateEndpointsForBackends(1, 2)}});
-  authority_balancer_->ads_service()->SetEdsResource(
-      BuildEdsResource(args, kNewEdsServiceName));
-  authority_balancer_->lrs_service()->set_cluster_names({kNewClusterName});
-  // New cluster
-  Cluster new_cluster = default_cluster_;
-  new_cluster.set_name(kNewClusterName);
-  new_cluster.mutable_lrs_server()->mutable_self();
-  new_cluster.mutable_eds_cluster_config()->set_service_name(
-      kNewEdsServiceName);
-  authority_balancer_->ads_service()->SetCdsResource(new_cluster);
-  // New Route
-  RouteConfiguration new_route_config = default_route_config_;
-  new_route_config.set_name(kNewRouteConfigName);
-  new_route_config.mutable_virtual_hosts(0)
-      ->mutable_routes(0)
-      ->mutable_route()
-      ->set_cluster(kNewClusterName);
-  // New Listener
-  Listener listener = default_listener_;
-  listener.set_name(kNewListenerName);
-  SetListenerAndRouteConfiguration(authority_balancer_.get(), listener,
-                                   new_route_config);
-  // Ensure update has reached and send 10 RPCs to the current stub.
-  CheckRpcSendOk(kNumRpcsToDefaultBalancer);
-  // Create second channel to new target uri and send 1 RPC .
-  auto channel2 =
-      CreateChannel(/*failover_timeout=*/0, kNewServerName, kAuthority);
-  channel2->GetState(/*try_to_connect=*/true);
-  ASSERT_TRUE(
-      channel2->WaitForConnected(grpc_timeout_milliseconds_to_deadline(100)));
-  auto stub2 = grpc::testing::EchoTestService::NewStub(channel2);
-  for (size_t i = 0; i < kNumRpcsToAuthorityBalancer; ++i) {
-    ClientContext context;
-    EchoRequest request;
-    request.set_message(kRequestMessage);
-    EchoResponse response;
-    grpc::Status status = stub2->Echo(&context, request, &response);
-    EXPECT_TRUE(status.ok()) << "code=" << status.error_code()
-                             << " message=" << status.error_message();
-  }
-  // Each backend should have received the expected number of RPCs,
-  // and the load report also reflect the correct numbers.
-  EXPECT_EQ(kNumRpcsToAuthorityBalancer,
-            backends_[1]->backend_service()->request_count());
-  EXPECT_EQ(kNumRpcsToDefaultBalancer,
-            backends_[0]->backend_service()->request_count());
-  // Load report for authority LRS.
-  std::vector<ClientStats> authority_load_report =
-      authority_balancer_->lrs_service()->WaitForLoadReport();
-  ASSERT_EQ(authority_load_report.size(), 1UL);
-  ClientStats& authority_client_stats = authority_load_report.front();
-  EXPECT_EQ(kNumRpcsToAuthorityBalancer,
-            authority_client_stats.total_successful_requests());
-  EXPECT_EQ(0U, authority_client_stats.total_requests_in_progress());
-  EXPECT_EQ(kNumRpcsToAuthorityBalancer,
-            authority_client_stats.total_issued_requests());
-  EXPECT_EQ(0U, authority_client_stats.total_error_requests());
-  EXPECT_EQ(0U, authority_client_stats.total_dropped_requests());
-  EXPECT_EQ(1U, authority_balancer_->lrs_service()->request_count());
-  EXPECT_EQ(1U, authority_balancer_->lrs_service()->response_count());
-  // Load report for default LRS.
-  std::vector<ClientStats> default_load_report =
-      balancer_->lrs_service()->WaitForLoadReport();
-  ASSERT_EQ(default_load_report.size(), 1UL);
-  ClientStats& default_client_stats = default_load_report.front();
-  EXPECT_EQ(kNumRpcsToDefaultBalancer,
-            default_client_stats.total_successful_requests());
-  EXPECT_EQ(0U, default_client_stats.total_requests_in_progress());
-  EXPECT_EQ(kNumRpcsToDefaultBalancer,
-            default_client_stats.total_issued_requests());
-  EXPECT_EQ(0U, default_client_stats.total_error_requests());
-  EXPECT_EQ(0U, default_client_stats.total_dropped_requests());
-  EXPECT_EQ(1U, balancer_->lrs_service()->request_count());
-  EXPECT_EQ(1U, balancer_->lrs_service()->response_count());
-  gpr_unsetenv("GRPC_EXPERIMENTAL_XDS_FEDERATION");
-}
-
 class SecureNamingTest : public XdsEnd2endTest {
  public:
   SecureNamingTest()
@@ -3016,7 +2901,7 @@ TEST_P(SecureNamingTest, TargetNameIsExpected) {
 
 // Tests that secure naming check fails if target name is unexpected.
 TEST_P(SecureNamingTest, TargetNameIsUnexpected) {
-  GTEST_FLAG_SET(death_test_style, "threadsafe");
+  GRPC_GTEST_FLAG_SET_DEATH_TEST_STYLE("threadsafe");
   CreateClientsAndServers(BootstrapBuilder(),
                           /*lb_expected_authority=*/"incorrect_server_name");
   StartAllBackends();
@@ -3084,15 +2969,15 @@ TEST_P(LdsTest, RdsMissingConfigSource) {
 
 // Tests that LDS client should send a NACK if the rds message in the
 // http_connection_manager has a config_source field that does not specify
-// ADS or SELF.
-TEST_P(LdsTest, RdsConfigSourceDoesNotSpecifyAdsOrSelf) {
+// ADS.
+TEST_P(LdsTest, RdsConfigSourceDoesNotSpecifyAds) {
   auto listener = default_listener_;
   HttpConnectionManager http_connection_manager;
   listener.mutable_api_listener()->mutable_api_listener()->UnpackTo(
       &http_connection_manager);
   auto* rds = http_connection_manager.mutable_rds();
   rds->set_route_config_name(kDefaultRouteConfigurationName);
-  rds->mutable_config_source()->set_path("/foo/bar");
+  rds->mutable_config_source()->mutable_self();
   listener.mutable_api_listener()->mutable_api_listener()->PackFrom(
       http_connection_manager);
   balancer_->ads_service()->SetLdsResource(listener);
@@ -3100,29 +2985,7 @@ TEST_P(LdsTest, RdsConfigSourceDoesNotSpecifyAdsOrSelf) {
   ASSERT_TRUE(response_state.has_value()) << "timed out waiting for NACK";
   EXPECT_THAT(response_state->error_message,
               ::testing::HasSubstr("HttpConnectionManager ConfigSource for "
-                                   "RDS does not specify ADS or SELF."));
-}
-
-// Tests that LDS client accepts the rds message in the
-// http_connection_manager with a config_source field that specifies ADS.
-TEST_P(LdsTest, AcceptsRdsConfigSourceOfTypeAds) {
-  auto listener = default_listener_;
-  HttpConnectionManager http_connection_manager;
-  listener.mutable_api_listener()->mutable_api_listener()->UnpackTo(
-      &http_connection_manager);
-  auto* rds = http_connection_manager.mutable_rds();
-  rds->set_route_config_name(kDefaultRouteConfigurationName);
-  rds->mutable_config_source()->mutable_ads();
-  listener.mutable_api_listener()->mutable_api_listener()->PackFrom(
-      http_connection_manager);
-  SetListenerAndRouteConfiguration(balancer_.get(), listener,
-                                   default_route_config_);
-  EdsResourceArgs args({{"locality0", CreateEndpointsForBackends()}});
-  balancer_->ads_service()->SetEdsResource(BuildEdsResource(args));
-  WaitForAllBackends();
-  auto response_state = balancer_->ads_service()->lds_response_state();
-  ASSERT_TRUE(response_state.has_value());
-  EXPECT_EQ(response_state->state, AdsServiceImpl::ResponseState::ACKED);
+                                   "RDS does not specify ADS."));
 }
 
 // Tests that we NACK non-terminal filters at the end of the list.
@@ -4732,7 +4595,7 @@ TEST_P(LdsRdsTest, XdsRoutingClusterUpdateClustersWithPickingDelays) {
   EXPECT_EQ(1, backends_[1]->backend_service()->request_count());
 }
 
-TEST_P(LdsRdsTest, DISABLED_XdsRoutingApplyXdsTimeout) {
+TEST_P(LdsRdsTest, XdsRoutingApplyXdsTimeout) {
   const int64_t kTimeoutMillis = 500;
   const int64_t kTimeoutNano = kTimeoutMillis * 1000000;
   const int64_t kTimeoutGrpcTimeoutHeaderMaxSecond = 1;
@@ -6348,69 +6211,6 @@ TEST_P(CdsTest, AggregateClusterType) {
       "GRPC_XDS_EXPERIMENTAL_ENABLE_AGGREGATE_AND_LOGICAL_DNS_CLUSTER");
 }
 
-TEST_P(CdsTest, AggregateClusterFallBackFromRingHashAtStartup) {
-  gpr_setenv("GRPC_XDS_EXPERIMENTAL_ENABLE_AGGREGATE_AND_LOGICAL_DNS_CLUSTER",
-             "true");
-  const char* kNewCluster1Name = "new_cluster_1";
-  const char* kNewEdsService1Name = "new_eds_service_name_1";
-  const char* kNewCluster2Name = "new_cluster_2";
-  const char* kNewEdsService2Name = "new_eds_service_name_2";
-  // Populate new EDS resources.
-  EdsResourceArgs args1({
-      {"locality0", {MakeNonExistantEndpoint(), MakeNonExistantEndpoint()}},
-  });
-  EdsResourceArgs args2({
-      {"locality0", CreateEndpointsForBackends()},
-  });
-  balancer_->ads_service()->SetEdsResource(
-      BuildEdsResource(args1, kNewEdsService1Name));
-  balancer_->ads_service()->SetEdsResource(
-      BuildEdsResource(args2, kNewEdsService2Name));
-  // Populate new CDS resources.
-  Cluster new_cluster1 = default_cluster_;
-  new_cluster1.set_name(kNewCluster1Name);
-  new_cluster1.mutable_eds_cluster_config()->set_service_name(
-      kNewEdsService1Name);
-  balancer_->ads_service()->SetCdsResource(new_cluster1);
-  Cluster new_cluster2 = default_cluster_;
-  new_cluster2.set_name(kNewCluster2Name);
-  new_cluster2.mutable_eds_cluster_config()->set_service_name(
-      kNewEdsService2Name);
-  balancer_->ads_service()->SetCdsResource(new_cluster2);
-  // Create Aggregate Cluster
-  auto cluster = default_cluster_;
-  cluster.set_lb_policy(Cluster::RING_HASH);
-  CustomClusterType* custom_cluster = cluster.mutable_cluster_type();
-  custom_cluster->set_name("envoy.clusters.aggregate");
-  ClusterConfig cluster_config;
-  cluster_config.add_clusters(kNewCluster1Name);
-  cluster_config.add_clusters(kNewCluster2Name);
-  custom_cluster->mutable_typed_config()->PackFrom(cluster_config);
-  balancer_->ads_service()->SetCdsResource(cluster);
-  // Set up route with channel id hashing
-  auto new_route_config = default_route_config_;
-  auto* route = new_route_config.mutable_virtual_hosts(0)->mutable_routes(0);
-  auto* hash_policy = route->mutable_route()->add_hash_policy();
-  hash_policy->mutable_filter_state()->set_key("io.grpc.channel_id");
-  SetListenerAndRouteConfiguration(balancer_.get(), default_listener_,
-                                   new_route_config);
-  // Verifying that we are using ring hash as only 1 endpoint is receiving all
-  // the traffic.
-  CheckRpcSendOk(100);
-  bool found = false;
-  for (size_t i = 0; i < backends_.size(); ++i) {
-    if (backends_[i]->backend_service()->request_count() > 0) {
-      EXPECT_EQ(backends_[i]->backend_service()->request_count(), 100)
-          << "backend " << i;
-      EXPECT_FALSE(found) << "backend " << i;
-      found = true;
-    }
-  }
-  EXPECT_TRUE(found);
-  gpr_unsetenv(
-      "GRPC_XDS_EXPERIMENTAL_ENABLE_AGGREGATE_AND_LOGICAL_DNS_CLUSTER");
-}
-
 TEST_P(CdsTest, AggregateClusterEdsToLogicalDns) {
   gpr_setenv("GRPC_XDS_EXPERIMENTAL_ENABLE_AGGREGATE_AND_LOGICAL_DNS_CLUSTER",
              "true");
@@ -6665,29 +6465,15 @@ TEST_P(CdsTest, InvalidClusterStillExistsIfPreviouslyCached) {
 }
 
 // Tests that CDS client should send a NACK if the eds_config in CDS response
-// is other than ADS or SELF.
-TEST_P(CdsTest, EdsConfigSourceDoesNotSpecifyAdsOrSelf) {
+// is other than ADS.
+TEST_P(CdsTest, WrongEdsConfig) {
   auto cluster = default_cluster_;
-  cluster.mutable_eds_cluster_config()->mutable_eds_config()->set_path(
-      "/foo/bar");
+  cluster.mutable_eds_cluster_config()->mutable_eds_config()->mutable_self();
   balancer_->ads_service()->SetCdsResource(cluster);
   const auto response_state = WaitForCdsNack();
   ASSERT_TRUE(response_state.has_value()) << "timed out waiting for NACK";
   EXPECT_THAT(response_state->error_message,
-              ::testing::HasSubstr("EDS ConfigSource is not ADS or SELF."));
-}
-
-// Tests that CDS client accepts an eds_config of type ADS.
-TEST_P(CdsTest, AcceptsEdsConfigSourceOfTypeAds) {
-  auto cluster = default_cluster_;
-  cluster.mutable_eds_cluster_config()->mutable_eds_config()->mutable_ads();
-  balancer_->ads_service()->SetCdsResource(cluster);
-  EdsResourceArgs args({{"locality0", CreateEndpointsForBackends()}});
-  balancer_->ads_service()->SetEdsResource(BuildEdsResource(args));
-  WaitForAllBackends();
-  auto response_state = balancer_->ads_service()->cds_response_state();
-  ASSERT_TRUE(response_state.has_value());
-  EXPECT_EQ(response_state->state, AdsServiceImpl::ResponseState::ACKED);
+              ::testing::HasSubstr("EDS ConfigSource is not ADS."));
 }
 
 // Tests that CDS client should send a NACK if the lb_policy in CDS response
@@ -10065,7 +9851,7 @@ TEST_P(XdsServerRdsTest, NonInlineRouteConfigurationNonDefaultFilterChain) {
       ServerHcmAccessor().Unpack(listener);
   auto* rds = http_connection_manager.mutable_rds();
   rds->set_route_config_name(kDefaultServerRouteConfigurationName);
-  rds->mutable_config_source()->mutable_self();
+  rds->mutable_config_source()->mutable_ads();
   filter_chain->add_filters()->mutable_typed_config()->PackFrom(
       http_connection_manager);
   SetServerListenerNameAndRouteConfiguration(balancer_.get(), listener,
@@ -10088,7 +9874,7 @@ TEST_P(XdsServerRdsTest, NonInlineRouteConfigurationNotAvailable) {
       ServerHcmAccessor().Unpack(listener);
   auto* rds = http_connection_manager.mutable_rds();
   rds->set_route_config_name("unknown_server_route_config");
-  rds->mutable_config_source()->mutable_self();
+  rds->mutable_config_source()->mutable_ads();
   listener.add_filter_chains()->add_filters()->mutable_typed_config()->PackFrom(
       http_connection_manager);
   SetServerListenerNameAndRouteConfiguration(balancer_.get(), listener,
@@ -10114,7 +9900,7 @@ TEST_P(XdsServerRdsTest, MultipleRouteConfigurations) {
       ServerHcmAccessor().Unpack(listener);
   auto* rds = http_connection_manager.mutable_rds();
   rds->set_route_config_name(new_route_config.name());
-  rds->mutable_config_source()->mutable_self();
+  rds->mutable_config_source()->mutable_ads();
   listener.add_filter_chains()->add_filters()->mutable_typed_config()->PackFrom(
       http_connection_manager);
   // Set another filter chain with another route config name
@@ -11289,7 +11075,7 @@ TEST_P(TimeoutTest, RdsSecondResourceNotPresentInRequest) {
       ClientHcmAccessor().Unpack(listener);
   auto* rds = http_connection_manager.mutable_rds();
   rds->set_route_config_name("rds_resource_does_not_exist");
-  rds->mutable_config_source()->mutable_self();
+  rds->mutable_config_source()->mutable_ads();
   ClientHcmAccessor().Pack(http_connection_manager, &listener);
   balancer_->ads_service()->SetLdsResource(listener);
   WaitForAllBackends();
@@ -13142,28 +12928,29 @@ TEST_P(ClientStatusDiscoveryServiceTest, XdsConfigDumpVanilla) {
       matchers = {
           // Listener
           EqGenericXdsConfig(
-              kLdsTypeUrl, kServerName, "1",
+              kLdsTypeUrl, kServerName, /*version_info=*/"1",
               UnpackListener(EqListener(kServerName, api_listener_matcher)),
-              ClientResourceStatus::ACKED, ::testing::_),
+              ClientResourceStatus::ACKED, /*error_state=*/::testing::_),
           // Cluster
-          EqGenericXdsConfig(kCdsTypeUrl, kDefaultClusterName, "1",
-                             UnpackCluster(EqCluster(kDefaultClusterName)),
-                             ClientResourceStatus::ACKED, ::testing::_),
+          EqGenericXdsConfig(
+              kCdsTypeUrl, kDefaultClusterName, /*version_info=*/"1",
+              UnpackCluster(EqCluster(kDefaultClusterName)),
+              ClientResourceStatus::ACKED, /*error_state=*/::testing::_),
           // ClusterLoadAssignment
           EqGenericXdsConfig(
-              kEdsTypeUrl, kDefaultEdsServiceName, "1",
+              kEdsTypeUrl, kDefaultEdsServiceName, /*version_info=*/"1",
               UnpackClusterLoadAssignment(EqClusterLoadAssignment(
                   kDefaultEdsServiceName, backends_[0]->port(),
                   kDefaultLocalityWeight)),
-              ClientResourceStatus::ACKED, ::testing::_),
+              ClientResourceStatus::ACKED, /*error_state=*/::testing::_),
       };
   // If RDS is enabled, add matcher for RDS resource.
   if (GetParam().enable_rds_testing()) {
     matchers.push_back(EqGenericXdsConfig(
-        kRdsTypeUrl, kDefaultRouteConfigurationName, "1",
+        kRdsTypeUrl, kDefaultRouteConfigurationName, /*version_info=*/"1",
         UnpackRouteConfiguration(EqRouteConfiguration(
             kDefaultRouteConfigurationName, kDefaultClusterName)),
-        ClientResourceStatus::ACKED, ::testing::_));
+        ClientResourceStatus::ACKED, /*error_state=*/::testing::_));
   }
   // Validate the dumped xDS configs
   EXPECT_THAT(client_config.generic_xds_configs(),
@@ -13203,7 +12990,7 @@ TEST_P(ClientStatusDiscoveryServiceTest, XdsConfigDumpListenerError) {
     bool ok = ::testing::Value(
         csds_response.config(0).generic_xds_configs(),
         ::testing::Contains(EqGenericXdsConfig(
-            kLdsTypeUrl, kServerName, "1",
+            kLdsTypeUrl, kServerName, /*version_info=*/"1",
             UnpackListener(EqListener(kServerName, api_listener_matcher)),
             ClientResourceStatus::NACKED,
             EqUpdateFailureState(
@@ -13238,7 +13025,7 @@ TEST_P(ClientStatusDiscoveryServiceTest, XdsConfigDumpRouteError) {
       ok = ::testing::Value(
           csds_response.config(0).generic_xds_configs(),
           ::testing::Contains(EqGenericXdsConfig(
-              kRdsTypeUrl, kDefaultRouteConfigurationName, "1",
+              kRdsTypeUrl, kDefaultRouteConfigurationName, /*version_info=*/"1",
               UnpackRouteConfiguration(EqRouteConfiguration(
                   kDefaultRouteConfigurationName, kDefaultClusterName)),
               ClientResourceStatus::NACKED,
@@ -13248,7 +13035,7 @@ TEST_P(ClientStatusDiscoveryServiceTest, XdsConfigDumpRouteError) {
       ok = ::testing::Value(
           csds_response.config(0).generic_xds_configs(),
           ::testing::Contains(EqGenericXdsConfig(
-              kLdsTypeUrl, kServerName, "1",
+              kLdsTypeUrl, kServerName, /*version_info=*/"1",
               UnpackListener(EqListener(
                   kServerName, EqNoRdsHCM(kDefaultRouteConfigurationName,
                                           kDefaultClusterName))),
@@ -13282,7 +13069,7 @@ TEST_P(ClientStatusDiscoveryServiceTest, XdsConfigDumpClusterError) {
     bool ok = ::testing::Value(
         csds_response.config(0).generic_xds_configs(),
         ::testing::Contains(EqGenericXdsConfig(
-            kCdsTypeUrl, kDefaultClusterName, "1",
+            kCdsTypeUrl, kDefaultClusterName, /*version_info=*/"1",
             UnpackCluster(EqCluster(kDefaultClusterName)),
             ClientResourceStatus::NACKED,
             EqUpdateFailureState(
@@ -13317,7 +13104,7 @@ TEST_P(ClientStatusDiscoveryServiceTest, XdsConfigDumpEndpointError) {
     bool ok = ::testing::Value(
         csds_response.config(0).generic_xds_configs(),
         ::testing::Contains(EqGenericXdsConfig(
-            kEdsTypeUrl, kDefaultEdsServiceName, "1",
+            kEdsTypeUrl, kDefaultEdsServiceName, /*version_info=*/"1",
             UnpackClusterLoadAssignment(EqClusterLoadAssignment(
                 kDefaultEdsServiceName, backends_[0]->port(),
                 kDefaultLocalityWeight)),
@@ -13339,10 +13126,11 @@ TEST_P(ClientStatusDiscoveryServiceTest, XdsConfigDumpListenerRequested) {
           .set_rpc_options(RpcOptions().set_timeout_ms(kTimeoutMillisecond))
           .set_expected_error_code(StatusCode::DEADLINE_EXCEEDED));
   auto csds_response = FetchCsdsResponse();
-  EXPECT_THAT(csds_response.config(0).generic_xds_configs(),
-              ::testing::Contains(EqGenericXdsConfig(
-                  kLdsTypeUrl, kServerName, ::testing::_, ::testing::_,
-                  ClientResourceStatus::REQUESTED, ::testing::_)));
+  EXPECT_THAT(
+      csds_response.config(0).generic_xds_configs(),
+      ::testing::Contains(EqGenericXdsConfig(
+          kLdsTypeUrl, kServerName, /*version_info=*/::testing::_, ::testing::_,
+          ClientResourceStatus::REQUESTED, /*error_state=*/::testing::_)));
 }
 
 TEST_P(ClientStatusDiscoveryServiceTest, XdsConfigDumpClusterRequested) {
@@ -13372,11 +13160,13 @@ TEST_P(ClientStatusDiscoveryServiceTest, XdsConfigDumpClusterRequested) {
   EXPECT_THAT(csds_response.config(0).generic_xds_configs(),
               ::testing::AllOf(
                   ::testing::Contains(EqGenericXdsConfig(
-                      kCdsTypeUrl, kClusterName1, ::testing::_, ::testing::_,
-                      ClientResourceStatus::REQUESTED, ::testing::_)),
+                      kCdsTypeUrl, kClusterName1, /*version_info=*/::testing::_,
+                      ::testing::_, ClientResourceStatus::REQUESTED,
+                      /*error_state=*/::testing::_)),
                   ::testing::Contains(EqGenericXdsConfig(
-                      kCdsTypeUrl, kClusterName2, ::testing::_, ::testing::_,
-                      ClientResourceStatus::REQUESTED, ::testing::_))));
+                      kCdsTypeUrl, kClusterName2, /*version_info=*/::testing::_,
+                      ::testing::_, ClientResourceStatus::REQUESTED,
+                      /*error_state=*/::testing::_))));
 }
 
 class CsdsShortAdsTimeoutTest : public ClientStatusDiscoveryServiceTest {
@@ -13395,10 +13185,11 @@ TEST_P(CsdsShortAdsTimeoutTest, XdsConfigDumpListenerDoesNotExist) {
           .set_rpc_options(RpcOptions().set_timeout_ms(kTimeoutMillisecond))
           .set_expected_error_code(grpc::StatusCode::UNAVAILABLE));
   auto csds_response = FetchCsdsResponse();
-  EXPECT_THAT(csds_response.config(0).generic_xds_configs(),
-              ::testing::Contains(EqGenericXdsConfig(
-                  kLdsTypeUrl, kServerName, ::testing::_, ::testing::_,
-                  ClientResourceStatus::DOES_NOT_EXIST, ::testing::_)));
+  EXPECT_THAT(
+      csds_response.config(0).generic_xds_configs(),
+      ::testing::Contains(EqGenericXdsConfig(
+          kLdsTypeUrl, kServerName, /*version_info=*/::testing::_, ::testing::_,
+          ClientResourceStatus::DOES_NOT_EXIST, /*error_state=*/::testing::_)));
 }
 
 TEST_P(CsdsShortAdsTimeoutTest, XdsConfigDumpRouteConfigDoesNotExist) {
@@ -13414,8 +13205,9 @@ TEST_P(CsdsShortAdsTimeoutTest, XdsConfigDumpRouteConfigDoesNotExist) {
   EXPECT_THAT(
       csds_response.config(0).generic_xds_configs(),
       ::testing::Contains(EqGenericXdsConfig(
-          kRdsTypeUrl, kDefaultRouteConfigurationName, ::testing::_,
-          ::testing::_, ClientResourceStatus::DOES_NOT_EXIST, ::testing::_)));
+          kRdsTypeUrl, kDefaultRouteConfigurationName,
+          /*version_info=*/::testing::_, ::testing::_,
+          ClientResourceStatus::DOES_NOT_EXIST, /*error_state=*/::testing::_)));
 }
 
 TEST_P(CsdsShortAdsTimeoutTest, XdsConfigDumpClusterDoesNotExist) {
@@ -13426,10 +13218,12 @@ TEST_P(CsdsShortAdsTimeoutTest, XdsConfigDumpClusterDoesNotExist) {
           .set_rpc_options(RpcOptions().set_timeout_ms(kTimeoutMillisecond))
           .set_expected_error_code(grpc::StatusCode::UNAVAILABLE));
   auto csds_response = FetchCsdsResponse();
-  EXPECT_THAT(csds_response.config(0).generic_xds_configs(),
-              ::testing::Contains(EqGenericXdsConfig(
-                  kCdsTypeUrl, kDefaultClusterName, ::testing::_, ::testing::_,
-                  ClientResourceStatus::DOES_NOT_EXIST, ::testing::_)));
+  EXPECT_THAT(
+      csds_response.config(0).generic_xds_configs(),
+      ::testing::Contains(EqGenericXdsConfig(
+          kCdsTypeUrl, kDefaultClusterName, /*version_info=*/::testing::_,
+          ::testing::_, ClientResourceStatus::DOES_NOT_EXIST,
+          /*error_state=*/::testing::_)));
 }
 
 TEST_P(CsdsShortAdsTimeoutTest, XdsConfigDumpEndpointDoesNotExist) {
@@ -13440,11 +13234,12 @@ TEST_P(CsdsShortAdsTimeoutTest, XdsConfigDumpEndpointDoesNotExist) {
           .set_rpc_options(RpcOptions().set_timeout_ms(kTimeoutMillisecond))
           .set_expected_error_code(grpc::StatusCode::UNAVAILABLE));
   auto csds_response = FetchCsdsResponse();
-  EXPECT_THAT(
-      csds_response.config(0).generic_xds_configs(),
-      ::testing::Contains(EqGenericXdsConfig(
-          kEdsTypeUrl, kDefaultEdsServiceName, ::testing::_, ::testing::_,
-          ClientResourceStatus::DOES_NOT_EXIST, ::testing::_)));
+  EXPECT_THAT(csds_response.config(0).generic_xds_configs(),
+              ::testing::Contains(EqGenericXdsConfig(
+                  kEdsTypeUrl, kDefaultEdsServiceName,
+                  /*version_info=*/::testing::_, ::testing::_,
+                  ClientResourceStatus::DOES_NOT_EXIST,
+                  /*error_state=*/::testing::_)));
 }
 
 #endif  // DISABLED_XDS_PROTO_IN_CC
@@ -13700,18 +13495,10 @@ INSTANTIATE_TEST_SUITE_P(
         TestType().set_bootstrap_source(TestType::kBootstrapFromEnvVar),
         TestType()
             .set_bootstrap_source(TestType::kBootstrapFromEnvVar)
+            .set_enable_load_reporting(),
+        TestType()
+            .set_bootstrap_source(TestType::kBootstrapFromEnvVar)
             .set_enable_rds_testing()),
-    &TestTypeName);
-
-INSTANTIATE_TEST_SUITE_P(
-    XdsTest, XdsFederationLoadReportingTest,
-    ::testing::Values(TestType()
-                          .set_bootstrap_source(TestType::kBootstrapFromEnvVar)
-                          .set_enable_load_reporting(),
-                      TestType()
-                          .set_bootstrap_source(TestType::kBootstrapFromEnvVar)
-                          .set_enable_load_reporting()
-                          .set_enable_rds_testing()),
     &TestTypeName);
 
 INSTANTIATE_TEST_SUITE_P(

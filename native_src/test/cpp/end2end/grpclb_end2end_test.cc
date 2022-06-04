@@ -415,7 +415,7 @@ class GrpclbEnd2endTest : public ::testing::Test {
     }
     if (subchannel_cache_delay_ms > 0) {
       args.SetInt(GRPC_ARG_GRPCLB_SUBCHANNEL_CACHE_INTERVAL_MS,
-                  subchannel_cache_delay_ms * grpc_test_slowdown_factor());
+                  subchannel_cache_delay_ms);
     }
     std::ostringstream uri;
     uri << "fake:///" << kApplicationTargetName_;
@@ -971,7 +971,7 @@ TEST_F(SingleBalancerTest, SecureNaming) {
 }
 
 TEST_F(SingleBalancerTest, SecureNamingDeathTest) {
-  GTEST_FLAG_SET(death_test_style, "threadsafe");
+  GRPC_GTEST_FLAG_SET_DEATH_TEST_STYLE("threadsafe");
   // Make sure that we blow up (via abort() from the security connector) when
   // the name from the balancer doesn't match expectations.
   ASSERT_DEATH_IF_SUPPORTED(

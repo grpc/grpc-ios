@@ -27,20 +27,20 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+
 // Google Mock - a framework for writing C++ mock classes.
 //
-// This file implements some matchers that depend on gmock-matchers.h.
+// This file implements some matchers that depend on gmock-generated-matchers.h.
 //
 // Note that tests are implemented in gmock-matchers_test.cc rather than
 // gmock-more-matchers-test.cc.
 
-// IWYU pragma: private, include "gmock/gmock.h"
-// IWYU pragma: friend gmock/.*
+// GOOGLETEST_CM0002 DO NOT DELETE
 
-#ifndef GOOGLEMOCK_INCLUDE_GMOCK_GMOCK_MORE_MATCHERS_H_
-#define GOOGLEMOCK_INCLUDE_GMOCK_GMOCK_MORE_MATCHERS_H_
+#ifndef GMOCK_INCLUDE_GMOCK_MORE_MATCHERS_H_
+#define GMOCK_INCLUDE_GMOCK_MORE_MATCHERS_H_
 
-#include "gmock/gmock-matchers.h"
+#include "gmock/gmock-generated-matchers.h"
 
 namespace testing {
 
@@ -89,4 +89,4 @@ MATCHER(IsFalse, negation ? "is true" : "is false") {
 
 }  // namespace testing
 
-#endif  // GOOGLEMOCK_INCLUDE_GMOCK_GMOCK_MORE_MATCHERS_H_
+#endif  // GMOCK_INCLUDE_GMOCK_MORE_MATCHERS_H_

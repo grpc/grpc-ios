@@ -50,6 +50,7 @@ class Mock {
 namespace testing {
 namespace gmock_nice_strict_test {
 
+using testing::GMOCK_FLAG(verbose);
 using testing::HasSubstr;
 using testing::NaggyMock;
 using testing::NiceMock;
@@ -64,12 +65,6 @@ using testing::internal::GetCapturedStdout;
 class NotDefaultConstructible {
  public:
   explicit NotDefaultConstructible(int) {}
-};
-
-class CallsMockMethodInDestructor {
- public:
-  ~CallsMockMethodInDestructor() { OnDestroy(); }
-  MOCK_METHOD(void, OnDestroy, ());
 };
 
 // Defines some mock classes needed by the tests.
@@ -139,8 +134,8 @@ class MockBaz {
 
 // Tests that a raw mock generates warnings for uninteresting calls.
 TEST(RawMockTest, WarningForUninterestingCall) {
-  const std::string saved_flag = GMOCK_FLAG_GET(verbose);
-  GMOCK_FLAG_SET(verbose, "warning");
+  const std::string saved_flag = GMOCK_FLAG(verbose);
+  GMOCK_FLAG(verbose) = "warning";
 
   MockFoo raw_foo;
 
@@ -150,14 +145,14 @@ TEST(RawMockTest, WarningForUninterestingCall) {
   EXPECT_THAT(GetCapturedStdout(),
               HasSubstr("Uninteresting mock function call"));
 
-  GMOCK_FLAG_SET(verbose, saved_flag);
+  GMOCK_FLAG(verbose) = saved_flag;
 }
 
 // Tests that a raw mock generates warnings for uninteresting calls
 // that delete the mock object.
 TEST(RawMockTest, WarningForUninterestingCallAfterDeath) {
-  const std::string saved_flag = GMOCK_FLAG_GET(verbose);
-  GMOCK_FLAG_SET(verbose, "warning");
+  const std::string saved_flag = GMOCK_FLAG(verbose);
+  GMOCK_FLAG(verbose) = "warning";
 
   MockFoo* const raw_foo = new MockFoo;
 
@@ -169,7 +164,7 @@ TEST(RawMockTest, WarningForUninterestingCallAfterDeath) {
   EXPECT_THAT(GetCapturedStdout(),
               HasSubstr("Uninteresting mock function call"));
 
-  GMOCK_FLAG_SET(verbose, saved_flag);
+  GMOCK_FLAG(verbose) = saved_flag;
 }
 
 // Tests that a raw mock generates informational logs for
@@ -177,14 +172,14 @@ TEST(RawMockTest, WarningForUninterestingCallAfterDeath) {
 TEST(RawMockTest, InfoForUninterestingCall) {
   MockFoo raw_foo;
 
-  const std::string saved_flag = GMOCK_FLAG_GET(verbose);
-  GMOCK_FLAG_SET(verbose, "info");
+  const std::string saved_flag = GMOCK_FLAG(verbose);
+  GMOCK_FLAG(verbose) = "info";
   CaptureStdout();
   raw_foo.DoThis();
   EXPECT_THAT(GetCapturedStdout(),
               HasSubstr("Uninteresting mock function call"));
 
-  GMOCK_FLAG_SET(verbose, saved_flag);
+  GMOCK_FLAG(verbose) = saved_flag;
 }
 
 TEST(RawMockTest, IsNaggy_IsNice_IsStrict) {
@@ -222,14 +217,14 @@ TEST(NiceMockTest, NoWarningForUninterestingCallAfterDeath) {
 TEST(NiceMockTest, InfoForUninterestingCall) {
   NiceMock<MockFoo> nice_foo;
 
-  const std::string saved_flag = GMOCK_FLAG_GET(verbose);
-  GMOCK_FLAG_SET(verbose, "info");
+  const std::string saved_flag = GMOCK_FLAG(verbose);
+  GMOCK_FLAG(verbose) = "info";
   CaptureStdout();
   nice_foo.DoThis();
   EXPECT_THAT(GetCapturedStdout(),
               HasSubstr("Uninteresting mock function call"));
 
-  GMOCK_FLAG_SET(verbose, saved_flag);
+  GMOCK_FLAG(verbose) = saved_flag;
 }
 
 #endif  // GTEST_HAS_STREAM_REDIRECTION
@@ -307,13 +302,6 @@ TEST(NiceMockTest, AcceptsClassNamedMock) {
   nice.DoThis();
 }
 
-TEST(NiceMockTest, IsNiceInDestructor) {
-  {
-    NiceMock<CallsMockMethodInDestructor> nice_on_destroy;
-    // Don't add an expectation for the call before the mock goes out of scope.
-  }
-}
-
 TEST(NiceMockTest, IsNaggy_IsNice_IsStrict) {
   NiceMock<MockFoo> nice_foo;
   EXPECT_FALSE(Mock::IsNaggy(&nice_foo));
@@ -325,8 +313,8 @@ TEST(NiceMockTest, IsNaggy_IsNice_IsStrict) {
 
 // Tests that a naggy mock generates warnings for uninteresting calls.
 TEST(NaggyMockTest, WarningForUninterestingCall) {
-  const std::string saved_flag = GMOCK_FLAG_GET(verbose);
-  GMOCK_FLAG_SET(verbose, "warning");
+  const std::string saved_flag = GMOCK_FLAG(verbose);
+  GMOCK_FLAG(verbose) = "warning";
 
   NaggyMock<MockFoo> naggy_foo;
 
@@ -336,14 +324,14 @@ TEST(NaggyMockTest, WarningForUninterestingCall) {
   EXPECT_THAT(GetCapturedStdout(),
               HasSubstr("Uninteresting mock function call"));
 
-  GMOCK_FLAG_SET(verbose, saved_flag);
+  GMOCK_FLAG(verbose) = saved_flag;
 }
 
 // Tests that a naggy mock generates a warning for an uninteresting call
 // that deletes the mock object.
 TEST(NaggyMockTest, WarningForUninterestingCallAfterDeath) {
-  const std::string saved_flag = GMOCK_FLAG_GET(verbose);
-  GMOCK_FLAG_SET(verbose, "warning");
+  const std::string saved_flag = GMOCK_FLAG(verbose);
+  GMOCK_FLAG(verbose) = "warning";
 
   NaggyMock<MockFoo>* const naggy_foo = new NaggyMock<MockFoo>;
 
@@ -355,7 +343,7 @@ TEST(NaggyMockTest, WarningForUninterestingCallAfterDeath) {
   EXPECT_THAT(GetCapturedStdout(),
               HasSubstr("Uninteresting mock function call"));
 
-  GMOCK_FLAG_SET(verbose, saved_flag);
+  GMOCK_FLAG(verbose) = saved_flag;
 }
 
 #endif  // GTEST_HAS_STREAM_REDIRECTION
@@ -415,22 +403,6 @@ TEST(NaggyMockTest, AcceptsClassNamedMock) {
   NaggyMock< ::Mock> naggy;
   EXPECT_CALL(naggy, DoThis());
   naggy.DoThis();
-}
-
-TEST(NaggyMockTest, IsNaggyInDestructor) {
-  const std::string saved_flag = GMOCK_FLAG_GET(verbose);
-  GMOCK_FLAG_SET(verbose, "warning");
-  CaptureStdout();
-
-  {
-    NaggyMock<CallsMockMethodInDestructor> naggy_on_destroy;
-    // Don't add an expectation for the call before the mock goes out of scope.
-  }
-
-  EXPECT_THAT(GetCapturedStdout(),
-              HasSubstr("Uninteresting mock function call"));
-
-  GMOCK_FLAG_SET(verbose, saved_flag);
 }
 
 TEST(NaggyMockTest, IsNaggy_IsNice_IsStrict) {
@@ -515,16 +487,6 @@ TEST(StrictMockTest, AcceptsClassNamedMock) {
   StrictMock< ::Mock> strict;
   EXPECT_CALL(strict, DoThis());
   strict.DoThis();
-}
-
-TEST(StrictMockTest, IsStrictInDestructor) {
-  EXPECT_NONFATAL_FAILURE(
-      {
-        StrictMock<CallsMockMethodInDestructor> strict_on_destroy;
-        // Don't add an expectation for the call before the mock goes out of
-        // scope.
-      },
-      "Uninteresting mock function call");
 }
 
 TEST(StrictMockTest, IsNaggy_IsNice_IsStrict) {

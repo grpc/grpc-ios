@@ -27,6 +27,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+//
 // The Google C++ Testing and Mocking Framework (Google Test)
 //
 // This header file defines the Message class.
@@ -41,16 +42,13 @@
 // to CHANGE WITHOUT NOTICE.  Therefore DO NOT DEPEND ON IT in a user
 // program!
 
-// IWYU pragma: private, include "gtest/gtest.h"
-// IWYU pragma: friend gtest/.*
-// IWYU pragma: friend gmock/.*
+// GOOGLETEST_CM0001 DO NOT DELETE
 
-#ifndef GOOGLETEST_INCLUDE_GTEST_GTEST_MESSAGE_H_
-#define GOOGLETEST_INCLUDE_GTEST_GTEST_MESSAGE_H_
+#ifndef GTEST_INCLUDE_GTEST_GTEST_MESSAGE_H_
+#define GTEST_INCLUDE_GTEST_GTEST_MESSAGE_H_
 
 #include <limits>
 #include <memory>
-#include <sstream>
 
 #include "gtest/internal/gtest-port.h"
 
@@ -217,4 +215,4 @@ std::string StreamableToString(const T& streamable) {
 
 GTEST_DISABLE_MSC_WARNINGS_POP_()  //  4251
 
-#endif  // GOOGLETEST_INCLUDE_GTEST_GTEST_MESSAGE_H_
+#endif  // GTEST_INCLUDE_GTEST_GTEST_MESSAGE_H_

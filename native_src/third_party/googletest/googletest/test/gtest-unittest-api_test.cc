@@ -55,8 +55,8 @@ class UnitTestHelper {
   // name.  The caller is responsible for deleting the array.
   static TestSuite const** GetSortedTestSuites() {
     UnitTest& unit_test = *UnitTest::GetInstance();
-    auto const** const test_suites = new const TestSuite*[static_cast<size_t>(
-      unit_test.total_test_suite_count())];
+    auto const** const test_suites =
+        new const TestSuite*[unit_test.total_test_suite_count()];
 
     for (int i = 0; i < unit_test.total_test_suite_count(); ++i)
       test_suites[i] = unit_test.GetTestSuite(i);
@@ -83,8 +83,8 @@ class UnitTestHelper {
   // sorted by the test name.  The caller is responsible for deleting the
   // array.
   static TestInfo const** GetSortedTests(const TestSuite* test_suite) {
-    TestInfo const** const tests = new const TestInfo*[static_cast<size_t>(
-      test_suite->total_test_count())];
+    TestInfo const** const tests =
+        new const TestInfo*[test_suite->total_test_count()];
 
     for (int i = 0; i < test_suite->total_test_count(); ++i)
       tests[i] = test_suite->GetTestInfo(i);
@@ -95,12 +95,17 @@ class UnitTestHelper {
   }
 };
 
+#if GTEST_HAS_TYPED_TEST
 template <typename T> class TestSuiteWithCommentTest : public Test {};
 TYPED_TEST_SUITE(TestSuiteWithCommentTest, Types<int>);
 TYPED_TEST(TestSuiteWithCommentTest, Dummy) {}
 
 const int kTypedTestSuites = 1;
 const int kTypedTests = 1;
+#else
+const int kTypedTestSuites = 0;
+const int kTypedTests = 0;
+#endif  // GTEST_HAS_TYPED_TEST
 
 // We can only test the accessors that do not change value while tests run.
 // Since tests can be run in any order, the values the accessors that track
@@ -118,7 +123,9 @@ TEST(ApiTest, UnitTestImmutableAccessorsWork) {
 
   EXPECT_STREQ("ApiTest", test_suites[0]->name());
   EXPECT_STREQ("DISABLED_Test", test_suites[1]->name());
+#if GTEST_HAS_TYPED_TEST
   EXPECT_STREQ("TestSuiteWithCommentTest/0", test_suites[2]->name());
+#endif  // GTEST_HAS_TYPED_TEST
 
   delete[] test_suites;
 
@@ -176,11 +183,12 @@ TEST(ApiTest, TestSuiteImmutableAccessorsWork) {
   delete[] tests;
   tests = nullptr;
 
+#if GTEST_HAS_TYPED_TEST
   test_suite = UnitTestHelper::FindTestSuite("TestSuiteWithCommentTest/0");
   ASSERT_TRUE(test_suite != nullptr);
 
   EXPECT_STREQ("TestSuiteWithCommentTest/0", test_suite->name());
-  EXPECT_STREQ(GetTypeName<Types<int>>().c_str(), test_suite->type_param());
+  EXPECT_STREQ(GetTypeName<int>().c_str(), test_suite->type_param());
   EXPECT_TRUE(test_suite->should_run());
   EXPECT_EQ(0, test_suite->disabled_test_count());
   EXPECT_EQ(1, test_suite->test_to_run_count());
@@ -191,10 +199,11 @@ TEST(ApiTest, TestSuiteImmutableAccessorsWork) {
   EXPECT_STREQ("Dummy", tests[0]->name());
   EXPECT_STREQ("TestSuiteWithCommentTest/0", tests[0]->test_suite_name());
   EXPECT_TRUE(IsNull(tests[0]->value_param()));
-  EXPECT_STREQ(GetTypeName<Types<int>>().c_str(), tests[0]->type_param());
+  EXPECT_STREQ(GetTypeName<int>().c_str(), tests[0]->type_param());
   EXPECT_TRUE(tests[0]->should_run());
 
   delete[] tests;
+#endif  // GTEST_HAS_TYPED_TEST
 }
 
 TEST(ApiTest, TestSuiteDisabledAccessorsWork) {
@@ -254,9 +263,9 @@ class FinalSuccessChecker : public Environment {
     EXPECT_EQ(0, test_suites[1]->successful_test_count());
     EXPECT_EQ(0, test_suites[1]->failed_test_count());
 
+#if GTEST_HAS_TYPED_TEST
     EXPECT_STREQ("TestSuiteWithCommentTest/0", test_suites[2]->name());
-    EXPECT_STREQ(GetTypeName<Types<int>>().c_str(),
-                 test_suites[2]->type_param());
+    EXPECT_STREQ(GetTypeName<int>().c_str(), test_suites[2]->type_param());
     EXPECT_TRUE(test_suites[2]->should_run());
     EXPECT_EQ(0, test_suites[2]->disabled_test_count());
     ASSERT_EQ(1, test_suites[2]->total_test_count());
@@ -264,6 +273,7 @@ class FinalSuccessChecker : public Environment {
     EXPECT_EQ(0, test_suites[2]->failed_test_count());
     EXPECT_TRUE(test_suites[2]->Passed());
     EXPECT_FALSE(test_suites[2]->Failed());
+#endif  // GTEST_HAS_TYPED_TEST
 
     const TestSuite* test_suite = UnitTestHelper::FindTestSuite("ApiTest");
     const TestInfo** tests = UnitTestHelper::GetSortedTests(test_suite);
@@ -300,18 +310,20 @@ class FinalSuccessChecker : public Environment {
 
     delete[] tests;
 
+#if GTEST_HAS_TYPED_TEST
     test_suite = UnitTestHelper::FindTestSuite("TestSuiteWithCommentTest/0");
     tests = UnitTestHelper::GetSortedTests(test_suite);
 
     EXPECT_STREQ("Dummy", tests[0]->name());
     EXPECT_STREQ("TestSuiteWithCommentTest/0", tests[0]->test_suite_name());
     EXPECT_TRUE(IsNull(tests[0]->value_param()));
-    EXPECT_STREQ(GetTypeName<Types<int>>().c_str(), tests[0]->type_param());
+    EXPECT_STREQ(GetTypeName<int>().c_str(), tests[0]->type_param());
     EXPECT_TRUE(tests[0]->should_run());
     EXPECT_TRUE(tests[0]->result()->Passed());
     EXPECT_EQ(0, tests[0]->result()->test_property_count());
 
     delete[] tests;
+#endif  // GTEST_HAS_TYPED_TEST
     delete[] test_suites;
   }
 };

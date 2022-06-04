@@ -32,6 +32,8 @@ extern grpc_core::TraceFlag grpc_trace_http2_stream_state;
 extern grpc_core::DebugOnlyTraceFlag grpc_trace_chttp2_refcount;
 extern grpc_core::DebugOnlyTraceFlag grpc_trace_chttp2_hpack_parser;
 
+extern bool g_flow_control_enabled;
+
 /// Creates a CHTTP2 Transport. This takes ownership of a \a resource_user ref
 /// from the caller; if the caller still needs the resource_user after creating
 /// a transport, the caller must take another ref.
@@ -58,14 +60,6 @@ void TestOnlySetGlobalHttp2TransportInitCallback(
 
 void TestOnlySetGlobalHttp2TransportDestructCallback(
     TestOnlyGlobalHttp2TransportDestructCallback callback);
-
-// If \a disable is true, the HTTP2 transport will not update the connectivity
-// state tracker to TRANSIENT_FAILURE when a goaway is received. This prevents
-// the watchers (eg. client_channel) from noticing the GOAWAY, thereby allowing
-// us to test the racy behavior when a call is sent down the stack around the
-// same time that a GOAWAY is received.
-void TestOnlyGlobalHttp2TransportDisableTransientFailureStateNotification(
-    bool disable);
 }  // namespace grpc_core
 
 #endif /* GRPC_CORE_EXT_TRANSPORT_CHTTP2_TRANSPORT_CHTTP2_TRANSPORT_H */

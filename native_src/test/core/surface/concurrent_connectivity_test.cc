@@ -25,7 +25,6 @@
 #include "absl/strings/str_cat.h"
 
 #include <grpc/grpc.h>
-#include <grpc/grpc_security.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 
@@ -67,10 +66,8 @@ static void* tag(int n) { return reinterpret_cast<void*>(n); }
 void create_loop_destroy(void* addr) {
   for (int i = 0; i < NUM_OUTER_LOOPS; ++i) {
     grpc_completion_queue* cq = grpc_completion_queue_create_for_next(nullptr);
-    grpc_channel_credentials* creds = grpc_insecure_credentials_create();
-    grpc_channel* chan =
-        grpc_channel_create(static_cast<char*>(addr), creds, nullptr);
-    grpc_channel_credentials_release(creds);
+    grpc_channel* chan = grpc_insecure_channel_create(static_cast<char*>(addr),
+                                                      nullptr, nullptr);
 
     for (int j = 0; j < NUM_INNER_LOOPS; ++j) {
       gpr_timespec later_time =
@@ -201,10 +198,7 @@ int run_concurrent_connectivity_test() {
     int port = grpc_pick_unused_port_or_die();
     args.addr = absl::StrCat("localhost:", port);
     args.server = grpc_server_create(nullptr, nullptr);
-    grpc_server_credentials* server_creds =
-        grpc_insecure_server_credentials_create();
-    grpc_server_add_http2_port(args.server, args.addr.c_str(), server_creds);
-    grpc_server_credentials_release(server_creds);
+    grpc_server_add_insecure_http2_port(args.server, args.addr.c_str());
     args.cq = grpc_completion_queue_create_for_next(nullptr);
     grpc_server_register_completion_queue(args.server, args.cq, nullptr);
     grpc_server_start(args.server);
@@ -266,10 +260,8 @@ int run_concurrent_connectivity_test() {
 void watches_with_short_timeouts(void* addr) {
   for (int i = 0; i < NUM_OUTER_LOOPS_SHORT_TIMEOUTS; ++i) {
     grpc_completion_queue* cq = grpc_completion_queue_create_for_next(nullptr);
-    grpc_channel_credentials* creds = grpc_insecure_credentials_create();
-    grpc_channel* chan =
-        grpc_channel_create(static_cast<char*>(addr), creds, nullptr);
-    grpc_channel_credentials_release(creds);
+    grpc_channel* chan = grpc_insecure_channel_create(static_cast<char*>(addr),
+                                                      nullptr, nullptr);
 
     for (int j = 0; j < NUM_INNER_LOOPS_SHORT_TIMEOUTS; ++j) {
       gpr_timespec later_time =

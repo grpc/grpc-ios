@@ -54,13 +54,21 @@ grpc_channel_security_connector::grpc_channel_security_connector(
 
 grpc_channel_security_connector::~grpc_channel_security_connector() {}
 
+int grpc_security_connector_cmp(const grpc_security_connector* sc,
+                                const grpc_security_connector* other) {
+  if (sc == nullptr || other == nullptr) {
+    return grpc_core::QsortCompare(sc, other);
+  }
+  return sc->cmp(other);
+}
+
 int grpc_channel_security_connector::channel_security_connector_cmp(
     const grpc_channel_security_connector* other) const {
   const grpc_channel_security_connector* other_sc =
       static_cast<const grpc_channel_security_connector*>(other);
   GPR_ASSERT(channel_creds() != nullptr);
   GPR_ASSERT(other_sc->channel_creds() != nullptr);
-  int c = channel_creds()->cmp(other_sc->channel_creds());
+  int c = grpc_core::QsortCompare(channel_creds(), other_sc->channel_creds());
   if (c != 0) return c;
   return grpc_core::QsortCompare(request_metadata_creds(),
                                  other_sc->request_metadata_creds());

@@ -39,6 +39,7 @@ unpacked the source archive):
 
     ./configure
     make
+    make ahost adig acountry (optional)
     make install
 
 You probably need to be root when doing the last command.
@@ -331,6 +332,11 @@ you may find it in `C:\Program Files\Microsoft Visual Studio\vc98\bin`
 provided that you installed Visual C/C++ 6 in the default directory.
 
 Further details in [README.msvc](README.msvc)
+
+
+### MSVC IDEs
+
+Details in [README.msvc](README.msvc)
 
 
 ### Important static c-ares usage note

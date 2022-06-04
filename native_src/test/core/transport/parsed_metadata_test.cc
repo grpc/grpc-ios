@@ -20,7 +20,6 @@
 #include <gtest/gtest.h>
 
 #include "src/core/lib/slice/slice_internal.h"
-#include "src/core/lib/transport/metadata_batch.h"
 #include "test/core/util/test_config.h"
 
 namespace grpc_core {
@@ -125,40 +124,40 @@ class FakeContainer {
   MOCK_METHOD1(SetString, void(std::string));
 };
 
-using FakeParsedMetadata = ::grpc_core::ParsedMetadata<FakeContainer>;
+using ParsedMetadata = ::grpc_core::ParsedMetadata<FakeContainer>;
 
-TEST(ParsedMetadataTest, Noop) { FakeParsedMetadata(); }
+TEST(ParsedMetadataTest, Noop) { ParsedMetadata(); }
 
 TEST(ParsedMetadataTest, DebugString) {
-  FakeParsedMetadata parsed(CharTrait(), 'x', 36);
+  ParsedMetadata parsed(CharTrait(), 'x', 36);
   EXPECT_EQ(parsed.DebugString(), "key: x");
 }
 
 TEST(ParsedMetadataTest, IsNotBinary) {
-  FakeParsedMetadata parsed(CharTrait(), 'x', 36);
+  ParsedMetadata parsed(CharTrait(), 'x', 36);
   EXPECT_FALSE(parsed.is_binary_header());
 }
 
 TEST(ParsedMetadataTest, IsBinary) {
-  FakeParsedMetadata parsed(StringTrait(), "s", 36);
+  ParsedMetadata parsed(StringTrait(), "s", 36);
   EXPECT_TRUE(parsed.is_binary_header());
 }
 
 TEST(ParsedMetadataTest, Set) {
   FakeContainer c;
-  FakeParsedMetadata p(CharTrait(), 'x', 36);
+  ParsedMetadata p(CharTrait(), 'x', 36);
   EXPECT_CALL(c, SetChar('x')).Times(1);
   c.Set(p);
-  p = FakeParsedMetadata(Int32Trait(), -1, 478);
+  p = ParsedMetadata(Int32Trait(), -1, 478);
   EXPECT_CALL(c, SetInt32(-1)).Times(1);
   c.Set(p);
-  p = FakeParsedMetadata(Int64Trait(), 83481847284179298, 87);
+  p = ParsedMetadata(Int64Trait(), 83481847284179298, 87);
   EXPECT_CALL(c, SetInt64(-83481847284179298)).Times(1);
   c.Set(p);
-  p = FakeParsedMetadata(IntptrTrait(), 8374298, 800);
+  p = ParsedMetadata(IntptrTrait(), 8374298, 800);
   EXPECT_CALL(c, SetIntptr(4187149)).Times(1);
   c.Set(p);
-  p = FakeParsedMetadata(StringTrait(), "hello", 599);
+  p = ParsedMetadata(StringTrait(), "hello", 599);
   EXPECT_CALL(c, SetString("hi hello")).Times(1);
   c.Set(p);
 }
@@ -169,28 +168,28 @@ class TraitSpecializedTest : public ::testing::Test {};
 TYPED_TEST_SUITE_P(TraitSpecializedTest);
 
 TYPED_TEST_P(TraitSpecializedTest, Noop) {
-  FakeParsedMetadata(TypeParam(), TypeParam::test_memento(),
-                     TypeParam::test_memento_transport_size());
+  ParsedMetadata(TypeParam(), TypeParam::test_memento(),
+                 TypeParam::test_memento_transport_size());
 }
 
 TYPED_TEST_P(TraitSpecializedTest, CanMove) {
-  FakeParsedMetadata a(TypeParam(), TypeParam::test_memento(),
-                       TypeParam::test_memento_transport_size());
-  FakeParsedMetadata b = std::move(a);
+  ParsedMetadata a(TypeParam(), TypeParam::test_memento(),
+                   TypeParam::test_memento_transport_size());
+  ParsedMetadata b = std::move(a);
   a = std::move(b);
 }
 
 TYPED_TEST_P(TraitSpecializedTest, DebugString) {
-  FakeParsedMetadata p(TypeParam(), TypeParam::test_memento(),
-                       TypeParam::test_memento_transport_size());
+  ParsedMetadata p(TypeParam(), TypeParam::test_memento(),
+                   TypeParam::test_memento_transport_size());
   EXPECT_EQ(p.DebugString(),
             absl::StrCat(TypeParam::key(), ": ",
                          TypeParam::DisplayValue(TypeParam::test_memento())));
 }
 
 TYPED_TEST_P(TraitSpecializedTest, TransportSize) {
-  FakeParsedMetadata p(TypeParam(), TypeParam::test_memento(),
-                       TypeParam::test_memento_transport_size());
+  ParsedMetadata p(TypeParam(), TypeParam::test_memento(),
+                   TypeParam::test_memento_transport_size());
   EXPECT_EQ(p.transport_size(), TypeParam::test_memento_transport_size());
 }
 
@@ -200,64 +199,6 @@ REGISTER_TYPED_TEST_SUITE_P(TraitSpecializedTest, Noop, CanMove, DebugString,
 using InterestingTraits = ::testing::Types<CharTrait, Int32Trait, Int64Trait,
                                            IntptrTrait, StringTrait>;
 INSTANTIATE_TYPED_TEST_SUITE_P(My, TraitSpecializedTest, InterestingTraits);
-
-TEST(KeyValueTest, Simple) {
-  using PM = ParsedMetadata<grpc_metadata_batch>;
-  using PMPtr = std::unique_ptr<PM>;
-  PMPtr p = absl::make_unique<PM>(Slice::FromCopiedString("key"),
-                                  Slice::FromCopiedString("value"));
-  EXPECT_EQ(p->DebugString(), "key: value");
-  EXPECT_EQ(p->transport_size(), 40);
-  PM p2 = p->WithNewValue(Slice::FromCopiedString("some_other_value"),
-                          [](absl::string_view msg, const Slice& value) {
-                            ASSERT_TRUE(false)
-                                << "Should not be called: msg=" << msg
-                                << ", value=" << value.as_string_view();
-                          });
-  EXPECT_EQ(p->DebugString(), "key: value");
-  EXPECT_EQ(p2.DebugString(), "key: some_other_value");
-  EXPECT_EQ(p2.transport_size(), 51);
-  p.reset();
-  EXPECT_EQ(p2.DebugString(), "key: some_other_value");
-  EXPECT_EQ(p2.transport_size(), 51);
-  PM p3 = std::move(p2);
-  EXPECT_EQ(p3.DebugString(), "key: some_other_value");
-  EXPECT_EQ(p3.transport_size(), 51);
-}
-
-TEST(KeyValueTest, LongKey) {
-  using PM = ParsedMetadata<grpc_metadata_batch>;
-  using PMPtr = std::unique_ptr<PM>;
-  PMPtr p = absl::make_unique<PM>(Slice::FromCopiedString(std::string(60, 'a')),
-                                  Slice::FromCopiedString("value"));
-  EXPECT_EQ(
-      p->DebugString(),
-      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: value");
-  EXPECT_EQ(p->transport_size(), 97);
-  PM p2 = p->WithNewValue(Slice::FromCopiedString("some_other_value"),
-                          [](absl::string_view msg, const Slice& value) {
-                            ASSERT_TRUE(false)
-                                << "Should not be called: msg=" << msg
-                                << ", value=" << value.as_string_view();
-                          });
-  EXPECT_EQ(
-      p->DebugString(),
-      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: value");
-  EXPECT_EQ(p2.DebugString(),
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: "
-            "some_other_value");
-  EXPECT_EQ(p2.transport_size(), 108);
-  p.reset();
-  EXPECT_EQ(p2.DebugString(),
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: "
-            "some_other_value");
-  EXPECT_EQ(p2.transport_size(), 108);
-  PM p3 = std::move(p2);
-  EXPECT_EQ(p3.DebugString(),
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: "
-            "some_other_value");
-  EXPECT_EQ(p3.transport_size(), 108);
-}
 
 }  // namespace testing
 }  // namespace grpc_core
