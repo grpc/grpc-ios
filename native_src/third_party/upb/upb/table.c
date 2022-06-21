@@ -133,7 +133,7 @@ static bool init(upb_table *t, uint8_t size_lg2, upb_arena *a) {
 
   t->count = 0;
   t->size_lg2 = size_lg2;
-  t->mask = upb_table_size(t) ? upb_table_size(t) - 1 : 0;
+  t->mask = (uint32_t)(upb_table_size(t) ? upb_table_size(t) - 1 : 0);
   t->max_count = upb_table_size(t) * MAX_LOAD;
   bytes = upb_table_size(t) * sizeof(upb_tabent);
   if (bytes > 0) {
@@ -443,7 +443,7 @@ const uint64_t kWyhashSalt[5] = {
 };
 
 static uint32_t table_hash(const char *p, size_t n) {
-  return Wyhash(p, n, 0, kWyhashSalt);
+  return (uint32_t)Wyhash(p, n, 0, kWyhashSalt);
 }
 
 static uint32_t strhash(upb_tabkey key) {
@@ -462,7 +462,7 @@ bool upb_strtable_init(upb_strtable *t, size_t expected_size, upb_arena *a) {
   // Multiply by approximate reciprocal of MAX_LOAD (0.85), with pow2 denominator.
   size_t need_entries = (expected_size + 1) * 1204 / 1024;
   UPB_ASSERT(need_entries >= expected_size * 0.85);
-  int size_lg2 = _upb_lg2ceil(need_entries);
+  int size_lg2 = _upb_lg2ceil((int)need_entries);
   return init(&t->t, size_lg2, a);
 }
 

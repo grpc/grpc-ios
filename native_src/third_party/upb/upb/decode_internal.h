@@ -132,7 +132,7 @@ const char *decode_isdonefallback(upb_decstate *d, const char *ptr,
 
 UPB_INLINE
 bool decode_isdone(upb_decstate *d, const char **ptr) {
-  int overrun = *ptr - d->end;
+  int overrun = (int)(*ptr - d->end);
   if (UPB_LIKELY(*ptr < d->limit_ptr)) {
     return false;
   } else if (UPB_LIKELY(overrun == d->limit)) {

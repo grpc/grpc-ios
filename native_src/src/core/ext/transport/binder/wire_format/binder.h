@@ -52,11 +52,11 @@ class WritableParcel {
   virtual absl::Status WriteByteArray(const int8_t* buffer, int32_t length) = 0;
 
   absl::Status WriteByteArrayWithLength(absl::string_view buffer) {
-    absl::Status status = WriteInt32(buffer.length());
+    absl::Status status = WriteInt32((int32_t)(buffer.length()));
     if (!status.ok()) return status;
     if (buffer.empty()) return absl::OkStatus();
     return WriteByteArray(reinterpret_cast<const int8_t*>(buffer.data()),
-                          buffer.length());
+                          (int32_t)(buffer.length()));
   }
 };
 

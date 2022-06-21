@@ -646,7 +646,7 @@ void XdsClusterResolverLb::OnEndpointChanged(size_t index,
                            mechanism.pending_priority_list->begin(),
                            mechanism.pending_priority_list->end());
       priority_index += mechanism.num_priorities;
-      mechanism.num_priorities = mechanism.pending_priority_list->size();
+      mechanism.num_priorities = (uint32_t)(mechanism.pending_priority_list->size());
       mechanism.pending_priority_list.reset();
     } else {
       priority_list.insert(

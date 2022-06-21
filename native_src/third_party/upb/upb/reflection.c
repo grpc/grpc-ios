@@ -243,7 +243,7 @@ bool upb_msg_next(const upb_msg *msg, const upb_msgdef *m,
 
   /* Iterate over normal fields, returning the first one that is set. */
   while (++i < n) {
-    const upb_fielddef *f = upb_msgdef_field(m, i);
+    const upb_fielddef *f = upb_msgdef_field(m, (int)i);
     upb_msgval val = _upb_msg_getraw(msg, f);
 
     /* Skip field if unset or empty. */

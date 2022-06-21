@@ -815,7 +815,7 @@ int upb_oneofdef_numfields(const upb_oneofdef *o) {
 }
 
 uint32_t upb_oneofdef_index(const upb_oneofdef *o) {
-  return o - o->parent->oneofs;
+  return (uint32_t)(o - o->parent->oneofs);
 }
 
 bool upb_oneofdef_issynthetic(const upb_oneofdef *o) {
@@ -1884,7 +1884,7 @@ static void create_enumdef(
 
   e->file = ctx->file;
   e->defaultval = 0;
-  e->value_count = n;
+  e->value_count = (int)n;
   e->values = symtab_alloc(ctx, sizeof(*e->values) * n);
 
   if (n == 0) {
@@ -1983,7 +1983,7 @@ static void create_msgdef(symtab_addctx *ctx, const char *prefix,
     create_fielddef(ctx, m->full_name, m, fields[i]);
   }
 
-  m->ext_range_count = n_ext_range;
+  m->ext_range_count = (int)n_ext_range;
   m->ext_ranges = symtab_alloc(ctx, sizeof(*m->ext_ranges) * n_ext_range);
   for (i = 0; i < n_ext_range; i++) {
     const google_protobuf_DescriptorProto_ExtensionRange *r = ext_ranges[i];

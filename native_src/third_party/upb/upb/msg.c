@@ -53,16 +53,16 @@ static bool realloc_internal(upb_msg *msg, size_t need, upb_arena *arena) {
   upb_msg_internal *in = upb_msg_getinternal(msg);
   if (!in->internal) {
     /* No internal data, allocate from scratch. */
-    size_t size = UPB_MAX(128, _upb_lg2ceilsize(need + overhead));
+    size_t size = UPB_MAX(128, _upb_lg2ceilsize((int)(need + overhead)));
     upb_msg_internaldata *internal = upb_arena_malloc(arena, size);
     if (!internal) return false;
-    internal->size = size;
+    internal->size = (uint32_t)size;
     internal->unknown_end = overhead;
-    internal->ext_begin = size;
+    internal->ext_begin = (uint32_t)size;
     in->internal = internal;
   } else if (in->internal->ext_begin - in->internal->unknown_end < need) {
     /* Internal data is too small, reallocate. */
-    size_t new_size = _upb_lg2ceilsize(in->internal->size + need);
+    size_t new_size = _upb_lg2ceilsize((uint32_t)(in->internal->size + need));
     size_t ext_bytes = in->internal->size - in->internal->ext_begin;
     size_t new_ext_begin = new_size - ext_bytes;
     upb_msg_internaldata *internal =
@@ -73,8 +73,8 @@ static bool realloc_internal(upb_msg *msg, size_t need, upb_arena *arena) {
       char *ptr = (char*)internal;
       memmove(ptr + new_ext_begin, ptr + internal->ext_begin, ext_bytes);
     }
-    internal->ext_begin = new_ext_begin;
-    internal->size = new_size;
+    internal->ext_begin = (uint32_t)new_ext_begin;
+    internal->size = (uint32_t)new_size;
     in->internal = internal;
   }
   UPB_ASSERT(in->internal->ext_begin - in->internal->unknown_end >= need);
@@ -249,13 +249,13 @@ static void _upb_mapsorter_getkeys(const void *_a, const void *_b, void *a_key,
 static int _upb_mapsorter_cmpi64(const void *_a, const void *_b) {
   int64_t a, b;
   _upb_mapsorter_getkeys(_a, _b, &a, &b, 8);
-  return a - b;
+  return (int)(a - b);
 }
 
 static int _upb_mapsorter_cmpu64(const void *_a, const void *_b) {
   uint64_t a, b;
   _upb_mapsorter_getkeys(_a, _b, &a, &b, 8);
-  return a - b;
+  return (int)(a - b);
 }
 
 static int _upb_mapsorter_cmpi32(const void *_a, const void *_b) {
@@ -282,12 +282,12 @@ static int _upb_mapsorter_cmpstr(const void *_a, const void *_b) {
   size_t common_size = UPB_MIN(a.size, b.size);
   int cmp = memcmp(a.data, b.data, common_size);
   if (cmp) return cmp;
-  return a.size - b.size;
+  return (int)(a.size - b.size);
 }
 
 bool _upb_mapsorter_pushmap(_upb_mapsorter *s, upb_descriptortype_t key_type,
                             const upb_map *map, _upb_sortedmap *sorted) {
-  int map_size = _upb_map_size(map);
+  int map_size = (int)_upb_map_size(map);
   sorted->start = s->size;
   sorted->pos = sorted->start;
   sorted->end = sorted->start + map_size;

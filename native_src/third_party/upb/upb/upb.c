@@ -232,7 +232,7 @@ upb_arena *upb_arena_init(void *mem, size_t n, upb_alloc *alloc) {
   a->block_alloc = alloc;
   a->parent = a;
   a->refcount = 1;
-  a->last_size = UPB_MAX(128, n);
+  a->last_size = UPB_MAX(128, (uint32_t)n);
   a->head.ptr = mem;
   a->head.end = UPB_PTR_AT(mem, n - sizeof(*a), char);
   a->freelist = NULL;

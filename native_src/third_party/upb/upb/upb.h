@@ -339,7 +339,7 @@ UPB_INLINE uint64_t _upb_be_swap64(uint64_t val) {
   if (_upb_isle()) {
     return val;
   } else {
-    return ((uint64_t)_upb_be_swap32(val) << 32) | _upb_be_swap32(val >> 32);
+    return ((uint64_t)_upb_be_swap32((uint32_t)val) << 32) | _upb_be_swap32(val >> 32);
   }
 }
 
