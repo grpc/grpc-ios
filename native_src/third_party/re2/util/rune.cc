@@ -26,7 +26,7 @@ enum
 	Bit2	= 5,
 	Bit3	= 4,
 	Bit4	= 3,
-	Bit5	= 2, 
+	Bit5	= 2,
 
 	T1	= ((1<<(Bit1+1))-1) ^ 0xFF,	/* 0000 0000 */
 	Tx	= ((1<<(Bitx+1))-1) ^ 0xFF,	/* 1000 0000 */
@@ -76,7 +76,7 @@ chartorune(Rune *rune, const char *str)
 		l = ((c << Bitx) | c1) & Rune2;
 		if(l <= Rune1)
 			goto bad;
-		*rune = l;
+		*rune = (Rune)l;
 		return 2;
 	}
 
@@ -91,7 +91,7 @@ chartorune(Rune *rune, const char *str)
 		l = ((((c << Bitx) | c1) << Bitx) | c2) & Rune3;
 		if(l <= Rune2)
 			goto bad;
-		*rune = l;
+		*rune = (Rune)l;
 		return 3;
 	}
 
@@ -106,7 +106,7 @@ chartorune(Rune *rune, const char *str)
 		l = ((((((c << Bitx) | c1) << Bitx) | c2) << Bitx) | c3) & Rune4;
 		if (l <= Rune3)
 			goto bad;
-		*rune = l;
+		*rune = (Rune)l;
 		return 4;
 	}
 
@@ -220,7 +220,7 @@ utflen(const char *s)
 		c = *(unsigned char*)s;
 		if(c < Runeself) {
 			if(c == 0)
-				return n;
+				return (int)n;
 			s++;
 		} else
 			s += chartorune(&rune, s);

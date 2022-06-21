@@ -276,13 +276,13 @@ static const char *decode_tag(upb_decstate *d, const char *ptr,
                                    uint32_t *val) {
   uint64_t byte = (uint8_t)*ptr;
   if (UPB_LIKELY((byte & 0x80) == 0)) {
-    *val = byte;
+    *val = (uint32_t)byte;
     return ptr + 1;
   } else {
     const char *start = ptr;
     decode_vret res = decode_longvarint64(ptr, byte);
     ptr = res.ptr;
-    *val = res.val;
+    *val = (uint32_t)(res.val);
     if (!ptr || *val > UINT32_MAX || ptr - start > 5) return decode_err(d);
     return ptr;
   }
@@ -307,7 +307,7 @@ static void decode_munge(int type, wireval *val) {
     case UPB_DESCRIPTOR_TYPE_UINT32:
       if (!_upb_isle()) {
         /* The next stage will memcpy(dst, &val, 4) */
-        val->uint32_val = val->uint64_val;
+        val->uint32_val = (uint32_t)(val->uint64_val);
       }
       break;
   }
@@ -397,7 +397,7 @@ static const char *decode_toarray(upb_decstate *d, const char *ptr,
     decode_reserve(d, arr, 1);
   } else {
     size_t lg2 = desctype_to_elem_size_lg2[field->descriptortype];
-    arr = _upb_array_new(&d->arena, 4, lg2);
+    arr = _upb_array_new(&d->arena, 4, (int)lg2);
     if (!arr) return decode_err(d);
     *arrp = arr;
   }
@@ -669,7 +669,7 @@ static const upb_msglayout_field *decode_findfield(upb_decstate *d,
 
  found:
   UPB_ASSERT(l->fields[idx].number == field_number);
-  *last_field_index = idx;
+  *last_field_index = (int)idx;
   return &l->fields[idx];
  }
 
@@ -708,7 +708,7 @@ static const char *decode_wireval(upb_decstate *d, const char *ptr,
         break; /* Length overflow. */
       }
       *op = delim_ops[ndx];
-      val->size = size;
+      val->size = (uint32_t)size;
       return ptr;
     }
     case UPB_WIRE_TYPE_START_GROUP:
@@ -820,7 +820,7 @@ static const char *decode_msg(upb_decstate *d, const char *ptr, upb_msg *msg,
           break;
         case OP_MSGSET_TYPEID: {
           const upb_msglayout_ext *ext = _upb_extreg_get(
-              d->extreg, layout->subs[0].submsg, val.uint64_val);
+              d->extreg, layout->subs[0].submsg, (uint32_t)(val.uint64_val));
           if (ext) ((upb_msglayout *)layout)->fields = &ext->field;
           break;
         }

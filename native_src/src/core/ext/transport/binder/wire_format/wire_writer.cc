@@ -38,7 +38,7 @@ absl::Status WireWriterImpl::WriteInitialMetadata(const Transaction& tx,
     // Only client sends method ref.
     RETURN_IF_ERROR(parcel->WriteString(tx.GetMethodRef()));
   }
-  RETURN_IF_ERROR(parcel->WriteInt32(tx.GetPrefixMetadata().size()));
+  RETURN_IF_ERROR(parcel->WriteInt32((int32_t)(tx.GetPrefixMetadata().size())));
   for (const auto& md : tx.GetPrefixMetadata()) {
     RETURN_IF_ERROR(parcel->WriteByteArrayWithLength(md.first));
     RETURN_IF_ERROR(parcel->WriteByteArrayWithLength(md.second));
@@ -52,7 +52,7 @@ absl::Status WireWriterImpl::WriteTrailingMetadata(const Transaction& tx,
     if (tx.GetFlags() & kFlagStatusDescription) {
       RETURN_IF_ERROR(parcel->WriteString(tx.GetStatusDesc()));
     }
-    RETURN_IF_ERROR(parcel->WriteInt32(tx.GetSuffixMetadata().size()));
+    RETURN_IF_ERROR(parcel->WriteInt32((int32_t)(tx.GetSuffixMetadata().size())));
     for (const auto& md : tx.GetSuffixMetadata()) {
       RETURN_IF_ERROR(parcel->WriteByteArrayWithLength(md.first));
       RETURN_IF_ERROR(parcel->WriteByteArrayWithLength(md.second));
