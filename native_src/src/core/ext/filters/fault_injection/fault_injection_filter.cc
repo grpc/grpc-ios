@@ -170,7 +170,7 @@ void ChannelData::Destroy(grpc_channel_element* elem) {
 
 ChannelData::ChannelData(grpc_channel_element* elem,
                          grpc_channel_element_args* args)
-    : index_(grpc_channel_stack_filter_instance_number(args->channel_stack,
+    : index_((int)grpc_channel_stack_filter_instance_number(args->channel_stack,
                                                        elem)) {}
 
 // CallData::ResumeBatchCanceller
