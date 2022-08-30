@@ -39,7 +39,7 @@ let package = Package(
         .product(name:"abseil", package: "abseil"),
         .product(name:"openssl_grpc", package: "BoringSSL-GRPC"),
       ],
-      path: "native_src",
+      path: "native",
       exclude: [
         "src/core/ext/filters/load_reporting/",
         "src/core/ext/transport/cronet/",
@@ -92,7 +92,7 @@ let package = Package(
         .product(name:"abseil", package: "abseil"),
         "gRPC-Core",
       ],
-      path: "native_src",
+      path: "native",
       exclude: [
         "src/cpp/client/cronet_credentials.cc",
         "src/cpp/client/channel_test_peer.cc",
@@ -124,7 +124,7 @@ let package = Package(
       dependencies: [
         "gRPC-cpp",
       ],
-      path: "native_src/test/spm_build"
+      path: "native/test/spm_build"
     ),
   ],
   cLanguageStandard: .gnu11,
