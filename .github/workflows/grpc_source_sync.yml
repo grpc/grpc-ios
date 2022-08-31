@@ -19,7 +19,7 @@ jobs:
 
       - name: Collect revision hash
         run: |
-          echo "grpc_src_revision=$(cat native_src/REVISION.txt)" >> $GITHUB_ENV
+          echo "grpc_src_revision=$(cat .native/REVISION.txt)" >> $GITHUB_ENV
 
       - name: Create or update pull request
         uses: peter-evans/create-pull-request@v3
