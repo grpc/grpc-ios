@@ -9,8 +9,9 @@ SCHEME=gRPCSample
 DESTINATION='name=iPhone 11'
 
 # custom build flags
+# TODO: re-enable warning as error after grpc native warning fix (https://github.com/grpc/grpc-ios/issues/83)
 BUILD_FLAGS="
-  GCC_TREAT_WARNINGS_AS_ERRORS=YES
+  GCC_TREAT_WARNINGS_AS_ERRORS=NO
 "
 
 # build via xcodebuild command line
