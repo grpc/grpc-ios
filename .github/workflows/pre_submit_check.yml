@@ -14,5 +14,8 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
+      - name: Cocoapod sample build test
+        run: scripts/build_test_cocoapod_samples.sh
+
       - name: SPM sample app build test
         run: scripts/build_test_spm_samples.sh
