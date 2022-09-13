@@ -1,4 +1,4 @@
-name: Pre submit tests and validations on main development branch 
+name: Pre submit tests and validations on main development branch
 on:
   pull_request:
     branches:
@@ -9,13 +9,13 @@ jobs:
   Pre-Submit-Check-Main-Branch:
     runs-on: macos-latest
     steps:
-      - name: Repo Checkout 
+      - name: Repo Checkout
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Cocoapod sample build test
-        run: scripts/build_test_cocoapod_samples.sh
-
       - name: SPM sample app build test
         run: scripts/build_test_spm_samples.sh
+
+      - name: Cocoapod sample build test
+        run: scripts/build_test_cocoapod_samples.sh
