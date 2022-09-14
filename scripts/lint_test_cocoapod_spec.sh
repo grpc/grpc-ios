@@ -3,19 +3,21 @@ set -ex
 
 # Default to build with library with optional build using framework
 BUILD_OPTION="--use-libraries"
-if [[ $1 == "framework" ]]; then 
+if [[ $1 == "framework" ]]; then
     BUILD_OPTION="--use-static-frameworks"
-fi 
+fi
 
 # gRPC ObjC Podspecs
-GRPC_PODSPECS="gRPC-ProtoRPC.podspec gRPC.podspec"
+GRPC_PODSPECS="gRPC.podspec gRPC-ProtoRPC.podspec"
 
 ## Verify via cocoapod lint
+##
 for PODSPEC in $GRPC_PODSPECS; do
     time pod spec lint $PODSPEC $BUILD_OPTION \
     --allow-warnings \
-    --platforms=ios,macos \
     --skip-tests \
+    --fail-fast \
+    --platforms=ios,macos \
     --verbose
 done
 
