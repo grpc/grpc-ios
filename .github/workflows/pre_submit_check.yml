@@ -1,4 +1,4 @@
-name: Pre submit tests and validations on main development branch
+name: Pre submit checks
 on:
   pull_request:
     branches:
@@ -6,16 +6,24 @@ on:
   repository_dispatch:
     types: [pre-submit-check]
 jobs:
-  Pre-Submit-Check-Main-Branch:
+  pre-submit-spm-build-test:
     runs-on: macos-latest
     steps:
-      - name: Repo Checkout
+      - name: repo checkout
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: SPM sample app build test
+      - name: spm sample app build test
         run: scripts/build_test_spm_samples.sh
 
-      - name: Cocoapod sample build test
+  pre-submit-cocoapod-build-test:
+    runs-on: macos-latest
+    steps:
+      - name: repo checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: cocoapod sample build test
         run: scripts/build_test_cocoapod_samples.sh
