@@ -1,4 +1,4 @@
-name: Post submit tests and validations on main development branch 
+name: Post submit checks
 on:
   push:
     branches:
@@ -6,11 +6,29 @@ on:
   repository_dispatch:
     types: [post-submit-check]
 jobs:
-  Post-Submit-Check-Main-Branch:
+  post-submit-check-cocoapod-lint-gRPC:
     runs-on: macos-latest
     steps:
-      - name: Repo Checkout 
+      - name: Repo Checkout
         uses: actions/checkout@v2
 
-      - name: gRPC Cocoapod Podspec Validation 
-        run: scripts/lint_test_cocoapod_spec.sh
+      - name: gRPC podspec lint checks
+        run: scripts/lint_test_cocoapod_spec.sh -p gRPC.podspec
+
+  post-submit-check-cocoapod-lint-gRPC-ProtoRPC:
+    runs-on: macos-latest
+    steps:
+      - name: Repo Checkout
+        uses: actions/checkout@v2
+
+      - name: gRPC-ProtoRPC podspec lint checks
+        run: scripts/lint_test_cocoapod_spec.sh -p gRPC-ProtoRPC.podspec
+
+  post-submit-check-cocoapod-lint-gRPC-RxLibrary:
+    runs-on: macos-latest
+    steps:
+      - name: Repo Checkout
+        uses: actions/checkout@v2
+
+      - name: gRPC-RxLibrary podspec lint checks
+        run: scripts/lint_test_cocoapod_spec.sh -p build/cocoapod/gRPC-RxLibrary.podspec
