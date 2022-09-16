@@ -1,0 +1,62 @@
+name: Cocoapod dev release
+on:
+  push:
+    branches:
+      - 'main'
+  repository_dispatch:
+    types: [cocoapod-release-dev]
+env:
+  COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+jobs:
+  release-cocoapod-gRPC-RxLibrary:
+    runs-on: macos-latest
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Delete existing
+        run: |
+          version=$(cat VERSION)
+          if ! [[ $version == *-dev ]]; then exit 1; fi
+          yes | scripts/delete_pod_version.sh gRPC-RxLibrary $version
+
+      - name: Pod release
+        run: scripts/release_cocoapod.sh build/cocoapod/gRPC-RxLibrary.podspec
+
+  release-cocoapod-gRPC:
+    runs-on: macos-latest
+    needs: release-cocoapod-gRPC-RxLibrary
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Delete existing
+        run: |
+          version=$(cat VERSION)
+          if ! [[ $version == *-dev ]]; then exit 1; fi
+          yes | scripts/delete_pod_version.sh gRPC $version
+
+      - name: Pod release
+        run: scripts/release_cocoapod.sh build/cocoapod/gRPC.podspec
+
+  release-cocoapod-gRPC-ProtoRPC:
+    runs-on: macos-latest
+    needs: [release-cocoapod-gRPC-RxLibrary, release-cocoapod-gRPC]
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Delete existing
+        run: |
+          version=$(cat VERSION)
+          if ! [[ $version == *-dev ]]; then exit 1; fi
+          yes | scripts/delete_pod_version.sh gRPC-ProtoRPC $version
+
+      - name: Pod release
+        run: scripts/release_cocoapod.sh build/cocoapod/gRPC-ProtoRPC.podspec
