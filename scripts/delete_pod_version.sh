@@ -15,7 +15,6 @@ fi
 
 echo "deleting pod $TARGET_POD for version $TARGET_VERSION"
 
-pod trunk delete $TARGET_POD $TARGET_VERSION \
-    --verbose
+pod trunk delete $TARGET_POD $TARGET_VERSION || true
 
 
