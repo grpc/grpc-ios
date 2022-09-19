@@ -8,10 +8,13 @@ SAMPLE_ROOT=tests/cocoapod/gRPCSample
 SAMPLE_WORKSPACE=$SAMPLE_ROOT/gRPCSample.xcworkspace
 SCHEME=gRPCSample
 
+# Fetch latest podinfo
+time pod repo update
+
 # Cocoapod install
 pushd $SAMPLE_ROOT
 rm -Rf Pods Podfile.lock gRPCSample.xcworkspace
-pod install --verbose --clean-install
+pod install --verbose --clean-install --repo-update
 popd
 
 # Build via xcodebuild command line
