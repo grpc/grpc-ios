@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+set -ex
 
 ## Script to delete an exsiting podspec version
 ## https://guides.cocoapods.org/terminal/commands.html#pod_trunk_delete
@@ -14,5 +14,6 @@ if [ -z "$TARGET_POD" ] || [ -z "$TARGET_VERSION" ]; then
 fi
 
 echo "deleting pod $TARGET_POD for version $TARGET_VERSION"
+
+# Ignoring return code as trunk delete alwasy exit with error
 pod trunk delete $TARGET_POD $TARGET_VERSION || true
-echo "delete done"

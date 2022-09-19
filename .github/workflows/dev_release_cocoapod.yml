@@ -20,7 +20,7 @@ jobs:
         run: |
           version=$(cat VERSION)
           if ! [[ $version == *-dev ]]; then exit 1; fi
-          yes | scripts/delete_pod_version.sh gRPC-RxLibrary $version
+          genv --default-signal=PIPE yes | scripts/delete_pod_version.sh gRPC-RxLibrary $version
 
       - name: Pod release
         run: scripts/release_cocoapod.sh build/cocoapod/gRPC-RxLibrary.podspec
@@ -38,7 +38,7 @@ jobs:
         run: |
           version=$(cat VERSION)
           if ! [[ $version == *-dev ]]; then exit 1; fi
-          yes | scripts/delete_pod_version.sh gRPC $version
+          genv --default-signal=PIPE yes | scripts/delete_pod_version.sh gRPC $version
 
       - name: Pod release
         run: scripts/release_cocoapod.sh build/cocoapod/gRPC.podspec
@@ -56,7 +56,7 @@ jobs:
         run: |
           version=$(cat VERSION)
           if ! [[ $version == *-dev ]]; then exit 1; fi
-          yes | scripts/delete_pod_version.sh gRPC-ProtoRPC $version
+          genv --default-signal=PIPE yes | scripts/delete_pod_version.sh gRPC-ProtoRPC $version
 
       - name: Pod release
         run: scripts/release_cocoapod.sh build/cocoapod/gRPC-ProtoRPC.podspec
