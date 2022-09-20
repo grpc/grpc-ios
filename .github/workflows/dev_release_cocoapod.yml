@@ -41,7 +41,7 @@ jobs:
           genv --default-signal=PIPE yes | scripts/delete_pod_version.sh gRPC $version
 
       - name: Pod release
-        run: scripts/release_cocoapod.sh build/cocoapod/gRPC.podspec
+        run: scripts/release_cocoapod.sh gRPC.podspec
 
   release-cocoapod-gRPC-ProtoRPC:
     runs-on: macos-latest
@@ -59,4 +59,4 @@ jobs:
           genv --default-signal=PIPE yes | scripts/delete_pod_version.sh gRPC-ProtoRPC $version
 
       - name: Pod release
-        run: scripts/release_cocoapod.sh build/cocoapod/gRPC-ProtoRPC.podspec
+        run: scripts/release_cocoapod.sh gRPC-ProtoRPC.podspec

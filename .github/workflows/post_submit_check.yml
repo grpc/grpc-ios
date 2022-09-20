@@ -1,8 +1,9 @@
 name: Post submit checks
 on:
-  push:
-    branches:
-      - 'main'
+  workflow_run:
+    workflows: ["Cocoapod dev release"]
+    types: [completed]
+    branches: [main]
   repository_dispatch:
     types: [post-submit-check]
 jobs:
@@ -10,7 +11,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Repo Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          ref: main
 
       - name: gRPC podspec lint checks
         run: scripts/lint_test_cocoapod_spec.sh -p gRPC.podspec
@@ -19,7 +22,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Repo Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          ref: main
 
       - name: gRPC-ProtoRPC podspec lint checks
         run: scripts/lint_test_cocoapod_spec.sh -p gRPC-ProtoRPC.podspec
@@ -28,7 +33,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Repo Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          ref: main
 
       - name: gRPC-RxLibrary podspec lint checks
         run: scripts/lint_test_cocoapod_spec.sh -p build/cocoapod/gRPC-RxLibrary.podspec
