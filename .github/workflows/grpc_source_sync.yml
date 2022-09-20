@@ -11,8 +11,8 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
 
-      - name: Install git-achive-all
-        run: brew install git-archive-all
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
 
       - name: Shallow source source
         run: scripts/sync_grpc_src_shallow.sh
