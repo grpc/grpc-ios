@@ -48,9 +48,6 @@ Pod::Spec.new do |s|
     }
 
     s.ios.deployment_target = '9.0'
-    s.osx.deployment_target = '10.10'
-    s.tvos.deployment_target = '10.0'
-    s.watchos.deployment_target = '4.0'
 
     s.subspec 'Interface-Legacy' do |ss|
       ss.header_mappings_dir = objc_client_root
@@ -73,10 +70,6 @@ Pod::Spec.new do |s|
                         "#{objc_client_root}/GRPCTypes.m"
       ss.dependency "gRPC-RxLibrary/Interface", version
 
-      ss.ios.deployment_target = '9.0'
-      ss.osx.deployment_target = '10.10'
-      ss.tvos.deployment_target = '10.0'
-      ss.watchos.deployment_target = '4.0'
     end
 
     s.subspec 'Interface' do |ss|
@@ -107,11 +100,6 @@ Pod::Spec.new do |s|
                         "#{objc_client_root}/version.h"
 
       ss.dependency "#{s.name}/Interface-Legacy", version
-
-      ss.ios.deployment_target = '9.0'
-      ss.osx.deployment_target = '10.10'
-      ss.tvos.deployment_target = '10.0'
-      ss.watchos.deployment_target = '4.0'
     end
 
     s.subspec 'GRPCCore' do |ss|
@@ -143,11 +131,6 @@ Pod::Spec.new do |s|
       ss.dependency "#{s.name}/Interface", version
       ss.dependency 'gRPC-Core', native_version
       ss.dependency 'gRPC-RxLibrary', version
-
-      ss.ios.deployment_target = '9.0'
-      ss.osx.deployment_target = '10.10'
-      ss.tvos.deployment_target = '10.0'
-      ss.watchos.deployment_target = '4.0'
     end
 
     # TODO(https://github.com/grpc/grpc-ios/issues/119): re-enable after adding device arch support.
@@ -167,11 +150,6 @@ Pod::Spec.new do |s|
     # CFStream is now default. Leaving this subspec only for compatibility purpose.
     s.subspec 'CFStream' do |ss|
       ss.dependency "#{s.name}/GRPCCore", version
-
-      ss.ios.deployment_target = '9.0'
-      ss.osx.deployment_target = '10.10'
-      ss.tvos.deployment_target = '10.0'
-      ss.watchos.deployment_target = '4.0'
     end
 
     s.subspec 'InternalTesting' do |ss|
@@ -179,10 +157,5 @@ Pod::Spec.new do |s|
       ss.public_header_files = "#{objc_client_root}/internal_testing/*.h"
       ss.source_files = "#{objc_client_root}/internal_testing/*.{h,m}"
       ss.header_mappings_dir = objc_client_root
-
-      ss.ios.deployment_target = '9.0'
-      ss.osx.deployment_target = '10.10'
-      ss.tvos.deployment_target = '10.0'
-      ss.watchos.deployment_target = '4.0'
     end
   end

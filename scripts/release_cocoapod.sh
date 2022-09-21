@@ -11,15 +11,13 @@ if [ -z "$TARGET_PODSPEC" ]; then
     exit 1
 fi
 
-echo "Checking current pod registration session"
-pod trunk me
-
 echo "Publishing podspec $TARGET_PODSPEC"
 
-pod trunk push $TARGET_PODSPEC \
+time pod trunk push $TARGET_PODSPEC \
     --allow-warnings \
     --use-libraries \
     --skip-tests \
+    --skip-import-validation \
     --synchronous \
     --verbose
 
