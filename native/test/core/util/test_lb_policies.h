@@ -17,7 +17,16 @@
 #ifndef GRPC_TEST_CORE_UTIL_TEST_LB_POLICIES_H
 #define GRPC_TEST_CORE_UTIL_TEST_LB_POLICIES_H
 
-#include "src/core/ext/filters/client_channel/lb_policy.h"
+#include <functional>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "absl/status/status.h"
+#include "absl/strings/string_view.h"
+
+#include "src/core/ext/filters/client_channel/lb_policy/backend_metric_data.h"
+#include "src/core/lib/resolver/server_address.h"
 
 namespace grpc_core {
 
@@ -33,11 +42,12 @@ using TestPickArgsCallback = std::function<void(const PickArgsSeen&)>;
 // Registers an LB policy called "test_pick_args_lb" that passes the args
 // passed to SubchannelPicker::Pick() to cb.
 void RegisterTestPickArgsLoadBalancingPolicy(
-    TestPickArgsCallback cb, const char* delegate_policy_name = "pick_first");
+    TestPickArgsCallback cb,
+    absl::string_view delegate_policy_name = "pick_first");
 
 struct TrailingMetadataArgsSeen {
-  const LoadBalancingPolicy::BackendMetricAccessor::BackendMetricData*
-      backend_metric_data;
+  absl::Status status;
+  const BackendMetricData* backend_metric_data;
   MetadataVector metadata;
 };
 
@@ -58,6 +68,14 @@ void RegisterAddressTestLoadBalancingPolicy(AddressTestCallback cb);
 // Registers an LB policy called "fixed_address_lb" that provides a
 // single subchannel whose address is in its configuration.
 void RegisterFixedAddressLoadBalancingPolicy();
+
+using OobBackendMetricCallback =
+    std::function<void(ServerAddress, const BackendMetricData&)>;
+
+// Registers an LB policy called "oob_backend_metric_test_lb" that invokes
+// cb for each OOB backend metric report on each subchannel.
+void RegisterOobBackendMetricTestLoadBalancingPolicy(
+    OobBackendMetricCallback cb);
 
 }  // namespace grpc_core
 

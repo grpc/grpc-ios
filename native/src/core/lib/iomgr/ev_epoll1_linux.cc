@@ -242,8 +242,8 @@ struct grpc_pollset_set {
 
 static bool append_error(grpc_error_handle* composite, grpc_error_handle error,
                          const char* desc) {
-  if (error == GRPC_ERROR_NONE) return true;
-  if (*composite == GRPC_ERROR_NONE) {
+  if (GRPC_ERROR_IS_NONE(error)) return true;
+  if (GRPC_ERROR_IS_NONE(*composite)) {
     *composite = GRPC_ERROR_CREATE_FROM_COPIED_STRING(desc);
   }
   *composite = grpc_error_add_child(*composite, error);
@@ -517,7 +517,7 @@ static grpc_error_handle pollset_global_init(void) {
   gpr_atm_no_barrier_store(&g_active_poller, 0);
   global_wakeup_fd.read_fd = -1;
   grpc_error_handle err = grpc_wakeup_fd_init(&global_wakeup_fd);
-  if (err != GRPC_ERROR_NONE) return err;
+  if (!GRPC_ERROR_IS_NONE(err)) return err;
   struct epoll_event ev;
   ev.events = static_cast<uint32_t>(EPOLLIN | EPOLLET);
   ev.data.ptr = &global_wakeup_fd;
@@ -639,9 +639,9 @@ static void pollset_shutdown(grpc_pollset* pollset, grpc_closure* closure) {
   pollset_maybe_finish_shutdown(pollset);
 }
 
-static int poll_deadline_to_millis_timeout(grpc_millis millis) {
-  if (millis == GRPC_MILLIS_INF_FUTURE) return -1;
-  grpc_millis delta = millis - grpc_core::ExecCtx::Get()->Now();
+static int poll_deadline_to_millis_timeout(grpc_core::Timestamp millis) {
+  if (millis == grpc_core::Timestamp::InfFuture()) return -1;
+  int64_t delta = (millis - grpc_core::ExecCtx::Get()->Now()).millis();
   if (delta > INT_MAX) {
     return INT_MAX;
   } else if (delta < 0) {
@@ -711,7 +711,8 @@ static grpc_error_handle process_epoll_events(grpc_pollset* /*pollset*/) {
    NOTE ON SYNCHRONIZATION: At any point of time, only the g_active_poller
    (i.e the designated poller thread) will be calling this function. So there is
    no need for any synchronization when accesing fields in g_epoll_set */
-static grpc_error_handle do_epoll_wait(grpc_pollset* ps, grpc_millis deadline) {
+static grpc_error_handle do_epoll_wait(grpc_pollset* ps,
+                                       grpc_core::Timestamp deadline) {
   GPR_TIMER_SCOPE("do_epoll_wait", 0);
 
   int r;
@@ -744,7 +745,7 @@ static grpc_error_handle do_epoll_wait(grpc_pollset* ps, grpc_millis deadline) {
 
 static bool begin_worker(grpc_pollset* pollset, grpc_pollset_worker* worker,
                          grpc_pollset_worker** worker_hdl,
-                         grpc_millis deadline) {
+                         grpc_core::Timestamp deadline) {
   GPR_TIMER_SCOPE("begin_worker", 0);
   if (worker_hdl != nullptr) *worker_hdl = worker;
   worker->initialized_cv = false;
@@ -831,7 +832,7 @@ static bool begin_worker(grpc_pollset* pollset, grpc_pollset_worker* worker,
       }
 
       if (gpr_cv_wait(&worker->cv, &pollset->mu,
-                      grpc_millis_to_timespec(deadline, GPR_CLOCK_MONOTONIC)) &&
+                      deadline.as_timespec(GPR_CLOCK_MONOTONIC)) &&
           worker->state == UNKICKED) {
         /* If gpr_cv_wait returns true (i.e a timeout), pretend that the worker
            received a kick */
@@ -1012,7 +1013,7 @@ static void end_worker(grpc_pollset* pollset, grpc_pollset_worker* worker,
    ensure that it is held by the time the function returns */
 static grpc_error_handle pollset_work(grpc_pollset* ps,
                                       grpc_pollset_worker** worker_hdl,
-                                      grpc_millis deadline) {
+                                      grpc_core::Timestamp deadline) {
   GPR_TIMER_SCOPE("pollset_work", 0);
   grpc_pollset_worker worker;
   grpc_error_handle error = GRPC_ERROR_NONE;
@@ -1267,7 +1268,9 @@ static void shutdown_engine(void) {
   }
 }
 
-static const grpc_event_engine_vtable vtable = {
+static bool init_epoll1_linux();
+
+const grpc_event_engine_vtable grpc_ev_epoll1_posix = {
     sizeof(grpc_pollset),
     true,
     false,
@@ -1301,8 +1304,11 @@ static const grpc_event_engine_vtable vtable = {
     pollset_set_del_fd,
 
     is_any_background_poller_thread,
+    /* name = */ "epoll1",
+    /* check_engine_available = */ [](bool) { return init_epoll1_linux(); },
+    /* init_engine = */ []() {},
     shutdown_background_closure,
-    shutdown_engine,
+    /* shutdown_engine = */ []() {},
     add_closure_to_background_poller,
 };
 
@@ -1318,21 +1324,20 @@ static void reset_event_manager_on_fork() {
   }
   gpr_mu_unlock(&fork_fd_list_mu);
   shutdown_engine();
-  grpc_init_epoll1_linux(true);
+  init_epoll1_linux();
 }
 
 /* It is possible that GLIBC has epoll but the underlying kernel doesn't.
  * Create epoll_fd (epoll_set_init() takes care of that) to make sure epoll
  * support is available */
-const grpc_event_engine_vtable* grpc_init_epoll1_linux(
-    bool /*explicit_request*/) {
+static bool init_epoll1_linux() {
   if (!grpc_has_wakeup_fd()) {
     gpr_log(GPR_ERROR, "Skipping epoll1 because of no wakeup fd.");
-    return nullptr;
+    return false;
   }
 
   if (!epoll_set_init()) {
-    return nullptr;
+    return false;
   }
 
   fd_global_init();
@@ -1340,7 +1345,7 @@ const grpc_event_engine_vtable* grpc_init_epoll1_linux(
   if (!GRPC_LOG_IF_ERROR("pollset_global_init", pollset_global_init())) {
     fd_global_shutdown();
     epoll_set_shutdown();
-    return nullptr;
+    return false;
   }
 
   if (grpc_core::Fork::Enabled()) {
@@ -1348,17 +1353,52 @@ const grpc_event_engine_vtable* grpc_init_epoll1_linux(
     grpc_core::Fork::SetResetChildPollingEngineFunc(
         reset_event_manager_on_fork);
   }
-  return &vtable;
+  return true;
 }
 
 #else /* defined(GRPC_LINUX_EPOLL) */
 #if defined(GRPC_POSIX_SOCKET_EV_EPOLL1)
 #include "src/core/lib/iomgr/ev_epoll1_linux.h"
-/* If GRPC_LINUX_EPOLL is not defined, it means epoll is not available. Return
- * NULL */
-const grpc_event_engine_vtable* grpc_init_epoll1_linux(
-    bool /*explicit_request*/) {
-  return nullptr;
-}
+const grpc_event_engine_vtable grpc_ev_epoll1_posix = {
+    1,
+    true,
+    false,
+
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+
+    nullptr,
+    /* name = */ "epoll1",
+    /* check_engine_available = */ [](bool) { return false; },
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+};
 #endif /* defined(GRPC_POSIX_SOCKET_EV_EPOLL1) */
 #endif /* !defined(GRPC_LINUX_EPOLL) */

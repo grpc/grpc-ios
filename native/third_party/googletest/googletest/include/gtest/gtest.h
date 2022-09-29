@@ -27,7 +27,6 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-//
 // The Google C++ Testing and Mocking Framework (Google Test)
 //
 // This header file defines the public API for Google Test.  It should be
@@ -47,10 +46,8 @@
 // registration from Barthelemy Dagenais' (barthelemy@prologique.com)
 // easyUnit framework.
 
-// GOOGLETEST_CM0001 DO NOT DELETE
-
-#ifndef GTEST_INCLUDE_GTEST_GTEST_H_
-#define GTEST_INCLUDE_GTEST_GTEST_H_
+#ifndef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
+#define GOOGLETEST_INCLUDE_GTEST_GTEST_H_
 
 #include <cstddef>
 #include <limits>
@@ -59,30 +56,21 @@
 #include <type_traits>
 #include <vector>
 
-#include "gtest/internal/gtest-internal.h"
-#include "gtest/internal/gtest-string.h"
+#include "gtest/gtest-assertion-result.h"
 #include "gtest/gtest-death-test.h"
 #include "gtest/gtest-matchers.h"
 #include "gtest/gtest-message.h"
 #include "gtest/gtest-param-test.h"
 #include "gtest/gtest-printers.h"
-#include "gtest/gtest_prod.h"
 #include "gtest/gtest-test-part.h"
 #include "gtest/gtest-typed-test.h"
+#include "gtest/gtest_pred_impl.h"
+#include "gtest/gtest_prod.h"
+#include "gtest/internal/gtest-internal.h"
+#include "gtest/internal/gtest-string.h"
 
 GTEST_DISABLE_MSC_WARNINGS_PUSH_(4251 \
 /* class A needs to have dll-interface to be used by clients of class B */)
-
-namespace testing {
-
-// Silence C4100 (unreferenced formal parameter) and 4805
-// unsafe mix of type 'const int' and type 'const bool'
-#ifdef _MSC_VER
-# pragma warning(push)
-# pragma warning(disable:4805)
-# pragma warning(disable:4100)
-#endif
-
 
 // Declares the flags.
 
@@ -101,6 +89,10 @@ GTEST_DECLARE_bool_(catch_exceptions);
 // to let Google Test decide.
 GTEST_DECLARE_string_(color);
 
+// This flag controls whether the test runner should continue execution past
+// first failure.
+GTEST_DECLARE_bool_(fail_fast);
+
 // This flag sets up the filter to select by name using a glob pattern
 // the tests to run. If the filter is not given all tests are executed.
 GTEST_DECLARE_string_(filter);
@@ -117,6 +109,9 @@ GTEST_DECLARE_bool_(list_tests);
 // in addition to its normal textual output.
 GTEST_DECLARE_string_(output);
 
+// This flags control whether Google Test prints only test failures.
+GTEST_DECLARE_bool_(brief);
+
 // This flags control whether Google Test prints the elapsed time for each
 // test.
 GTEST_DECLARE_bool_(print_time);
@@ -130,6 +125,12 @@ GTEST_DECLARE_int32_(random_seed);
 // This flag sets how many times the tests are repeated. The default value
 // is 1. If the value is -1 the tests are repeating forever.
 GTEST_DECLARE_int32_(repeat);
+
+// This flag controls whether Google Test Environments are recreated for each
+// repeat of the tests. The default value is true. If set to false the global
+// test Environment objects are only set up once, for the first iteration, and
+// only torn down once, for the last.
+GTEST_DECLARE_bool_(recreate_environments_when_repeating);
 
 // This flag controls whether Google Test includes Google Test internal
 // stack frames in failure stack traces.
@@ -156,6 +157,16 @@ GTEST_DECLARE_string_(stream_result_to);
 GTEST_DECLARE_string_(flagfile);
 #endif  // GTEST_USE_OWN_FLAGFILE_FLAG_
 
+namespace testing {
+
+// Silence C4100 (unreferenced formal parameter) and 4805
+// unsafe mix of type 'const int' and type 'const bool'
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4805)
+#pragma warning(disable : 4100)
+#endif
+
 // The upper limit for valid stack trace depths.
 const int kMaxStackTraceDepth = 100;
 
@@ -177,6 +188,7 @@ class FuchsiaDeathTest;
 class UnitTestImpl* GetUnitTestImpl();
 void ReportFailureInUnknownLocation(TestPartResult::Type result_type,
                                     const std::string& message);
+std::set<std::string>* GetIgnoredParameterizedTestSuites();
 
 }  // namespace internal
 
@@ -192,189 +204,6 @@ using TestCase = TestSuite;
 #endif
 class TestInfo;
 class UnitTest;
-
-// A class for indicating whether an assertion was successful.  When
-// the assertion wasn't successful, the AssertionResult object
-// remembers a non-empty message that describes how it failed.
-//
-// To create an instance of this class, use one of the factory functions
-// (AssertionSuccess() and AssertionFailure()).
-//
-// This class is useful for two purposes:
-//   1. Defining predicate functions to be used with Boolean test assertions
-//      EXPECT_TRUE/EXPECT_FALSE and their ASSERT_ counterparts
-//   2. Defining predicate-format functions to be
-//      used with predicate assertions (ASSERT_PRED_FORMAT*, etc).
-//
-// For example, if you define IsEven predicate:
-//
-//   testing::AssertionResult IsEven(int n) {
-//     if ((n % 2) == 0)
-//       return testing::AssertionSuccess();
-//     else
-//       return testing::AssertionFailure() << n << " is odd";
-//   }
-//
-// Then the failed expectation EXPECT_TRUE(IsEven(Fib(5)))
-// will print the message
-//
-//   Value of: IsEven(Fib(5))
-//     Actual: false (5 is odd)
-//   Expected: true
-//
-// instead of a more opaque
-//
-//   Value of: IsEven(Fib(5))
-//     Actual: false
-//   Expected: true
-//
-// in case IsEven is a simple Boolean predicate.
-//
-// If you expect your predicate to be reused and want to support informative
-// messages in EXPECT_FALSE and ASSERT_FALSE (negative assertions show up
-// about half as often as positive ones in our tests), supply messages for
-// both success and failure cases:
-//
-//   testing::AssertionResult IsEven(int n) {
-//     if ((n % 2) == 0)
-//       return testing::AssertionSuccess() << n << " is even";
-//     else
-//       return testing::AssertionFailure() << n << " is odd";
-//   }
-//
-// Then a statement EXPECT_FALSE(IsEven(Fib(6))) will print
-//
-//   Value of: IsEven(Fib(6))
-//     Actual: true (8 is even)
-//   Expected: false
-//
-// NB: Predicates that support negative Boolean assertions have reduced
-// performance in positive ones so be careful not to use them in tests
-// that have lots (tens of thousands) of positive Boolean assertions.
-//
-// To use this class with EXPECT_PRED_FORMAT assertions such as:
-//
-//   // Verifies that Foo() returns an even number.
-//   EXPECT_PRED_FORMAT1(IsEven, Foo());
-//
-// you need to define:
-//
-//   testing::AssertionResult IsEven(const char* expr, int n) {
-//     if ((n % 2) == 0)
-//       return testing::AssertionSuccess();
-//     else
-//       return testing::AssertionFailure()
-//         << "Expected: " << expr << " is even\n  Actual: it's " << n;
-//   }
-//
-// If Foo() returns 5, you will see the following message:
-//
-//   Expected: Foo() is even
-//     Actual: it's 5
-//
-class GTEST_API_ AssertionResult {
- public:
-  // Copy constructor.
-  // Used in EXPECT_TRUE/FALSE(assertion_result).
-  AssertionResult(const AssertionResult& other);
-
-#if defined(_MSC_VER) && _MSC_VER < 1910
-  GTEST_DISABLE_MSC_WARNINGS_PUSH_(4800 /* forcing value to bool */)
-#endif
-
-  // Used in the EXPECT_TRUE/FALSE(bool_expression).
-  //
-  // T must be contextually convertible to bool.
-  //
-  // The second parameter prevents this overload from being considered if
-  // the argument is implicitly convertible to AssertionResult. In that case
-  // we want AssertionResult's copy constructor to be used.
-  template <typename T>
-  explicit AssertionResult(
-      const T& success,
-      typename internal::EnableIf<
-          !std::is_convertible<T, AssertionResult>::value>::type*
-      /*enabler*/
-      = nullptr)
-      : success_(success) {}
-
-#if defined(_MSC_VER) && _MSC_VER < 1910
-  GTEST_DISABLE_MSC_WARNINGS_POP_()
-#endif
-
-  // Assignment operator.
-  AssertionResult& operator=(AssertionResult other) {
-    swap(other);
-    return *this;
-  }
-
-  // Returns true if the assertion succeeded.
-  operator bool() const { return success_; }  // NOLINT
-
-  // Returns the assertion's negation. Used with EXPECT/ASSERT_FALSE.
-  AssertionResult operator!() const;
-
-  // Returns the text streamed into this AssertionResult. Test assertions
-  // use it when they fail (i.e., the predicate's outcome doesn't match the
-  // assertion's expectation). When nothing has been streamed into the
-  // object, returns an empty string.
-  const char* message() const {
-    return message_.get() != nullptr ? message_->c_str() : "";
-  }
-  // Deprecated; please use message() instead.
-  const char* failure_message() const { return message(); }
-
-  // Streams a custom failure message into this object.
-  template <typename T> AssertionResult& operator<<(const T& value) {
-    AppendMessage(Message() << value);
-    return *this;
-  }
-
-  // Allows streaming basic output manipulators such as endl or flush into
-  // this object.
-  AssertionResult& operator<<(
-      ::std::ostream& (*basic_manipulator)(::std::ostream& stream)) {
-    AppendMessage(Message() << basic_manipulator);
-    return *this;
-  }
-
- private:
-  // Appends the contents of message to message_.
-  void AppendMessage(const Message& a_message) {
-    if (message_.get() == nullptr) message_.reset(new ::std::string);
-    message_->append(a_message.GetString().c_str());
-  }
-
-  // Swap the contents of this AssertionResult with other.
-  void swap(AssertionResult& other);
-
-  // Stores result of the assertion predicate.
-  bool success_;
-  // Stores the message describing the condition in case the expectation
-  // construct is not satisfied with the predicate's outcome.
-  // Referenced via a pointer to avoid taking too much stack frame space
-  // with test assertions.
-  std::unique_ptr< ::std::string> message_;
-};
-
-// Makes a successful assertion result.
-GTEST_API_ AssertionResult AssertionSuccess();
-
-// Makes a failed assertion result.
-GTEST_API_ AssertionResult AssertionFailure();
-
-// Makes a failed assertion result with the given failure message.
-// Deprecated; use AssertionFailure() << msg.
-GTEST_API_ AssertionResult AssertionFailure(const Message& msg);
-
-}  // namespace testing
-
-// Includes the auto-generated header that implements a family of generic
-// predicate assertion macros. This include comes late because it relies on
-// APIs declared above.
-#include "gtest/gtest_pred_impl.h"
-
-namespace testing {
 
 // The abstract class that all tests inherit from.
 //
@@ -406,42 +235,39 @@ class GTEST_API_ Test {
   // The d'tor is virtual as we intend to inherit from Test.
   virtual ~Test();
 
-  // Sets up the stuff shared by all tests in this test case.
+  // Sets up the stuff shared by all tests in this test suite.
   //
   // Google Test will call Foo::SetUpTestSuite() before running the first
-  // test in test case Foo.  Hence a sub-class can define its own
+  // test in test suite Foo.  Hence a sub-class can define its own
   // SetUpTestSuite() method to shadow the one defined in the super
   // class.
-  // Failures that happen during SetUpTestSuite are logged but otherwise
-  // ignored.
   static void SetUpTestSuite() {}
 
   // Tears down the stuff shared by all tests in this test suite.
   //
   // Google Test will call Foo::TearDownTestSuite() after running the last
-  // test in test case Foo.  Hence a sub-class can define its own
+  // test in test suite Foo.  Hence a sub-class can define its own
   // TearDownTestSuite() method to shadow the one defined in the super
   // class.
-  // Failures that happen during TearDownTestSuite are logged but otherwise
-  // ignored.
   static void TearDownTestSuite() {}
 
-  // Legacy API is deprecated but still available
+  // Legacy API is deprecated but still available. Use SetUpTestSuite and
+  // TearDownTestSuite instead.
 #ifndef GTEST_REMOVE_LEGACY_TEST_CASEAPI_
   static void TearDownTestCase() {}
   static void SetUpTestCase() {}
 #endif  // GTEST_REMOVE_LEGACY_TEST_CASEAPI_
 
-  // Returns true if the current test has a fatal failure.
+  // Returns true if and only if the current test has a fatal failure.
   static bool HasFatalFailure();
 
-  // Returns true if the current test has a non-fatal failure.
+  // Returns true if and only if the current test has a non-fatal failure.
   static bool HasNonfatalFailure();
 
-  // Returns true if the current test was skipped.
+  // Returns true if and only if the current test was skipped.
   static bool IsSkipped();
 
-  // Returns true if the current test has a (either fatal or
+  // Returns true if and only if the current test has a (either fatal or
   // non-fatal) failure.
   static bool HasFailure() { return HasFatalFailure() || HasNonfatalFailure(); }
 
@@ -472,8 +298,8 @@ class GTEST_API_ Test {
   virtual void TearDown();
 
  private:
-  // Returns true if the current test has the same fixture class as
-  // the first test in the current test suite.
+  // Returns true if and only if the current test has the same fixture class
+  // as the first test in the current test suite.
   static bool HasSameFixtureClass();
 
   // Runs the test after the test fixture has been set up.
@@ -574,19 +400,19 @@ class GTEST_API_ TestResult {
   // Returns the number of the test properties.
   int test_property_count() const;
 
-  // Returns true if the test passed (i.e. no test part failed).
+  // Returns true if and only if the test passed (i.e. no test part failed).
   bool Passed() const { return !Skipped() && !Failed(); }
 
-  // Returns true if the test was skipped.
+  // Returns true if and only if the test was skipped.
   bool Skipped() const;
 
-  // Returns true if the test failed.
+  // Returns true if and only if the test failed.
   bool Failed() const;
 
-  // Returns true if the test fatally failed.
+  // Returns true if and only if the test fatally failed.
   bool HasFatalFailure() const;
 
-  // Returns true if the test has a non-fatal failure.
+  // Returns true if and only if the test has a non-fatal failure.
   bool HasNonfatalFailure() const;
 
   // Returns the elapsed time, in milliseconds.
@@ -664,7 +490,7 @@ class GTEST_API_ TestResult {
 
   // Protects mutable state of the property vector and of owned
   // properties, whose values may be updated.
-  internal::Mutex test_properites_mutex_;
+  internal::Mutex test_properties_mutex_;
 
   // The vector of TestPartResults
   std::vector<TestPartResult> test_part_results_;
@@ -750,7 +576,7 @@ class GTEST_API_ TestInfo {
   // contains the character 'A' or starts with "Foo.".
   bool should_run() const { return should_run_; }
 
-  // Returns true if this test will appear in the XML report.
+  // Returns true if and only if this test will appear in the XML report.
   bool is_reportable() const {
     // The XML report includes tests matching the filter, excluding those
     // run in other shards.
@@ -794,6 +620,9 @@ class GTEST_API_ TestInfo {
   // deletes it.
   void Run();
 
+  // Skip and records the test result for this object.
+  void Skip();
+
   static void ClearTestResult(TestInfo* test_info) {
     test_info->result_.Clear();
   }
@@ -808,12 +637,12 @@ class GTEST_API_ TestInfo {
   // value-parameterized test.
   const std::unique_ptr<const ::std::string> value_param_;
   internal::CodeLocation location_;
-  const internal::TypeId fixture_class_id_;   // ID of the test fixture class
-  bool should_run_;                 // True if this test should run
-  bool is_disabled_;                // True if this test is disabled
-  bool matches_filter_;             // True if this test matches the
-                                    // user-specified filter.
-  bool is_in_another_shard_;        // Will be run in another shard.
+  const internal::TypeId fixture_class_id_;  // ID of the test fixture class
+  bool should_run_;           // True if and only if this test should run
+  bool is_disabled_;          // True if and only if this test is disabled
+  bool matches_filter_;       // True if this test matches the
+                              // user-specified filter.
+  bool is_in_another_shard_;  // Will be run in another shard.
   internal::TestFactoryBase* const factory_;  // The factory that creates
                                               // the test object
 
@@ -885,11 +714,13 @@ class GTEST_API_ TestSuite {
   // Gets the number of all tests in this test suite.
   int total_test_count() const;
 
-  // Returns true if the test suite passed.
+  // Returns true if and only if the test suite passed.
   bool Passed() const { return !Failed(); }
 
-  // Returns true if the test suite failed.
-  bool Failed() const { return failed_test_count() > 0; }
+  // Returns true if and only if the test suite failed.
+  bool Failed() const {
+    return failed_test_count() > 0 || ad_hoc_test_result().Failed();
+  }
 
   // Returns the elapsed time, in milliseconds.
   TimeInMillis elapsed_time() const { return elapsed_time_; }
@@ -940,6 +771,9 @@ class GTEST_API_ TestSuite {
   // Runs every test in this TestSuite.
   void Run();
 
+  // Skips the execution of tests under this TestSuite
+  void Skip();
+
   // Runs SetUpTestSuite() for this TestSuite.  This wrapper is needed
   // for catching exceptions thrown from SetUpTestSuite().
   void RunSetUpTestSuite() {
@@ -956,33 +790,33 @@ class GTEST_API_ TestSuite {
     }
   }
 
-  // Returns true if test passed.
+  // Returns true if and only if test passed.
   static bool TestPassed(const TestInfo* test_info) {
     return test_info->should_run() && test_info->result()->Passed();
   }
 
-  // Returns true if test skipped.
+  // Returns true if and only if test skipped.
   static bool TestSkipped(const TestInfo* test_info) {
     return test_info->should_run() && test_info->result()->Skipped();
   }
 
-  // Returns true if test failed.
+  // Returns true if and only if test failed.
   static bool TestFailed(const TestInfo* test_info) {
     return test_info->should_run() && test_info->result()->Failed();
   }
 
-  // Returns true if the test is disabled and will be reported in the XML
-  // report.
+  // Returns true if and only if the test is disabled and will be reported in
+  // the XML report.
   static bool TestReportableDisabled(const TestInfo* test_info) {
     return test_info->is_reportable() && test_info->is_disabled_;
   }
 
-  // Returns true if test is disabled.
+  // Returns true if and only if test is disabled.
   static bool TestDisabled(const TestInfo* test_info) {
     return test_info->is_disabled_;
   }
 
-  // Returns true if this test will appear in the XML report.
+  // Returns true if and only if this test will appear in the XML report.
   static bool TestReportable(const TestInfo* test_info) {
     return test_info->is_reportable();
   }
@@ -1014,7 +848,7 @@ class GTEST_API_ TestSuite {
   internal::SetUpTestSuiteFunc set_up_tc_;
   // Pointer to the function that tears down the test suite.
   internal::TearDownTestSuiteFunc tear_down_tc_;
-  // True if any test in this test suite should run.
+  // True if and only if any test in this test suite should run.
   bool should_run_;
   // The start time, in milliseconds since UNIX Epoch.
   TimeInMillis start_timestamp_;
@@ -1103,6 +937,9 @@ class TestEventListener {
   // Fired before the test starts.
   virtual void OnTestStart(const TestInfo& test_info) = 0;
 
+  // Fired when a test is disabled
+  virtual void OnTestDisabled(const TestInfo& /*test_info*/) {}
+
   // Fired after a failed assertion or a SUCCEED() invocation.
   // If you want to throw an exception from this function to skip to the next
   // TEST, it must be AssertionException defined above, or inherited from it.
@@ -1152,6 +989,7 @@ class EmptyTestEventListener : public TestEventListener {
 #endif  //  GTEST_REMOVE_LEGACY_TEST_CASEAPI_
 
   void OnTestStart(const TestInfo& /*test_info*/) override {}
+  void OnTestDisabled(const TestInfo& /*test_info*/) override {}
   void OnTestPartResult(const TestPartResult& /*test_part_result*/) override {}
   void OnTestEnd(const TestInfo& /*test_info*/) override {}
   void OnTestSuiteEnd(const TestSuite& /*test_suite*/) override {}
@@ -1349,11 +1187,12 @@ class GTEST_API_ UnitTest {
   // Gets the elapsed time, in milliseconds.
   TimeInMillis elapsed_time() const;
 
-  // Returns true if the unit test passed (i.e. all test suites passed).
+  // Returns true if and only if the unit test passed (i.e. all test suites
+  // passed).
   bool Passed() const;
 
-  // Returns true if the unit test failed (i.e. some test suite failed
-  // or something outside of all tests failed).
+  // Returns true if and only if the unit test failed (i.e. some test suite
+  // failed or something outside of all tests failed).
   bool Failed() const;
 
   // Gets the i-th test suite among all the test suites. i can range from 0 to
@@ -1419,6 +1258,7 @@ class GTEST_API_ UnitTest {
   friend class internal::StreamingListenerTest;
   friend class internal::UnitTestRecordPropertyTestHelper;
   friend Environment* AddGlobalTestEnvironment(Environment* env);
+  friend std::set<std::string>* internal::GetIgnoredParameterizedTestSuites();
   friend internal::UnitTestImpl* internal::GetUnitTestImpl();
   friend void internal::ReportFailureInUnknownLocation(
       TestPartResult::Type result_type,
@@ -1530,14 +1370,6 @@ AssertionResult CmpHelperEQ(const char* lhs_expression,
   return CmpHelperEQFailure(lhs_expression, rhs_expression, lhs, rhs);
 }
 
-// With this overloaded version, we allow anonymous enums to be used
-// in {ASSERT|EXPECT}_EQ when compiled with gcc 4, as anonymous enums
-// can be implicitly cast to BiggestInt.
-GTEST_API_ AssertionResult CmpHelperEQ(const char* lhs_expression,
-                                       const char* rhs_expression,
-                                       BiggestInt lhs,
-                                       BiggestInt rhs);
-
 class EqHelper {
  public:
   // This templatized version is for the general case.
@@ -1594,11 +1426,6 @@ AssertionResult CmpHelperOpFailure(const char* expr1, const char* expr2,
 // ASSERT_?? and EXPECT_??.  It is here just to avoid copy-and-paste
 // of similar code.
 //
-// For each templatized helper function, we also define an overloaded
-// version for BiggestInt in order to reduce code bloat and allow
-// anonymous enums to be used with {ASSERT|EXPECT}_?? when compiled
-// with gcc 4.
-//
 // INTERNAL IMPLEMENTATION - DO NOT USE IN A USER PROGRAM.
 
 #define GTEST_IMPL_CMP_HELPER_(op_name, op)\
@@ -1610,22 +1437,20 @@ AssertionResult CmpHelper##op_name(const char* expr1, const char* expr2, \
   } else {\
     return CmpHelperOpFailure(expr1, expr2, val1, val2, #op);\
   }\
-}\
-GTEST_API_ AssertionResult CmpHelper##op_name(\
-    const char* expr1, const char* expr2, BiggestInt val1, BiggestInt val2)
+}
 
 // INTERNAL IMPLEMENTATION - DO NOT USE IN A USER PROGRAM.
 
 // Implements the helper function for {ASSERT|EXPECT}_NE
-GTEST_IMPL_CMP_HELPER_(NE, !=);
+GTEST_IMPL_CMP_HELPER_(NE, !=)
 // Implements the helper function for {ASSERT|EXPECT}_LE
-GTEST_IMPL_CMP_HELPER_(LE, <=);
+GTEST_IMPL_CMP_HELPER_(LE, <=)
 // Implements the helper function for {ASSERT|EXPECT}_LT
-GTEST_IMPL_CMP_HELPER_(LT, <);
+GTEST_IMPL_CMP_HELPER_(LT, <)
 // Implements the helper function for {ASSERT|EXPECT}_GE
-GTEST_IMPL_CMP_HELPER_(GE, >=);
+GTEST_IMPL_CMP_HELPER_(GE, >=)
 // Implements the helper function for {ASSERT|EXPECT}_GT
-GTEST_IMPL_CMP_HELPER_(GT, >);
+GTEST_IMPL_CMP_HELPER_(GT, >)
 
 #undef GTEST_IMPL_CMP_HELPER_
 
@@ -1802,12 +1627,6 @@ class GTEST_API_ AssertHelper {
   GTEST_DISALLOW_COPY_AND_ASSIGN_(AssertHelper);
 };
 
-enum GTestColor { COLOR_DEFAULT, COLOR_RED, COLOR_GREEN, COLOR_YELLOW };
-
-GTEST_API_ GTEST_ATTRIBUTE_PRINTF_(2, 3) void ColoredPrintf(GTestColor color,
-                                                            const char* fmt,
-                                                            ...);
-
 }  // namespace internal
 
 // The pure interface class that all value-parameterized tests inherit from.
@@ -1888,7 +1707,7 @@ class TestWithParam : public Test, public WithParamInterface<T> {
 // Skips test in runtime.
 // Skipping test aborts current function.
 // Skipped tests are neither successful nor failed.
-#define GTEST_SKIP() GTEST_SKIP_("Skipped")
+#define GTEST_SKIP() GTEST_SKIP_("")
 
 // ADD_FAILURE unconditionally adds a failure to the current test.
 // SUCCEED generates a success - it doesn't automatically make the
@@ -1964,18 +1783,37 @@ class TestWithParam : public Test, public WithParamInterface<T> {
 // Boolean assertions. Condition can be either a Boolean expression or an
 // AssertionResult. For more information on how to use AssertionResult with
 // these macros see comments on that class.
-#define EXPECT_TRUE(condition) \
+#define GTEST_EXPECT_TRUE(condition) \
   GTEST_TEST_BOOLEAN_(condition, #condition, false, true, \
                       GTEST_NONFATAL_FAILURE_)
-#define EXPECT_FALSE(condition) \
+#define GTEST_EXPECT_FALSE(condition) \
   GTEST_TEST_BOOLEAN_(!(condition), #condition, true, false, \
                       GTEST_NONFATAL_FAILURE_)
-#define ASSERT_TRUE(condition) \
+#define GTEST_ASSERT_TRUE(condition) \
   GTEST_TEST_BOOLEAN_(condition, #condition, false, true, \
                       GTEST_FATAL_FAILURE_)
-#define ASSERT_FALSE(condition) \
+#define GTEST_ASSERT_FALSE(condition) \
   GTEST_TEST_BOOLEAN_(!(condition), #condition, true, false, \
                       GTEST_FATAL_FAILURE_)
+
+// Define these macros to 1 to omit the definition of the corresponding
+// EXPECT or ASSERT, which clashes with some users' own code.
+
+#if !GTEST_DONT_DEFINE_EXPECT_TRUE
+#define EXPECT_TRUE(condition) GTEST_EXPECT_TRUE(condition)
+#endif
+
+#if !GTEST_DONT_DEFINE_EXPECT_FALSE
+#define EXPECT_FALSE(condition) GTEST_EXPECT_FALSE(condition)
+#endif
+
+#if !GTEST_DONT_DEFINE_ASSERT_TRUE
+#define ASSERT_TRUE(condition) GTEST_ASSERT_TRUE(condition)
+#endif
+
+#if !GTEST_DONT_DEFINE_ASSERT_FALSE
+#define ASSERT_FALSE(condition) GTEST_ASSERT_FALSE(condition)
+#endif
 
 // Macros for testing equalities and inequalities.
 //
@@ -2265,10 +2103,9 @@ class GTEST_API_ ScopedTrace {
   ::testing::ScopedTrace GTEST_CONCAT_TOKEN_(gtest_trace_, __LINE__)(\
     __FILE__, __LINE__, (message))
 
-
 // Compile-time assertion for type equality.
-// StaticAssertTypeEq<type1, type2>() compiles if type1 and type2 are
-// the same type.  The value it returns is not interesting.
+// StaticAssertTypeEq<type1, type2>() compiles if and only if type1 and type2
+// are the same type.  The value it returns is not interesting.
 //
 // Instead of making StaticAssertTypeEq a class template, we make it a
 // function template that invokes a helper class template.  This
@@ -2297,8 +2134,8 @@ class GTEST_API_ ScopedTrace {
 //
 // to cause a compiler error.
 template <typename T1, typename T2>
-bool StaticAssertTypeEq() {
-  (void)internal::StaticAssertTypeEqHelper<T1, T2>();
+constexpr bool StaticAssertTypeEq() noexcept {
+  static_assert(std::is_same<T1, T2>::value, "T1 and T2 are not the same type");
   return true;
 }
 
@@ -2362,11 +2199,12 @@ bool StaticAssertTypeEq() {
 //     EXPECT_EQ(a_.size(), 0);
 //     EXPECT_EQ(b_.size(), 1);
 //   }
-//
-// GOOGLETEST_CM0011 DO NOT DELETE
-#define TEST_F(test_fixture, test_name)\
+#define GTEST_TEST_F(test_fixture, test_name)\
   GTEST_TEST_(test_fixture, test_name, test_fixture, \
               ::testing::internal::GetTypeId<test_fixture>())
+#if !GTEST_DONT_DEFINE_TEST_F
+#define TEST_F(test_fixture, test_name) GTEST_TEST_F(test_fixture, test_name)
+#endif
 
 // Returns a path to temporary directory.
 // Tries to determine an appropriate directory for the platform.
@@ -2427,6 +2265,7 @@ GTEST_API_ std::string TempDir();
 // }
 // ...
 // int main(int argc, char** argv) {
+//   ::testing::InitGoogleTest(&argc, argv);
 //   std::vector<int> values_to_test = LoadValuesFromConfig();
 //   RegisterMyTests(values_to_test);
 //   ...
@@ -2474,4 +2313,4 @@ inline int RUN_ALL_TESTS() {
 
 GTEST_DISABLE_MSC_WARNINGS_POP_()  //  4251
 
-#endif  // GTEST_INCLUDE_GTEST_GTEST_H_
+#endif  // GOOGLETEST_INCLUDE_GTEST_GTEST_H_

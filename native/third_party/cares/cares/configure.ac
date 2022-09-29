@@ -1,14 +1,44 @@
 AC_PREREQ(2.57)
 
-AC_INIT([c-ares], [1.15.0],
+AC_INIT([c-ares], [1.17.2],
   [c-ares mailing list: http://cool.haxx.se/mailman/listinfo/c-ares])
+
+CARES_VERSION_INFO="6:3:4"
+dnl This flag accepts an argument of the form current[:revision[:age]]. So,
+dnl passing -version-info 3:12:1 sets current to 3, revision to 12, and age to
+dnl 1.
+dnl
+dnl If either revision or age are omitted, they default to 0. Also note that age
+dnl must be less than or equal to the current interface number.
+dnl
+dnl Here are a set of rules to help you update your library version information:
+dnl
+dnl 1.Start with version information of 0:0:0 for each libtool library.
+dnl
+dnl 2.Update the version information only immediately before a public release of
+dnl your software. More frequent updates are unnecessary, and only guarantee
+dnl that the current interface number gets larger faster.
+dnl
+dnl 3.If the library source code has changed at all since the last update, then
+dnl increment revision (c:r+1:a)
+dnl
+dnl 4.If any interfaces have been added, removed, or changed since the last
+dnl update, increment current, and set revision to 0. (c+1:r=0:a)
+dnl
+dnl 5.If any interfaces have been added since the last public release, then
+dnl increment age. (c:r:a+1)
+dnl
+dnl 6.If any interfaces have been removed since the last public release, then
+dnl set age to 0. (c:r:a=0)
+dnl
+AC_SUBST([CARES_VERSION_INFO])
 
 XC_OVR_ZZ50
 XC_OVR_ZZ60
 CARES_OVERRIDE_AUTOCONF
 
-AC_CONFIG_SRCDIR([ares_ipv6.h])
-AC_CONFIG_HEADERS([ares_config.h ares_build.h])
+AC_CONFIG_SRCDIR([src/lib/ares_ipv6.h])
+AC_CONFIG_HEADERS([src/lib/ares_config.h include/ares_build.h])
 AC_CONFIG_MACRO_DIR([m4])
 AM_MAINTAINER_MODE
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
@@ -17,7 +47,6 @@ CARES_CHECK_OPTION_DEBUG
 CARES_CHECK_OPTION_OPTIMIZE
 CARES_CHECK_OPTION_WARNINGS
 CARES_CHECK_OPTION_WERROR
-CARES_CHECK_OPTION_CURLDEBUG
 CARES_CHECK_OPTION_SYMBOL_HIDING
 CARES_CHECK_OPTION_EXPOSE_STATICS
 
@@ -70,10 +99,6 @@ AC_SUBST([AR])
 
 AX_CODE_COVERAGE
 
-dnl Remove non-configure distributed ares_build.h
-if test -f ${srcdir}/ares_build.h; then
-  rm -f ${srcdir}/ares_build.h
-fi
 
 dnl
 dnl Detect the canonical host and target build environment
@@ -105,6 +130,7 @@ case $host_os in
 esac
 
 XC_LIBTOOL
+
 
 #
 # Automake conditionals based on libtool related checks
@@ -175,16 +201,13 @@ CARES_CHECK_COMPILER_ARRAY_SIZE_NEGATIVE
 CARES_CHECK_COMPILER_PROTOTYPE_MISMATCH
 CARES_CHECK_COMPILER_SYMBOL_HIDING
 
-CARES_CHECK_CURLDEBUG
-AM_CONDITIONAL(CURLDEBUG, test x$want_curldebug = xyes)
-
 dnl **********************************************************************
 dnl Compilation based checks should not be done before this point.
 dnl **********************************************************************
 
 dnl **********************************************************************
-dnl Make sure that our checks for headers windows.h winsock.h winsock2.h 
-dnl and ws2tcpip.h take precedence over any other further checks which 
+dnl Make sure that our checks for headers windows.h winsock.h winsock2.h
+dnl and ws2tcpip.h take precedence over any other further checks which
 dnl could be done later using AC_CHECK_HEADER or AC_CHECK_HEADERS for
 dnl this specific header files. And do them before its results are used.
 dnl **********************************************************************
@@ -354,27 +377,21 @@ if test "$HAVE_GETHOSTBYNAME" != "1"; then
   AC_MSG_ERROR([couldn't find libraries for gethostbyname()])
 fi
 
-dnl resolv lib for iPhone
+dnl resolv lib for Apple (MacOS and iOS)
 AS_IF([test "x$host_vendor" = "xapple"], [
-  AC_MSG_CHECKING([for iPhone target])
-  AC_COMPILE_IFELSE([
-    AC_LANG_PROGRAM([[
-#include "TargetConditionals.h"
-    ]], [[
-#if TARGET_OS_IPHONE == 0
-#error Not an iPhone target
-#endif
-return 0;
-    ]])
-  ],[
-    AC_MSG_RESULT([yes])
-    AC_SEARCH_LIBS([res_servicename], [resolv], [
-      AC_DEFINE([CARES_USE_LIBRESOLV], [1], [Use resolver library to configure cares])
-    ], [
-      AC_MSG_ERROR([Unable to find libresolv which is required for iPhone targets])
-    ])
-  ],[
-    AC_MSG_RESULT([no])
+  AC_SEARCH_LIBS([res_servicename], [resolv], [
+    AC_DEFINE([CARES_USE_LIBRESOLV], [1], [Use resolver library to configure cares])
+  ], [
+    AC_MSG_ERROR([Unable to find libresolv which is required for iPhone targets])
+  ])
+])
+
+dnl resolv lib for z/OS
+AS_IF([test "x$host_vendor" = "xibm" -a "x$host_os" = "xopenedition" ], [
+  AC_SEARCH_LIBS([res_init], [resolv], [
+    AC_DEFINE([CARES_USE_LIBRESOLV], [1], [Use resolver library to configure cares])
+  ], [
+    AC_MSG_ERROR([Unable to find libresolv which is required for z/OS])
   ])
 ])
 
@@ -539,7 +556,7 @@ CURL_CHECK_STRUCT_TIMEVAL
 AC_CHECK_TYPE(long long,
    [AC_DEFINE(HAVE_LONGLONG, 1,
      [Define to 1 if the compiler supports the 'long long' data type.])]
-   longlong="yes"  
+   longlong="yes"
 )
 
 if test "xyes" = "x$longlong"; then
@@ -643,7 +660,7 @@ CARES_CHECK_CONSTANT(
 #include <sys/socket.h>
 #endif
 #endif
-  ], [PF_INET6], 
+  ], [PF_INET6],
      AC_DEFINE_UNQUOTED(HAVE_PF_INET6,1,[Define to 1 if you have PF_INET6.])
 )
 
@@ -667,7 +684,7 @@ CARES_CHECK_CONSTANT(
 #include <sys/socket.h>
 #endif
 #endif
-  ], [AF_INET6], 
+  ], [AF_INET6],
      AC_DEFINE_UNQUOTED(HAVE_AF_INET6,1,[Define to 1 if you have AF_INET6.])
 )
 
@@ -695,7 +712,7 @@ CARES_CHECK_STRUCT(
 #include <netinet/in.h>
 #endif
 #endif
-  ], [in6_addr], 
+  ], [in6_addr],
      AC_DEFINE_UNQUOTED(HAVE_STRUCT_IN6_ADDR,1,[Define to 1 if you have struct in6_addr.])
 )
 
@@ -722,7 +739,7 @@ CARES_CHECK_STRUCT(
 #include <netinet/in.h>
 #endif
 #endif
-  ], [sockaddr_in6], 
+  ], [sockaddr_in6],
      AC_DEFINE_UNQUOTED(HAVE_STRUCT_SOCKADDR_IN6,1,
        [Define to 1 if you have struct sockaddr_in6.]) ac_have_sockaddr_in6=yes
 )
@@ -833,22 +850,22 @@ dnl Check for user-specified random device
 AC_ARG_WITH(random,
 AC_HELP_STRING([--with-random=FILE],
                [read randomness from FILE (default=/dev/urandom)]),
-    [ RANDOM_FILE="$withval" ],
+    [ CARES_RANDOM_FILE="$withval" ],
     [
         dnl Check for random device.  If we're cross compiling, we can't
         dnl check, and it's better to assume it doesn't exist than it is
         dnl to fail on AC_CHECK_FILE or later.
         if test "$cross_compiling" = "no"; then
-          AC_CHECK_FILE("/dev/urandom", [ RANDOM_FILE="/dev/urandom"] )
+          AC_CHECK_FILE("/dev/urandom", [ CARES_RANDOM_FILE="/dev/urandom"] )
         else
           AC_MSG_WARN([cannot check for /dev/urandom while cross compiling; assuming none])
         fi
-        
+
     ]
 )
-if test -n "$RANDOM_FILE" && test X"$RANDOM_FILE" != Xno ; then
-        AC_SUBST(RANDOM_FILE)
-        AC_DEFINE_UNQUOTED(RANDOM_FILE, "$RANDOM_FILE",
+if test -n "$CARES_RANDOM_FILE" && test X"$CARES_RANDOM_FILE" != Xno ; then
+        AC_SUBST(CARES_RANDOM_FILE)
+        AC_DEFINE_UNQUOTED(CARES_RANDOM_FILE, "$CARES_RANDOM_FILE",
         [a suitable file/device to read random data from])
 fi
 
@@ -900,10 +917,22 @@ if test "x$build_tests" = "xyes" ; then
 fi
 AC_MSG_RESULT([$build_tests])
 
+
+BUILD_SUBDIRS="include src docs"
 if test "x$build_tests" = "xyes" ; then
   AC_CONFIG_SUBDIRS([test])
+  BUILD_SUBDIRS="${BUILD_SUBDIRS} test"
 fi
 
-AC_CONFIG_FILES([Makefile libcares.pc])
+AC_SUBST(BUILD_SUBDIRS)
+
+AC_CONFIG_FILES([Makefile           \
+                 include/Makefile   \
+                 src/Makefile       \
+                 src/lib/Makefile   \
+                 src/tools/Makefile \
+                 docs/Makefile      \
+                 libcares.pc ])
+
 AC_OUTPUT
 XC_AMEND_DISTCLEAN(['.'])

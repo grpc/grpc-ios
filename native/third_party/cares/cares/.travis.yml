@@ -1,17 +1,14 @@
 language: c++
-dist: trusty
+dist: bionic
 sudo: false
 addons:
     apt:
-        sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-5.0
         packages:
-            - cmake3
+            - cmake
             - lcov
-            - clang-5.0
-            - clang-tools-5.0
+            - clang-tools-7
             - valgrind
+
 matrix:
     include:
         - os: linux
@@ -35,37 +32,44 @@ matrix:
         - os: linux
           compiler: clang
           env: BUILD_TYPE=asan
-          sudo: true  # ASAN requires ptrace which is disabled in containers (https://github.com/travis-ci/travis-ci/issues/9033)
         - os: linux
           compiler: clang
           env: BUILD_TYPE=lsan
-          sudo: true  # LSAN requires ptrace which is disabled in containers (https://github.com/travis-ci/travis-ci/issues/9033)
         - os: linux
           compiler: clang
-          env: BUILD_TYPE=analyse
+          env: BUILD_TYPE=analyze
         - os: linux
           compiler: gcc
           env: BUILD_TYPE=valgrind
         - os: osx
+          osx_image: xcode11.4
           compiler: gcc
           env: BUILD_TYPE=normal
         - os: osx
+          osx_image: xcode11.4
           compiler: clang
           env: BUILD_TYPE=normal
         - os: osx
+          osx_image: xcode11.4
           compiler: clang
           env: BUILD_TYPE=cmake
         - os: osx
+          osx_image: xcode11.4
           compiler: clang
           language: objective-c
           env: BUILD_TYPE=ios
+        - os: osx
+          osx_image: xcode11.4
+          compiler: clang
+          language: objective-c
+          env: BUILD_TYPE=ios-cmake
 install:
     - if [ "$TRAVIS_OS_NAME" != "osx" ]; then pip install --user cpp-coveralls > /dev/null; fi
     - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew reinstall libtool > /dev/null; fi
 before_script:
     - |
         if [ "$BUILD_TYPE" = "coverage" ]; then
-             export CONFIG_OPTS="--enable-debug --disable-shared --enable-code-coverage"
+             export CONFIG_OPTS="--enable-debug --disable-shared --enable-code-coverage --enable-tests"
         fi
     - |
          if [ "$BUILD_TYPE" = "asan" ]; then
@@ -87,23 +91,32 @@ before_script:
              export LDFLAGS="-fsanitize=undefined"
          fi
     - |
-         if [ "$BUILD_TYPE" = "analyse" ]; then
-             export SCAN_WRAP="scan-build-5.0 --status-bugs"
-             export CONFIG_OPTS="--enable-debug"
-             export CXX="clang++-5.0"
-             export CC="clang-5.0"
+         if [ "$BUILD_TYPE" = "analyze" ]; then
+             export SCAN_WRAP="scan-build-7 --status-bugs"
+             export CONFIG_OPTS="--enable-debug --disable-tests"
+             export CXX="clang++-7"
+             export CC="clang-7"
          fi
     - |
          if [ "$BUILD_TYPE" = "valgrind" ]; then
-             export TEST_WRAP='libtool --mode=execute valgrind --leak-check=full'
+             export TEST_WRAP='valgrind --leak-check=full'
              # Skip container tests as valgrind doesn't cope with clone()
-             export TEST_FILTER="--gtest_filter=-*Container*"
+             export TEST_FILTER="--gtest_filter=-*Container*:-*LiveSearchANY*"
          fi
     - |
          if [ "$BUILD_TYPE" = "ios" ]; then
-             export CONFIG_OPTS=--host=arm-apple-darwin10
+             export CONFIG_OPTS="--host=arm-apple-darwin10 --disable-tests"
              export DEVPATH=`xcode-select -print-path`/Platforms/iPhoneOS.platform/Developer
              export IOSFLAGS="-isysroot $DEVPATH/SDKs/iPhoneOS.sdk -arch armv7 -miphoneos-version-min=8.0.0"
+             export CFLAGS=$IOSFLAGS
+             export CXXFLAGS=$IOSFLAGS
+             export LDFLAGS=$IOSFLAGS
+         fi
+    - |
+         if [ "$BUILD_TYPE" = "ios-cmake" ]; then
+             export SYSROOT="$(xcode-select -print-path)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/"
+             export IOSFLAGS="-miphoneos-version-min=10.0"
+             export ARCHITECTURES="armv7;armv7s;arm64"
              export CFLAGS=$IOSFLAGS
              export CXXFLAGS=$IOSFLAGS
              export LDFLAGS=$IOSFLAGS

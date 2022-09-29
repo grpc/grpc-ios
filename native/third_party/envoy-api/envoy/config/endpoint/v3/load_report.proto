@@ -15,6 +15,7 @@ import "validate/validate.proto";
 option java_package = "io.envoyproxy.envoy.config.endpoint.v3";
 option java_outer_classname = "LoadReportProto";
 option java_multiple_files = true;
+option go_package = "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3;endpointv3";
 option (udpa.annotations.file_status).package_version_status = ACTIVE;
 
 // [#protodoc-title: Load Report]
@@ -160,8 +161,8 @@ message ClusterStats {
   repeated DroppedRequests dropped_requests = 5;
 
   // Period over which the actual load report occurred. This will be guaranteed to include every
-  // request reported. Due to system load and delays between the *LoadStatsRequest* sent from Envoy
-  // and the *LoadStatsResponse* message sent from the management server, this may be longer than
-  // the requested load reporting interval in the *LoadStatsResponse*.
+  // request reported. Due to system load and delays between the ``LoadStatsRequest`` sent from Envoy
+  // and the ``LoadStatsResponse`` message sent from the management server, this may be longer than
+  // the requested load reporting interval in the ``LoadStatsResponse``.
   google.protobuf.Duration load_report_interval = 4;
 }
