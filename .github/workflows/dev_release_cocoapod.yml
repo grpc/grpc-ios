@@ -28,6 +28,11 @@ jobs:
       - name: Pod release
         run: scripts/release_cocoapod.sh build/cocoapod/gRPC-RxLibrary.podspec
 
+      - name: Wait for pod avaialble
+        run: |
+          version=$(cat VERSION)
+          timeout 1h scripts/wait_for_pod_release.sh gRPC-RxLibrary $version
+
   release-cocoapod-gRPC:
     runs-on: macos-latest
     needs: release-cocoapod-gRPC-RxLibrary
@@ -49,6 +54,11 @@ jobs:
       - name: Pod release
         run: scripts/release_cocoapod.sh gRPC.podspec
 
+      - name: Wait for pod avaialble
+        run: |
+          version=$(cat VERSION)
+          timeout 1h scripts/wait_for_pod_release.sh gRPC $version
+
   release-cocoapod-gRPC-ProtoRPC:
     runs-on: macos-latest
     needs: [release-cocoapod-gRPC-RxLibrary, release-cocoapod-gRPC]
@@ -69,3 +79,8 @@ jobs:
 
       - name: Pod release
         run: scripts/release_cocoapod.sh gRPC-ProtoRPC.podspec
+
+      - name: Wait for pod avaialble
+        run: |
+          version=$(cat VERSION)
+          timeout 1h scripts/wait_for_pod_release.sh gRPC-ProtoRPC $version
