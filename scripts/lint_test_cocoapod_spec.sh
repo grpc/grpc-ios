@@ -37,7 +37,6 @@ for PODSPEC in $GRPC_PODSPECS; do
     --allow-warnings \
     --skip-tests \
     --fail-fast \
-    --platforms=ios,macos \
     --verbose
 done
 
