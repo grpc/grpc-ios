@@ -5,6 +5,9 @@ on:
       - 'main'
   repository_dispatch:
     types: [cocoapod-release-dev]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
 env:
   COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
 jobs:
