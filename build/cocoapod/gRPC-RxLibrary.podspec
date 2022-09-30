@@ -21,7 +21,7 @@
 
 Pod::Spec.new do |s|
     s.name     = 'gRPC-RxLibrary'
-    version = '1.44.0-dev'
+    version = '1.49.1-dev'
     s.version  = version
     s.summary  = 'Reactive Extensions library for iOS/OSX.'
     s.homepage = 'https://grpc.io'
@@ -63,5 +63,6 @@ Pod::Spec.new do |s|
 
     s.pod_target_xcconfig = {
       'CLANG_WARN_STRICT_PROTOTYPES' => 'NO',
+      'CLANG_CXX_LANGUAGE_STANDARD' => 'c++14',
     }
   end
