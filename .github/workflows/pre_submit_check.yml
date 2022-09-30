@@ -5,6 +5,9 @@ on:
       - 'main'
   repository_dispatch:
     types: [pre-submit-check]
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 jobs:
   pre-submit-spm-build-test:
     runs-on: macos-latest

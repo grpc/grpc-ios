@@ -6,7 +6,7 @@ on:
   repository_dispatch:
     types: [cocoapod-release-dev]
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref_name }}
+  group: ${{ github.workflow }}
   cancel-in-progress: true
 env:
   COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
