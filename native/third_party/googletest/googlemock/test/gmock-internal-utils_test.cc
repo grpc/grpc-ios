@@ -33,17 +33,20 @@
 // This file tests the internal utilities.
 
 #include "gmock/internal/gmock-internal-utils.h"
+
 #include <stdlib.h>
+
+#include <cstdint>
 #include <map>
 #include <memory>
-#include <string>
 #include <sstream>
-#include <type_traits>
+#include <string>
 #include <vector>
+
 #include "gmock/gmock.h"
 #include "gmock/internal/gmock-port.h"
-#include "gtest/gtest.h"
 #include "gtest/gtest-spi.h"
+#include "gtest/gtest.h"
 
 // Indicates that this translation unit is part of Google Test's
 // implementation.  It must come before gtest-internal-inl.h is
@@ -67,24 +70,23 @@ namespace internal {
 
 namespace {
 
-TEST(JoinAsTupleTest, JoinsEmptyTuple) {
-  EXPECT_EQ("", JoinAsTuple(Strings()));
+TEST(JoinAsKeyValueTupleTest, JoinsEmptyTuple) {
+  EXPECT_EQ("", JoinAsKeyValueTuple({}, Strings()));
 }
 
-TEST(JoinAsTupleTest, JoinsOneTuple) {
-  const char* fields[] = {"1"};
-  EXPECT_EQ("1", JoinAsTuple(Strings(fields, fields + 1)));
+TEST(JoinAsKeyValueTupleTest, JoinsOneTuple) {
+  EXPECT_EQ("(a: 1)", JoinAsKeyValueTuple({"a"}, {"1"}));
 }
 
-TEST(JoinAsTupleTest, JoinsTwoTuple) {
-  const char* fields[] = {"1", "a"};
-  EXPECT_EQ("(1, a)", JoinAsTuple(Strings(fields, fields + 2)));
+TEST(JoinAsKeyValueTupleTest, JoinsTwoTuple) {
+  EXPECT_EQ("(a: 1, b: 2)", JoinAsKeyValueTuple({"a", "b"}, {"1", "2"}));
 }
 
-TEST(JoinAsTupleTest, JoinsTenTuple) {
-  const char* fields[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
-  EXPECT_EQ("(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)",
-            JoinAsTuple(Strings(fields, fields + 10)));
+TEST(JoinAsKeyValueTupleTest, JoinsTenTuple) {
+  EXPECT_EQ(
+      "(a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8, i: 9, j: 10)",
+      JoinAsKeyValueTuple({"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"},
+                          {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}));
 }
 
 TEST(ConvertIdentifierNameToWordsTest, WorksWhenNameContainsNoWord) {
@@ -121,18 +123,6 @@ TEST(ConvertIdentifierNameToWordsTest, WorksWhenNameIsMixture) {
             ConvertIdentifierNameToWords("_Chapter11Section_1_"));
 }
 
-TEST(PointeeOfTest, WorksForSmartPointers) {
-  CompileAssertTypesEqual<int, PointeeOf<std::unique_ptr<int> >::type>();
-  CompileAssertTypesEqual<std::string,
-                          PointeeOf<std::shared_ptr<std::string> >::type>();
-}
-
-TEST(PointeeOfTest, WorksForRawPointers) {
-  CompileAssertTypesEqual<int, PointeeOf<int*>::type>();
-  CompileAssertTypesEqual<const char, PointeeOf<const char*>::type>();
-  CompileAssertTypesEqual<void, PointeeOf<void*>::type>();
-}
-
 TEST(GetRawPointerTest, WorksForSmartPointers) {
   const char* const raw_p1 = new const char('a');  // NOLINT
   const std::unique_ptr<const char> p1(raw_p1);
@@ -147,6 +137,12 @@ TEST(GetRawPointerTest, WorksForRawPointers) {
   EXPECT_TRUE(nullptr == GetRawPointer(p));
   int n = 1;
   EXPECT_EQ(&n, GetRawPointer(&n));
+}
+
+TEST(GetRawPointerTest, WorksForStdReferenceWrapper) {
+  int n = 1;
+  EXPECT_EQ(&n, GetRawPointer(std::ref(n)));
+  EXPECT_EQ(&n, GetRawPointer(std::cref(n)));
 }
 
 // Tests KindOf<T>.
@@ -168,9 +164,9 @@ TEST(KindOfTest, Integer) {
   EXPECT_EQ(kInteger, GMOCK_KIND_OF_(unsigned int));  // NOLINT
   EXPECT_EQ(kInteger, GMOCK_KIND_OF_(long));  // NOLINT
   EXPECT_EQ(kInteger, GMOCK_KIND_OF_(unsigned long));  // NOLINT
+  EXPECT_EQ(kInteger, GMOCK_KIND_OF_(long long));  // NOLINT
+  EXPECT_EQ(kInteger, GMOCK_KIND_OF_(unsigned long long));  // NOLINT
   EXPECT_EQ(kInteger, GMOCK_KIND_OF_(wchar_t));  // NOLINT
-  EXPECT_EQ(kInteger, GMOCK_KIND_OF_(Int64));  // NOLINT
-  EXPECT_EQ(kInteger, GMOCK_KIND_OF_(UInt64));  // NOLINT
   EXPECT_EQ(kInteger, GMOCK_KIND_OF_(size_t));  // NOLINT
 #if GTEST_OS_LINUX || GTEST_OS_MAC || GTEST_OS_CYGWIN
   // ssize_t is not defined on Windows and possibly some other OSes.
@@ -218,11 +214,12 @@ TEST(LosslessArithmeticConvertibleTest, IntegerToInteger) {
   EXPECT_TRUE((LosslessArithmeticConvertible<unsigned char, int>::value));
 
   // Unsigned => larger unsigned is fine.
-  EXPECT_TRUE(
-      (LosslessArithmeticConvertible<unsigned short, UInt64>::value)); // NOLINT
+  EXPECT_TRUE((LosslessArithmeticConvertible<
+               unsigned short, uint64_t>::value));  // NOLINT
 
   // Signed => unsigned is not fine.
-  EXPECT_FALSE((LosslessArithmeticConvertible<short, UInt64>::value)); // NOLINT
+  EXPECT_FALSE((LosslessArithmeticConvertible<
+                short, uint64_t>::value));  // NOLINT
   EXPECT_FALSE((LosslessArithmeticConvertible<
       signed char, unsigned int>::value));  // NOLINT
 
@@ -238,12 +235,12 @@ TEST(LosslessArithmeticConvertibleTest, IntegerToInteger) {
   EXPECT_FALSE((LosslessArithmeticConvertible<
                 unsigned char, signed char>::value));
   EXPECT_FALSE((LosslessArithmeticConvertible<int, unsigned int>::value));
-  EXPECT_FALSE((LosslessArithmeticConvertible<UInt64, Int64>::value));
+  EXPECT_FALSE((LosslessArithmeticConvertible<uint64_t, int64_t>::value));
 
   // Larger size => smaller size is not fine.
   EXPECT_FALSE((LosslessArithmeticConvertible<long, char>::value));  // NOLINT
   EXPECT_FALSE((LosslessArithmeticConvertible<int, signed char>::value));
-  EXPECT_FALSE((LosslessArithmeticConvertible<Int64, unsigned int>::value));
+  EXPECT_FALSE((LosslessArithmeticConvertible<int64_t, unsigned int>::value));
 }
 
 TEST(LosslessArithmeticConvertibleTest, IntegerToFloatingPoint) {
@@ -262,7 +259,7 @@ TEST(LosslessArithmeticConvertibleTest, FloatingPointToBool) {
 
 TEST(LosslessArithmeticConvertibleTest, FloatingPointToInteger) {
   EXPECT_FALSE((LosslessArithmeticConvertible<float, long>::value));  // NOLINT
-  EXPECT_FALSE((LosslessArithmeticConvertible<double, Int64>::value));
+  EXPECT_FALSE((LosslessArithmeticConvertible<double, int64_t>::value));
   EXPECT_FALSE((LosslessArithmeticConvertible<long double, int>::value));
 }
 
@@ -369,27 +366,27 @@ TEST(ExpectTest, FailsNonfatallyOnFalse) {
 
 class LogIsVisibleTest : public ::testing::Test {
  protected:
-  void SetUp() override { original_verbose_ = GMOCK_FLAG(verbose); }
+  void SetUp() override { original_verbose_ = GMOCK_FLAG_GET(verbose); }
 
-  void TearDown() override { GMOCK_FLAG(verbose) = original_verbose_; }
+  void TearDown() override { GMOCK_FLAG_SET(verbose, original_verbose_); }
 
   std::string original_verbose_;
 };
 
 TEST_F(LogIsVisibleTest, AlwaysReturnsTrueIfVerbosityIsInfo) {
-  GMOCK_FLAG(verbose) = kInfoVerbosity;
+  GMOCK_FLAG_SET(verbose, kInfoVerbosity);
   EXPECT_TRUE(LogIsVisible(kInfo));
   EXPECT_TRUE(LogIsVisible(kWarning));
 }
 
 TEST_F(LogIsVisibleTest, AlwaysReturnsFalseIfVerbosityIsError) {
-  GMOCK_FLAG(verbose) = kErrorVerbosity;
+  GMOCK_FLAG_SET(verbose, kErrorVerbosity);
   EXPECT_FALSE(LogIsVisible(kInfo));
   EXPECT_FALSE(LogIsVisible(kWarning));
 }
 
 TEST_F(LogIsVisibleTest, WorksWhenVerbosityIsWarning) {
-  GMOCK_FLAG(verbose) = kWarningVerbosity;
+  GMOCK_FLAG_SET(verbose, kWarningVerbosity);
   EXPECT_FALSE(LogIsVisible(kInfo));
   EXPECT_TRUE(LogIsVisible(kWarning));
 }
@@ -402,8 +399,8 @@ TEST_F(LogIsVisibleTest, WorksWhenVerbosityIsWarning) {
 // and log severity.
 void TestLogWithSeverity(const std::string& verbosity, LogSeverity severity,
                          bool should_print) {
-  const std::string old_flag = GMOCK_FLAG(verbose);
-  GMOCK_FLAG(verbose) = verbosity;
+  const std::string old_flag = GMOCK_FLAG_GET(verbose);
+  GMOCK_FLAG_SET(verbose, verbosity);
   CaptureStdout();
   Log(severity, "Test log.\n", 0);
   if (should_print) {
@@ -415,18 +412,18 @@ void TestLogWithSeverity(const std::string& verbosity, LogSeverity severity,
   } else {
     EXPECT_STREQ("", GetCapturedStdout().c_str());
   }
-  GMOCK_FLAG(verbose) = old_flag;
+  GMOCK_FLAG_SET(verbose, old_flag);
 }
 
 // Tests that when the stack_frames_to_skip parameter is negative,
 // Log() doesn't include the stack trace in the output.
 TEST(LogTest, NoStackTraceWhenStackFramesToSkipIsNegative) {
-  const std::string saved_flag = GMOCK_FLAG(verbose);
-  GMOCK_FLAG(verbose) = kInfoVerbosity;
+  const std::string saved_flag = GMOCK_FLAG_GET(verbose);
+  GMOCK_FLAG_SET(verbose, kInfoVerbosity);
   CaptureStdout();
   Log(kInfo, "Test log.\n", -1);
   EXPECT_STREQ("\nTest log.\n", GetCapturedStdout().c_str());
-  GMOCK_FLAG(verbose) = saved_flag;
+  GMOCK_FLAG_SET(verbose, saved_flag);
 }
 
 struct MockStackTraceGetter : testing::internal::OsStackTraceGetterInterface {
@@ -448,7 +445,8 @@ TEST(LogTest, NoSkippingStackFrameInOptMode) {
   const std::string log = GetCapturedStdout();
 
   std::string expected_trace =
-      (testing::Message() << GTEST_FLAG(stack_trace_depth) << "::").GetString();
+      (testing::Message() << GTEST_FLAG_GET(stack_trace_depth) << "::")
+          .GetString();
   std::string expected_message =
       "\nGMOCK WARNING:\n"
       "Test log.\n"
@@ -503,34 +501,14 @@ TEST(LogTest, OnlyWarningsArePrintedWhenVerbosityIsInvalid) {
   TestLogWithSeverity("invalid", kWarning, true);
 }
 
-#endif  // GTEST_HAS_STREAM_REDIRECTION
-
-TEST(TypeTraitsTest, true_type) {
-  EXPECT_TRUE(true_type::value);
-}
-
-TEST(TypeTraitsTest, false_type) {
-  EXPECT_FALSE(false_type::value);
-}
-
-TEST(TypeTraitsTest, remove_reference) {
-  EXPECT_TRUE((std::is_same<char, remove_reference<char&>::type>::value));
-  EXPECT_TRUE(
-      (std::is_same<const int, remove_reference<const int&>::type>::value));
-  EXPECT_TRUE((std::is_same<int, remove_reference<int>::type>::value));
-  EXPECT_TRUE((std::is_same<double*, remove_reference<double*>::type>::value));
-}
-
-#if GTEST_HAS_STREAM_REDIRECTION
-
 // Verifies that Log() behaves correctly for the given verbosity level
 // and log severity.
 std::string GrabOutput(void(*logger)(), const char* verbosity) {
-  const std::string saved_flag = GMOCK_FLAG(verbose);
-  GMOCK_FLAG(verbose) = verbosity;
+  const std::string saved_flag = GMOCK_FLAG_GET(verbose);
+  GMOCK_FLAG_SET(verbose, verbosity);
   CaptureStdout();
   logger();
-  GMOCK_FLAG(verbose) = saved_flag;
+  GMOCK_FLAG_SET(verbose, saved_flag);
   return GetCapturedStdout();
 }
 
@@ -681,63 +659,106 @@ TEST(StlContainerViewTest, WorksForDynamicNativeArray) {
 TEST(FunctionTest, Nullary) {
   typedef Function<int()> F;  // NOLINT
   EXPECT_EQ(0u, F::ArgumentCount);
-  CompileAssertTypesEqual<int, F::Result>();
-  CompileAssertTypesEqual<std::tuple<>, F::ArgumentTuple>();
-  CompileAssertTypesEqual<std::tuple<>, F::ArgumentMatcherTuple>();
-  CompileAssertTypesEqual<void(), F::MakeResultVoid>();
-  CompileAssertTypesEqual<IgnoredValue(), F::MakeResultIgnoredValue>();
+  EXPECT_TRUE((std::is_same<int, F::Result>::value));
+  EXPECT_TRUE((std::is_same<std::tuple<>, F::ArgumentTuple>::value));
+  EXPECT_TRUE((std::is_same<std::tuple<>, F::ArgumentMatcherTuple>::value));
+  EXPECT_TRUE((std::is_same<void(), F::MakeResultVoid>::value));
+  EXPECT_TRUE((std::is_same<IgnoredValue(), F::MakeResultIgnoredValue>::value));
 }
 
 TEST(FunctionTest, Unary) {
   typedef Function<int(bool)> F;  // NOLINT
   EXPECT_EQ(1u, F::ArgumentCount);
-  CompileAssertTypesEqual<int, F::Result>();
-  CompileAssertTypesEqual<bool, F::Arg<0>::type>();
-  CompileAssertTypesEqual<std::tuple<bool>, F::ArgumentTuple>();
-  CompileAssertTypesEqual<std::tuple<Matcher<bool> >,
-                          F::ArgumentMatcherTuple>();
-  CompileAssertTypesEqual<void(bool), F::MakeResultVoid>();  // NOLINT
-  CompileAssertTypesEqual<IgnoredValue(bool),  // NOLINT
-      F::MakeResultIgnoredValue>();
+  EXPECT_TRUE((std::is_same<int, F::Result>::value));
+  EXPECT_TRUE((std::is_same<bool, F::Arg<0>::type>::value));
+  EXPECT_TRUE((std::is_same<std::tuple<bool>, F::ArgumentTuple>::value));
+  EXPECT_TRUE((
+      std::is_same<std::tuple<Matcher<bool>>, F::ArgumentMatcherTuple>::value));
+  EXPECT_TRUE((std::is_same<void(bool), F::MakeResultVoid>::value));  // NOLINT
+  EXPECT_TRUE((std::is_same<IgnoredValue(bool),                       // NOLINT
+                            F::MakeResultIgnoredValue>::value));
 }
 
 TEST(FunctionTest, Binary) {
   typedef Function<int(bool, const long&)> F;  // NOLINT
   EXPECT_EQ(2u, F::ArgumentCount);
-  CompileAssertTypesEqual<int, F::Result>();
-  CompileAssertTypesEqual<bool, F::Arg<0>::type>();
-  CompileAssertTypesEqual<const long&, F::Arg<1>::type>();  // NOLINT
-  CompileAssertTypesEqual<std::tuple<bool, const long&>,  // NOLINT
-                          F::ArgumentTuple>();
-  CompileAssertTypesEqual<
-      std::tuple<Matcher<bool>, Matcher<const long&> >,  // NOLINT
-      F::ArgumentMatcherTuple>();
-  CompileAssertTypesEqual<void(bool, const long&), F::MakeResultVoid>();  // NOLINT
-  CompileAssertTypesEqual<IgnoredValue(bool, const long&),  // NOLINT
-      F::MakeResultIgnoredValue>();
+  EXPECT_TRUE((std::is_same<int, F::Result>::value));
+  EXPECT_TRUE((std::is_same<bool, F::Arg<0>::type>::value));
+  EXPECT_TRUE((std::is_same<const long&, F::Arg<1>::type>::value));  // NOLINT
+  EXPECT_TRUE((std::is_same<std::tuple<bool, const long&>,           // NOLINT
+                            F::ArgumentTuple>::value));
+  EXPECT_TRUE(
+      (std::is_same<std::tuple<Matcher<bool>, Matcher<const long&>>,  // NOLINT
+                    F::ArgumentMatcherTuple>::value));
+  EXPECT_TRUE((std::is_same<void(bool, const long&),  // NOLINT
+                            F::MakeResultVoid>::value));
+  EXPECT_TRUE((std::is_same<IgnoredValue(bool, const long&),  // NOLINT
+                            F::MakeResultIgnoredValue>::value));
 }
 
 TEST(FunctionTest, LongArgumentList) {
   typedef Function<char(bool, int, char*, int&, const long&)> F;  // NOLINT
   EXPECT_EQ(5u, F::ArgumentCount);
-  CompileAssertTypesEqual<char, F::Result>();
-  CompileAssertTypesEqual<bool, F::Arg<0>::type>();
-  CompileAssertTypesEqual<int, F::Arg<1>::type>();
-  CompileAssertTypesEqual<char*, F::Arg<2>::type>();
-  CompileAssertTypesEqual<int&, F::Arg<3>::type>();
-  CompileAssertTypesEqual<const long&, F::Arg<4>::type>();  // NOLINT
-  CompileAssertTypesEqual<
-      std::tuple<bool, int, char*, int&, const long&>,  // NOLINT
-      F::ArgumentTuple>();
-  CompileAssertTypesEqual<
-      std::tuple<Matcher<bool>, Matcher<int>, Matcher<char*>, Matcher<int&>,
-                 Matcher<const long&> >,  // NOLINT
-      F::ArgumentMatcherTuple>();
-  CompileAssertTypesEqual<void(bool, int, char*, int&, const long&),  // NOLINT
-                          F::MakeResultVoid>();
-  CompileAssertTypesEqual<
-      IgnoredValue(bool, int, char*, int&, const long&),  // NOLINT
-      F::MakeResultIgnoredValue>();
+  EXPECT_TRUE((std::is_same<char, F::Result>::value));
+  EXPECT_TRUE((std::is_same<bool, F::Arg<0>::type>::value));
+  EXPECT_TRUE((std::is_same<int, F::Arg<1>::type>::value));
+  EXPECT_TRUE((std::is_same<char*, F::Arg<2>::type>::value));
+  EXPECT_TRUE((std::is_same<int&, F::Arg<3>::type>::value));
+  EXPECT_TRUE((std::is_same<const long&, F::Arg<4>::type>::value));  // NOLINT
+  EXPECT_TRUE(
+      (std::is_same<std::tuple<bool, int, char*, int&, const long&>,  // NOLINT
+                    F::ArgumentTuple>::value));
+  EXPECT_TRUE(
+      (std::is_same<
+          std::tuple<Matcher<bool>, Matcher<int>, Matcher<char*>, Matcher<int&>,
+                     Matcher<const long&>>,  // NOLINT
+          F::ArgumentMatcherTuple>::value));
+  EXPECT_TRUE(
+      (std::is_same<void(bool, int, char*, int&, const long&),  // NOLINT
+                    F::MakeResultVoid>::value));
+  EXPECT_TRUE((
+      std::is_same<IgnoredValue(bool, int, char*, int&, const long&),  // NOLINT
+                   F::MakeResultIgnoredValue>::value));
+}
+
+TEST(Base64Unescape, InvalidString) {
+  std::string unescaped;
+  EXPECT_FALSE(Base64Unescape("(invalid)", &unescaped));
+}
+
+TEST(Base64Unescape, ShortString) {
+  std::string unescaped;
+  EXPECT_TRUE(Base64Unescape("SGVsbG8gd29ybGQh", &unescaped));
+  EXPECT_EQ("Hello world!", unescaped);
+}
+
+TEST(Base64Unescape, ShortStringWithPadding) {
+  std::string unescaped;
+  EXPECT_TRUE(Base64Unescape("SGVsbG8gd29ybGQ=", &unescaped));
+  EXPECT_EQ("Hello world", unescaped);
+}
+
+TEST(Base64Unescape, ShortStringWithoutPadding) {
+  std::string unescaped;
+  EXPECT_TRUE(Base64Unescape("SGVsbG8gd29ybGQ", &unescaped));
+  EXPECT_EQ("Hello world", unescaped);
+}
+
+TEST(Base64Unescape, LongStringWithWhiteSpaces) {
+  std::string escaped =
+      R"(TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlz
+  IHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2Yg
+  dGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGlu
+  dWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNlZWRzIHRo
+  ZSBzaG9ydCB2ZWhlbWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=)";
+  std::string expected =
+      "Man is distinguished, not only by his reason, but by this singular "
+      "passion from other animals, which is a lust of the mind, that by a "
+      "perseverance of delight in the continued and indefatigable generation "
+      "of knowledge, exceeds the short vehemence of any carnal pleasure.";
+  std::string unescaped;
+  EXPECT_TRUE(Base64Unescape(escaped, &unescaped));
+  EXPECT_EQ(expected, unescaped);
 }
 
 }  // namespace

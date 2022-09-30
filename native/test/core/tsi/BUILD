@@ -27,19 +27,18 @@ grpc_cc_library(
     hdrs = ["transport_security_test_lib.h"],
     deps = [
         "//:grpc",
-        "//:tsi",
     ],
 )
 
 grpc_cc_test(
     name = "fake_transport_security_test",
     srcs = ["fake_transport_security_test.cc"],
+    external_deps = ["gtest"],
     language = "C++",
     deps = [
         ":transport_security_test_lib",
         "//:gpr",
         "//:grpc",
-        "//:tsi",
         "//test/core/util:grpc_test_util",
     ],
 )
@@ -54,7 +53,6 @@ grpc_cc_test(
     deps = [
         "//:gpr",
         "//:grpc",
-        "//:tsi",
         "//test/core/util:grpc_test_util",
     ],
 )
@@ -77,13 +75,13 @@ grpc_cc_test(
         "//src/core/tsi/test_creds:server1.key",
         "//src/core/tsi/test_creds:server1.pem",
     ],
+    external_deps = ["gtest"],
     language = "C++",
     tags = ["no_windows"],
     deps = [
         ":transport_security_test_lib",
         "//:gpr",
         "//:grpc",
-        "//:tsi",
         "//test/core/util:grpc_test_util",
     ],
 )
@@ -116,6 +114,7 @@ grpc_cc_test(
 grpc_cc_test(
     name = "transport_security_test",
     srcs = ["transport_security_test.cc"],
+    external_deps = ["gtest"],
     language = "C++",
     deps = [
         "//:gpr",

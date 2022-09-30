@@ -4,14 +4,14 @@
   <parent>
     <groupId>com.google.protobuf</groupId>
     <artifactId>protobuf-parent</artifactId>
-    <version>3.19.2</version>
+    <version>3.21.6</version>
   </parent>
 
   <artifactId>protobuf-kotlin</artifactId>
 
-  <name>Protocol Buffers [Core]</name>
+  <name>Protocol Buffers [Kotlin-Core]</name>
   <description>
-    Core Protocol Buffers library. Protocol Buffers are a way of encoding structured data in an
+    Kotlin core Protocol Buffers library. Protocol Buffers are a way of encoding structured data in an
     efficient yet extensible format.
   </description>
 
@@ -30,8 +30,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.easymock</groupId>
-      <artifactId>easymock</artifactId>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

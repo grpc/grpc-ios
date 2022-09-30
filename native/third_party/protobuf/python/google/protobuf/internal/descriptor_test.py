@@ -51,6 +51,28 @@ TEST_EMPTY_MESSAGE_DESCRIPTOR_ASCII = """
 name: 'TestEmptyMessage'
 """
 
+TEST_FILE_DESCRIPTOR_DEBUG = """syntax = "proto2";
+
+package protobuf_unittest;
+
+message NestedMessage {
+  enum ForeignEnum {
+    FOREIGN_FOO = 4;
+    FOREIGN_BAR = 5;
+    FOREIGN_BAZ = 6;
+  }
+  optional int32 bb = 1;
+}
+
+message ResponseMessage {
+}
+
+service Service {
+  rpc CallMethod(.protobuf_unittest.NestedMessage) returns (.protobuf_unittest.ResponseMessage);
+}
+
+"""
+
 
 warnings.simplefilter('error', DeprecationWarning)
 
@@ -120,6 +142,13 @@ class DescriptorTest(unittest.TestCase):
 
   def testContainingServiceFixups(self):
     self.assertEqual(self.my_service, self.my_method.containing_service)
+
+  @unittest.skipIf(
+      api_implementation.Type() == 'python',
+      'GetDebugString is only available with the cpp implementation',
+  )
+  def testGetDebugString(self):
+    self.assertEqual(self.my_file.GetDebugString(), TEST_FILE_DESCRIPTOR_DEBUG)
 
   def testGetOptions(self):
     self.assertEqual(self.my_enum.GetOptions(),
@@ -299,10 +328,10 @@ class DescriptorTest(unittest.TestCase):
         unittest_custom_options_pb2.complex_opt1].foo)
     self.assertEqual(324, options.Extensions[
         unittest_custom_options_pb2.complex_opt1].Extensions[
-            unittest_custom_options_pb2.quux])
+            unittest_custom_options_pb2.mooo])
     self.assertEqual(876, options.Extensions[
         unittest_custom_options_pb2.complex_opt1].Extensions[
-            unittest_custom_options_pb2.corge].qux)
+            unittest_custom_options_pb2.corge].moo)
     self.assertEqual(987, options.Extensions[
         unittest_custom_options_pb2.complex_opt2].baz)
     self.assertEqual(654, options.Extensions[
@@ -312,28 +341,28 @@ class DescriptorTest(unittest.TestCase):
         unittest_custom_options_pb2.complex_opt2].bar.foo)
     self.assertEqual(1999, options.Extensions[
         unittest_custom_options_pb2.complex_opt2].bar.Extensions[
-            unittest_custom_options_pb2.quux])
+            unittest_custom_options_pb2.mooo])
     self.assertEqual(2008, options.Extensions[
         unittest_custom_options_pb2.complex_opt2].bar.Extensions[
-            unittest_custom_options_pb2.corge].qux)
+            unittest_custom_options_pb2.corge].moo)
     self.assertEqual(741, options.Extensions[
         unittest_custom_options_pb2.complex_opt2].Extensions[
             unittest_custom_options_pb2.garply].foo)
     self.assertEqual(1998, options.Extensions[
         unittest_custom_options_pb2.complex_opt2].Extensions[
             unittest_custom_options_pb2.garply].Extensions[
-                unittest_custom_options_pb2.quux])
+                unittest_custom_options_pb2.mooo])
     self.assertEqual(2121, options.Extensions[
         unittest_custom_options_pb2.complex_opt2].Extensions[
             unittest_custom_options_pb2.garply].Extensions[
-                unittest_custom_options_pb2.corge].qux)
+                unittest_custom_options_pb2.corge].moo)
     self.assertEqual(1971, options.Extensions[
         unittest_custom_options_pb2.ComplexOptionType2
         .ComplexOptionType4.complex_opt4].waldo)
     self.assertEqual(321, options.Extensions[
         unittest_custom_options_pb2.complex_opt2].fred.waldo)
     self.assertEqual(9, options.Extensions[
-        unittest_custom_options_pb2.complex_opt3].qux)
+        unittest_custom_options_pb2.complex_opt3].moo)
     self.assertEqual(22, options.Extensions[
         unittest_custom_options_pb2.complex_opt3].complexoptiontype5.plugh)
     self.assertEqual(24, options.Extensions[
@@ -428,7 +457,7 @@ class DescriptorTest(unittest.TestCase):
     self.assertEqual(unittest_pb2.DESCRIPTOR.pool, descriptor_pool.Default())
 
   @unittest.skipIf(
-      api_implementation.Type() != 'cpp' or api_implementation.Version() != 2,
+      api_implementation.Type() == 'python',
       'Immutability of descriptors is only enforced in v2 implementation')
   def testImmutableCppDescriptor(self):
     file_descriptor = unittest_pb2.DESCRIPTOR
@@ -523,6 +552,7 @@ class GeneratedDescriptorTest(unittest.TestCase):
     self.assertIn(field_descriptor, {field_descriptor: None})
     self.assertEqual(None, field_descriptor.extension_scope)
     self.assertEqual(None, field_descriptor.enum_type)
+    self.assertTrue(field_descriptor.has_presence)
     if api_implementation.Type() == 'cpp':
       # For test coverage only
       self.assertEqual(field_descriptor.id, field_descriptor.id)

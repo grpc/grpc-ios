@@ -26,11 +26,13 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// GOOGLETEST_CM0001 DO NOT DELETE
 
-#ifndef GTEST_INCLUDE_GTEST_GTEST_TEST_PART_H_
-#define GTEST_INCLUDE_GTEST_GTEST_TEST_PART_H_
+// IWYU pragma: private, include "gtest/gtest.h"
+// IWYU pragma: friend gtest/.*
+// IWYU pragma: friend gmock/.*
+
+#ifndef GOOGLETEST_INCLUDE_GTEST_GTEST_TEST_PART_H_
+#define GOOGLETEST_INCLUDE_GTEST_GTEST_TEST_PART_H_
 
 #include <iosfwd>
 #include <vector>
@@ -87,19 +89,19 @@ class GTEST_API_ TestPartResult {
   // Gets the message associated with the test part.
   const char* message() const { return message_.c_str(); }
 
-  // Returns true if the test part was skipped.
+  // Returns true if and only if the test part was skipped.
   bool skipped() const { return type_ == kSkip; }
 
-  // Returns true if the test part passed.
+  // Returns true if and only if the test part passed.
   bool passed() const { return type_ == kSuccess; }
 
-  // Returns true if the test part non-fatally failed.
+  // Returns true if and only if the test part non-fatally failed.
   bool nonfatally_failed() const { return type_ == kNonFatalFailure; }
 
-  // Returns true if the test part fatally failed.
+  // Returns true if and only if the test part fatally failed.
   bool fatally_failed() const { return type_ == kFatalFailure; }
 
-  // Returns true if the test part failed.
+  // Returns true if and only if the test part failed.
   bool failed() const { return fatally_failed() || nonfatally_failed(); }
 
  private:
@@ -181,4 +183,4 @@ class GTEST_API_ HasNewFatalFailureHelper
 
 GTEST_DISABLE_MSC_WARNINGS_POP_()  //  4251
 
-#endif  // GTEST_INCLUDE_GTEST_GTEST_TEST_PART_H_
+#endif  // GOOGLETEST_INCLUDE_GTEST_GTEST_TEST_PART_H_

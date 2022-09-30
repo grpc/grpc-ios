@@ -1,4 +1,4 @@
-// swift-tools-version:5.2
+// swift-tools-version:5.5
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 import PackageDescription
 
@@ -20,41 +20,37 @@ let package = Package(
   ],
 
   dependencies: [
-    .package(
-      name: "abseil",
-      url: "https://github.com/firebase/abseil-cpp-SwiftPM.git",
-      "0.20220203.0"..<"0.20220204.0"
-    ),
-    .package(
-      name: "BoringSSL-GRPC",
-      url: "https://github.com/firebase/boringssl-SwiftPM.git",
-      "0.9.0"..<"0.10.0"
-    ),
+    .package(url: "https://github.com/firebase/abseil-cpp-SwiftPM.git", "0.20220623.0"..<"0.20220624.0"),
+    .package(url: "https://github.com/firebase/boringssl-SwiftPM.git", "0.9.0"..<"0.10.0"),
   ],
 
   targets: [
     .target(
       name: "gRPC-Core",
       dependencies: [
-        .product(name:"abseil", package: "abseil"),
-        .product(name:"openssl_grpc", package: "BoringSSL-GRPC"),
+        .product(name:"abseil", package: "abseil-cpp-SwiftPM"),
+        .product(name:"openssl_grpc", package: "boringssl-SwiftPM"),
       ],
       path: "native",
       exclude: [
+        "examples/",
         "src/core/ext/filters/load_reporting/",
         "src/core/ext/transport/cronet/",
         "src/core/ext/xds/google_mesh_ca_certificate_provider_factory.h",
         "src/core/ext/xds/google_mesh_ca_certificate_provider_factory.cc",
+        "src/objective-c/examples/",
+        "src/objective-c/tests/",
         "third_party/re2/re2/testing/",
         "third_party/re2/re2/fuzzing/",
         "third_party/re2/util/benchmark.cc",
         "third_party/re2/util/test.cc",
         "third_party/re2/util/fuzz.cc",
         "third_party/upb/upb/bindings/",
-        "third_party/upb/upb/msg_test.cc",
-        "src/core/lib/surface/init_unsecure.cc",
-        "src/core/ext/filters/client_channel/lb_policy/grpclb/grpclb_channel.cc",
-        "src/core/lib/security/authorization/authorization_policy_provider_null_vtable.cc",
+        "third_party/upb/upb/test_table.cc",
+        "third_party/upb/upb/test_generated_code.cc",
+        "third_party/upb/upb/test_cpp.cc",
+        "third_party/upb/upb/conformance_upb.c",
+        "src/core/lib/event_engine/utils.cc",
       ],
       sources: [
         "src/core/ext/filters/",
@@ -89,11 +85,12 @@ let package = Package(
     .target(
       name: "gRPC-cpp",
       dependencies: [
-        .product(name:"abseil", package: "abseil"),
+        .product(name:"abseil", package: "abseil-cpp-SwiftPM"),
         "gRPC-Core",
       ],
       path: "native",
       exclude: [
+        "examples/",
         "src/cpp/client/cronet_credentials.cc",
         "src/cpp/client/channel_test_peer.cc",
         "src/cpp/common/alts_util.cc",
@@ -107,6 +104,8 @@ let package = Package(
         "src/cpp/util/core_stats.cc",
         "src/cpp/util/core_stats.h",
         "src/cpp/util/error_details.cc",
+        "src/objective-c/examples/",
+        "src/objective-c/tests/",
       ],
       sources: [
         "src/cpp/",
@@ -128,5 +127,5 @@ let package = Package(
     ),
   ],
   cLanguageStandard: .gnu11,
-  cxxLanguageStandard: .cxx11
+  cxxLanguageStandard: .cxx14
 )

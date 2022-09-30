@@ -17,8 +17,15 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <memory>
+#include <stdint.h>
 
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "absl/types/optional.h"
+
+#include "src/core/lib/iomgr/resolved_address.h"
 #include "src/core/lib/matchers/matchers.h"
 #include "src/core/lib/security/authorization/evaluate_args.h"
 #include "src/core/lib/security/authorization/rbac_policy.h"
@@ -153,13 +160,13 @@ class PortAuthorizationMatcher : public AuthorizationMatcher {
 // or DNS SAN in that order, otherwise uses subject field.
 class AuthenticatedAuthorizationMatcher : public AuthorizationMatcher {
  public:
-  explicit AuthenticatedAuthorizationMatcher(StringMatcher auth)
+  explicit AuthenticatedAuthorizationMatcher(absl::optional<StringMatcher> auth)
       : matcher_(std::move(auth)) {}
 
   bool Matches(const EvaluateArgs& args) const override;
 
  private:
-  const StringMatcher matcher_;
+  const absl::optional<StringMatcher> matcher_;
 };
 
 // Perform a match against the request server from the client's connection

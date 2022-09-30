@@ -16,7 +16,18 @@
 
 #include "src/core/lib/security/authorization/matchers.h"
 
+#include <string.h>
+
+#include <algorithm>
+#include <string>
+
+#include "absl/memory/memory.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+
 #include <grpc/grpc_security_constants.h>
+#include <grpc/support/log.h>
 
 #include "src/core/lib/address_utils/parse_address.h"
 #include "src/core/lib/address_utils/sockaddr_utils.h"
@@ -105,7 +116,7 @@ std::unique_ptr<AuthorizationMatcher> AuthorizationMatcher::Create(
           std::move(principal.header_matcher));
     case Rbac::Principal::RuleType::kPath:
       return absl::make_unique<PathAuthorizationMatcher>(
-          std::move(principal.string_matcher));
+          std::move(principal.string_matcher.value()));
     case Rbac::Principal::RuleType::kMetadata:
       return absl::make_unique<MetadataAuthorizationMatcher>(principal.invert);
   }
@@ -142,16 +153,16 @@ bool HeaderAuthorizationMatcher::Matches(const EvaluateArgs& args) const {
 
 IpAuthorizationMatcher::IpAuthorizationMatcher(Type type, Rbac::CidrRange range)
     : type_(type), prefix_len_(range.prefix_len) {
-  grpc_error_handle error =
-      grpc_string_to_sockaddr(&subnet_address_, range.address_prefix.c_str(),
-                              /*port does not matter here*/ 0);
-  if (error == GRPC_ERROR_NONE) {
-    grpc_sockaddr_mask_bits(&subnet_address_, prefix_len_);
-  } else {
-    gpr_log(GPR_DEBUG, "CidrRange address %s is not IPv4/IPv6. Error: %s",
-            range.address_prefix.c_str(), grpc_error_std_string(error).c_str());
+  auto address =
+      StringToSockaddr(range.address_prefix, 0);  // Port does not matter here.
+  if (!address.ok()) {
+    gpr_log(GPR_DEBUG, "CidrRange address \"%s\" is not IPv4/IPv6. Error: %s",
+            range.address_prefix.c_str(), address.status().ToString().c_str());
+    memset(&subnet_address_, 0, sizeof(subnet_address_));
+    return;
   }
-  GRPC_ERROR_UNREF(error);
+  subnet_address_ = *address;
+  grpc_sockaddr_mask_bits(&subnet_address_, prefix_len_);
 }
 
 bool IpAuthorizationMatcher::Matches(const EvaluateArgs& args) const {
@@ -184,14 +195,14 @@ bool AuthenticatedAuthorizationMatcher::Matches(
     // Connection is not authenticated.
     return false;
   }
-  if (matcher_.string_matcher().empty()) {
+  if (!matcher_.has_value()) {
     // Allows any authenticated user.
     return true;
   }
   std::vector<absl::string_view> uri_sans = args.GetUriSans();
   if (!uri_sans.empty()) {
     for (const auto& uri : uri_sans) {
-      if (matcher_.Match(uri)) {
+      if (matcher_->Match(uri)) {
         return true;
       }
     }
@@ -199,12 +210,12 @@ bool AuthenticatedAuthorizationMatcher::Matches(
   std::vector<absl::string_view> dns_sans = args.GetDnsSans();
   if (!dns_sans.empty()) {
     for (const auto& dns : dns_sans) {
-      if (matcher_.Match(dns)) {
+      if (matcher_->Match(dns)) {
         return true;
       }
     }
   }
-  return matcher_.Match(args.GetSubject());
+  return matcher_->Match(args.GetSubject());
 }
 
 bool ReqServerNameAuthorizationMatcher::Matches(const EvaluateArgs&) const {

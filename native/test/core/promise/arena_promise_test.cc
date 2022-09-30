@@ -16,9 +16,15 @@
 
 #include <memory>
 
-#include <gtest/gtest.h>
+#include "absl/types/variant.h"
+#include "gtest/gtest.h"
 
+#include <grpc/event_engine/memory_allocator.h>
+
+#include "src/core/lib/gprpp/ref_counted_ptr.h"
+#include "src/core/lib/resource_quota/memory_quota.h"
 #include "src/core/lib/resource_quota/resource_quota.h"
+#include "test/core/promise/test_context.h"
 
 namespace grpc_core {
 
@@ -27,7 +33,7 @@ static auto* g_memory_allocator = new MemoryAllocator(
 
 TEST(ArenaPromiseTest, AllocatedWorks) {
   auto arena = MakeScopedArena(1024, g_memory_allocator);
-  promise_detail::Context<Arena> context(arena.get());
+  TestContext<Arena> context(arena.get());
   int x = 42;
   ArenaPromise<int> p([x] { return Poll<int>(x); });
   EXPECT_EQ(p(), Poll<int>(42));
@@ -37,11 +43,19 @@ TEST(ArenaPromiseTest, AllocatedWorks) {
 
 TEST(ArenaPromiseTest, DestructionWorks) {
   auto arena = MakeScopedArena(1024, g_memory_allocator);
-  promise_detail::Context<Arena> context(arena.get());
+  TestContext<Arena> context(arena.get());
   auto x = std::make_shared<int>(42);
   auto p = ArenaPromise<int>([x] { return Poll<int>(*x); });
   ArenaPromise<int> q(std::move(p));
   EXPECT_EQ(q(), Poll<int>(42));
+}
+
+TEST(ArenaPromiseTest, MoveAssignmentWorks) {
+  auto arena = MakeScopedArena(1024, g_memory_allocator);
+  TestContext<Arena> context(arena.get());
+  auto x = std::make_shared<int>(42);
+  auto p = ArenaPromise<int>([x] { return Poll<int>(*x); });
+  p = ArenaPromise<int>();
 }
 
 }  // namespace grpc_core

@@ -27,7 +27,6 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 // Google Mock - a framework for writing C++ mock classes.
 //
 // This file implements the ON_CALL() and EXPECT_CALL() macros.
@@ -56,10 +55,11 @@
 // where all clauses are optional, and .InSequence()/.After()/
 // .WillOnce() can appear any number of times.
 
-// GOOGLETEST_CM0002 DO NOT DELETE
+// IWYU pragma: private, include "gmock/gmock.h"
+// IWYU pragma: friend gmock/.*
 
-#ifndef GMOCK_INCLUDE_GMOCK_GMOCK_SPEC_BUILDERS_H_
-#define GMOCK_INCLUDE_GMOCK_GMOCK_SPEC_BUILDERS_H_
+#ifndef GOOGLEMOCK_INCLUDE_GMOCK_GMOCK_SPEC_BUILDERS_H_
+#define GOOGLEMOCK_INCLUDE_GMOCK_GMOCK_SPEC_BUILDERS_H_
 
 #include <functional>
 #include <map>
@@ -107,6 +107,14 @@ template <typename F> class TypedExpectation;
 
 // Helper class for testing the Expectation class template.
 class ExpectationTester;
+
+// Helper classes for implementing NiceMock, StrictMock, and NaggyMock.
+template <typename MockClass>
+class NiceMockImpl;
+template <typename MockClass>
+class StrictMockImpl;
+template <typename MockClass>
+class NaggyMockImpl;
 
 // Protects the mock object registry (in class Mock), all function
 // mockers, and all expectations.
@@ -332,7 +340,7 @@ class OnCallSpec : public UntypedOnCallSpecBase {
     return *this;
   }
 
-  // Returns true if the given arguments match the matchers.
+  // Returns true if and only if the given arguments match the matchers.
   bool Matches(const ArgumentTuple& args) const {
     return TupleMatches(matchers_, args) && extra_matcher_.Matches(args);
   }
@@ -390,7 +398,7 @@ class GTEST_API_ Mock {
       GTEST_LOCK_EXCLUDED_(internal::g_gmock_mutex);
 
   // Verifies all expectations on the given mock object and clears its
-  // default actions and expectations.  Returns true if the
+  // default actions and expectations.  Returns true if and only if the
   // verification was successful.
   static bool VerifyAndClear(void* mock_obj)
       GTEST_LOCK_EXCLUDED_(internal::g_gmock_mutex);
@@ -413,14 +421,12 @@ class GTEST_API_ Mock {
   template <typename F>
   friend class internal::FunctionMocker;
 
-  template <typename M>
-  friend class NiceMock;
-
-  template <typename M>
-  friend class NaggyMock;
-
-  template <typename M>
-  friend class StrictMock;
+  template <typename MockClass>
+  friend class internal::NiceMockImpl;
+  template <typename MockClass>
+  friend class internal::NaggyMockImpl;
+  template <typename MockClass>
+  friend class internal::StrictMockImpl;
 
   // Tells Google Mock to allow uninteresting calls on the given mock
   // object.
@@ -499,7 +505,10 @@ class GTEST_API_ Expectation {
  public:
   // Constructs a null object that doesn't reference any expectation.
   Expectation();
-
+  Expectation(Expectation&&) = default;
+  Expectation(const Expectation&) = default;
+  Expectation& operator=(Expectation&&) = default;
+  Expectation& operator=(const Expectation&) = default;
   ~Expectation();
 
   // This single-argument ctor must not be explicit, in order to support the
@@ -516,7 +525,8 @@ class GTEST_API_ Expectation {
   // The compiler-generated copy ctor and operator= work exactly as
   // intended, so we don't need to define our own.
 
-  // Returns true if rhs references the same expectation as this object does.
+  // Returns true if and only if rhs references the same expectation as this
+  // object does.
   bool operator==(const Expectation& rhs) const {
     return expectation_base_ == rhs.expectation_base_;
   }
@@ -598,8 +608,8 @@ class ExpectationSet {
   // The compiler-generator ctor and operator= works exactly as
   // intended, so we don't need to define our own.
 
-  // Returns true if rhs contains the same set of Expectation objects
-  // as this does.
+  // Returns true if and only if rhs contains the same set of Expectation
+  // objects as this does.
   bool operator==(const ExpectationSet& rhs) const {
     return expectations_ == rhs.expectations_;
   }
@@ -760,8 +770,8 @@ class GTEST_API_ ExpectationBase {
   // by the subclasses to implement the .Times() clause.
   void SpecifyCardinality(const Cardinality& cardinality);
 
-  // Returns true if the user specified the cardinality explicitly
-  // using a .Times().
+  // Returns true if and only if the user specified the cardinality
+  // explicitly using a .Times().
   bool cardinality_specified() const { return cardinality_specified_; }
 
   // Sets the cardinality of this expectation spec.
@@ -777,7 +787,7 @@ class GTEST_API_ ExpectationBase {
   void RetireAllPreRequisites()
       GTEST_EXCLUSIVE_LOCK_REQUIRED_(g_gmock_mutex);
 
-  // Returns true if this expectation is retired.
+  // Returns true if and only if this expectation is retired.
   bool is_retired() const
       GTEST_EXCLUSIVE_LOCK_REQUIRED_(g_gmock_mutex) {
     g_gmock_mutex.AssertHeld();
@@ -791,28 +801,29 @@ class GTEST_API_ ExpectationBase {
     retired_ = true;
   }
 
-  // Returns true if this expectation is satisfied.
+  // Returns true if and only if this expectation is satisfied.
   bool IsSatisfied() const
       GTEST_EXCLUSIVE_LOCK_REQUIRED_(g_gmock_mutex) {
     g_gmock_mutex.AssertHeld();
     return cardinality().IsSatisfiedByCallCount(call_count_);
   }
 
-  // Returns true if this expectation is saturated.
+  // Returns true if and only if this expectation is saturated.
   bool IsSaturated() const
       GTEST_EXCLUSIVE_LOCK_REQUIRED_(g_gmock_mutex) {
     g_gmock_mutex.AssertHeld();
     return cardinality().IsSaturatedByCallCount(call_count_);
   }
 
-  // Returns true if this expectation is over-saturated.
+  // Returns true if and only if this expectation is over-saturated.
   bool IsOverSaturated() const
       GTEST_EXCLUSIVE_LOCK_REQUIRED_(g_gmock_mutex) {
     g_gmock_mutex.AssertHeld();
     return cardinality().IsOverSaturatedByCallCount(call_count_);
   }
 
-  // Returns true if all pre-requisites of this expectation are satisfied.
+  // Returns true if and only if all pre-requisites of this expectation are
+  // satisfied.
   bool AllPrerequisitesAreSatisfied() const
       GTEST_EXCLUSIVE_LOCK_REQUIRED_(g_gmock_mutex);
 
@@ -855,7 +866,7 @@ class GTEST_API_ ExpectationBase {
   const char* file_;          // The file that contains the expectation.
   int line_;                  // The line number of the expectation.
   const std::string source_text_;  // The EXPECT_CALL(...) source text.
-  // True if the cardinality is specified explicitly.
+  // True if and only if the cardinality is specified explicitly.
   bool cardinality_specified_;
   Cardinality cardinality_;            // The cardinality of the expectation.
   // The immediate pre-requisites (i.e. expectations that must be
@@ -869,7 +880,7 @@ class GTEST_API_ ExpectationBase {
   // This group of fields are the current state of the expectation,
   // and can change as the mock function is called.
   int call_count_;  // How many times this expectation has been invoked.
-  bool retired_;    // True if this expectation has retired.
+  bool retired_;    // True if and only if this expectation has retired.
   UntypedActions untyped_actions_;
   bool extra_matcher_specified_;
   bool repeated_action_specified_;  // True if a WillRepeatedly() was specified.
@@ -877,11 +888,9 @@ class GTEST_API_ ExpectationBase {
   Clause last_clause_;
   mutable bool action_count_checked_;  // Under mutex_.
   mutable Mutex mutex_;  // Protects action_count_checked_.
-
-  GTEST_DISALLOW_ASSIGN_(ExpectationBase);
 };  // class ExpectationBase
 
-// Impements an expectation for the given function type.
+// Implements an expectation for the given function type.
 template <typename F>
 class TypedExpectation : public ExpectationBase {
  public:
@@ -1087,14 +1096,15 @@ class TypedExpectation : public ExpectationBase {
   // statement finishes and when the current thread holds
   // g_gmock_mutex.
 
-  // Returns true if this expectation matches the given arguments.
+  // Returns true if and only if this expectation matches the given arguments.
   bool Matches(const ArgumentTuple& args) const
       GTEST_EXCLUSIVE_LOCK_REQUIRED_(g_gmock_mutex) {
     g_gmock_mutex.AssertHeld();
     return TupleMatches(matchers_, args) && extra_matcher_.Matches(args);
   }
 
-  // Returns true if this expectation should handle the given arguments.
+  // Returns true if and only if this expectation should handle the given
+  // arguments.
   bool ShouldHandleArguments(const ArgumentTuple& args) const
       GTEST_EXCLUSIVE_LOCK_REQUIRED_(g_gmock_mutex) {
     g_gmock_mutex.AssertHeld();
@@ -1292,8 +1302,6 @@ class MockSpec {
   internal::FunctionMocker<F>* const function_mocker_;
   // The argument matchers specified in the spec.
   ArgumentMatcherTuple matchers_;
-
-  GTEST_DISALLOW_ASSIGN_(MockSpec);
 };  // class MockSpec
 
 // Wrapper type for generically holding an ordinary value or lvalue reference.
@@ -1320,8 +1328,8 @@ class ReferenceOrValueWrapper {
 
   // Provides nondestructive access to the underlying value/reference.
   // Always returns a const reference (more precisely,
-  // const RemoveReference<T>&). The behavior of calling this after
-  // calling Unwrap on the same object is unspecified.
+  // const std::add_lvalue_reference<T>::type). The behavior of calling this
+  // after calling Unwrap on the same object is unspecified.
   const T& Peek() const {
     return value_;
   }
@@ -1346,12 +1354,6 @@ class ReferenceOrValueWrapper<T&> {
  private:
   T* value_ptr_;
 };
-
-// MSVC warns about using 'this' in base member initializer list, so
-// we need to temporarily disable the warning.  We have to do it for
-// the entire class to suppress the warning, even though it's about
-// the constructor only.
-GTEST_DISABLE_MSC_WARNINGS_PUSH_(4355)
 
 // C++ treats the void type specially.  For example, you cannot define
 // a void-typed variable or pass a void value to a function.
@@ -1508,7 +1510,7 @@ class FunctionMocker<R(Args...)> final : public UntypedFunctionMockerBase {
 
   // Performs the default action of this mock function on the given
   // arguments and returns the result. Asserts (or throws if
-  // exceptions are enabled) with a helpful call descrption if there
+  // exceptions are enabled) with a helpful call description if there
   // is no valid return value. This method doesn't depend on the
   // mutable state of this object, and thus can be called concurrently
   // without locking.
@@ -1783,18 +1785,87 @@ class FunctionMocker<R(Args...)> final : public UntypedFunctionMockerBase {
   }
 };  // class FunctionMocker
 
-GTEST_DISABLE_MSC_WARNINGS_POP_()  //  4355
-
 // Reports an uninteresting call (whose description is in msg) in the
 // manner specified by 'reaction'.
 void ReportUninterestingCall(CallReaction reaction, const std::string& msg);
 
 }  // namespace internal
 
-// A MockFunction<F> class has one mock method whose type is F.  It is
-// useful when you just want your test code to emit some messages and
-// have Google Mock verify the right messages are sent (and perhaps at
-// the right times).  For example, if you are exercising code:
+namespace internal {
+
+template <typename F>
+class MockFunction;
+
+template <typename R, typename... Args>
+class MockFunction<R(Args...)> {
+ public:
+  MockFunction(const MockFunction&) = delete;
+  MockFunction& operator=(const MockFunction&) = delete;
+
+  std::function<R(Args...)> AsStdFunction() {
+    return [this](Args... args) -> R {
+      return this->Call(std::forward<Args>(args)...);
+    };
+  }
+
+  // Implementation detail: the expansion of the MOCK_METHOD macro.
+  R Call(Args... args) {
+    mock_.SetOwnerAndName(this, "Call");
+    return mock_.Invoke(std::forward<Args>(args)...);
+  }
+
+  MockSpec<R(Args...)> gmock_Call(Matcher<Args>... m) {
+    mock_.RegisterOwner(this);
+    return mock_.With(std::move(m)...);
+  }
+
+  MockSpec<R(Args...)> gmock_Call(const WithoutMatchers&, R (*)(Args...)) {
+    return this->gmock_Call(::testing::A<Args>()...);
+  }
+
+ protected:
+  MockFunction() = default;
+  ~MockFunction() = default;
+
+ private:
+  FunctionMocker<R(Args...)> mock_;
+};
+
+/*
+The SignatureOf<F> struct is a meta-function returning function signature
+corresponding to the provided F argument.
+
+It makes use of MockFunction easier by allowing it to accept more F arguments
+than just function signatures.
+
+Specializations provided here cover a signature type itself and any template
+that can be parameterized with a signature, including std::function and
+boost::function.
+*/
+
+template <typename F, typename = void>
+struct SignatureOf;
+
+template <typename R, typename... Args>
+struct SignatureOf<R(Args...)> {
+  using type = R(Args...);
+};
+
+template <template <typename> class C, typename F>
+struct SignatureOf<C<F>,
+                   typename std::enable_if<std::is_function<F>::value>::type>
+    : SignatureOf<F> {};
+
+template <typename F>
+using SignatureOfT = typename SignatureOf<F>::type;
+
+}  // namespace internal
+
+// A MockFunction<F> type has one mock method whose type is
+// internal::SignatureOfT<F>.  It is useful when you just want your
+// test code to emit some messages and have Google Mock verify the
+// right messages are sent (and perhaps at the right times).  For
+// example, if you are exercising code:
 //
 //   Foo(1);
 //   Foo(2);
@@ -1828,49 +1899,34 @@ void ReportUninterestingCall(CallReaction reaction, const std::string& msg);
 // Bar("a") is called by which call to Foo().
 //
 // MockFunction<F> can also be used to exercise code that accepts
-// std::function<F> callbacks. To do so, use AsStdFunction() method
-// to create std::function proxy forwarding to original object's Call.
-// Example:
+// std::function<internal::SignatureOfT<F>> callbacks. To do so, use
+// AsStdFunction() method to create std::function proxy forwarding to
+// original object's Call. Example:
 //
 // TEST(FooTest, RunsCallbackWithBarArgument) {
 //   MockFunction<int(string)> callback;
 //   EXPECT_CALL(callback, Call("bar")).WillOnce(Return(1));
 //   Foo(callback.AsStdFunction());
 // }
+//
+// The internal::SignatureOfT<F> indirection allows to use other types
+// than just function signature type. This is typically useful when
+// providing a mock for a predefined std::function type. Example:
+//
+// using FilterPredicate = std::function<bool(string)>;
+// void MyFilterAlgorithm(FilterPredicate predicate);
+//
+// TEST(FooTest, FilterPredicateAlwaysAccepts) {
+//   MockFunction<FilterPredicate> predicateMock;
+//   EXPECT_CALL(predicateMock, Call(_)).WillRepeatedly(Return(true));
+//   MyFilterAlgorithm(predicateMock.AsStdFunction());
+// }
 template <typename F>
-class MockFunction;
+class MockFunction : public internal::MockFunction<internal::SignatureOfT<F>> {
+  using Base = internal::MockFunction<internal::SignatureOfT<F>>;
 
-template <typename R, typename... Args>
-class MockFunction<R(Args...)> {
  public:
-  MockFunction() {}
-  MockFunction(const MockFunction&) = delete;
-  MockFunction& operator=(const MockFunction&) = delete;
-
-  std::function<R(Args...)> AsStdFunction() {
-    return [this](Args... args) -> R {
-      return this->Call(std::forward<Args>(args)...);
-    };
-  }
-
-  // Implementation detail: the expansion of the MOCK_METHOD macro.
-  R Call(Args... args) {
-    mock_.SetOwnerAndName(this, "Call");
-    return mock_.Invoke(std::forward<Args>(args)...);
-  }
-
-  internal::MockSpec<R(Args...)> gmock_Call(Matcher<Args>... m) {
-    mock_.RegisterOwner(this);
-    return mock_.With(std::move(m)...);
-  }
-
-  internal::MockSpec<R(Args...)> gmock_Call(const internal::WithoutMatchers&,
-                                            R (*)(Args...)) {
-    return this->gmock_Call(::testing::A<Args>()...);
-  }
-
- private:
-  internal::FunctionMocker<R(Args...)> mock_;
+  using Base::Base;
 };
 
 // The style guide prohibits "using" statements in a namespace scope
@@ -1979,4 +2035,4 @@ GTEST_DISABLE_MSC_WARNINGS_POP_()  //  4251
 #define EXPECT_CALL(obj, call) \
   GMOCK_ON_CALL_IMPL_(obj, InternalExpectedAt, call)
 
-#endif  // GMOCK_INCLUDE_GMOCK_GMOCK_SPEC_BUILDERS_H_
+#endif  // GOOGLEMOCK_INCLUDE_GMOCK_GMOCK_SPEC_BUILDERS_H_

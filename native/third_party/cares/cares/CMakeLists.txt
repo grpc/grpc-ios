@@ -7,12 +7,13 @@ INCLUDE (CheckSymbolExists)
 INCLUDE (CheckCSourceCompiles)
 INCLUDE (CheckStructHasMember)
 INCLUDE (CheckLibraryExists)
-INCLUDE (GNUInstallDirs)
 
-PROJECT (c-ares C)
+PROJECT (c-ares LANGUAGES C VERSION "1.17.2" )
 
 # Set this version before release
-SET (CARES_VERSION "1.15.0")
+SET (CARES_VERSION "${PROJECT_VERSION}")
+
+INCLUDE (GNUInstallDirs) # include this *AFTER* PROJECT(), otherwise paths are wrong.
 
 # This is for libtool compatibility, and specified in a form that is easily
 # translatable from libtool (even if the actual form doesn't make sense).
@@ -25,7 +26,7 @@ SET (CARES_VERSION "1.15.0")
 # For example, a version of 4:0:2 would generate output such as:
 #    libname.so   -> libname.so.2
 #    libname.so.2 -> libname.so.2.2.0
-SET (CARES_LIB_VERSIONINFO "5:0:3")
+SET (CARES_LIB_VERSIONINFO "6:3:4")
 
 
 OPTION (CARES_STATIC     "Build as a static library"                                             OFF)
@@ -33,7 +34,15 @@ OPTION (CARES_SHARED     "Build as a shared library"                            
 OPTION (CARES_INSTALL    "Create installation targets (chain builders may want to disable this)" ON)
 OPTION (CARES_STATIC_PIC "Build the static library as PIC (position independent)"                OFF)
 OPTION (CARES_BUILD_TESTS "Build and run tests"                                                  OFF)
+OPTION (CARES_BUILD_CONTAINER_TESTS "Build and run container tests (implies CARES_BUILD_TESTS, Linux only)" OFF)
 OPTION (CARES_BUILD_TOOLS "Build tools"                                                          ON)
+
+# Tests require static to be enabled on Windows to be able to access otherwise hidden symbols
+IF (CARES_BUILD_TESTS AND (NOT CARES_STATIC) AND WIN32)
+	SET (CARES_STATIC ON)
+	SET (CARES_STATIC_PIC ON)
+	MESSAGE (WARNING "Static building was requested be disabled, but reenabled to support tests")
+ENDIF ()
 
 # allow linking against the static runtime library in msvc
 IF (MSVC)
@@ -58,21 +67,33 @@ IF (MSVC)
 ENDIF ()
 
 # Keep build organized.
-SET (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
-SET (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
-SET (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+SET (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}")
+SET (CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
+SET (CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 SET (PACKAGE_DIRECTORY ${PROJECT_BINARY_DIR}/package)
 
 # Destinations for installing different kinds of targets (pass to install command).
 SET (TARGETS_INST_DEST
 	RUNTIME DESTINATION  ${CMAKE_INSTALL_BINDIR}
+	BUNDLE DESTINATION   ${CMAKE_INSTALL_BINDIR}
 	LIBRARY DESTINATION  ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION  ${CMAKE_INSTALL_LIBDIR}
-	INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
+# Function in Library
+# CHECK_LIBRARY_EXISTS can't be used as it will return true if the function
+# is found in a different dependent library.
+MACRO (CARES_FUNCTION_IN_LIBRARY func lib var)
+	CHECK_FUNCTION_EXISTS ("${func}" "_CARES_FUNC_IN_LIB_GLOBAL_${func}")
+	IF ("${_CARES_FUNC_IN_LIB_GLOBAL_${func}}")
+		SET (${var} FALSE)
+	ELSE ()
+		CHECK_LIBRARY_EXISTS ("${lib}" "${func}" "" ${var})
+	ENDIF ()
+ENDMACRO ()
+
 # Look for dependent/required libraries
-CHECK_LIBRARY_EXISTS (resolv res_servicename "" HAVE_RES_SERVICENAME_IN_LIBRESOLV)
+CARES_FUNCTION_IN_LIBRARY (res_servicename resolv HAVE_RES_SERVICENAME_IN_LIBRESOLV)
 IF (HAVE_RES_SERVICENAME_IN_LIBRESOLV)
 	SET (HAVE_LIBRESOLV 1)
 ENDIF ()
@@ -118,17 +139,18 @@ return 0;
 	MACOS_V1012)
 ENDIF ()
 
-IF (IOS AND HAVE_LIBRESOLV)
+IF ((IOS OR APPLE OR ZOS) AND HAVE_LIBRESOLV)
 	SET (CARES_USE_LIBRESOLV 1)
 ENDIF()
 
-CHECK_LIBRARY_EXISTS (nsl gethostbyname "" HAVE_LIBNSL)
-CHECK_LIBRARY_EXISTS (socket gethostbyname "" HAVE_GHBN_LIBSOCKET)
-CHECK_LIBRARY_EXISTS (socket socket "" HAVE_SOCKET_LIBSOCKET)
+
+CARES_FUNCTION_IN_LIBRARY (gethostbyname nsl HAVE_LIBNSL)
+CARES_FUNCTION_IN_LIBRARY (gethostbyname socket HAVE_GHBN_LIBSOCKET)
+CARES_FUNCTION_IN_LIBRARY (socket socket HAVE_SOCKET_LIBSOCKET)
 IF (HAVE_GHBN_LIBSOCKET OR HAVE_SOCKET_LIBSOCKET)
 	SET(HAVE_LIBSOCKET TRUE)
 ENDIF ()
-CHECK_LIBRARY_EXISTS (rt clock_gettime "" HAVE_LIBRT)
+CARES_FUNCTION_IN_LIBRARY (clock_gettime rt HAVE_LIBRT)
 
 
 # Look for necessary includes
@@ -146,7 +168,6 @@ CHECK_INCLUDE_FILES (malloc.h              HAVE_MALLOC_H)
 CHECK_INCLUDE_FILES (memory.h              HAVE_MEMORY_H)
 CHECK_INCLUDE_FILES (netdb.h               HAVE_NETDB_H)
 CHECK_INCLUDE_FILES (netinet/in.h          HAVE_NETINET_IN_H)
-CHECK_INCLUDE_FILES (netinet/tcp.h         HAVE_NETINET_TCP_H)
 CHECK_INCLUDE_FILES (net/if.h              HAVE_NET_IF_H)
 CHECK_INCLUDE_FILES (signal.h              HAVE_SIGNAL_H)
 CHECK_INCLUDE_FILES (socket.h              HAVE_SOCKET_H)
@@ -159,14 +180,19 @@ CHECK_INCLUDE_FILES (stropts.h             HAVE_STROPTS_H)
 CHECK_INCLUDE_FILES (sys/ioctl.h           HAVE_SYS_IOCTL_H)
 CHECK_INCLUDE_FILES (sys/param.h           HAVE_SYS_PARAM_H)
 CHECK_INCLUDE_FILES (sys/select.h          HAVE_SYS_SELECT_H)
-CHECK_INCLUDE_FILES (sys/socket.h          HAVE_SYS_SOCKET_H)
 CHECK_INCLUDE_FILES (sys/stat.h            HAVE_SYS_STAT_H)
 CHECK_INCLUDE_FILES (sys/time.h            HAVE_SYS_TIME_H)
-CHECK_INCLUDE_FILES (sys/types.h           HAVE_SYS_TYPES_H)
 CHECK_INCLUDE_FILES (sys/uio.h             HAVE_SYS_UIO_H)
 CHECK_INCLUDE_FILES (time.h                HAVE_TIME_H)
 CHECK_INCLUDE_FILES (dlfcn.h               HAVE_DLFCN_H)
 CHECK_INCLUDE_FILES (unistd.h              HAVE_UNISTD_H)
+
+# On OpenBSD, you must include sys/types.h before netinet/tcp.h
+IF (HAVE_SYS_TYPES_H)
+  CHECK_INCLUDE_FILES ("sys/types.h;netinet/tcp.h"         HAVE_NETINET_TCP_H)
+ELSE ()
+  CHECK_INCLUDE_FILES (netinet/tcp.h                       HAVE_NETINET_TCP_H)
+ENDIF ()
 
 # Include order matters for these windows files.
 CHECK_INCLUDE_FILES ("winsock2.h;windows.h"            HAVE_WINSOCK2_H)
@@ -207,7 +233,7 @@ IF (HAVE_LIBRT)
 	LIST (APPEND CARES_DEPENDENT_LIBS rt)
 ENDIF ()
 IF (WIN32)
-	LIST (APPEND CARES_DEPENDENT_LIBS ws2_32)
+	LIST (APPEND CARES_DEPENDENT_LIBS ws2_32 Advapi32)
 ENDIF ()
 
 
@@ -323,6 +349,7 @@ CHECK_SYMBOL_EXISTS (gethostbyname   "${CMAKE_EXTRA_INCLUDE_FILES}" HAVE_GETHOST
 CHECK_SYMBOL_EXISTS (gethostname     "${CMAKE_EXTRA_INCLUDE_FILES}" HAVE_GETHOSTNAME)
 CHECK_SYMBOL_EXISTS (getnameinfo     "${CMAKE_EXTRA_INCLUDE_FILES}" HAVE_GETNAMEINFO)
 CHECK_SYMBOL_EXISTS (getservbyport_r "${CMAKE_EXTRA_INCLUDE_FILES}" HAVE_GETSERVBYPORT_R)
+CHECK_SYMBOL_EXISTS (getservbyname_r "${CMAKE_EXTRA_INCLUDE_FILES}" HAVE_GETSERVBYNAME_R)
 CHECK_SYMBOL_EXISTS (gettimeofday    "${CMAKE_EXTRA_INCLUDE_FILES}" HAVE_GETTIMEOFDAY)
 CHECK_SYMBOL_EXISTS (if_indextoname  "${CMAKE_EXTRA_INCLUDE_FILES}" HAVE_IF_INDEXTONAME)
 CHECK_SYMBOL_EXISTS (inet_net_pton   "${CMAKE_EXTRA_INCLUDE_FILES}" HAVE_INET_NET_PTON)
@@ -358,6 +385,10 @@ CHECK_FUNCTION_EXISTS (__system_property_get HAVE___SYSTEM_PROPERTY_GET)
 SET (CMAKE_EXTRA_INCLUDE_FILES)
 SET (CMAKE_REQUIRED_DEFINITIONS)
 SET (CMAKE_REQUIRED_LIBRARIES)
+
+
+find_file(CARES_RANDOM_FILE urandom /dev)
+mark_as_advanced(CARES_RANDOM_FILE)
 
 
 ################################################################################
@@ -397,10 +428,17 @@ ELSE ()
 	SET (GETNAMEINFO_TYPE_ARG46 int)
 ENDIF ()
 
+IF (WIN32)
+	SET (RECV_TYPE_ARG2 "char *")
+ELSE ()
+	SET (RECV_TYPE_ARG2 "void *")
+ENDIF ()
+
 # Functions are typically consistent so the equivalent fields map ... equivalently
 SET (RECV_TYPE_RETV ${RECVFROM_TYPE_RETV})
 SET (SEND_TYPE_RETV ${RECVFROM_TYPE_RETV})
 SET (RECV_TYPE_ARG1 ${RECVFROM_TYPE_ARG1})
+SET (RECVFROM_TYPE_ARG2 ${RECV_TYPE_ARG2})
 SET (SEND_TYPE_ARG1 ${RECVFROM_TYPE_ARG1})
 SET (RECV_TYPE_ARG3 ${RECVFROM_TYPE_ARG3})
 SET (SEND_TYPE_ARG3 ${RECVFROM_TYPE_ARG3})
@@ -408,10 +446,8 @@ SET (GETHOSTNAME_TYPE_ARG2 ${RECVFROM_TYPE_ARG3})
 
 # These should always be "sane" values to use always
 SET (RECVFROM_QUAL_ARG5 )
-SET (RECVFROM_TYPE_ARG2 "void *")
 SET (RECVFROM_TYPE_ARG4 int)
 SET (RECVFROM_TYPE_ARG5 "struct sockaddr *")
-SET (RECV_TYPE_ARG2 "void *")
 SET (RECV_TYPE_ARG4 int)
 SET (GETNAMEINFO_TYPE_ARG1 "struct sockaddr *")
 SET (GETNAMEINFO_TYPE_ARG7 int)
@@ -492,6 +528,19 @@ IF (HAVE_GETSERVBYPORT_R)
 	ENDIF ()
 ENDIF ()
 
+IF (HAVE_GETSERVBYNAME_R)
+	# TODO : Should probably autodetect
+	IF (CMAKE_SYSTEM_NAME STREQUAL "SunOS")
+		SET (GETSERVBYNAME_R_ARGS 5)
+	ELSEIF (CMAKE_SYSTEM_NAME STREQUAL "AIX" OR
+		CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+		SET (GETSERVBYNAME_R_ARGS 4)
+	ELSE ()
+		# Probably linux
+		SET (GETSERVBYNAME_R_ARGS 6)
+	ENDIF ()
+ENDIF ()
+
 # Set some aliases used for ares_build.h
 IF (HAVE_SYS_TYPES_H)
 	SET (CARES_HAVE_SYS_TYPES_H 1)
@@ -509,11 +558,8 @@ IF (HAVE_WINDOWS_H)
 	SET (CARES_HAVE_WINDOWS_H 1)
 ENDIF()
 
-# Write ares_build.h configuration file.  This is an installed file.
-CONFIGURE_FILE (ares_build.h.cmake ${PROJECT_BINARY_DIR}/ares_build.h)
-
-# Write ares_config.h configuration file.  This is used only for the build.
-CONFIGURE_FILE (ares_config.h.cmake ${PROJECT_BINARY_DIR}/ares_config.h)
+# Record toplevel CMakeLists.txt path
+set(CARES_TOPLEVEL_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 
 # TRANSFORM_MAKEFILE_INC
@@ -547,99 +593,21 @@ function(TRANSFORM_MAKEFILE_INC INPUT_FILE OUTPUT_FILE)
 	file(WRITE ${OUTPUT_FILE} ${MAKEFILE_INC_TEXT})
 endfunction()
 
-# run the function...
-transform_makefile_inc("Makefile.inc" "${PROJECT_BINARY_DIR}/Makefile.inc.cmake")
-include(${PROJECT_BINARY_DIR}/Makefile.inc.cmake)
+# Directory for includes
+ADD_SUBDIRECTORY (include)
 
+# Directory for lib and tools
+ADD_SUBDIRECTORY (src)
 
-# Build the dynamic/shared library
-IF (CARES_SHARED)
-	ADD_LIBRARY (${PROJECT_NAME} SHARED ${CSOURCES})
+# Docs
+ADD_SUBDIRECTORY (docs)
 
-	# Convert CARES_LIB_VERSIONINFO libtool version format into VERSION and SOVERSION
-	# Convert from ":" separated into CMake list format using ";"
-	STRING (REPLACE ":" ";" CARES_LIB_VERSIONINFO ${CARES_LIB_VERSIONINFO})
-	LIST (GET CARES_LIB_VERSIONINFO 0 CARES_LIB_VERSION_CURRENT)
-	LIST (GET CARES_LIB_VERSIONINFO 1 CARES_LIB_VERSION_REVISION)
-	LIST (GET CARES_LIB_VERSIONINFO 2 CARES_LIB_VERSION_AGE)
-	MATH (EXPR CARES_LIB_VERSION_MAJOR "${CARES_LIB_VERSION_CURRENT} - ${CARES_LIB_VERSION_AGE}")
-	SET  (CARES_LIB_VERSION_MINOR "${CARES_LIB_VERSION_AGE}")
-	SET  (CARES_LIB_VERSION_RELEASE "${CARES_LIB_VERSION_REVISION}")
-
-	SET_TARGET_PROPERTIES (${PROJECT_NAME} PROPERTIES
-		EXPORT_NAME cares
-		OUTPUT_NAME cares
-		VERSION     "${CARES_LIB_VERSION_MAJOR}.${CARES_LIB_VERSION_MINOR}.${CARES_LIB_VERSION_RELEASE}"
-		SOVERSION   "${CARES_LIB_VERSION_MAJOR}"
-	)
-
-	TARGET_INCLUDE_DIRECTORIES (${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>")
-	TARGET_INCLUDE_DIRECTORIES (${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>")
-
-	TARGET_COMPILE_DEFINITIONS (${PROJECT_NAME} PRIVATE HAVE_CONFIG_H=1 CARES_BUILDING_LIBRARY)
-
-	TARGET_LINK_LIBRARIES (${PROJECT_NAME} PUBLIC ${CARES_DEPENDENT_LIBS})
-
-	IF (CARES_INSTALL)
-		INSTALL (TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}-targets
-			${TARGETS_INST_DEST}
-		)
-	ENDIF ()
-	SET (STATIC_SUFFIX "_static")
-
-	# For chain building: add alias targets that look like import libs that would be returned by find_package(c-ares).
-	ADD_LIBRARY (${PROJECT_NAME}::cares_shared ALIAS ${PROJECT_NAME})
-	ADD_LIBRARY (${PROJECT_NAME}::cares        ALIAS ${PROJECT_NAME})
-ENDIF ()
-
-# Build the static library
-IF (CARES_STATIC)
-	SET (LIBNAME ${PROJECT_NAME}${STATIC_SUFFIX})
-
-	ADD_LIBRARY (${LIBNAME} STATIC ${CSOURCES})
-
-	SET_TARGET_PROPERTIES (${LIBNAME} PROPERTIES
-		EXPORT_NAME cares${STATIC_SUFFIX}
-		OUTPUT_NAME cares${STATIC_SUFFIX}
-	)
-
-	IF (CARES_STATIC_PIC)
-		SET_TARGET_PROPERTIES (${LIBNAME} PROPERTIES POSITION_INDEPENDENT_CODE True)
-	ENDIF ()
-
-	TARGET_INCLUDE_DIRECTORIES (${LIBNAME} PUBLIC "$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>")
-	TARGET_INCLUDE_DIRECTORIES (${LIBNAME} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>")
-
-	TARGET_COMPILE_DEFINITIONS (${LIBNAME}
-		PUBLIC  CARES_STATICLIB
-		PRIVATE HAVE_CONFIG_H=1
-	)
-
-	TARGET_LINK_LIBRARIES (${LIBNAME} PUBLIC ${CARES_DEPENDENT_LIBS})
-	IF (CARES_INSTALL)
-		INSTALL (TARGETS ${LIBNAME} EXPORT ${PROJECT_NAME}-targets
-			${TARGETS_INST_DEST}
-		)
-	ENDIF ()
-
-	# For chain building: add alias targets that look like import libs that would be returned by find_package(c-ares).
-	ADD_LIBRARY (${PROJECT_NAME}::cares_static ALIAS ${LIBNAME})
-	IF (NOT TARGET ${PROJECT_NAME}::cares)
-		# Only use static for the generic alias if shared lib wasn't built.
-		ADD_LIBRARY (${PROJECT_NAME}::cares ALIAS ${LIBNAME})
-	ENDIF ()
-ENDIF ()
-
-IF (CARES_BUILD_TESTS)
+# Tests
+IF (CARES_BUILD_TESTS OR CARES_BUILD_CONTAINER_TESTS)
 	ENABLE_TESTING ()
 	ADD_SUBDIRECTORY (test)
 ENDIF ()
 
-# Headers installation target
-IF (CARES_INSTALL)
-	SET (CARES_HEADERS ares.h ares_version.h ares_dns.h "${PROJECT_BINARY_DIR}/ares_build.h" ares_rules.h)
-	INSTALL (FILES ${CARES_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-ENDIF ()
 
 # Export targets
 IF (CARES_INSTALL)
@@ -650,8 +618,10 @@ IF (CARES_INSTALL)
 		PATH_VARS CMAKE_INSTALL_INCLUDEDIR
 		NO_CHECK_REQUIRED_COMPONENTS_MACRO
 	)
-	INSTALL (EXPORT ${PROJECT_NAME}-targets DESTINATION ${CMAKECONFIG_INSTALL_DIR} NAMESPACE ${PROJECT_NAME}::)
-	INSTALL (FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake" DESTINATION ${CMAKECONFIG_INSTALL_DIR})
+
+	WRITE_BASIC_PACKAGE_VERSION_FILE(${PROJECT_NAME}-config-version.cmake VERSION "${CARES_VERSION}" COMPATIBILITY SameMajorVersion)
+	INSTALL (EXPORT ${PROJECT_NAME}-targets COMPONENT Devel DESTINATION ${CMAKECONFIG_INSTALL_DIR} NAMESPACE ${PROJECT_NAME}::)
+	INSTALL (FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake" "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake" COMPONENT Devel DESTINATION ${CMAKECONFIG_INSTALL_DIR})
 
 	# pkgconfig support
 	IF (NOT CARES_SHARED)
@@ -661,38 +631,118 @@ IF (CARES_INSTALL)
 		ENDFOREACH ()
 	ENDIF ()
 	CONFIGURE_FILE("libcares.pc.cmake" "libcares.pc" @ONLY)
-	INSTALL (FILES "${CMAKE_CURRENT_BINARY_DIR}/libcares.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+	INSTALL (FILES "${CMAKE_CURRENT_BINARY_DIR}/libcares.pc" COMPONENT Devel DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 ENDIF ()
+
 
 # Legacy chain-building variables (provided for compatibility with old code).
 # Don't use these, external code should be updated to refer to the aliases directly (e.g., Cares::cares).
 SET (CARES_FOUND 1 CACHE INTERNAL "CARES LIBRARY FOUND")
 SET (CARES_LIBRARIES ${PROJECT_NAME}::cares CACHE INTERNAL "CARES LIBRARIES")
 
-IF (CARES_BUILD_TOOLS)
-	# Build ahost
-	ADD_EXECUTABLE (ahost ahost.c ${SAMPLESOURCES})
-	TARGET_COMPILE_DEFINITIONS (ahost PRIVATE HAVE_CONFIG_H=1)
-	TARGET_LINK_LIBRARIES (ahost PRIVATE ${PROJECT_NAME})
-	IF (CARES_INSTALL)
-		INSTALL (TARGETS ahost ${TARGETS_INST_DEST})
-	ENDIF ()
+
+IF (CARES_INSTALL)
+    # Package creation
+    set( CPACK_PACKAGE_NAME ${PROJECT_NAME} )
+    set( CPACK_PACKAGE_VENDOR "Daniel Stenberg" ) # Github project owner
+    set( CPACK_PACKAGE_DESCRIPTION_SUMMARY "A C library for asynchronous DNS requests" )
+    set( CPACK_PACKAGE_HOMEPAGE_URL "https://c-ares.haxx.se/" )
+    set( CPACK_PACKAGE_CONTACT      "https://c-ares.haxx.se/" )
+    set( CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR} )
+    set( CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR} )
+    set( CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH} )
+    set( CPACK_PACKAGE_VERSION ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH} )
+    set( CPACK_PACKAGE_INSTALL_DIRECTORY ${PROJECT_NAME} )
+    set( CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.md" )
+    set( CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md" )
+
+    set( CPACK_COMPONENT_Library_DISPLAY_NAME "c-ares Library" )
+    set( CPACK_COMPONENT_Library_DESCRIPTION "The c-ares binary library." )
+    set( CPACK_COMPONENT_Library_REQUIRED 1 )
+    set( CPACK_COMPONENT_Devel_DISPLAY_NAME "c-ares Development Files" )
+    set( CPACK_COMPONENT_Devel_DESCRIPTION "Development files for compiling against c-ares." )
+    set( CPACK_COMPONENT_Devel_REQUIRED 0 )
+    IF (CARES_BUILD_TOOLS)
+        set( CPACK_COMPONENT_Tools_DISPLAY_NAME "c-ares Tools" )
+        set( CPACK_COMPONENT_Tools_DESCRIPTION "Tools for using c-ares." )
+        set( CPACK_COMPONENT_Tools_REQUIRED 0 )
+    ENDIF ()
+
+    if( ${CMAKE_SYSTEM_NAME} STREQUAL "Linux" )
+
+        if ( "${CPACK_PACKAGE_ARCHITECTURE}" STREQUAL "" )
+            # Note: the architecture should default to the local architecture, but it
+            # in fact comes up empty.  We call `uname -m` to ask the kernel instead.
+            EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE CPACK_PACKAGE_ARCHITECTURE )
+        endif()
+
+        set( CPACK_INCLUDE_TOPLEVEL_DIRECTORY 1 )
+        set( CPACK_PACKAGE_RELEASE 1 )
 
 
-	# Build adig
-	ADD_EXECUTABLE (adig adig.c ${SAMPLESOURCES})
-	TARGET_COMPILE_DEFINITIONS (adig PRIVATE HAVE_CONFIG_H=1)
-	TARGET_LINK_LIBRARIES (adig PRIVATE ${PROJECT_NAME})
-	IF (CARES_INSTALL)
-		INSTALL (TARGETS adig ${TARGETS_INST_DEST})
-	ENDIF ()
+        # RPM - https://cmake.org/cmake/help/latest/cpack_gen/rpm.html
+        set( CPACK_RPM_PACKAGE_RELEASE ${CPACK_PACKAGE_RELEASE} )
+        set( CPACK_RPM_PACKAGE_ARCHITECTURE ${CPACK_PACKAGE_ARCHITECTURE} )
+        set( CPACK_RPM_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION_SUMMARY} )
+        set( CPACK_RPM_PACKAGE_URL ${CPACK_PACKAGE_HOMEPAGE_URL} )
+        set( CPACK_RPM_PACKAGE_LICENSE "MIT" )
+        set( CPACK_RPM_COMPONENT_INSTALL 1 )
+        set( CPACK_RPM_COMPRESSION_TYPE "xz" )
+        set( CPACK_RPM_PACKAGE_AUTOPROV 1 )
+
+        set( CPACK_RPM_Library_PACKAGE_SUMMARY ${CPACK_COMPONENT_Library_DESCRIPTION} )
+        set( CPACK_RPM_Library_PACKAGE_ARCHITECTURE ${CPACK_RPM_PACKAGE_ARCHITECTURE} )
+        set( CPACK_RPM_Library_PACKAGE_NAME "libcares${CARES_LIB_VERSION_MAJOR}" )
+        set( CPACK_RPM_Library_FILE_NAME "RPM-DEFAULT" )
+
+        set( CPACK_RPM_Devel_PACKAGE_REQUIRES "cmake >= ${CMAKE_MINIMUM_REQUIRED_VERSION}, ${CPACK_RPM_Library_PACKAGE_NAME} >= ${CPACK_PACKAGE_VERSION}" )
+        set( CPACK_RPM_Devel_PACKAGE_SUMMARY ${CPACK_COMPONENT_Devel_DESCRIPTION} )
+        set( CPACK_RPM_Devel_PACKAGE_ARCHITECTURE ${CPACK_RPM_PACKAGE_ARCHITECTURE} )
+        set( CPACK_RPM_Devel_PACKAGE_NAME "${CPACK_PACKAGE_NAME}-devel" )
+        set( CPACK_RPM_Devel_FILE_NAME "RPM-DEFAULT" )
+
+        IF (CARES_BUILD_TOOLS)
+            set( CPACK_RPM_Tools_PACKAGE_REQUIRES "${CPACK_RPM_Library_PACKAGE_NAME} >= ${CPACK_PACKAGE_VERSION}" )
+            set( CPACK_RPM_Tools_PACKAGE_SUMMARY ${CPACK_COMPONENT_Tools_DESCRIPTION} )
+            set( CPACK_RPM_Tools_PACKAGE_ARCHITECTURE ${CPACK_RPM_PACKAGE_ARCHITECTURE} )
+            set( CPACK_RPM_Tools_PACKAGE_NAME "${CPACK_PACKAGE_NAME}-tools" )
+            set( CPACK_RPM_Tools_FILE_NAME "RPM-DEFAULT" )
+        ENDIF ()
 
 
-	# Build acountry
-	ADD_EXECUTABLE (acountry acountry.c ${SAMPLESOURCES})
-	TARGET_COMPILE_DEFINITIONS (acountry PRIVATE HAVE_CONFIG_H=1)
-	TARGET_LINK_LIBRARIES (acountry PRIVATE ${PROJECT_NAME})
-	IF (CARES_INSTALL)
-		INSTALL (TARGETS acountry ${TARGETS_INST_DEST})
-	ENDIF ()
+        # DEB - https://cmake.org/cmake/help/latest/cpack_gen/deb.html
+        set( CPACK_DEBIAN_PACKAGE_RELEASE ${CPACK_PACKAGE_RELEASE} )
+        set( CPACK_DEBIAN_PACKAGE_HOMEPAGE ${CPACK_PACKAGE_HOMEPAGE_URL} )
+        set( CPACK_DEB_COMPONENT_INSTALL 1 )
+        set( CPACK_DEBIAN_COMPRESSION_TYPE "xz")
+        set( CPACK_DEBIAN_PACKAGE_SHLIBDEPS 1 )
+
+        if ( ${CPACK_PACKAGE_ARCHITECTURE} STREQUAL "x86_64" )
+            set( CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64" )  # DEB doesn't always use the kernel's arch name
+        else()
+            set( CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${CPACK_PACKAGE_ARCHITECTURE} )
+        endif()
+
+        set( CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT" ) # Use default naming scheme
+
+        set( CPACK_DEBIAN_LIBRARY_PACKAGE_NAME ${CPACK_RPM_Library_PACKAGE_NAME} )
+
+        set( CPACK_DEBIAN_DEVEL_PACKAGE_DEPENDS "cmake (>= ${CMAKE_MINIMUM_REQUIRED_VERSION}), ${CPACK_DEBIAN_LIBRARY_PACKAGE_NAME} (>= ${CPACK_PACKAGE_VERSION})" )
+        set( CPACK_DEBIAN_DEVEL_PACKAGE_NAME "${CPACK_PACKAGE_NAME}-dev" )
+
+        IF (CARES_BUILD_TOOLS)
+            set( CPACK_DEBIAN_TOOLS_PACKAGE_NAME "${CPACK_PACKAGE_NAME}-tools" )
+            set( CPACK_DEBIAN_TOOLS_PACKAGE_SHLIBDEPS OFF ) # dpkg-shlibdeps can't find the libs we built
+            set( CPACK_DEBIAN_TOOLS_PACKAGE_DEPENDS "${CPACK_DEBIAN_LIBRARY_PACKAGE_NAME} (>= ${CPACK_PACKAGE_VERSION})" )
+        ENDIF ()
+
+    elseif( ${CMAKE_HOST_WIN32} )
+        set( CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON )
+        set( CPACK_NSIS_DISPLAY_NAME ${PROJECT_NAME} )
+        set( CPACK_NSIS_PACKAGE_NAME ${PROJECT_NAME} )
+        set( CPACK_NSIS_URL_INFO_ABOUT ${CPACK_PACKAGE_HOMEPAGE_URL} )
+    endif()
+
+    # This must always be last!
+    include( CPack )
 ENDIF ()

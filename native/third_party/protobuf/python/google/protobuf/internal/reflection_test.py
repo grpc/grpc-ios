@@ -37,6 +37,7 @@ import copy
 import gc
 import operator
 import struct
+import sys
 import warnings
 import unittest
 
@@ -376,7 +377,8 @@ class ReflectionTest(unittest.TestCase):
     self.assertRaises(TypeError, setattr, proto, 'optional_float', 'foo')
     self.assertRaises(TypeError, setattr, proto, 'optional_double', 'foo')
     # TODO(jieluo): Fix type checking difference for python and c extension
-    if api_implementation.Type() == 'python':
+    if (api_implementation.Type() == 'python' or
+        (sys.version_info.major, sys.version_info.minor) >= (3, 10)):
       self.assertRaises(TypeError, setattr, proto, 'optional_bool', 1.1)
     else:
       proto.optional_bool = 1.1
@@ -427,7 +429,7 @@ class ReflectionTest(unittest.TestCase):
       pb.optional_uint64 = '2'
 
     # The exact error should propagate with a poorly written custom integer.
-    with self.assertRaisesRegexp(RuntimeError, 'my_error'):
+    with self.assertRaisesRegex(RuntimeError, 'my_error'):
       pb.optional_uint64 = test_util.NonStandardInteger(5, 'my_error')
 
   def assetIntegerBoundsChecking(self, integer_fn, message_module):
@@ -1931,17 +1933,17 @@ class Proto2ReflectionTest(unittest.TestCase):
 
   def testDisconnectingInOneof(self):
     m = unittest_pb2.TestOneof2()  # This message has two messages in a oneof.
-    m.foo_message.qux_int = 5
+    m.foo_message.moo_int = 5
     sub_message = m.foo_message
     # Accessing another message's field does not clear the first one
-    self.assertEqual(m.foo_lazy_message.qux_int, 0)
-    self.assertEqual(m.foo_message.qux_int, 5)
+    self.assertEqual(m.foo_lazy_message.moo_int, 0)
+    self.assertEqual(m.foo_message.moo_int, 5)
     # But mutating another message in the oneof detaches the first one.
-    m.foo_lazy_message.qux_int = 6
-    self.assertEqual(m.foo_message.qux_int, 0)
+    m.foo_lazy_message.moo_int = 6
+    self.assertEqual(m.foo_message.moo_int, 0)
     # The reference we got above was detached and is still valid.
-    self.assertEqual(sub_message.qux_int, 5)
-    sub_message.qux_int = 7
+    self.assertEqual(sub_message.moo_int, 5)
+    sub_message.moo_int = 7
 
   def assertInitialized(self, proto):
     self.assertTrue(proto.IsInitialized())
@@ -2018,7 +2020,7 @@ class Proto2ReflectionTest(unittest.TestCase):
     self.assertRaises(TypeError, proto.IsInitialized, 1, 2, 3)
 
   @unittest.skipIf(
-      api_implementation.Type() != 'cpp' or api_implementation.Version() != 2,
+      api_implementation.Type() == 'python',
       'Errors are only available from the most recent C++ implementation.')
   def testFileDescriptorErrors(self):
     file_name = 'test_file_descriptor_errors.proto'
@@ -3223,7 +3225,7 @@ class OptionsTest(unittest.TestCase):
 class ClassAPITest(unittest.TestCase):
 
   @unittest.skipIf(
-      api_implementation.Type() == 'cpp' and api_implementation.Version() == 2,
+      api_implementation.Type() != 'python',
       'C++ implementation requires a call to MakeDescriptor()')
   @testing_refleaks.SkipReferenceLeakChecker('MakeClass is not repeatable')
   def testMakeClassWithNestedDescriptor(self):
