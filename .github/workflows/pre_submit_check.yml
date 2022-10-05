@@ -3,6 +3,7 @@ on:
   pull_request:
     branches:
       - 'main'
+      - 'grpc_release_**'
   repository_dispatch:
     types: [pre-submit-check]
 concurrency:
