@@ -20,7 +20,7 @@
 
 Pod::Spec.new do |s|
     s.name     = 'gRPC'
-    version    = '1.49.1-dev'
+    version    = '1.49.1'
     native_version = '1.49.1'
     s.version  = version
     s.summary  = 'gRPC client library for iOS/OSX'
@@ -49,7 +49,10 @@ Pod::Spec.new do |s|
     }
 
     s.ios.deployment_target = '9.0'
-
+    s.osx.deployment_target = '10.10'
+    s.tvos.deployment_target = '10.0'
+    s.watchos.deployment_target = '4.0'
+  
     s.subspec 'Interface-Legacy' do |ss|
       ss.header_mappings_dir = objc_client_root
 
