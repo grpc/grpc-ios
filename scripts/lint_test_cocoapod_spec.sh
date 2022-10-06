@@ -8,7 +8,7 @@ BUILD_OPTION="--use-libraries"
 GRPC_PODSPECS="
     gRPC.podspec \
     gRPC-ProtoRPC.podspec \
-    build/cocoapod/gRPC-RxLibrary.podspec
+    gRPC-RxLibrary.podspec
 "
 
 # Parsing arguments

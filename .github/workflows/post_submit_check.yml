@@ -50,4 +50,4 @@ jobs:
         run: scripts/prepare_env.sh
 
       - name: gRPC-RxLibrary podspec lint checks
-        run: scripts/lint_test_cocoapod_spec.sh -p build/cocoapod/gRPC-RxLibrary.podspec
+        run: scripts/lint_test_cocoapod_spec.sh -p gRPC-RxLibrary.podspec
