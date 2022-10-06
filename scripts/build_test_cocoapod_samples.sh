@@ -6,6 +6,7 @@ source ./scripts/build_commons.sh
 # Build gRPC Sample App with Cocoapod Integrations
 SAMPLE_ROOT=tests/cocoapod/gRPCSample
 SAMPLE_WORKSPACE=$SAMPLE_ROOT/gRPCSample.xcworkspace
+SAMPLE_XCODEPROJ=$SAMPLE_ROOT/gRPCSample.xcodeproj
 SCHEME=gRPCSample
 
 # Fetch latest podinfo
@@ -25,3 +26,6 @@ time xcodebuild \
 -destination "${GRPC_IOS_DESTINATION}" \
 build \
 $GRPC_IOS_BUILD_FLAGS
+
+# Clean up modified xcodeproj
+git checkout HEAD -- "${SAMPLE_XCODEPROJ}"
