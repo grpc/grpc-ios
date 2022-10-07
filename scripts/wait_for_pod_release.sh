@@ -13,7 +13,7 @@ do
    echo "Checking pod availability for ${POD_NAME}, version ${POD_VERSION}"
    pod repo update --silent
    results=$(pod trunk info $POD_NAME | grep $POD_VERSION) || true
-   if [[ $results == *"${POD_VERSION}"* ]]; then
+   if [[ $results == *"- ${POD_VERSION} ("* ]]; then
     echo "Version found!"
     break
    fi
