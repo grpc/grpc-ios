@@ -30,6 +30,7 @@ Pod::Spec.new do |s|
 
     s.source = {
       :git => 'https://github.com/grpc/grpc-ios.git',
+      :tag => "v#{version}"
     }
 
     native_root = "native"
