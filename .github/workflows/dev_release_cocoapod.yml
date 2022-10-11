@@ -22,8 +22,8 @@ jobs:
       - name: Update tags
         uses: rickstaa/action-create-tag@v1
         with:
-          tag: "v@${{ env.VERSION }}"
-          message: "gRPC-iOS Dev Release for @${{ env.VERSION }}"
+          tag: "v${{ env.VERSION }}"
+          message: "gRPC-iOS Dev Release for ${{ env.VERSION }}"
           force_push_tag: true
 
   release-cocoapod-gRPC-RxLibrary:
