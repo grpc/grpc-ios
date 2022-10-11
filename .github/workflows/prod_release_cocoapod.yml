@@ -1,0 +1,68 @@
+name: Cocoapod prod release
+on:
+  release:
+    types: [released, published]
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+env:
+  COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+jobs:
+  release-cocoapod-gRPC-RxLibrary:
+    runs-on: macos-latest
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: Pod release
+        run: scripts/release_cocoapod.sh gRPC-RxLibrary.podspec
+
+      - name: Wait for pod avaialble
+        run: |
+          version=$(cat VERSION)
+          timeout 1h scripts/wait_for_pod_release.sh gRPC-RxLibrary $version
+
+  release-cocoapod-gRPC:
+    runs-on: macos-latest
+    needs: release-cocoapod-gRPC-RxLibrary
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: Pod release
+        run: scripts/release_cocoapod.sh gRPC.podspec
+
+      - name: Wait for pod avaialble
+        run: |
+          version=$(cat VERSION)
+          timeout 1h scripts/wait_for_pod_release.sh gRPC $version
+
+  release-cocoapod-gRPC-ProtoRPC:
+    runs-on: macos-latest
+    needs: [release-cocoapod-gRPC-RxLibrary, release-cocoapod-gRPC]
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: Pod release
+        run: scripts/release_cocoapod.sh gRPC-ProtoRPC.podspec
+
+      - name: Wait for pod avaialble
+        run: |
+          version=$(cat VERSION)
+          timeout 1h scripts/wait_for_pod_release.sh gRPC-ProtoRPC $version
