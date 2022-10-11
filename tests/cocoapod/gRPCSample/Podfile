@@ -7,4 +7,5 @@ target 'gRPCSample' do
   use_frameworks!
   pod 'gRPC-ProtoRPC',  :path => GRPC_PODSPEC_ROOT
   pod 'gRPC', :path => GRPC_PODSPEC_ROOT
+  pod 'gRPC-RxLibrary', :path => GRPC_PODSPEC_ROOT
 end
