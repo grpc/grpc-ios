@@ -1,7 +1,7 @@
 name: Cocoapod prod release
 on:
   release:
-    types: [published]
+    types: [released, published]
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
