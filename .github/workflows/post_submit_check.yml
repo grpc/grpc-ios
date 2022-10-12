@@ -7,8 +7,8 @@ on:
   repository_dispatch:
     types: [post-submit-check]
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref_name }}
-  cancel-in-progress: false
+  group: post-submit-dev-workflow
+  cancel-in-progress: true
 jobs:
   post-submit-check-cocoapod-lint-gRPC:
     runs-on: macos-latest

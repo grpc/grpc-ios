@@ -1,12 +1,11 @@
 name: Cocoapod dev release
 on:
-  push:
-    branches:
-      - 'main'
+  schedule:
+      - cron: '0 0,12 * * *' # run at every 0 and 12th hours of day
   repository_dispatch:
     types: [cocoapod-release-dev]
 concurrency:
-  group: ${{ github.workflow }}
+  group: post-submit-dev-workflow
   cancel-in-progress: true
 env:
   COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
