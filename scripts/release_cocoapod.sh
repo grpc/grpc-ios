@@ -11,6 +11,9 @@ if [ -z "$TARGET_PODSPEC" ]; then
     exit 1
 fi
 
+# Skip lint during pod trunk push
+./scripts/skip_pod_push_lint.sh
+
 echo "Publishing podspec $TARGET_PODSPEC"
 
 time pod trunk push $TARGET_PODSPEC \
