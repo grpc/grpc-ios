@@ -1,16 +1,30 @@
 name: Cocoapod dev release
 on:
-  push:
-    branches:
-      - 'main'
+  schedule:
+      - cron: '0 0,12 * * *' # run at every 0 and 12th hours of day
   repository_dispatch:
     types: [cocoapod-release-dev]
 concurrency:
-  group: ${{ github.workflow }}
+  group: post-submit-dev-workflow
   cancel-in-progress: true
 env:
   COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
 jobs:
+  update-dev-release-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Collect version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+      - name: Update tags
+        uses: rickstaa/action-create-tag@v1
+        with:
+          tag: "v${{ env.VERSION }}"
+          message: "gRPC-iOS Dev Release for ${{ env.VERSION }}"
+          force_push_tag: true
+
   release-cocoapod-gRPC-RxLibrary:
     runs-on: macos-latest
     steps:
