@@ -8,6 +8,43 @@ concurrency:
 env:
   COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
 jobs:
+  release-cocoapod-gRPC-Core:
+    runs-on: macos-latest
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: Pod release
+        run: scripts/release_cocoapod.sh native/gRPC-Core.podspec
+
+      - name: Wait for pod avaialble
+        run: |
+          version=$(cat VERSION)
+          timeout 1h scripts/wait_for_pod_release.sh gRPC-Core $version
+  release-cocoapod-gRPC-Cpp:
+    runs-on: macos-latest
+    needs: [release-cocoapod-gRPC-Core]
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: Pod release
+        run: scripts/release_cocoapod.sh native/gRPC-C++.podspec
+
+      - name: Wait for pod avaialble
+        run: |
+          version=$(cat VERSION)
+          timeout 1h scripts/wait_for_pod_release.sh gRPC-C++ $version
   release-cocoapod-gRPC-RxLibrary:
     runs-on: macos-latest
     steps:
@@ -29,7 +66,7 @@ jobs:
 
   release-cocoapod-gRPC:
     runs-on: macos-latest
-    needs: release-cocoapod-gRPC-RxLibrary
+    needs: [release-cocoapod-gRPC-RxLibrary, release-cocoapod-gRPC-Core]
     steps:
       - name: Repo checkout
         uses: actions/checkout@v3
