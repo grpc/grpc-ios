@@ -22,7 +22,7 @@
 Pod::Spec.new do |s|
   s.name     = 'gRPC-Core'
   version = '1.50.0'
-  s.version  = version
+  s.version  = "#{version}-dev"
   s.summary  = 'Core cross-platform gRPC library, written in C'
   s.homepage = 'https://grpc.io'
   s.license  = 'Apache License, Version 2.0'
@@ -39,9 +39,6 @@ Pod::Spec.new do |s|
   s.cocoapods_version = '>= 1.2.0'
 
   s.ios.deployment_target = '9.0'
-  s.osx.deployment_target = '10.10'
-  s.tvos.deployment_target = '10.0'
-  s.watchos.deployment_target = '4.0'
 
   s.requires_arc = false
 

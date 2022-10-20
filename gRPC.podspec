@@ -20,8 +20,7 @@
 
 Pod::Spec.new do |s|
     s.name     = 'gRPC'
-    version    = '1.49.1-dev'
-    native_version = '1.49.1'
+    version    = '1.50.0-dev'
     s.version  = version
     s.summary  = 'gRPC client library for iOS/OSX'
     s.homepage = 'https://grpc.io'
@@ -131,7 +130,7 @@ Pod::Spec.new do |s|
 
       ss.dependency "#{s.name}/Interface-Legacy", version
       ss.dependency "#{s.name}/Interface", version
-      ss.dependency 'gRPC-Core', native_version
+      ss.dependency 'gRPC-Core', version
       ss.dependency 'gRPC-RxLibrary', version
     end
 
