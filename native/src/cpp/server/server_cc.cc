@@ -43,8 +43,8 @@
 #include <grpcpp/generic/async_generic_service.h>
 #include <grpcpp/health_check_service_interface.h>
 #include <grpcpp/impl/call.h>
+#include <grpcpp/impl/call_op_set_interface.h>
 #include <grpcpp/impl/codegen/call_op_set.h>
-#include <grpcpp/impl/codegen/call_op_set_interface.h>
 #include <grpcpp/impl/codegen/completion_queue_tag.h>
 #include <grpcpp/impl/codegen/interceptor_common.h>
 #include <grpcpp/impl/codegen/metadata_map.h>
@@ -73,7 +73,6 @@
 #include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/iomgr/iomgr.h"
-#include "src/core/lib/profiling/timers.h"
 #include "src/core/lib/resource_quota/api.h"
 #include "src/core/lib/surface/completion_queue.h"
 #include "src/core/lib/surface/server.h"
@@ -813,7 +812,6 @@ class Server::SyncRequestThreadManager : public grpc::ThreadManager {
     GPR_DEBUG_ASSERT(sync_req != nullptr);
     GPR_DEBUG_ASSERT(ok);
 
-    GPR_TIMER_SCOPE("sync_req->Run()", 0);
     sync_req->Run(global_callbacks_, resources);
   }
 

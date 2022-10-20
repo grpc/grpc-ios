@@ -45,7 +45,7 @@ bool ConsoleReporter::ReportContext(const Context& context) {
     GetErrorStream()
         << "Color printing is only supported for stdout on windows."
            " Disabling color printing\n";
-    output_options_ = static_cast< OutputOptions >(output_options_ & ~OO_Color);
+    output_options_ = static_cast<OutputOptions>(output_options_ & ~OO_Color);
   }
 #endif
 
@@ -53,11 +53,12 @@ bool ConsoleReporter::ReportContext(const Context& context) {
 }
 
 void ConsoleReporter::PrintHeader(const Run& run) {
-  std::string str = FormatString("%-*s %13s %15s %12s", static_cast<int>(name_field_width_),
-                                 "Benchmark", "Time", "CPU", "Iterations");
-  if(!run.counters.empty()) {
-    if(output_options_ & OO_Tabular) {
-      for(auto const& c : run.counters) {
+  std::string str =
+      FormatString("%-*s %13s %15s %12s", static_cast<int>(name_field_width_),
+                   "Benchmark", "Time", "CPU", "Iterations");
+  if (!run.counters.empty()) {
+    if (output_options_ & OO_Tabular) {
+      for (auto const& c : run.counters) {
         str += FormatString(" %10s", c.first.c_str());
       }
     } else {
@@ -97,8 +98,10 @@ static void IgnoreColorPrint(std::ostream& out, LogColor, const char* fmt,
   va_end(args);
 }
 
-
 static std::string FormatTime(double time) {
+  // For the time columns of the console printer 13 digits are reserved. One of
+  // them is a space and max two of them are the time unit (e.g ns). That puts
+  // us at 10 digits usable for the number.
   // Align decimal places...
   if (time < 1.0) {
     return FormatString("%10.3f", time);
@@ -109,14 +112,20 @@ static std::string FormatTime(double time) {
   if (time < 100.0) {
     return FormatString("%10.1f", time);
   }
+  // Assuming the time ist at max 9.9999e+99 and we have 10 digits for the
+  // number, we get 10-1(.)-1(e)-1(sign)-2(exponent) = 5 digits to print.
+  if (time > 9999999999 /*max 10 digit number*/) {
+    return FormatString("%1.4e", time);
+  }
   return FormatString("%10.0f", time);
 }
 
 void ConsoleReporter::PrintRunData(const Run& result) {
   typedef void(PrinterFn)(std::ostream&, LogColor, const char*, ...);
   auto& Out = GetOutputStream();
-  PrinterFn* printer = (output_options_ & OO_Color) ?
-                         (PrinterFn*)ColorPrintf : IgnoreColorPrint;
+  PrinterFn* printer = (output_options_ & OO_Color)
+                           ? static_cast<PrinterFn*>(ColorPrintf)
+                           : IgnoreColorPrint;
   auto name_color =
       (result.report_big_o || result.report_rms) ? COLOR_BLUE : COLOR_GREEN;
   printer(Out, name_color, "%-*s ", name_field_width_,
@@ -134,19 +143,18 @@ void ConsoleReporter::PrintRunData(const Run& result) {
   const std::string real_time_str = FormatTime(real_time);
   const std::string cpu_time_str = FormatTime(cpu_time);
 
-
   if (result.report_big_o) {
     std::string big_o = GetBigOString(result.complexity);
-    printer(Out, COLOR_YELLOW, "%10.2f %-4s %10.2f %-4s ", real_time, big_o.c_str(),
-            cpu_time, big_o.c_str());
+    printer(Out, COLOR_YELLOW, "%10.2f %-4s %10.2f %-4s ", real_time,
+            big_o.c_str(), cpu_time, big_o.c_str());
   } else if (result.report_rms) {
     printer(Out, COLOR_YELLOW, "%10.0f %-4s %10.0f %-4s ", real_time * 100, "%",
             cpu_time * 100, "%");
   } else if (result.run_type != Run::RT_Aggregate ||
              result.aggregate_unit == StatisticUnit::kTime) {
     const char* timeLabel = GetTimeUnitString(result.time_unit);
-    printer(Out, COLOR_YELLOW, "%s %-4s %s %-4s ", real_time_str.c_str(), timeLabel,
-            cpu_time_str.c_str(), timeLabel);
+    printer(Out, COLOR_YELLOW, "%s %-4s %s %-4s ", real_time_str.c_str(),
+            timeLabel, cpu_time_str.c_str(), timeLabel);
   } else {
     assert(result.aggregate_unit == StatisticUnit::kPercentage);
     printer(Out, COLOR_YELLOW, "%10.2f %-4s %10.2f %-4s ",
@@ -159,8 +167,8 @@ void ConsoleReporter::PrintRunData(const Run& result) {
   }
 
   for (auto& c : result.counters) {
-    const std::size_t cNameLen = std::max(std::string::size_type(10),
-                                          c.first.length());
+    const std::size_t cNameLen =
+        std::max(std::string::size_type(10), c.first.length());
     std::string s;
     const char* unit = "";
     if (result.run_type == Run::RT_Aggregate &&

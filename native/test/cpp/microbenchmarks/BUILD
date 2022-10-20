@@ -97,6 +97,17 @@ grpc_cc_test(
 )
 
 grpc_cc_test(
+    name = "bm_huffman_decode",
+    srcs = ["bm_huffman_decode.cc"],
+    args = grpc_benchmark_args(),
+    tags = [
+        "no_mac",
+        "no_windows",
+    ],
+    deps = [":helpers"],
+)
+
+grpc_cc_test(
     name = "bm_alarm",
     srcs = ["bm_alarm.cc"],
     args = grpc_benchmark_args(),
@@ -205,6 +216,7 @@ grpc_cc_test(
         "bm_fullstack_streaming_ping_pong.cc",
     ],
     args = grpc_benchmark_args(),
+    flaky = True,
     tags = [
         "no_mac",  # to emulate "excluded_poll_engines: poll"
         "no_windows",
