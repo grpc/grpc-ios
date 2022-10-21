@@ -44,6 +44,7 @@ from google_benchmark._benchmark import (
     oNLogN,
     oAuto,
     oLambda,
+    State,
 )
 
 
@@ -64,9 +65,10 @@ __all__ = [
     "oNLogN",
     "oAuto",
     "oLambda",
+    "State",
 ]
 
-__version__ = "0.2.0"
+__version__ = "1.7.0"
 
 
 class __OptionMaker:

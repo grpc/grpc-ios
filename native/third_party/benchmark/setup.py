@@ -1,5 +1,6 @@
 import os
 import posixpath
+import platform
 import re
 import shutil
 import sys
@@ -13,6 +14,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 IS_WINDOWS = sys.platform.startswith("win")
+
+
+with open("README.md", "r", encoding="utf-8") as fp:
+    long_description = fp.read()
 
 
 def _get_version():
@@ -89,6 +94,14 @@ class BuildBazelExtension(build_ext.build_ext):
             # Link with python*.lib.
             for library_dir in self.library_dirs:
                 bazel_argv.append("--linkopt=/LIBPATH:" + library_dir)
+        elif sys.platform == "darwin" and platform.machine() == "x86_64":
+            bazel_argv.append("--macos_minimum_os=10.9")
+
+            # ARCHFLAGS is always set by cibuildwheel before macOS wheel builds.
+            archflags = os.getenv("ARCHFLAGS", "")
+            if "arm64" in archflags:
+                bazel_argv.append("--cpu=darwin_arm64")
+                bazel_argv.append("--macos_cpus=arm64")
 
         self.spawn(bazel_argv)
 
@@ -103,12 +116,17 @@ class BuildBazelExtension(build_ext.build_ext):
             os.makedirs(ext_dest_dir)
         shutil.copyfile(ext_bazel_bin_path, ext_dest_path)
 
+        # explicitly call `bazel shutdown` for graceful exit
+        self.spawn(["bazel", "shutdown"])
+
 
 setuptools.setup(
     name="google_benchmark",
     version=_get_version(),
     url="https://github.com/google/benchmark",
     description="A library to benchmark code snippets.",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author="Google",
     author_email="benchmark-py@google.com",
     # Contained modules and scripts.

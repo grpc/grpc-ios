@@ -115,7 +115,7 @@ inline BENCHMARK_ALWAYS_INLINE int64_t Now() {
   // the code is being compiled with a non-ancient compiler.
   _asm rdtsc
 #elif defined(COMPILER_MSVC) && defined(_M_ARM64)
-  // See https://docs.microsoft.com/en-us/cpp/intrinsics/arm64-intrinsics?view=vs-2019
+  // See // https://docs.microsoft.com/en-us/cpp/intrinsics/arm64-intrinsics
   // and https://reviews.llvm.org/D53115
   int64_t virtual_timer_value;
   virtual_timer_value = _ReadStatusReg(ARM64_CNTVCT);
@@ -132,7 +132,7 @@ inline BENCHMARK_ALWAYS_INLINE int64_t Now() {
 
   // Native Client does not provide any API to access cycle counter.
   // Use clock_gettime(CLOCK_MONOTONIC, ...) instead of gettimeofday
-  // because is provides nanosecond resolution (which is noticable at
+  // because is provides nanosecond resolution (which is noticeable at
   // least for PNaCl modules running on x86 Mac & Linux).
   // Initialize to always return 0 if clock_gettime fails.
   struct timespec ts = {0, 0};
@@ -173,7 +173,7 @@ inline BENCHMARK_ALWAYS_INLINE int64_t Now() {
   struct timeval tv;
   gettimeofday(&tv, nullptr);
   return static_cast<int64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
-#elif defined(__loongarch__)
+#elif defined(__loongarch__) || defined(__csky__)
   struct timeval tv;
   gettimeofday(&tv, nullptr);
   return static_cast<int64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
@@ -187,7 +187,7 @@ inline BENCHMARK_ALWAYS_INLINE int64_t Now() {
   asm("stck %0" : "=Q"(tsc) : : "cc");
 #endif
   return tsc;
-#elif defined(__riscv) // RISC-V
+#elif defined(__riscv)  // RISC-V
   // Use RDCYCLE (and RDCYCLEH on riscv32)
 #if __riscv_xlen == 32
   uint32_t cycles_lo, cycles_hi0, cycles_hi1;

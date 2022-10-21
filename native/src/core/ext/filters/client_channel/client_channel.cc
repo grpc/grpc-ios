@@ -52,7 +52,6 @@
 #include "src/core/ext/filters/client_channel/global_subchannel_pool.h"
 #include "src/core/ext/filters/client_channel/lb_policy/child_policy_handler.h"
 #include "src/core/ext/filters/client_channel/local_subchannel_pool.h"
-#include "src/core/ext/filters/client_channel/proxy_mapper_registry.h"
 #include "src/core/ext/filters/client_channel/resolver_result_parsing.h"
 #include "src/core/ext/filters/client_channel/retry_filter.h"
 #include "src/core/ext/filters/client_channel/subchannel.h"
@@ -61,19 +60,20 @@
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/channel_stack.h"
 #include "src/core/lib/channel/channel_trace.h"
+#include "src/core/lib/channel/status_util.h"
 #include "src/core/lib/config/core_configuration.h"
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/gpr/useful.h"
 #include "src/core/lib/gprpp/debug_location.h"
 #include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/gprpp/work_serializer.h"
+#include "src/core/lib/handshaker/proxy_mapper_registry.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/iomgr/polling_entity.h"
 #include "src/core/lib/iomgr/pollset_set.h"
 #include "src/core/lib/json/json.h"
 #include "src/core/lib/load_balancing/lb_policy_registry.h"
 #include "src/core/lib/load_balancing/subchannel_interface.h"
-#include "src/core/lib/profiling/timers.h"
 #include "src/core/lib/resolver/resolver_registry.h"
 #include "src/core/lib/resolver/server_address.h"
 #include "src/core/lib/service_config/service_config_call_data.h"
@@ -1023,7 +1023,9 @@ ClientChannel::ClientChannel(grpc_channel_element_args* args,
         "filter");
     return;
   }
-  uri_to_resolve_ = ProxyMapperRegistry::MapName(*server_uri, &channel_args_)
+  uri_to_resolve_ = CoreConfiguration::Get()
+                        .proxy_mapper_registry()
+                        .MapName(*server_uri, &channel_args_)
                         .value_or(*server_uri);
   // Make sure the URI to resolve is valid, so that we know that
   // resolver creation will succeed later.
@@ -1120,8 +1122,9 @@ RefCountedPtr<LoadBalancingPolicy::Config> ChooseLbPolicy(
     policy_name = resolver_result.args.GetString(GRPC_ARG_LB_POLICY_NAME);
     bool requires_config = false;
     if (policy_name.has_value() &&
-        (!LoadBalancingPolicyRegistry::LoadBalancingPolicyExists(
-             *policy_name, &requires_config) ||
+        (!CoreConfiguration::Get()
+              .lb_policy_registry()
+              .LoadBalancingPolicyExists(*policy_name, &requires_config) ||
          requires_config)) {
       if (requires_config) {
         gpr_log(GPR_ERROR,
@@ -1145,7 +1148,8 @@ RefCountedPtr<LoadBalancingPolicy::Config> ChooseLbPolicy(
       {std::string(*policy_name), Json::Object{}},
   }};
   auto lb_policy_config =
-      LoadBalancingPolicyRegistry::ParseLoadBalancingConfig(config_json);
+      CoreConfiguration::Get().lb_policy_registry().ParseLoadBalancingConfig(
+          config_json);
   // The policy name came from one of three places:
   // - The deprecated loadBalancingPolicy field in the service config,
   //   in which case the code in ClientChannelServiceConfigParser
@@ -1167,6 +1171,9 @@ void ClientChannel::OnResolverResultChangedLocked(Resolver::Result result) {
   if (GRPC_TRACE_FLAG_ENABLED(grpc_client_channel_trace)) {
     gpr_log(GPR_INFO, "chand=%p: got resolver result", this);
   }
+  // Grab resolver result health callback.
+  auto resolver_callback = std::move(result.result_health_callback);
+  absl::Status resolver_result_status;
   // We only want to trace the address resolution in the follow cases:
   // (a) Address resolution resulted in service config change.
   // (b) Address resolution that causes number of backends to go from
@@ -1218,6 +1225,8 @@ void ClientChannel::OnResolverResultChangedLocked(Resolver::Result result) {
       // TRANSIENT_FAILURE.
       OnResolverErrorLocked(result.service_config.status());
       trace_strings.push_back("no valid service config");
+      resolver_result_status =
+          absl::UnavailableError("no valid service config");
     }
   } else if (*result.service_config == nullptr) {
     // Resolver did not return any service config.
@@ -1262,7 +1271,7 @@ void ClientChannel::OnResolverResultChangedLocked(Resolver::Result result) {
       gpr_log(GPR_INFO, "chand=%p: service config not changed", this);
     }
     // Create or update LB policy, as needed.
-    CreateOrUpdateLbPolicyLocked(
+    resolver_result_status = CreateOrUpdateLbPolicyLocked(
         std::move(lb_policy_config),
         parsed_service_config->health_check_service_name(), std::move(result));
     if (service_config_changed || config_selector_changed) {
@@ -1275,6 +1284,10 @@ void ClientChannel::OnResolverResultChangedLocked(Resolver::Result result) {
       // config in the trace, at the risk of bloating the trace logs.
       trace_strings.push_back("Service config changed");
     }
+  }
+  // Invoke resolver callback if needed.
+  if (resolver_callback != nullptr) {
+    resolver_callback(std::move(resolver_result_status));
   }
   // Add channel trace event.
   if (!trace_strings.empty()) {
@@ -1301,7 +1314,8 @@ void ClientChannel::OnResolverErrorLocked(absl::Status status) {
     {
       MutexLock lock(&resolution_mu_);
       // Update resolver transient failure.
-      resolver_transient_failure_error_ = status;
+      resolver_transient_failure_error_ =
+          MaybeRewriteIllegalStatusCode(status, "resolver");
       // Process calls that were queued waiting for the resolver result.
       for (ResolverQueuedCall* call = resolver_queued_calls_; call != nullptr;
            call = call->next) {
@@ -1321,7 +1335,7 @@ void ClientChannel::OnResolverErrorLocked(absl::Status status) {
   }
 }
 
-void ClientChannel::CreateOrUpdateLbPolicyLocked(
+absl::Status ClientChannel::CreateOrUpdateLbPolicyLocked(
     RefCountedPtr<LoadBalancingPolicy::Config> lb_policy_config,
     const absl::optional<std::string>& health_check_service_name,
     Resolver::Result result) {
@@ -1348,7 +1362,7 @@ void ClientChannel::CreateOrUpdateLbPolicyLocked(
     gpr_log(GPR_INFO, "chand=%p: Updating child policy %p", this,
             lb_policy_.get());
   }
-  lb_policy_->UpdateLocked(std::move(update_args));
+  return lb_policy_->UpdateLocked(std::move(update_args));
 }
 
 // Creates a new LB policy.
@@ -1400,8 +1414,7 @@ void ClientChannel::UpdateServiceConfigInControlPlaneLocked(
     RefCountedPtr<ConfigSelector> config_selector, std::string lb_policy_name) {
   std::string service_config_json(service_config->json_string());
   if (GRPC_TRACE_FLAG_ENABLED(grpc_client_channel_trace)) {
-    gpr_log(GPR_INFO,
-            "chand=%p: resolver returned updated service config: \"%s\"", this,
+    gpr_log(GPR_INFO, "chand=%p: using service config: \"%s\"", this,
             service_config_json.c_str());
   }
   // Save service config.
@@ -1860,7 +1873,6 @@ void ClientChannel::CallData::Destroy(
 
 void ClientChannel::CallData::StartTransportStreamOpBatch(
     grpc_call_element* elem, grpc_transport_stream_op_batch* batch) {
-  GPR_TIMER_SCOPE("cc_start_transport_stream_op_batch", 0);
   CallData* calld = static_cast<CallData*>(elem->call_data);
   ClientChannel* chand = static_cast<ClientChannel*>(elem->channel_data);
   if (GRPC_TRACE_FLAG_ENABLED(grpc_client_channel_call_trace) &&
@@ -2173,7 +2185,8 @@ grpc_error_handle ClientChannel::CallData::ApplyServiceConfigToCallLocked(
     ConfigSelector::CallConfig call_config =
         config_selector->GetCallConfig({&path_, initial_metadata, arena_});
     if (!call_config.status.ok()) {
-      return absl_status_to_grpc_error(call_config.status);
+      return absl_status_to_grpc_error(MaybeRewriteIllegalStatusCode(
+          std::move(call_config.status), "ConfigSelector"));
     }
     // Create a ClientChannelServiceConfigCallData for the call.  This stores
     // a ref to the ServiceConfig and caches the right set of parsed configs
@@ -3166,11 +3179,8 @@ bool ClientChannel::LoadBalancedCall::PickSubchannelLocked(
             // attempt's final status.
             if (!initial_metadata_batch->GetOrCreatePointer(WaitForReady())
                      ->value) {
-              grpc_error_handle lb_error =
-                  absl_status_to_grpc_error(fail_pick->status);
-              *error = GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
-                  "Failed to pick subchannel", &lb_error, 1);
-              GRPC_ERROR_UNREF(lb_error);
+              *error = absl_status_to_grpc_error(MaybeRewriteIllegalStatusCode(
+                  std::move(fail_pick->status), "LB pick"));
               MaybeRemoveCallFromLbQueuedCallsLocked();
               return true;
             }
@@ -3186,9 +3196,10 @@ bool ClientChannel::LoadBalancedCall::PickSubchannelLocked(
               gpr_log(GPR_INFO, "chand=%p lb_call=%p: LB pick dropped: %s",
                       chand_, this, drop_pick->status.ToString().c_str());
             }
-            *error =
-                grpc_error_set_int(absl_status_to_grpc_error(drop_pick->status),
-                                   GRPC_ERROR_INT_LB_POLICY_DROP, 1);
+            *error = grpc_error_set_int(
+                absl_status_to_grpc_error(MaybeRewriteIllegalStatusCode(
+                    std::move(drop_pick->status), "LB drop")),
+                GRPC_ERROR_INT_LB_POLICY_DROP, 1);
             MaybeRemoveCallFromLbQueuedCallsLocked();
             return true;
           });

@@ -59,6 +59,7 @@
 #include "src/core/lib/iomgr/closure.h"
 #include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
+#include "src/core/lib/iomgr/iomgr_fwd.h"
 #include "src/core/lib/iomgr/polling_entity.h"
 #include "src/core/lib/security/credentials/credentials.h"
 #include "src/core/lib/slice/b64.h"
@@ -732,7 +733,7 @@ static void on_openid_config_retrieved(void* user_data,
   }
   ctx->http_request = grpc_core::HttpRequest::Get(
       std::move(*uri), nullptr /* channel args */, &ctx->pollent, &req,
-      grpc_core::ExecCtx::Get()->Now() + grpc_jwt_verifier_max_delay,
+      grpc_core::Timestamp::Now() + grpc_jwt_verifier_max_delay,
       GRPC_CLOSURE_CREATE(on_keys_retrieved, ctx, grpc_schedule_on_exec_ctx),
       &ctx->responses[HTTP_RESPONSE_KEYS],
       grpc_core::CreateHttpRequestSSLCredentials());
@@ -863,7 +864,7 @@ static void retrieve_key_and_verify(verifier_cb_ctx* ctx) {
   }
   ctx->http_request = grpc_core::HttpRequest::Get(
       std::move(*uri), nullptr /* channel args */, &ctx->pollent, &req,
-      grpc_core::ExecCtx::Get()->Now() + grpc_jwt_verifier_max_delay, http_cb,
+      grpc_core::Timestamp::Now() + grpc_jwt_verifier_max_delay, http_cb,
       &ctx->responses[rsp_idx], grpc_core::CreateHttpRequestSSLCredentials());
   ctx->http_request->Start();
   gpr_free(host);

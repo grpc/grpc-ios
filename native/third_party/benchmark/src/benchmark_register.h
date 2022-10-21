@@ -12,8 +12,8 @@ namespace internal {
 // Append the powers of 'mult' in the closed interval [lo, hi].
 // Returns iterator to the start of the inserted range.
 template <typename T>
-typename std::vector<T>::iterator
-AddPowers(std::vector<T>* dst, T lo, T hi, int mult) {
+typename std::vector<T>::iterator AddPowers(std::vector<T>* dst, T lo, T hi,
+                                            int mult) {
   BM_CHECK_GE(lo, 0);
   BM_CHECK_GE(hi, lo);
   BM_CHECK_GE(mult, 2);
@@ -23,7 +23,7 @@ AddPowers(std::vector<T>* dst, T lo, T hi, int mult) {
   static const T kmax = std::numeric_limits<T>::max();
 
   // Space out the values in multiples of "mult"
-  for (T i = static_cast<T>(1); i <= hi; i *= mult) {
+  for (T i = static_cast<T>(1); i <= hi; i *= static_cast<T>(mult)) {
     if (i >= lo) {
       dst->push_back(i);
     }
@@ -32,7 +32,7 @@ AddPowers(std::vector<T>* dst, T lo, T hi, int mult) {
     if (i > kmax / mult) break;
   }
 
-  return dst->begin() + start_offset;
+  return dst->begin() + static_cast<int>(start_offset);
 }
 
 template <typename T>
