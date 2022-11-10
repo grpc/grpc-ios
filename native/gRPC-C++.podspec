@@ -23,7 +23,7 @@ Pod::Spec.new do |s|
   s.name     = 'gRPC-C++'
   # TODO (mxyan): use version that match gRPC version when pod is stabilized
   version = '1.50.0'
-  s.version  = "#{version}-dev"
+  s.version  = "#{version}"
   s.summary  = 'gRPC C++ library'
   s.homepage = 'https://grpc.io'
   s.license  = 'Apache License, Version 2.0'
@@ -35,6 +35,9 @@ Pod::Spec.new do |s|
   }
 
   s.ios.deployment_target = '9.0'
+  s.osx.deployment_target = '10.10'
+  s.tvos.deployment_target = '10.0'
+  s.watchos.deployment_target = '4.0'
 
   s.requires_arc = false
 
