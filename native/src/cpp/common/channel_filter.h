@@ -1,20 +1,20 @@
-/*
- *
- * Copyright 2016 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2016 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #ifndef GRPCXX_CHANNEL_FILTER_H
 #define GRPCXX_CHANNEL_FILTER_H
@@ -26,10 +26,10 @@
 #include <string>
 #include <utility>
 
+#include "absl/status/status.h"
 #include "absl/types/optional.h"
 
 #include <grpc/grpc.h>
-#include <grpc/impl/codegen/grpc_types.h>
 #include <grpc/support/atm.h>
 #include <grpcpp/support/config.h>
 
@@ -86,7 +86,7 @@ class TransportOp {
   grpc_error_handle disconnect_with_error() const {
     return op_->disconnect_with_error;
   }
-  bool send_goaway() const { return !GRPC_ERROR_IS_NONE(op_->goaway_error); }
+  bool send_goaway() const { return !op_->goaway_error.ok(); }
 
   // TODO(roth): Add methods for additional fields as needed.
 
@@ -201,7 +201,7 @@ class ChannelData {
   /// Initializes the channel data.
   virtual grpc_error_handle Init(grpc_channel_element* /*elem*/,
                                  grpc_channel_element_args* /*args*/) {
-    return GRPC_ERROR_NONE;
+    return absl::OkStatus();
   }
 
   // Called before destruction.
@@ -224,7 +224,7 @@ class CallData {
   /// Initializes the call data.
   virtual grpc_error_handle Init(grpc_call_element* /*elem*/,
                                  const grpc_call_element_args* /*args*/) {
-    return GRPC_ERROR_NONE;
+    return absl::OkStatus();
   }
 
   // Called before destruction.

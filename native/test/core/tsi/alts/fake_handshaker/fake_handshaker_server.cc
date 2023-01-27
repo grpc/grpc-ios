@@ -1,35 +1,38 @@
-/*
- *
- * Copyright 2018 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2018 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 #include "test/core/tsi/alts/fake_handshaker/fake_handshaker_server.h"
 
 #include <memory>
 #include <sstream>
 #include <string>
 
+#include "absl/strings/str_format.h"
+
 #include <grpc/grpc.h>
 #include <grpc/support/log.h>
-#include <grpcpp/impl/codegen/sync.h>
+#include <grpcpp/impl/sync.h>
 #include <grpcpp/security/server_credentials.h>
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/async_stream.h>
 
+#include "src/core/lib/gprpp/crash.h"
 #include "test/core/tsi/alts/fake_handshaker/handshaker.grpc.pb.h"
 #include "test/core/tsi/alts/fake_handshaker/handshaker.pb.h"
 #include "test/core/tsi/alts/fake_handshaker/transport_security_common.pb.h"
@@ -253,12 +256,11 @@ class FakeHandshakerService : public HandshakerService::Service {
             &parent->expected_max_concurrent_rpcs_mu_);
         if (++parent->concurrent_rpcs_ >
             parent->expected_max_concurrent_rpcs_) {
-          gpr_log(GPR_ERROR,
-                  "FakeHandshakerService:%p concurrent_rpcs_:%d "
-                  "expected_max_concurrent_rpcs:%d",
-                  parent, parent->concurrent_rpcs_,
-                  parent->expected_max_concurrent_rpcs_);
-          abort();
+          grpc_core::Crash(
+              absl::StrFormat("FakeHandshakerService:%p concurrent_rpcs_:%d "
+                              "expected_max_concurrent_rpcs:%d",
+                              parent, parent->concurrent_rpcs_,
+                              parent->expected_max_concurrent_rpcs_));
         }
       }
     }
