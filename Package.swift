@@ -50,6 +50,13 @@ let package = Package(
         "third_party/upb/upb/test_generated_code.cc",
         "third_party/upb/upb/test_cpp.cc",
         "third_party/upb/upb/conformance_upb.c",
+        "third_party/upb/upb/util/required_fields_test.cc",
+        "third_party/upb/upb/mini_table_accessors_test.cc",
+        "third_party/upb/upb/msg_test.cc",
+        "third_party/upb/upb/mini_table_test.cc",
+        "third_party/upb/upb/json_test.cc",
+        "third_party/upb/upb/util/def_to_proto_test.cc",
+        "third_party/upb/upb/util/compare_test.cc",
         "src/core/lib/event_engine/utils.cc",
       ],
       sources: [
