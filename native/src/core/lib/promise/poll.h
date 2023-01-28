@@ -19,6 +19,8 @@
 
 #include <stddef.h>
 
+#include <string>
+
 #include "absl/types/variant.h"
 
 namespace grpc_core {
@@ -28,6 +30,12 @@ namespace grpc_core {
 // upgraded to a Poll<> object.
 struct Pending {
   constexpr bool operator==(Pending) const { return true; }
+};
+
+// A type that contains no value. Useful for simulating 'void' in promises that
+// always need to return some kind of value.
+struct Empty {
+  constexpr bool operator==(Empty) const { return true; }
 };
 
 // The result of polling a Promise once.
@@ -60,6 +68,17 @@ struct PollTraits<Poll<T>> {
   using Type = T;
   static constexpr bool is_poll() { return true; }
 };
+
+// Convert a poll to a string
+template <typename T, typename F>
+std::string PollToString(
+    const Poll<T>& poll,
+    F t_to_string = [](const T& t) { return t.ToString(); }) {
+  if (absl::holds_alternative<Pending>(poll)) {
+    return "<<pending>>";
+  }
+  return t_to_string(absl::get<T>(poll));
+}
 
 }  // namespace grpc_core
 

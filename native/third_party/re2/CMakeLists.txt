@@ -6,12 +6,14 @@
 cmake_minimum_required(VERSION 3.5.1)
 
 project(RE2 CXX)
+include(CMakePackageConfigHelpers)
 include(CTest)
 include(GNUInstallDirs)
 
-if(NOT CMAKE_CXX_STANDARD)
+# Unlike GCC and upstream Clang, AppleClang still defaults to `-std=c++98`
+# for some reason. Set CMAKE_CXX_STANDARD if we seem to need to set it. :/
+if(APPLE AND NOT CMAKE_CXX_FLAGS MATCHES "-std=" AND NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 11)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 
 option(BUILD_SHARED_LIBS "build shared libraries" OFF)
@@ -154,10 +156,23 @@ set(RE2_HEADERS
 
 install(FILES ${RE2_HEADERS}
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/re2)
-install(TARGETS re2 EXPORT re2Config
+install(TARGETS re2 EXPORT re2Targets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(EXPORT re2Config
+install(EXPORT re2Targets
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/re2 NAMESPACE re2::)
+
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/re2Config.cmake.in
+                              ${CMAKE_CURRENT_BINARY_DIR}/re2Config.cmake
+                              INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/re2
+                              )
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/re2ConfigVersion.cmake
+                                 VERSION ${SONAME}.0.0
+                                 COMPATIBILITY SameMajorVersion
+                                 )
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/re2Config.cmake
+              ${CMAKE_CURRENT_BINARY_DIR}/re2ConfigVersion.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/re2)

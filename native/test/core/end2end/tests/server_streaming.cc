@@ -1,34 +1,33 @@
-/*
- *
- * Copyright 2020 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2020 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include <stdint.h>
 #include <string.h>
 
 #include <memory>
 
-#include "absl/memory/memory.h"
-
 #include <grpc/byte_buffer.h>
 #include <grpc/grpc.h>
-#include <grpc/impl/codegen/propagation_bits.h>
+#include <grpc/impl/propagation_bits.h>
 #include <grpc/slice.h>
 #include <grpc/status.h>
 #include <grpc/support/log.h>
+#include <grpc/support/time.h>
 
 #include "test/core/end2end/cq_verifier.h"
 #include "test/core/end2end/end2end_tests.h"
@@ -90,16 +89,16 @@ static void end_test(grpc_end2end_test_fixture* f) {
   grpc_completion_queue_destroy(f->cq);
 }
 
-/* Client requests status along with the initial metadata. Server streams
- * messages and ends with a non-OK status. Client reads after server is done
- * writing, and expects to get the status after the messages. */
+// Client requests status along with the initial metadata. Server streams
+// messages and ends with a non-OK status. Client reads after server is done
+// writing, and expects to get the status after the messages.
 static void test_server_streaming(grpc_end2end_test_config config,
                                   int num_messages) {
   grpc_end2end_test_fixture f =
       begin_test(config, "test_server_streaming", nullptr, nullptr);
   grpc_call* c;
   grpc_call* s;
-  auto cqv = absl::make_unique<grpc_core::CqVerifier>(f.cq);
+  auto cqv = std::make_unique<grpc_core::CqVerifier>(f.cq);
   grpc_op ops[6];
   grpc_op* op;
   grpc_metadata_array initial_metadata_recv;
