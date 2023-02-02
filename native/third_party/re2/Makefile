@@ -17,7 +17,7 @@ CXX?=g++
 CXXFLAGS?=-O3 -g
 LDFLAGS?=
 # required
-RE2_CXXFLAGS?=-std=c++11 -pthread -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -I. $(CCICU) $(CCPCRE)
+RE2_CXXFLAGS?=-pthread -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -I. $(CCICU) $(CCPCRE)
 RE2_LDFLAGS?=-pthread $(LDICU) $(LDPCRE)
 AR?=ar
 ARFLAGS?=rsc
@@ -244,8 +244,8 @@ re2/perl_groups.cc: re2/make_perl_groups.pl
 	perl $< > $@
 
 .PRECIOUS: re2/unicode_%.cc
-re2/unicode_%.cc: re2/make_unicode_%.py
-	python $< > $@
+re2/unicode_%.cc: re2/make_unicode_%.py re2/unicode.py
+	python3 $< > $@
 endif
 
 .PHONY: distclean
@@ -327,31 +327,31 @@ testinstall: static-testinstall shared-testinstall
 	@echo
 
 .PHONY: static-testinstall
-static-testinstall: CXXFLAGS:=-std=c++11 -pthread -I$(DESTDIR)$(includedir) $(CXXFLAGS)
+static-testinstall: CXXFLAGS:=-pthread -I$(DESTDIR)$(includedir) $(CXXFLAGS)
 static-testinstall: LDFLAGS:=-pthread -L$(DESTDIR)$(libdir) -l:libre2.a $(LDICU) $(LDFLAGS)
 static-testinstall:
 	@mkdir -p obj
-	@cp testinstall.cc obj
+	@cp testinstall.cc obj/static-testinstall.cc
 ifeq ($(shell uname),Darwin)
 	@echo Skipping test for libre2.a on Darwin.
 else ifeq ($(shell uname),SunOS)
 	@echo Skipping test for libre2.a on SunOS.
 else
-	(cd obj && $(CXX) testinstall.cc -o testinstall $(CXXFLAGS) $(LDFLAGS))
-	obj/testinstall
+	(cd obj && $(CXX) static-testinstall.cc -o static-testinstall $(CXXFLAGS) $(LDFLAGS))
+	obj/static-testinstall
 endif
 
 .PHONY: shared-testinstall
-shared-testinstall: CXXFLAGS:=-std=c++11 -pthread -I$(DESTDIR)$(includedir) $(CXXFLAGS)
+shared-testinstall: CXXFLAGS:=-pthread -I$(DESTDIR)$(includedir) $(CXXFLAGS)
 shared-testinstall: LDFLAGS:=-pthread -L$(DESTDIR)$(libdir) -lre2 $(LDICU) $(LDFLAGS)
 shared-testinstall:
 	@mkdir -p obj
-	@cp testinstall.cc obj
-	(cd obj && $(CXX) testinstall.cc -o testinstall $(CXXFLAGS) $(LDFLAGS))
+	@cp testinstall.cc obj/shared-testinstall.cc
+	(cd obj && $(CXX) shared-testinstall.cc -o shared-testinstall $(CXXFLAGS) $(LDFLAGS))
 ifeq ($(shell uname),Darwin)
-	DYLD_LIBRARY_PATH="$(DESTDIR)$(libdir):$(DYLD_LIBRARY_PATH)" obj/testinstall
+	DYLD_LIBRARY_PATH="$(DESTDIR)$(libdir):$(DYLD_LIBRARY_PATH)" obj/shared-testinstall
 else
-	LD_LIBRARY_PATH="$(DESTDIR)$(libdir):$(LD_LIBRARY_PATH)" obj/testinstall
+	LD_LIBRARY_PATH="$(DESTDIR)$(libdir):$(LD_LIBRARY_PATH)" obj/shared-testinstall
 endif
 
 .PHONY: benchlog

@@ -26,13 +26,13 @@
 #include <grpc/event_engine/memory_allocator.h>
 #include <grpc/event_engine/slice_buffer.h>
 
-#include "src/core/lib/event_engine/executor/threaded_executor.h"
 #include "src/core/lib/event_engine/handle_containers.h"
 #include "src/core/lib/event_engine/posix_engine/timer_manager.h"
 #include "src/core/lib/event_engine/trace.h"
 #include "src/core/lib/event_engine/utils.h"
 #include "src/core/lib/event_engine/windows/iocp.h"
 #include "src/core/lib/event_engine/windows/windows_engine.h"
+#include "src/core/lib/gprpp/crash.h"
 #include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/gprpp/time.h"
 
@@ -45,7 +45,7 @@ namespace experimental {
 
 struct WindowsEventEngine::Closure final : public EventEngine::Closure {
   absl::AnyInvocable<void()> cb;
-  posix_engine::Timer timer;
+  Timer timer;
   WindowsEventEngine* engine;
   EventEngine::TaskHandle handle;
 
@@ -61,23 +61,30 @@ struct WindowsEventEngine::Closure final : public EventEngine::Closure {
   }
 };
 
-WindowsEventEngine::WindowsEventEngine() : iocp_(&executor_) {
+WindowsEventEngine::WindowsEventEngine()
+    : executor_(std::make_shared<ThreadPool>()),
+      iocp_(executor_.get()),
+      timer_manager_(executor_) {
   WSADATA wsaData;
   int status = WSAStartup(MAKEWORD(2, 0), &wsaData);
   GPR_ASSERT(status == 0);
 }
 
 WindowsEventEngine::~WindowsEventEngine() {
-  grpc_core::MutexLock lock(&mu_);
-  if (GRPC_TRACE_FLAG_ENABLED(grpc_event_engine_trace)) {
-    for (auto handle : known_handles_) {
-      gpr_log(GPR_ERROR,
-              "WindowsEventEngine:%p uncleared TaskHandle at shutdown:%s", this,
-              HandleToString(handle).c_str());
+  {
+    grpc_core::MutexLock lock(&mu_);
+    if (GRPC_TRACE_FLAG_ENABLED(grpc_event_engine_trace)) {
+      for (auto handle : known_handles_) {
+        gpr_log(GPR_ERROR,
+                "WindowsEventEngine:%p uncleared TaskHandle at shutdown:%s",
+                this, HandleToString(handle).c_str());
+      }
     }
+    GPR_ASSERT(GPR_LIKELY(known_handles_.empty()));
+    GPR_ASSERT(WSACleanup() == 0);
+    timer_manager_.Shutdown();
   }
-  GPR_ASSERT(GPR_LIKELY(known_handles_.empty()));
-  GPR_ASSERT(WSACleanup() == 0);
+  executor_->Quiesce();
 }
 
 bool WindowsEventEngine::Cancel(EventEngine::TaskHandle handle) {
@@ -101,11 +108,11 @@ EventEngine::TaskHandle WindowsEventEngine::RunAfter(
 }
 
 void WindowsEventEngine::Run(absl::AnyInvocable<void()> closure) {
-  executor_.Run(std::move(closure));
+  executor_->Run(std::move(closure));
 }
 
 void WindowsEventEngine::Run(EventEngine::Closure* closure) {
-  executor_.Run(closure);
+  executor_->Run(closure);
 }
 
 EventEngine::TaskHandle WindowsEventEngine::RunAfterInternal(
@@ -127,22 +134,20 @@ EventEngine::TaskHandle WindowsEventEngine::RunAfterInternal(
 
 std::unique_ptr<EventEngine::DNSResolver> WindowsEventEngine::GetDNSResolver(
     EventEngine::DNSResolver::ResolverOptions const& /*options*/) {
-  GPR_ASSERT(false && "unimplemented");
+  grpc_core::Crash("unimplemented");
 }
 
-bool WindowsEventEngine::IsWorkerThread() {
-  GPR_ASSERT(false && "unimplemented");
-}
+bool WindowsEventEngine::IsWorkerThread() { grpc_core::Crash("unimplemented"); }
 
 bool WindowsEventEngine::CancelConnect(EventEngine::ConnectionHandle handle) {
-  GPR_ASSERT(false && "unimplemented");
+  grpc_core::Crash("unimplemented");
 }
 
 EventEngine::ConnectionHandle WindowsEventEngine::Connect(
     OnConnectCallback on_connect, const ResolvedAddress& addr,
     const EndpointConfig& args, MemoryAllocator memory_allocator,
     Duration deadline) {
-  GPR_ASSERT(false && "unimplemented");
+  grpc_core::Crash("unimplemented");
 }
 
 absl::StatusOr<std::unique_ptr<EventEngine::Listener>>
@@ -151,9 +156,10 @@ WindowsEventEngine::CreateListener(
     absl::AnyInvocable<void(absl::Status)> on_shutdown,
     const EndpointConfig& config,
     std::unique_ptr<MemoryAllocatorFactory> memory_allocator_factory) {
-  GPR_ASSERT(false && "unimplemented");
+  grpc_core::Crash("unimplemented");
 }
 
 }  // namespace experimental
 }  // namespace grpc_event_engine
+
 #endif  // GPR_WINDOWS

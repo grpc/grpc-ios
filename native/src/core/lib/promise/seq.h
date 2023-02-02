@@ -17,6 +17,7 @@
 
 #include <grpc/support/port_platform.h>
 
+#include <type_traits>
 #include <utility>
 
 #include "src/core/lib/promise/detail/basic_seq.h"
@@ -32,13 +33,11 @@ struct SeqTraits {
   using UnwrappedType = T;
   using WrappedType = T;
   template <typename Next>
-  static auto CallFactory(Next* next, T&& value)
-      -> decltype(next->Once(std::forward<T>(value))) {
-    return next->Once(std::forward<T>(value));
+  static auto CallFactory(Next* next, T&& value) {
+    return next->Make(std::forward<T>(value));
   }
   template <typename F, typename Elem>
-  static auto CallSeqFactory(F& f, Elem&& elem, T&& value)
-      -> decltype(f(std::forward<Elem>(elem), std::forward<T>(value))) {
+  static auto CallSeqFactory(F& f, Elem&& elem, T&& value) {
     return f(std::forward<Elem>(elem), std::forward<T>(value));
   }
   template <typename Result, typename PriorResult, typename RunNext>
