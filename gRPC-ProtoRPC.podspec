@@ -36,7 +36,10 @@ Pod::Spec.new do |s|
     objc_client_root = "native/src/objective-c/ProtoRPC"
 
     s.ios.deployment_target = '9.0'
-
+    s.osx.deployment_target = '10.10'
+    s.tvos.deployment_target = '10.0'
+    s.watchos.deployment_target = '4.0'
+    
     name = 'ProtoRPC'
     s.module_name = name
     s.header_dir = name
