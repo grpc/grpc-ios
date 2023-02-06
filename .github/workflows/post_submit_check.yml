@@ -22,7 +22,7 @@ jobs:
         run: scripts/prepare_env.sh
 
       - name: gRPC podspec lint checks
-        run: scripts/lint_test_cocoapod_spec.sh -p gRPC.podspec
+        run: scripts/lint_test_cocoapod_spec.sh -p native/gRPC.podspec
 
   post-submit-check-cocoapod-lint-gRPC-ProtoRPC:
     runs-on: macos-latest
@@ -36,7 +36,7 @@ jobs:
         run: scripts/prepare_env.sh
 
       - name: gRPC-ProtoRPC podspec lint checks
-        run: scripts/lint_test_cocoapod_spec.sh -p gRPC-ProtoRPC.podspec
+        run: scripts/lint_test_cocoapod_spec.sh -p native/gRPC-ProtoRPC.podspec
 
   post-submit-check-cocoapod-lint-gRPC-RxLibrary:
     runs-on: macos-latest
@@ -50,4 +50,4 @@ jobs:
         run: scripts/prepare_env.sh
 
       - name: gRPC-RxLibrary podspec lint checks
-        run: scripts/lint_test_cocoapod_spec.sh -p gRPC-RxLibrary.podspec
+        run: scripts/lint_test_cocoapod_spec.sh -p native/gRPC-RxLibrary.podspec
