@@ -43,7 +43,7 @@ jobs:
           genv --default-signal=PIPE yes | scripts/delete_pod_version.sh gRPC-RxLibrary $version
 
       - name: Pod release
-        run: scripts/release_cocoapod.sh gRPC-RxLibrary.podspec
+        run: scripts/release_cocoapod.sh native/gRPC-RxLibrary.podspec
 
       - name: Wait for pod avaialble
         run: |
@@ -69,7 +69,7 @@ jobs:
           genv --default-signal=PIPE yes | scripts/delete_pod_version.sh gRPC $version
 
       - name: Pod release
-        run: scripts/release_cocoapod.sh gRPC.podspec
+        run: scripts/release_cocoapod.sh native/gRPC.podspec
 
       - name: Wait for pod avaialble
         run: |
@@ -95,7 +95,7 @@ jobs:
           genv --default-signal=PIPE yes | scripts/delete_pod_version.sh gRPC-ProtoRPC $version
 
       - name: Pod release
-        run: scripts/release_cocoapod.sh gRPC-ProtoRPC.podspec
+        run: scripts/release_cocoapod.sh native/gRPC-ProtoRPC.podspec
 
       - name: Wait for pod avaialble
         run: |
