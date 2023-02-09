@@ -6,9 +6,9 @@ BUILD_OPTION="--use-libraries"
 
 # gRPC ObjC Podspecs
 GRPC_PODSPECS="
-    gRPC.podspec \
-    gRPC-ProtoRPC.podspec \
-    gRPC-RxLibrary.podspec
+    native/gRPC.podspec \
+    native/gRPC-ProtoRPC.podspec \
+    native/gRPC-RxLibrary.podspec
 "
 
 # Parsing arguments
