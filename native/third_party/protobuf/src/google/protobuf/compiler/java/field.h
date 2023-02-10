@@ -68,6 +68,8 @@ class ImmutableFieldGenerator {
   ImmutableFieldGenerator() {}
   virtual ~ImmutableFieldGenerator();
 
+  virtual int GetMessageBitIndex() const = 0;
+  virtual int GetBuilderBitIndex() const = 0;
   virtual int GetNumBitsForMessage() const = 0;
   virtual int GetNumBitsForBuilder() const = 0;
   virtual void GenerateInterfaceMembers(io::Printer* printer) const = 0;
@@ -77,9 +79,8 @@ class ImmutableFieldGenerator {
   virtual void GenerateBuilderClearCode(io::Printer* printer) const = 0;
   virtual void GenerateMergingCode(io::Printer* printer) const = 0;
   virtual void GenerateBuildingCode(io::Printer* printer) const = 0;
-  virtual void GenerateParsingCode(io::Printer* printer) const = 0;
-  virtual void GenerateParsingCodeFromPacked(io::Printer* printer) const;
-  virtual void GenerateParsingDoneCode(io::Printer* printer) const = 0;
+  virtual void GenerateBuilderParsingCode(io::Printer* printer) const = 0;
+  virtual void GenerateBuilderParsingCodeFromPacked(io::Printer* printer) const;
   virtual void GenerateSerializationCode(io::Printer* printer) const = 0;
   virtual void GenerateSerializedSizeCode(io::Printer* printer) const = 0;
   virtual void GenerateFieldBuilderInitializationCode(

@@ -54,6 +54,11 @@ config_setting(
     values = {"define": "grpc_no_xds=true"},
 )
 
+config_setting(
+    name = "grpc_experiments_are_final_define",
+    values = {"define": "grpc_experiments_are_final=true"},
+)
+
 # When gRPC is build as shared library, binder transport code might still
 # get included even when user's code does not depend on it. In that case
 # --define=grpc_no_binder=true can be used to disable binder transport
@@ -112,6 +117,19 @@ selects.config_setting_group(
     ],
 )
 
+selects.config_setting_group(
+    name = "grpc_experiments_are_final",
+    match_any = [
+        ":grpc_experiments_are_final_define",
+        # In addition to disabling experiments when
+        # --define=grpc_experiments_are_final=true is specified, we also disable
+        # them on mobile platforms where runtime configuration of experiments is unlikely to be needed and where
+        # reducing the binary size is more important.
+        ":android",
+        ":ios",
+    ],
+)
+
 # Fuzzers can be built as fuzzers or as tests
 config_setting(
     name = "grpc_build_fuzzers",
@@ -149,6 +167,11 @@ config_setting(
 )
 
 config_setting(
+    name = "mac_arm64",
+    values = {"cpu": "darwin_arm64"},
+)
+
+config_setting(
     name = "use_strict_warning",
     values = {"define": "use_strict_warning=true"},
 )
@@ -156,11 +179,11 @@ config_setting(
 python_config_settings()
 
 # This should be updated along with build_handwritten.yaml
-g_stands_for = "gribkoff"  # @unused
+g_stands_for = "glockenspiel"  # @unused
 
 core_version = "30.0.0"  # @unused
 
-version = "1.52.0-pre2"  # @unused
+version = "1.53.0-dev"  # @unused
 
 GPR_PUBLIC_HDRS = [
     "include/grpc/support/alloc.h",
@@ -696,6 +719,7 @@ grpc_cc_library(
         "debug_location",
         "//src/core:construct_destruct",
         "//src/core:env",
+        "//src/core:event_engine_thread_local",
         "//src/core:examine_stack",
         "//src/core:gpr_atm",
         "//src/core:no_destruct",
@@ -738,6 +762,7 @@ grpc_cc_library(
         "grpc_base",
         # standard plugins
         "census",
+        "//src/core:grpc_backend_metric_filter",
         "//src/core:grpc_deadline_filter",
         "//src/core:grpc_client_authority_filter",
         "//src/core:grpc_lb_policy_grpclb",
@@ -746,6 +771,7 @@ grpc_cc_library(
         "//src/core:grpc_lb_policy_priority",
         "//src/core:grpc_lb_policy_ring_hash",
         "//src/core:grpc_lb_policy_round_robin",
+        "//src/core:grpc_lb_policy_weighted_round_robin",
         "//src/core:grpc_lb_policy_weighted_target",
         "//src/core:grpc_channel_idle_filter",
         "//src/core:grpc_message_size_filter",
@@ -1167,7 +1193,6 @@ grpc_cc_library(
 grpc_cc_library(
     name = "grpc_base",
     srcs = [
-        "//src/core:lib/address_utils/parse_address.cc",
         "//src/core:lib/channel/channel_stack.cc",
         "//src/core:lib/channel/channel_stack_builder_impl.cc",
         "//src/core:lib/channel/channel_trace.cc",
@@ -1179,7 +1204,6 @@ grpc_cc_library(
         "//src/core:lib/compression/compression.cc",
         "//src/core:lib/compression/compression_internal.cc",
         "//src/core:lib/compression/message_compress.cc",
-        "//src/core:lib/event_engine/channel_args_endpoint_config.cc",
         "//src/core:lib/iomgr/buffer_list.cc",
         "//src/core:lib/iomgr/call_combiner.cc",
         "//src/core:lib/iomgr/cfstream_handle.cc",
@@ -1199,8 +1223,6 @@ grpc_cc_library(
         "//src/core:lib/iomgr/gethostname_fallback.cc",
         "//src/core:lib/iomgr/gethostname_host_name_max.cc",
         "//src/core:lib/iomgr/gethostname_sysconf.cc",
-        "//src/core:lib/iomgr/grpc_if_nametoindex_posix.cc",
-        "//src/core:lib/iomgr/grpc_if_nametoindex_unsupported.cc",
         "//src/core:lib/iomgr/internal_errqueue.cc",
         "//src/core:lib/iomgr/iocp_windows.cc",
         "//src/core:lib/iomgr/iomgr.cc",
@@ -1268,9 +1290,16 @@ grpc_cc_library(
         "//src/core:lib/transport/timeout_encoding.cc",
         "//src/core:lib/transport/transport.cc",
         "//src/core:lib/transport/transport_op_string.cc",
+    ] +
+    # TODO(vigneshbabu): remove these
+    # These headers used to be vended by this target, but they have to be
+    # removed after landing EventEngine.
+    [
+        "//src/core:lib/iomgr/event_engine_shims/closure.cc",
+        "//src/core:lib/iomgr/event_engine_shims/endpoint.cc",
+        "//src/core:lib/iomgr/event_engine_shims/tcp_client.cc",
     ],
     hdrs = [
-        "//src/core:lib/address_utils/parse_address.h",
         "//src/core:lib/channel/call_finalization.h",
         "//src/core:lib/channel/call_tracer.h",
         "//src/core:lib/channel/channel_stack.h",
@@ -1284,7 +1313,6 @@ grpc_cc_library(
         "//src/core:lib/channel/status_util.h",
         "//src/core:lib/compression/compression_internal.h",
         "//src/core:lib/compression/message_compress.h",
-        "//src/core:lib/event_engine/channel_args_endpoint_config.h",
         "//src/core:lib/iomgr/block_annotate.h",
         "//src/core:lib/iomgr/buffer_list.h",
         "//src/core:lib/iomgr/call_combiner.h",
@@ -1299,7 +1327,6 @@ grpc_cc_library(
         "//src/core:lib/iomgr/ev_poll_posix.h",
         "//src/core:lib/iomgr/ev_posix.h",
         "//src/core:lib/iomgr/gethostname.h",
-        "//src/core:lib/iomgr/grpc_if_nametoindex.h",
         "//src/core:lib/iomgr/internal_errqueue.h",
         "//src/core:lib/iomgr/iocp_windows.h",
         "//src/core:lib/iomgr/iomgr.h",
@@ -1354,6 +1381,14 @@ grpc_cc_library(
         "//src/core:lib/transport/timeout_encoding.h",
         "//src/core:lib/transport/transport.h",
         "//src/core:lib/transport/transport_impl.h",
+    ] +
+    # TODO(vigneshbabu): remove these
+    # These headers used to be vended by this target, but they have to be
+    # removed after landing EventEngine.
+    [
+        "//src/core:lib/iomgr/event_engine_shims/closure.h",
+        "//src/core:lib/iomgr/event_engine_shims/endpoint.h",
+        "//src/core:lib/iomgr/event_engine_shims/tcp_client.h",
     ],
     defines = select({
         "systemd": ["HAVE_LIBSYSTEMD"],
@@ -1395,6 +1430,7 @@ grpc_cc_library(
         "grpc_trace",
         "iomgr_timer",
         "orphanable",
+        "parse_address",
         "promise",
         "ref_counted_ptr",
         "sockaddr_utils",
@@ -1405,8 +1441,11 @@ grpc_cc_library(
         "//src/core:arena",
         "//src/core:arena_promise",
         "//src/core:atomic_utils",
+        "//src/core:basic_join",
+        "//src/core:basic_seq",
         "//src/core:bitset",
         "//src/core:channel_args",
+        "//src/core:channel_args_endpoint_config",
         "//src/core:channel_args_preconditioning",
         "//src/core:channel_fwd",
         "//src/core:channel_init",
@@ -1417,6 +1456,10 @@ grpc_cc_library(
         "//src/core:default_event_engine",
         "//src/core:dual_ref_counted",
         "//src/core:error",
+        "//src/core:event_engine_common",
+        "//src/core:event_engine_shim",
+        "//src/core:event_engine_tcp_socket_utils",
+        "//src/core:event_engine_trace",
         "//src/core:event_log",
         "//src/core:experiments",
         "//src/core:gpr_atm",
@@ -1428,7 +1471,7 @@ grpc_cc_library(
         "//src/core:iomgr_fwd",
         "//src/core:iomgr_port",
         "//src/core:json",
-        "//src/core:latch",
+        "//src/core:map",
         "//src/core:match",
         "//src/core:memory_quota",
         "//src/core:no_destruct",
@@ -1437,6 +1480,7 @@ grpc_cc_library(
         "//src/core:pipe",
         "//src/core:poll",
         "//src/core:pollset_set",
+        "//src/core:posix_event_engine_base_hdrs",
         "//src/core:promise_status",
         "//src/core:ref_counted",
         "//src/core:resolved_address",
@@ -1453,6 +1497,8 @@ grpc_cc_library(
         "//src/core:thread_quota",
         "//src/core:time",
         "//src/core:transport_fwd",
+        "//src/core:try_join",
+        "//src/core:try_seq",
         "//src/core:useful",
     ],
 )
@@ -1626,6 +1672,7 @@ grpc_cc_library(
         "handshaker",
         "promise",
         "ref_counted_ptr",
+        "stats",
         "tsi_base",
         "//src/core:activity",
         "//src/core:arena",
@@ -1649,6 +1696,7 @@ grpc_cc_library(
         "//src/core:seq",
         "//src/core:slice",
         "//src/core:slice_refcount",
+        "//src/core:stats_data",
         "//src/core:status_helper",
         "//src/core:try_seq",
         "//src/core:unique_type_name",
@@ -1776,6 +1824,7 @@ grpc_cc_library(
         "grpc_security_base",
         "grpc_service_config_impl",
         "grpc_trace",
+        "grpcpp_backend_metric_recorder",
         "grpcpp_call_metric_recorder",
         "grpcpp_status",
         "iomgr_timer",
@@ -1791,6 +1840,7 @@ grpc_cc_library(
         "//src/core:error",
         "//src/core:gpr_atm",
         "//src/core:gpr_manual_constructor",
+        "//src/core:grpc_backend_metric_provider",
         "//src/core:grpc_service_config",
         "//src/core:grpc_transport_inproc",
         "//src/core:json",
@@ -1843,6 +1893,7 @@ grpc_cc_library(
         "grpc_service_config_impl",
         "grpc_trace",
         "grpc_unsecure",
+        "grpcpp_backend_metric_recorder",
         "grpcpp_call_metric_recorder",
         "grpcpp_status",
         "iomgr_timer",
@@ -1854,6 +1905,7 @@ grpc_cc_library(
         "//src/core:error",
         "//src/core:gpr_atm",
         "//src/core:gpr_manual_constructor",
+        "//src/core:grpc_backend_metric_provider",
         "//src/core:grpc_insecure_credentials",
         "//src/core:grpc_service_config",
         "//src/core:grpc_transport_inproc",
@@ -1931,45 +1983,42 @@ grpc_cc_library(
 
 grpc_cc_library(
     name = "grpcpp_call_metric_recorder",
-    srcs = [
-        "src/cpp/server/orca/call_metric_recorder.cc",
-    ],
     external_deps = [
         "absl/strings",
         "absl/types:optional",
-        "upb_lib",
     ],
     language = "c++",
     public_hdrs = [
         "include/grpcpp/ext/call_metric_recorder.h",
     ],
     visibility = ["@grpc:public"],
-    deps = [
-        "grpc++_public_hdrs",
-        "xds_orca_upb",
-        "//src/core:arena",
-        "//src/core:grpc_backend_metric_data",
-    ],
+    deps = ["grpc++_public_hdrs"],
 )
 
 grpc_cc_library(
-    name = "grpcpp_orca_interceptor",
+    name = "grpcpp_backend_metric_recorder",
     srcs = [
-        "src/cpp/server/orca/orca_interceptor.cc",
+        "src/cpp/server/backend_metric_recorder.cc",
     ],
     hdrs = [
-        "src/cpp/server/orca/orca_interceptor.h",
+        "src/cpp/server/backend_metric_recorder.h",
     ],
     external_deps = [
+        "absl/base:core_headers",
         "absl/strings",
-        "absl/types:optional",
     ],
     language = "c++",
+    public_hdrs = [
+        "include/grpcpp/ext/server_metric_recorder.h",
+    ],
     visibility = ["@grpc:public"],
     deps = [
-        "grpc++",
-        "grpc_base",
+        "gpr",
+        "grpc++_public_hdrs",
+        "grpc_trace",
         "grpcpp_call_metric_recorder",
+        "//src/core:grpc_backend_metric_data",
+        "//src/core:grpc_backend_metric_provider",
     ],
 )
 
@@ -1980,6 +2029,7 @@ grpc_cc_library(
     ],
     external_deps = [
         "absl/base:core_headers",
+        "absl/strings",
         "absl/time",
         "absl/types:optional",
         "upb_lib",
@@ -1995,11 +2045,13 @@ grpc_cc_library(
         "gpr",
         "grpc++",
         "grpc_base",
+        "grpcpp_backend_metric_recorder",
         "protobuf_duration_upb",
         "ref_counted_ptr",
         "xds_orca_service_upb",
         "xds_orca_upb",
         "//src/core:default_event_engine",
+        "//src/core:grpc_backend_metric_data",
         "//src/core:ref_counted",
         "//src/core:time",
     ],
@@ -2154,6 +2206,8 @@ grpc_cc_library(
     visibility = ["@grpc:grpc_opencensus_plugin"],
     deps = [
         "census",
+        "channel_stack_builder",
+        "config",
         "debug_location",
         "gpr",
         "grpc++",
@@ -2163,6 +2217,8 @@ grpc_cc_library(
         "//src/core:channel_args",
         "//src/core:channel_stack_type",
         "//src/core:closure",
+        "//src/core:context",
+        "//src/core:experiments",
         "//src/core:slice",
         "//src/core:slice_buffer",
         "//src/core:slice_refcount",
@@ -2478,6 +2534,34 @@ grpc_cc_library(
 )
 
 grpc_cc_library(
+    name = "parse_address",
+    srcs = [
+        "//src/core:lib/address_utils/parse_address.cc",
+        "//src/core:lib/iomgr/grpc_if_nametoindex_posix.cc",
+        "//src/core:lib/iomgr/grpc_if_nametoindex_unsupported.cc",
+    ],
+    hdrs = [
+        "//src/core:lib/address_utils/parse_address.h",
+        "//src/core:lib/iomgr/grpc_if_nametoindex.h",
+    ],
+    external_deps = [
+        "absl/status",
+        "absl/status:statusor",
+        "absl/strings",
+    ],
+    visibility = ["@grpc:alt_grpc_base_legacy"],
+    deps = [
+        "gpr",
+        "uri_parser",
+        "//src/core:error",
+        "//src/core:grpc_sockaddr",
+        "//src/core:iomgr_port",
+        "//src/core:resolved_address",
+        "//src/core:status_helper",
+    ],
+)
+
+grpc_cc_library(
     name = "backoff",
     srcs = [
         "//src/core:lib/backoff/backoff.cc",
@@ -2672,6 +2756,7 @@ grpc_cc_library(
         "//src/core:ext/filters/client_channel/lb_call_state_internal.h",
         "//src/core:ext/filters/client_channel/lb_policy/child_policy_handler.h",
         "//src/core:ext/filters/client_channel/lb_policy/oob_backend_metric.h",
+        "//src/core:ext/filters/client_channel/lb_policy/oob_backend_metric_internal.h",
         "//src/core:ext/filters/client_channel/local_subchannel_pool.h",
         "//src/core:ext/filters/client_channel/retry_filter.h",
         "//src/core:ext/filters/client_channel/retry_service_config.h",
@@ -2803,6 +2888,7 @@ grpc_cc_library(
         "grpc_trace",
         "iomgr_timer",
         "orphanable",
+        "parse_address",
         "ref_counted_ptr",
         "server_address",
         "sockaddr_utils",
@@ -3205,9 +3291,9 @@ grpc_cc_library(
         "grpc_public_hdrs",
         "grpc_trace",
         "promise",
+        "//src/core:activity",
         "//src/core:arena",
         "//src/core:arena_promise",
-        "//src/core:basic_seq",
         "//src/core:channel_args",
         "//src/core:channel_fwd",
         "//src/core:channel_init",
@@ -3215,15 +3301,14 @@ grpc_cc_library(
         "//src/core:context",
         "//src/core:grpc_message_size_filter",
         "//src/core:latch",
-        "//src/core:map_pipe",
+        "//src/core:map",
         "//src/core:percent_encoding",
         "//src/core:pipe",
-        "//src/core:promise_like",
-        "//src/core:seq",
+        "//src/core:poll",
+        "//src/core:race",
         "//src/core:slice",
         "//src/core:slice_buffer",
         "//src/core:transport_fwd",
-        "//src/core:try_concurrently",
     ],
 )
 
@@ -3445,12 +3530,13 @@ grpc_cc_library(
         "grpc_public_hdrs",
         "grpc_trace",
         "hpack_parser_table",
+        "stats",
         "//src/core:decode_huff",
         "//src/core:error",
-        "//src/core:experiments",
         "//src/core:hpack_constants",
         "//src/core:slice",
         "//src/core:slice_refcount",
+        "//src/core:stats_data",
         "//src/core:status_helper",
     ],
 )
@@ -3741,6 +3827,11 @@ grpc_upb_proto_reflection_library(
 grpc_upb_proto_library(
     name = "envoy_type_http_upb",
     deps = ["@envoy_api//envoy/type/http/v3:pkg"],
+)
+
+grpc_upb_proto_library(
+    name = "envoy_extensions_load_balancing_policies_client_side_weighted_round_robin_upb",
+    deps = ["@envoy_api//envoy/extensions/load_balancing_policies/client_side_weighted_round_robin/v3:pkg"],
 )
 
 grpc_upb_proto_library(

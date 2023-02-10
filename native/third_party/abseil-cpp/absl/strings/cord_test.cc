@@ -28,7 +28,6 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/base/casts.h"
 #include "absl/base/config.h"
 #include "absl/base/internal/endian.h"
 #include "absl/base/internal/raw_logging.h"
@@ -733,18 +732,48 @@ TEST_P(CordTest, PrependLargeBuffer) {
   EXPECT_THAT(cord.Chunks(), ::testing::ElementsAre(s2, s1));
 }
 
-TEST_P(CordTest, GetAppendBufferOnEmptyCord) {
+class CordAppendBufferTest : public testing::TestWithParam<bool> {
+ public:
+  size_t is_default() const { return GetParam(); }
+
+  // Returns human readable string representation of the test parameter.
+  static std::string ToString(testing::TestParamInfo<bool> param) {
+    return param.param ? "DefaultLimit" : "CustomLimit";
+  }
+
+  size_t limit() const {
+    return is_default() ? absl::CordBuffer::kDefaultLimit
+                        : absl::CordBuffer::kCustomLimit;
+  }
+
+  size_t maximum_payload() const {
+    return is_default() ? absl::CordBuffer::MaximumPayload()
+                        : absl::CordBuffer::MaximumPayload(limit());
+  }
+
+  absl::CordBuffer GetAppendBuffer(absl::Cord& cord, size_t capacity,
+                                   size_t min_capacity = 16) {
+    return is_default()
+               ? cord.GetAppendBuffer(capacity, min_capacity)
+               : cord.GetCustomAppendBuffer(limit(), capacity, min_capacity);
+  }
+};
+
+INSTANTIATE_TEST_SUITE_P(WithParam, CordAppendBufferTest, testing::Bool(),
+                         CordAppendBufferTest::ToString);
+
+TEST_P(CordAppendBufferTest, GetAppendBufferOnEmptyCord) {
   absl::Cord cord;
-  absl::CordBuffer buffer = cord.GetAppendBuffer(1000);
+  absl::CordBuffer buffer = GetAppendBuffer(cord, 1000);
   EXPECT_GE(buffer.capacity(), 1000);
   EXPECT_EQ(buffer.length(), 0);
 }
 
-TEST_P(CordTest, GetAppendBufferOnInlinedCord) {
+TEST_P(CordAppendBufferTest, GetAppendBufferOnInlinedCord) {
   static constexpr int kInlinedSize = sizeof(absl::CordBuffer) - 1;
   for (int size : {6, kInlinedSize - 3, kInlinedSize - 2, 1000}) {
     absl::Cord cord("Abc");
-    absl::CordBuffer buffer = cord.GetAppendBuffer(size, 1);
+    absl::CordBuffer buffer = GetAppendBuffer(cord, size, 1);
     EXPECT_GE(buffer.capacity(), 3 + size);
     EXPECT_EQ(buffer.length(), 3);
     EXPECT_EQ(absl::string_view(buffer.data(), buffer.length()), "Abc");
@@ -752,7 +781,7 @@ TEST_P(CordTest, GetAppendBufferOnInlinedCord) {
   }
 }
 
-TEST_P(CordTest, GetAppendBufferOnInlinedCordWithCapacityCloseToMax) {
+TEST_P(CordAppendBufferTest, GetAppendBufferOnInlinedCordCapacityCloseToMax) {
   // Cover the use case where we have a non empty inlined cord with some size
   // 'n', and ask for something like 'uint64_max - k', assuming internal logic
   // could overflow on 'uint64_max - k + size', and return a valid, but
@@ -760,30 +789,31 @@ TEST_P(CordTest, GetAppendBufferOnInlinedCordWithCapacityCloseToMax) {
   for (size_t dist_from_max = 0; dist_from_max <= 4; ++dist_from_max) {
     absl::Cord cord("Abc");
     size_t size = std::numeric_limits<size_t>::max() - dist_from_max;
-    absl::CordBuffer buffer = cord.GetAppendBuffer(size, 1);
-    EXPECT_EQ(buffer.capacity(), absl::CordBuffer::kDefaultLimit);
+    absl::CordBuffer buffer = GetAppendBuffer(cord, size, 1);
+    EXPECT_GE(buffer.capacity(), maximum_payload());
     EXPECT_EQ(buffer.length(), 3);
     EXPECT_EQ(absl::string_view(buffer.data(), buffer.length()), "Abc");
     EXPECT_TRUE(cord.empty());
   }
 }
 
-TEST_P(CordTest, GetAppendBufferOnFlat) {
+TEST_P(CordAppendBufferTest, GetAppendBufferOnFlat) {
   // Create a cord with a single flat and extra capacity
   absl::Cord cord;
   absl::CordBuffer buffer = absl::CordBuffer::CreateWithDefaultLimit(500);
+  const size_t expected_capacity = buffer.capacity();
   buffer.SetLength(3);
   memcpy(buffer.data(), "Abc", 3);
   cord.Append(std::move(buffer));
 
-  buffer = cord.GetAppendBuffer(6);
-  EXPECT_GE(buffer.capacity(), 500);
+  buffer = GetAppendBuffer(cord, 6);
+  EXPECT_EQ(buffer.capacity(), expected_capacity);
   EXPECT_EQ(buffer.length(), 3);
   EXPECT_EQ(absl::string_view(buffer.data(), buffer.length()), "Abc");
   EXPECT_TRUE(cord.empty());
 }
 
-TEST_P(CordTest, GetAppendBufferOnFlatWithoutMinCapacity) {
+TEST_P(CordAppendBufferTest, GetAppendBufferOnFlatWithoutMinCapacity) {
   // Create a cord with a single flat and extra capacity
   absl::Cord cord;
   absl::CordBuffer buffer = absl::CordBuffer::CreateWithDefaultLimit(500);
@@ -791,13 +821,13 @@ TEST_P(CordTest, GetAppendBufferOnFlatWithoutMinCapacity) {
   memset(buffer.data(), 'x', 30);
   cord.Append(std::move(buffer));
 
-  buffer = cord.GetAppendBuffer(1000, 900);
+  buffer = GetAppendBuffer(cord, 1000, 900);
   EXPECT_GE(buffer.capacity(), 1000);
   EXPECT_EQ(buffer.length(), 0);
   EXPECT_EQ(cord, std::string(30, 'x'));
 }
 
-TEST_P(CordTest, GetAppendBufferOnTree) {
+TEST_P(CordAppendBufferTest, GetAppendBufferOnTree) {
   RandomEngine rng;
   for (int num_flats : {2, 3, 100}) {
     // Create a cord with `num_flats` flats and extra capacity
@@ -812,7 +842,7 @@ TEST_P(CordTest, GetAppendBufferOnTree) {
       memcpy(buffer.data(), last.data(), 10);
       cord.Append(std::move(buffer));
     }
-    absl::CordBuffer buffer = cord.GetAppendBuffer(6);
+    absl::CordBuffer buffer = GetAppendBuffer(cord, 6);
     EXPECT_GE(buffer.capacity(), 500);
     EXPECT_EQ(buffer.length(), 10);
     EXPECT_EQ(absl::string_view(buffer.data(), buffer.length()), last);
@@ -820,7 +850,7 @@ TEST_P(CordTest, GetAppendBufferOnTree) {
   }
 }
 
-TEST_P(CordTest, GetAppendBufferOnTreeWithoutMinCapacity) {
+TEST_P(CordAppendBufferTest, GetAppendBufferOnTreeWithoutMinCapacity) {
   absl::Cord cord;
   for (int i = 0; i < 2; ++i) {
     absl::CordBuffer buffer = absl::CordBuffer::CreateWithDefaultLimit(500);
@@ -828,13 +858,13 @@ TEST_P(CordTest, GetAppendBufferOnTreeWithoutMinCapacity) {
     memcpy(buffer.data(), i ? "def" : "Abc", 3);
     cord.Append(std::move(buffer));
   }
-  absl::CordBuffer buffer = cord.GetAppendBuffer(1000, 900);
+  absl::CordBuffer buffer = GetAppendBuffer(cord, 1000, 900);
   EXPECT_GE(buffer.capacity(), 1000);
   EXPECT_EQ(buffer.length(), 0);
   EXPECT_EQ(cord, "Abcdef");
 }
 
-TEST_P(CordTest, GetAppendBufferOnSubstring) {
+TEST_P(CordAppendBufferTest, GetAppendBufferOnSubstring) {
   // Create a large cord with a single flat and some extra capacity
   absl::Cord cord;
   absl::CordBuffer buffer = absl::CordBuffer::CreateWithDefaultLimit(500);
@@ -844,12 +874,12 @@ TEST_P(CordTest, GetAppendBufferOnSubstring) {
   cord.RemovePrefix(1);
 
   // Deny on substring
-  buffer = cord.GetAppendBuffer(6);
+  buffer = GetAppendBuffer(cord, 6);
   EXPECT_EQ(buffer.length(), 0);
   EXPECT_EQ(cord, std::string(449, 'x'));
 }
 
-TEST_P(CordTest, GetAppendBufferOnSharedCord) {
+TEST_P(CordAppendBufferTest, GetAppendBufferOnSharedCord) {
   // Create a shared cord with a single flat and extra capacity
   absl::Cord cord;
   absl::CordBuffer buffer = absl::CordBuffer::CreateWithDefaultLimit(500);
@@ -859,7 +889,7 @@ TEST_P(CordTest, GetAppendBufferOnSharedCord) {
   absl::Cord shared_cord = cord;
 
   // Deny on flat
-  buffer = cord.GetAppendBuffer(6);
+  buffer = GetAppendBuffer(cord, 6);
   EXPECT_EQ(buffer.length(), 0);
   EXPECT_EQ(cord, "Abc");
 
@@ -870,7 +900,7 @@ TEST_P(CordTest, GetAppendBufferOnSharedCord) {
   shared_cord = cord;
 
   // Deny on tree
-  buffer = cord.GetAppendBuffer(6);
+  buffer = GetAppendBuffer(cord, 6);
   EXPECT_EQ(buffer.length(), 0);
   EXPECT_EQ(cord, "Abcdef");
 }
@@ -1958,6 +1988,12 @@ TEST_P(CordTest, HugeCord) {
 
 // Tests that Append() works ok when handed a self reference
 TEST_P(CordTest, AppendSelf) {
+  // Test the empty case.
+  absl::Cord empty;
+  MaybeHarden(empty);
+  empty.Append(empty);
+  ASSERT_EQ(empty, "");
+
   // We run the test until data is ~16K
   // This guarantees it covers small, medium and large data.
   std::string control_data = "Abc";
@@ -2682,7 +2718,7 @@ class CordMutator {
 
 // clang-format off
 // This array is constant-initialized in conformant compilers.
-CordMutator cord_mutators[] ={
+CordMutator cord_mutators[] = {
   {"clear", [](absl::Cord& c) { c.Clear(); }},
   {"overwrite", [](absl::Cord& c) { c = "overwritten"; }},
   {
@@ -2712,6 +2748,25 @@ CordMutator cord_mutators[] ={
     [](absl::Cord& c) { c.RemoveSuffix(c.size() / 2); }
   },
   {
+    "append empty string",
+    [](absl::Cord& c) { c.Append(""); },
+    [](absl::Cord& c) { }
+  },
+  {
+    "append empty cord",
+    [](absl::Cord& c) { c.Append(absl::Cord()); },
+    [](absl::Cord& c) { }
+  },
+  {
+    "append empty checksummed cord",
+    [](absl::Cord& c) {
+      absl::Cord to_append;
+      to_append.SetExpectedChecksum(999);
+      c.Append(to_append);
+    },
+    [](absl::Cord& c) { }
+  },
+  {
     "prepend string",
     [](absl::Cord& c) { c.Prepend("9876543210"); },
     [](absl::Cord& c) { c.RemovePrefix(10); }
@@ -2733,12 +2788,33 @@ CordMutator cord_mutators[] ={
     [](absl::Cord& c) { c.RemovePrefix(10); }
   },
   {
+    "prepend empty string",
+    [](absl::Cord& c) { c.Prepend(""); },
+    [](absl::Cord& c) { }
+  },
+  {
+    "prepend empty cord",
+    [](absl::Cord& c) { c.Prepend(absl::Cord()); },
+    [](absl::Cord& c) { }
+  },
+  {
+    "prepend empty checksummed cord",
+    [](absl::Cord& c) {
+      absl::Cord to_prepend;
+      to_prepend.SetExpectedChecksum(999);
+      c.Prepend(to_prepend);
+    },
+    [](absl::Cord& c) { }
+  },
+  {
     "prepend self",
     [](absl::Cord& c) { c.Prepend(c); },
     [](absl::Cord& c) { c.RemovePrefix(c.size() / 2); }
   },
-  {"remove prefix", [](absl::Cord& c) { c.RemovePrefix(2); }},
-  {"remove suffix", [](absl::Cord& c) { c.RemoveSuffix(2); }},
+  {"remove prefix", [](absl::Cord& c) { c.RemovePrefix(c.size() / 2); }},
+  {"remove suffix", [](absl::Cord& c) { c.RemoveSuffix(c.size() / 2); }},
+  {"remove 0-prefix", [](absl::Cord& c) { c.RemovePrefix(0); }},
+  {"remove 0-suffix", [](absl::Cord& c) { c.RemoveSuffix(0); }},
   {"subcord", [](absl::Cord& c) { c = c.Subcord(1, c.size() - 2); }},
   {
     "swap inline",
@@ -2780,6 +2856,12 @@ TEST_P(CordTest, ExpectedChecksum) {
       EXPECT_EQ(c1.ExpectedChecksum().value_or(0), 12345);
       EXPECT_EQ(c1, base_value);
 
+      // Test that setting an expected checksum again doesn't crash or leak
+      // memory.
+      c1.SetExpectedChecksum(12345);
+      EXPECT_EQ(c1.ExpectedChecksum().value_or(0), 12345);
+      EXPECT_EQ(c1, base_value);
+
       // CRC persists through copies, assignments, and moves:
       absl::Cord c1_copy_construct = c1;
       EXPECT_EQ(c1_copy_construct.ExpectedChecksum().value_or(0), 12345);
@@ -2804,6 +2886,13 @@ TEST_P(CordTest, ExpectedChecksum) {
         c2.SetExpectedChecksum(24680);
 
         mutator.Mutate(c2);
+
+        if (c1 == c2) {
+          // Not a mutation (for example, appending the empty string).
+          // Whether the checksum is removed is not defined.
+          continue;
+        }
+
         EXPECT_EQ(c2.ExpectedChecksum(), absl::nullopt);
 
         if (mutator.CanUndo()) {
@@ -2873,3 +2962,164 @@ TEST_P(CordTest, ExpectedChecksum) {
     }
   }
 }
+
+// Test the special cases encountered with an empty checksummed cord.
+TEST_P(CordTest, ChecksummedEmptyCord) {
+  absl::Cord c1;
+  EXPECT_FALSE(c1.ExpectedChecksum().has_value());
+
+  // Setting an expected checksum works.
+  c1.SetExpectedChecksum(12345);
+  EXPECT_EQ(c1.ExpectedChecksum().value_or(0), 12345);
+  EXPECT_EQ(c1, "");
+  EXPECT_TRUE(c1.empty());
+
+  // Test that setting an expected checksum again doesn't crash or leak memory.
+  c1.SetExpectedChecksum(12345);
+  EXPECT_EQ(c1.ExpectedChecksum().value_or(0), 12345);
+  EXPECT_EQ(c1, "");
+  EXPECT_TRUE(c1.empty());
+
+  // CRC persists through copies, assignments, and moves:
+  absl::Cord c1_copy_construct = c1;
+  EXPECT_EQ(c1_copy_construct.ExpectedChecksum().value_or(0), 12345);
+
+  absl::Cord c1_copy_assign;
+  c1_copy_assign = c1;
+  EXPECT_EQ(c1_copy_assign.ExpectedChecksum().value_or(0), 12345);
+
+  absl::Cord c1_move(std::move(c1_copy_assign));
+  EXPECT_EQ(c1_move.ExpectedChecksum().value_or(0), 12345);
+
+  EXPECT_EQ(c1.ExpectedChecksum().value_or(0), 12345);
+
+  // A CRC Cord compares equal to its non-CRC value.
+  EXPECT_EQ(c1, absl::Cord());
+
+  for (const CordMutator& mutator : cord_mutators) {
+    SCOPED_TRACE(mutator.Name());
+
+    // Exercise mutating an empty checksummed cord to catch crashes and exercise
+    // memory sanitizers.
+    absl::Cord c2;
+    c2.SetExpectedChecksum(24680);
+    mutator.Mutate(c2);
+
+    if (c2.empty()) {
+      // Not a mutation
+      continue;
+    }
+    EXPECT_EQ(c2.ExpectedChecksum(), absl::nullopt);
+
+    if (mutator.CanUndo()) {
+      mutator.Undo(c2);
+    }
+  }
+
+  absl::Cord c3;
+  c3.SetExpectedChecksum(999);
+  const absl::Cord& cc3 = c3;
+
+  // Test that all cord reading operations function in the face of an
+  // expected checksum.
+  EXPECT_TRUE(cc3.StartsWith(""));
+  EXPECT_TRUE(cc3.EndsWith(""));
+  EXPECT_TRUE(cc3.empty());
+  EXPECT_EQ(cc3, "");
+  EXPECT_EQ(cc3, absl::Cord());
+  EXPECT_EQ(cc3.size(), 0);
+  EXPECT_EQ(cc3.Compare(absl::Cord()), 0);
+  EXPECT_EQ(cc3.Compare(c1), 0);
+  EXPECT_EQ(cc3.Compare(cc3), 0);
+  EXPECT_EQ(cc3.Compare(""), 0);
+  EXPECT_EQ(cc3.Compare("wxyz"), -1);
+  EXPECT_EQ(cc3.Compare(absl::Cord("wxyz")), -1);
+  EXPECT_EQ(absl::Cord("wxyz").Compare(cc3), 1);
+  EXPECT_EQ(std::string(cc3), "");
+
+  std::string dest;
+  absl::CopyCordToString(cc3, &dest);
+  EXPECT_EQ(dest, "");
+
+  for (absl::string_view chunk : cc3.Chunks()) {  // NOLINT(unreachable loop)
+    static_cast<void>(chunk);
+    GTEST_FAIL() << "no chunks expected";
+  }
+  EXPECT_TRUE(cc3.chunk_begin() == cc3.chunk_end());
+
+  for (char ch : cc3.Chars()) {  // NOLINT(unreachable loop)
+    static_cast<void>(ch);
+    GTEST_FAIL() << "no chars expected";
+  }
+  EXPECT_TRUE(cc3.char_begin() == cc3.char_end());
+
+  EXPECT_EQ(cc3.TryFlat(), "");
+  EXPECT_EQ(absl::HashOf(c3), absl::HashOf(absl::Cord()));
+  EXPECT_EQ(absl::HashOf(c3), absl::HashOf(absl::string_view()));
+}
+
+#if defined(GTEST_HAS_DEATH_TEST) && defined(ABSL_INTERNAL_CORD_HAVE_SANITIZER)
+
+// Returns an expected poison / uninitialized death message expression.
+const char* MASanDeathExpr() {
+  return "(use-after-poison|use-of-uninitialized-value)";
+}
+
+TEST(CordSanitizerTest, SanitizesEmptyCord) {
+  absl::Cord cord;
+  const char* data = cord.Flatten().data();
+  EXPECT_DEATH(EXPECT_EQ(data[0], 0), MASanDeathExpr());
+}
+
+TEST(CordSanitizerTest, SanitizesSmallCord) {
+  absl::Cord cord("Hello");
+  const char* data = cord.Flatten().data();
+  EXPECT_DEATH(EXPECT_EQ(data[5], 0), MASanDeathExpr());
+}
+
+TEST(CordSanitizerTest, SanitizesCordOnSetSSOValue) {
+  absl::Cord cord("String that is too big to be an SSO value");
+  cord = "Hello";
+  const char* data = cord.Flatten().data();
+  EXPECT_DEATH(EXPECT_EQ(data[5], 0), MASanDeathExpr());
+}
+
+TEST(CordSanitizerTest, SanitizesCordOnCopyCtor) {
+  absl::Cord src("hello");
+  absl::Cord dst(src);
+  const char* data = dst.Flatten().data();
+  EXPECT_DEATH(EXPECT_EQ(data[5], 0), MASanDeathExpr());
+}
+
+TEST(CordSanitizerTest, SanitizesCordOnMoveCtor) {
+  absl::Cord src("hello");
+  absl::Cord dst(std::move(src));
+  const char* data = dst.Flatten().data();
+  EXPECT_DEATH(EXPECT_EQ(data[5], 0), MASanDeathExpr());
+}
+
+TEST(CordSanitizerTest, SanitizesCordOnAssign) {
+  absl::Cord src("hello");
+  absl::Cord dst;
+  dst = src;
+  const char* data = dst.Flatten().data();
+  EXPECT_DEATH(EXPECT_EQ(data[5], 0), MASanDeathExpr());
+}
+
+TEST(CordSanitizerTest, SanitizesCordOnMoveAssign) {
+  absl::Cord src("hello");
+  absl::Cord dst;
+  dst = std::move(src);
+  const char* data = dst.Flatten().data();
+  EXPECT_DEATH(EXPECT_EQ(data[5], 0), MASanDeathExpr());
+}
+
+TEST(CordSanitizerTest, SanitizesCordOnSsoAssign) {
+  absl::Cord src("hello");
+  absl::Cord dst("String that is too big to be an SSO value");
+  dst = src;
+  const char* data = dst.Flatten().data();
+  EXPECT_DEATH(EXPECT_EQ(data[5], 0), MASanDeathExpr());
+}
+
+#endif  // GTEST_HAS_DEATH_TEST && ABSL_INTERNAL_CORD_HAVE_SANITIZER

@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <initializer_list>
 #include <memory>
 #include <ratio>
 #include <string>
@@ -43,11 +44,12 @@
 #include "src/core/lib/event_engine/channel_args_endpoint_config.h"
 #include "src/core/lib/event_engine/posix_engine/posix_engine.h"
 #include "src/core/lib/event_engine/tcp_socket_utils.h"
+#include "src/core/lib/experiments/config.h"
 #include "src/core/lib/gprpp/crash.h"
 #include "src/core/lib/gprpp/notification.h"
 #include "src/core/lib/resource_quota/memory_quota.h"
 #include "src/core/lib/resource_quota/resource_quota.h"
-#include "test/core/event_engine/test_suite/event_engine_test_utils.h"
+#include "test/core/event_engine/event_engine_test_utils.h"
 #include "test/core/util/port.h"
 #include "test/core/util/test_config.h"
 
@@ -146,10 +148,11 @@ TEST(PosixEventEngineTest, IndefiniteConnectTimeoutOrRstTest) {
   std::string target_addr = absl::StrCat(
       "ipv6:[::1]:", std::to_string(grpc_pick_unused_port_or_die()));
   auto resolved_addr = URIToResolvedAddress(target_addr);
+  GPR_ASSERT(resolved_addr.ok());
   std::shared_ptr<EventEngine> posix_ee = std::make_shared<PosixEventEngine>();
   std::string resolved_addr_str =
-      ResolvedAddressToNormalizedString(resolved_addr).value();
-  auto sockets = CreateConnectedSockets(resolved_addr);
+      ResolvedAddressToNormalizedString(*resolved_addr).value();
+  auto sockets = CreateConnectedSockets(*resolved_addr);
   grpc_core::Notification signal;
   grpc_core::ChannelArgs args;
   auto quota = grpc_core::ResourceQuota::Default();
@@ -161,8 +164,8 @@ TEST(PosixEventEngineTest, IndefiniteConnectTimeoutOrRstTest) {
         EXPECT_EQ(status.status().code(), absl::StatusCode::kUnknown);
         signal.Notify();
       },
-      URIToResolvedAddress(target_addr), config,
-      memory_quota->CreateMemoryAllocator("conn-1"), 3s);
+      *resolved_addr, config, memory_quota->CreateMemoryAllocator("conn-1"),
+      3s);
   signal.WaitForNotification();
   for (auto sock : sockets) {
     close(sock);
@@ -174,10 +177,11 @@ TEST(PosixEventEngineTest, IndefiniteConnectCancellationTest) {
   std::string target_addr = absl::StrCat(
       "ipv6:[::1]:", std::to_string(grpc_pick_unused_port_or_die()));
   auto resolved_addr = URIToResolvedAddress(target_addr);
+  GPR_ASSERT(resolved_addr.ok());
   std::shared_ptr<EventEngine> posix_ee = std::make_shared<PosixEventEngine>();
   std::string resolved_addr_str =
-      ResolvedAddressToNormalizedString(resolved_addr).value();
-  auto sockets = CreateConnectedSockets(resolved_addr);
+      ResolvedAddressToNormalizedString(*resolved_addr).value();
+  auto sockets = CreateConnectedSockets(*resolved_addr);
   grpc_core::ChannelArgs args;
   auto quota = grpc_core::ResourceQuota::Default();
   args = args.Set(GRPC_ARG_RESOURCE_QUOTA, quota);
@@ -188,8 +192,8 @@ TEST(PosixEventEngineTest, IndefiniteConnectCancellationTest) {
         FAIL() << "The on_connect callback should not have run since the "
                   "connection attempt was cancelled.";
       },
-      URIToResolvedAddress(target_addr), config,
-      memory_quota->CreateMemoryAllocator("conn-2"), 3s);
+      *resolved_addr, config, memory_quota->CreateMemoryAllocator("conn-2"),
+      3s);
   if (connection_handle.keys[0] > 0) {
     ASSERT_TRUE(posix_ee->CancelConnect(connection_handle));
   }
@@ -205,6 +209,8 @@ TEST(PosixEventEngineTest, IndefiniteConnectCancellationTest) {
 int main(int argc, char** argv) {
   grpc::testing::TestEnvironment env(&argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
+  // TODO(vigneshbabu): remove when the experiment is over
+  grpc_core::ForceEnableExperiment("event_engine_client", true);
   grpc_init();
   int ret = RUN_ALL_TESTS();
   grpc_shutdown();
