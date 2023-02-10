@@ -48,9 +48,12 @@ def protobuf_deps():
         http_archive(
             name = "zlib",
             build_file = "@com_google_protobuf//:third_party/zlib.BUILD",
-            sha256 = "629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff",
-            strip_prefix = "zlib-1.2.11",
-            urls = ["https://github.com/madler/zlib/archive/v1.2.11.tar.gz"],
+            sha256 = "d14c38e313afc35a9a8760dadf26042f51ea0f5d154b0630a31da0540107fb98",
+            strip_prefix = "zlib-1.2.13",
+            urls = [
+                "https://github.com/madler/zlib/releases/download/v1.2.13/zlib-1.2.13.tar.xz",
+                "https://zlib.net/zlib-1.2.13.tar.xz",
+            ],
         )
 
     if not native.existing_rule("rules_cc"):
@@ -114,6 +117,6 @@ def protobuf_deps():
         _github_archive(
             name = "upb",
             repo = "https://github.com/protocolbuffers/upb",
-            commit = "333722e94b35c26b9eb48bd7e471235374ab3737",
-            sha256 = "f973aefa29d4191aad76cd1ba74ee3be4d2161b6c95d73c137f82560983912c6",
+            commit = "20b542a767139732548f7b8cf28c4c928cdcb07b",
+            sha256 = "c77158955326f9e9a0cf8481c118b8ad5c34df99e5db3af27f3d1662d8bedef7",
         )

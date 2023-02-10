@@ -16,8 +16,8 @@
 //
 //
 
-#ifndef GRPC_INTERNAL_CPP_EXT_FILTERS_OPEN_CENSUS_CALL_TRACER_H
-#define GRPC_INTERNAL_CPP_EXT_FILTERS_OPEN_CENSUS_CALL_TRACER_H
+#ifndef GRPC_SRC_CPP_EXT_FILTERS_CENSUS_OPEN_CENSUS_CALL_TRACER_H
+#define GRPC_SRC_CPP_EXT_FILTERS_CENSUS_OPEN_CENSUS_CALL_TRACER_H
 
 #include <grpc/support/port_platform.h>
 
@@ -33,7 +33,6 @@
 #include <grpcpp/opencensus.h>
 
 #include "src/core/lib/channel/call_tracer.h"
-#include "src/core/lib/channel/channel_stack.h"
 #include "src/core/lib/channel/context.h"
 #include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/iomgr/error.h"
@@ -56,6 +55,7 @@
 #define GRPC_ARG_ENABLE_OBSERVABILITY "grpc.experimental.enable_observability"
 
 namespace grpc {
+namespace internal {
 
 class OpenCensusCallTracer : public grpc_core::CallTracer {
  public:
@@ -102,7 +102,8 @@ class OpenCensusCallTracer : public grpc_core::CallTracer {
     absl::StatusCode status_code_;
   };
 
-  explicit OpenCensusCallTracer(const grpc_call_element_args* args,
+  explicit OpenCensusCallTracer(grpc_call_context_element* call_context,
+                                grpc_core::Slice path, grpc_core::Arena* arena,
                                 bool tracing_enabled);
   ~OpenCensusCallTracer() override;
 
@@ -132,6 +133,7 @@ class OpenCensusCallTracer : public grpc_core::CallTracer {
   uint64_t num_active_rpcs_ ABSL_GUARDED_BY(&mu_) = 0;
 };
 
-};  // namespace grpc
+}  // namespace internal
+}  // namespace grpc
 
-#endif  // GRPC_INTERNAL_CPP_EXT_FILTERS_OPEN_CENSUS_CALL_TRACER_H
+#endif  // GRPC_SRC_CPP_EXT_FILTERS_CENSUS_OPEN_CENSUS_CALL_TRACER_H

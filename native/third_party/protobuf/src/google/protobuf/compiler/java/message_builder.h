@@ -69,8 +69,18 @@ class MessageBuilderGenerator {
 
  private:
   void GenerateCommonBuilderMethods(io::Printer* printer);
+  void GenerateBuildPartial(io::Printer* printer);
+  int GenerateBuildPartialPiece(io::Printer* printer, int piece,
+                                int first_field);
+  int GenerateBuildPartialPieceWithoutPresence(io::Printer* printer, int piece,
+                                               int first_field);
   void GenerateDescriptorMethods(io::Printer* printer);
   void GenerateBuilderParsingMethods(io::Printer* printer);
+  void GenerateBuilderFieldParsingCases(io::Printer* printer);
+  void GenerateBuilderFieldParsingCase(io::Printer* printer,
+                                       const FieldDescriptor* field);
+  void GenerateBuilderPackedFieldParsingCase(io::Printer* printer,
+                                             const FieldDescriptor* field);
   void GenerateIsInitialized(io::Printer* printer);
 
   const Descriptor* descriptor_;

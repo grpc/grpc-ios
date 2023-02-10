@@ -40,6 +40,7 @@ if test "$PHP_GRPC" != "no"; then
   PHP_SUBST(GRPC_SHARED_LIBADD)
 
   PHP_NEW_EXTENSION(grpc,
+    src/core/ext/filters/backend_metrics/backend_metric_filter.cc \
     src/core/ext/filters/census/grpc_context.cc \
     src/core/ext/filters/channel_idle/channel_idle_filter.cc \
     src/core/ext/filters/channel_idle/idle_filter_state.cc \
@@ -70,6 +71,8 @@ if test "$PHP_GRPC" != "no"; then
     src/core/ext/filters/client_channel/lb_policy/ring_hash/ring_hash.cc \
     src/core/ext/filters/client_channel/lb_policy/rls/rls.cc \
     src/core/ext/filters/client_channel/lb_policy/round_robin/round_robin.cc \
+    src/core/ext/filters/client_channel/lb_policy/weighted_round_robin/static_stride_scheduler.cc \
+    src/core/ext/filters/client_channel/lb_policy/weighted_round_robin/weighted_round_robin.cc \
     src/core/ext/filters/client_channel/lb_policy/weighted_target/weighted_target.cc \
     src/core/ext/filters/client_channel/lb_policy/xds/cds.cc \
     src/core/ext/filters/client_channel/lb_policy/xds/xds_attributes.cc \
@@ -214,6 +217,8 @@ if test "$PHP_GRPC" != "no"; then
     src/core/ext/upb-generated/envoy/extensions/filters/http/stateful_session/v3/stateful_session.upb.c \
     src/core/ext/upb-generated/envoy/extensions/filters/network/http_connection_manager/v3/http_connection_manager.upb.c \
     src/core/ext/upb-generated/envoy/extensions/http/stateful_session/cookie/v3/cookie.upb.c \
+    src/core/ext/upb-generated/envoy/extensions/load_balancing_policies/client_side_weighted_round_robin/v3/client_side_weighted_round_robin.upb.c \
+    src/core/ext/upb-generated/envoy/extensions/load_balancing_policies/common/v3/common.upb.c \
     src/core/ext/upb-generated/envoy/extensions/load_balancing_policies/ring_hash/v3/ring_hash.upb.c \
     src/core/ext/upb-generated/envoy/extensions/load_balancing_policies/wrr_locality/v3/wrr_locality.upb.c \
     src/core/ext/upb-generated/envoy/extensions/transport_sockets/tls/v3/cert.upb.c \
@@ -227,12 +232,14 @@ if test "$PHP_GRPC" != "no"; then
     src/core/ext/upb-generated/envoy/service/status/v3/csds.upb.c \
     src/core/ext/upb-generated/envoy/type/http/v3/cookie.upb.c \
     src/core/ext/upb-generated/envoy/type/http/v3/path_transformation.upb.c \
+    src/core/ext/upb-generated/envoy/type/matcher/v3/filter_state.upb.c \
     src/core/ext/upb-generated/envoy/type/matcher/v3/http_inputs.upb.c \
     src/core/ext/upb-generated/envoy/type/matcher/v3/metadata.upb.c \
     src/core/ext/upb-generated/envoy/type/matcher/v3/node.upb.c \
     src/core/ext/upb-generated/envoy/type/matcher/v3/number.upb.c \
     src/core/ext/upb-generated/envoy/type/matcher/v3/path.upb.c \
     src/core/ext/upb-generated/envoy/type/matcher/v3/regex.upb.c \
+    src/core/ext/upb-generated/envoy/type/matcher/v3/status_code_input.upb.c \
     src/core/ext/upb-generated/envoy/type/matcher/v3/string.upb.c \
     src/core/ext/upb-generated/envoy/type/matcher/v3/struct.upb.c \
     src/core/ext/upb-generated/envoy/type/matcher/v3/value.upb.c \
@@ -382,12 +389,14 @@ if test "$PHP_GRPC" != "no"; then
     src/core/ext/upbdefs-generated/envoy/service/status/v3/csds.upbdefs.c \
     src/core/ext/upbdefs-generated/envoy/type/http/v3/cookie.upbdefs.c \
     src/core/ext/upbdefs-generated/envoy/type/http/v3/path_transformation.upbdefs.c \
+    src/core/ext/upbdefs-generated/envoy/type/matcher/v3/filter_state.upbdefs.c \
     src/core/ext/upbdefs-generated/envoy/type/matcher/v3/http_inputs.upbdefs.c \
     src/core/ext/upbdefs-generated/envoy/type/matcher/v3/metadata.upbdefs.c \
     src/core/ext/upbdefs-generated/envoy/type/matcher/v3/node.upbdefs.c \
     src/core/ext/upbdefs-generated/envoy/type/matcher/v3/number.upbdefs.c \
     src/core/ext/upbdefs-generated/envoy/type/matcher/v3/path.upbdefs.c \
     src/core/ext/upbdefs-generated/envoy/type/matcher/v3/regex.upbdefs.c \
+    src/core/ext/upbdefs-generated/envoy/type/matcher/v3/status_code_input.upbdefs.c \
     src/core/ext/upbdefs-generated/envoy/type/matcher/v3/string.upbdefs.c \
     src/core/ext/upbdefs-generated/envoy/type/matcher/v3/struct.upbdefs.c \
     src/core/ext/upbdefs-generated/envoy/type/matcher/v3/value.upbdefs.c \
@@ -498,6 +507,7 @@ if test "$PHP_GRPC" != "no"; then
     src/core/lib/event_engine/channel_args_endpoint_config.cc \
     src/core/lib/event_engine/default_event_engine.cc \
     src/core/lib/event_engine/default_event_engine_factory.cc \
+    src/core/lib/event_engine/event_engine.cc \
     src/core/lib/event_engine/forkable.cc \
     src/core/lib/event_engine/memory_allocator.cc \
     src/core/lib/event_engine/posix_engine/ev_epoll1_linux.cc \
@@ -518,15 +528,18 @@ if test "$PHP_GRPC" != "no"; then
     src/core/lib/event_engine/posix_engine/wakeup_fd_pipe.cc \
     src/core/lib/event_engine/posix_engine/wakeup_fd_posix_default.cc \
     src/core/lib/event_engine/resolved_address.cc \
+    src/core/lib/event_engine/shim.cc \
     src/core/lib/event_engine/slice.cc \
     src/core/lib/event_engine/slice_buffer.cc \
     src/core/lib/event_engine/tcp_socket_utils.cc \
+    src/core/lib/event_engine/thread_local.cc \
     src/core/lib/event_engine/thread_pool.cc \
     src/core/lib/event_engine/time_util.cc \
     src/core/lib/event_engine/trace.cc \
     src/core/lib/event_engine/utils.cc \
     src/core/lib/event_engine/windows/iocp.cc \
     src/core/lib/event_engine/windows/win_socket.cc \
+    src/core/lib/event_engine/windows/windows_endpoint.cc \
     src/core/lib/event_engine/windows/windows_engine.cc \
     src/core/lib/experiments/config.cc \
     src/core/lib/experiments/experiments.cc \
@@ -587,6 +600,7 @@ if test "$PHP_GRPC" != "no"; then
     src/core/lib/iomgr/buffer_list.cc \
     src/core/lib/iomgr/call_combiner.cc \
     src/core/lib/iomgr/cfstream_handle.cc \
+    src/core/lib/iomgr/closure.cc \
     src/core/lib/iomgr/combiner.cc \
     src/core/lib/iomgr/dualstack_socket_posix.cc \
     src/core/lib/iomgr/endpoint.cc \
@@ -600,6 +614,9 @@ if test "$PHP_GRPC" != "no"; then
     src/core/lib/iomgr/ev_poll_posix.cc \
     src/core/lib/iomgr/ev_posix.cc \
     src/core/lib/iomgr/ev_windows.cc \
+    src/core/lib/iomgr/event_engine_shims/closure.cc \
+    src/core/lib/iomgr/event_engine_shims/endpoint.cc \
+    src/core/lib/iomgr/event_engine_shims/tcp_client.cc \
     src/core/lib/iomgr/exec_ctx.cc \
     src/core/lib/iomgr/executor.cc \
     src/core/lib/iomgr/fork_posix.cc \
@@ -665,8 +682,8 @@ if test "$PHP_GRPC" != "no"; then
     src/core/lib/load_balancing/lb_policy_registry.cc \
     src/core/lib/matchers/matchers.cc \
     src/core/lib/promise/activity.cc \
-    src/core/lib/promise/pipe.cc \
     src/core/lib/promise/sleep.cc \
+    src/core/lib/promise/trace.cc \
     src/core/lib/resolver/resolver.cc \
     src/core/lib/resolver/resolver_registry.cc \
     src/core/lib/resolver/server_address.cc \
@@ -744,6 +761,7 @@ if test "$PHP_GRPC" != "no"; then
     src/core/lib/slice/percent_encoding.cc \
     src/core/lib/slice/slice.cc \
     src/core/lib/slice/slice_buffer.cc \
+    src/core/lib/slice/slice_refcount.cc \
     src/core/lib/slice/slice_string_helpers.cc \
     src/core/lib/surface/api_trace.cc \
     src/core/lib/surface/builtins.cc \
@@ -837,6 +855,14 @@ if test "$PHP_GRPC" != "no"; then
     third_party/abseil-cpp/absl/container/internal/hashtablez_sampler.cc \
     third_party/abseil-cpp/absl/container/internal/hashtablez_sampler_force_weak_definition.cc \
     third_party/abseil-cpp/absl/container/internal/raw_hash_set.cc \
+    third_party/abseil-cpp/absl/crc/crc32c.cc \
+    third_party/abseil-cpp/absl/crc/internal/cpu_detect.cc \
+    third_party/abseil-cpp/absl/crc/internal/crc.cc \
+    third_party/abseil-cpp/absl/crc/internal/crc_cord_state.cc \
+    third_party/abseil-cpp/absl/crc/internal/crc_memcpy_fallback.cc \
+    third_party/abseil-cpp/absl/crc/internal/crc_memcpy_x86_64.cc \
+    third_party/abseil-cpp/absl/crc/internal/crc_non_temporal_memcpy.cc \
+    third_party/abseil-cpp/absl/crc/internal/crc_x86_arm_combined.cc \
     third_party/abseil-cpp/absl/debugging/internal/address_is_readable.cc \
     third_party/abseil-cpp/absl/debugging/internal/demangle.cc \
     third_party/abseil-cpp/absl/debugging/internal/elf_mem_image.cc \
@@ -880,6 +906,7 @@ if test "$PHP_GRPC" != "no"; then
     third_party/abseil-cpp/absl/strings/internal/cordz_functions.cc \
     third_party/abseil-cpp/absl/strings/internal/cordz_handle.cc \
     third_party/abseil-cpp/absl/strings/internal/cordz_info.cc \
+    third_party/abseil-cpp/absl/strings/internal/damerau_levenshtein_distance.cc \
     third_party/abseil-cpp/absl/strings/internal/escaping.cc \
     third_party/abseil-cpp/absl/strings/internal/memutil.cc \
     third_party/abseil-cpp/absl/strings/internal/ostringstream.cc \
@@ -889,6 +916,7 @@ if test "$PHP_GRPC" != "no"; then
     third_party/abseil-cpp/absl/strings/internal/str_format/float_conversion.cc \
     third_party/abseil-cpp/absl/strings/internal/str_format/output.cc \
     third_party/abseil-cpp/absl/strings/internal/str_format/parser.cc \
+    third_party/abseil-cpp/absl/strings/internal/stringify_sink.cc \
     third_party/abseil-cpp/absl/strings/internal/utf8.cc \
     third_party/abseil-cpp/absl/strings/match.cc \
     third_party/abseil-cpp/absl/strings/numbers.cc \
@@ -1240,8 +1268,9 @@ if test "$PHP_GRPC" != "no"; then
     -D_HAS_EXCEPTIONS=0 -DNOMINMAX -DGRPC_ARES=0 \
     -DGRPC_POSIX_FORK_ALLOW_PTHREAD_ATFORK=1 \
     -DGRPC_XDS_USER_AGENT_NAME_SUFFIX='"\"PHP\""' \
-    -DGRPC_XDS_USER_AGENT_VERSION_SUFFIX='"\"1.52.0RC2\""')
+    -DGRPC_XDS_USER_AGENT_VERSION_SUFFIX='"\"1.53.0dev\""')
 
+  PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/filters/backend_metrics)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/filters/census)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/filters/channel_idle)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/filters/client_channel)
@@ -1254,6 +1283,7 @@ if test "$PHP_GRPC" != "no"; then
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/filters/client_channel/lb_policy/ring_hash)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/filters/client_channel/lb_policy/rls)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/filters/client_channel/lb_policy/round_robin)
+  PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/filters/client_channel/lb_policy/weighted_round_robin)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/filters/client_channel/lb_policy/weighted_target)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/filters/client_channel/lb_policy/xds)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/filters/client_channel/resolver)
@@ -1303,6 +1333,8 @@ if test "$PHP_GRPC" != "no"; then
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/upb-generated/envoy/extensions/filters/http/stateful_session/v3)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/upb-generated/envoy/extensions/filters/network/http_connection_manager/v3)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/upb-generated/envoy/extensions/http/stateful_session/cookie/v3)
+  PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/upb-generated/envoy/extensions/load_balancing_policies/client_side_weighted_round_robin/v3)
+  PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/upb-generated/envoy/extensions/load_balancing_policies/common/v3)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/upb-generated/envoy/extensions/load_balancing_policies/ring_hash/v3)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/upb-generated/envoy/extensions/load_balancing_policies/wrr_locality/v3)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/ext/upb-generated/envoy/extensions/transport_sockets/tls/v3)
@@ -1391,6 +1423,7 @@ if test "$PHP_GRPC" != "no"; then
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/handshaker)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/http)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/iomgr)
+  PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/iomgr/event_engine_shims)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/json)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/load_balancing)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/matchers)
@@ -1441,6 +1474,8 @@ if test "$PHP_GRPC" != "no"; then
   PHP_ADD_BUILD_DIR($ext_builddir/third_party/abseil-cpp/absl/base)
   PHP_ADD_BUILD_DIR($ext_builddir/third_party/abseil-cpp/absl/base/internal)
   PHP_ADD_BUILD_DIR($ext_builddir/third_party/abseil-cpp/absl/container/internal)
+  PHP_ADD_BUILD_DIR($ext_builddir/third_party/abseil-cpp/absl/crc)
+  PHP_ADD_BUILD_DIR($ext_builddir/third_party/abseil-cpp/absl/crc/internal)
   PHP_ADD_BUILD_DIR($ext_builddir/third_party/abseil-cpp/absl/debugging)
   PHP_ADD_BUILD_DIR($ext_builddir/third_party/abseil-cpp/absl/debugging/internal)
   PHP_ADD_BUILD_DIR($ext_builddir/third_party/abseil-cpp/absl/hash/internal)

@@ -49,6 +49,19 @@ cc_library(
         ":debugging_internal",
         "//absl/base:config",
         "//absl/base:core_headers",
+        "//absl/base:raw_logging_internal",
+    ],
+)
+
+cc_test(
+    name = "stacktrace_test",
+    srcs = ["stacktrace_test.cc"],
+    copts = ABSL_TEST_COPTS,
+    linkopts = ABSL_DEFAULT_LINKOPTS,
+    deps = [
+        ":stacktrace",
+        "//absl/base:core_headers",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -121,7 +134,7 @@ cc_library(
     ],
     copts = ABSL_DEFAULT_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    visibility = ["//visibility:private"],
+    visibility = ["//absl/log/internal:__pkg__"],
     deps = [
         ":stacktrace",
         ":symbolize",
