@@ -10,6 +10,20 @@ concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 jobs:
+  pre-submit-spm-build-package:
+    runs-on: macos-latest
+    steps:
+      - name: repo checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: spm package build
+        run: scripts/build_spm_package.sh
+
   pre-submit-spm-build-test:
     runs-on: macos-latest
     steps:
