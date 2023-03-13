@@ -25,12 +25,12 @@
 cmake_minimum_required(VERSION 3.8)
 
 set(PACKAGE_NAME          "grpc")
-set(PACKAGE_VERSION       "1.53.0-pre1")
+set(PACKAGE_VERSION       "1.53.0-pre2")
 set(gRPC_CORE_VERSION     "30.1.0")
 set(gRPC_CORE_SOVERSION   "30")
-set(gRPC_CPP_VERSION      "1.53.0-pre1")
+set(gRPC_CPP_VERSION      "1.53.0-pre2")
 set(gRPC_CPP_SOVERSION    "1.53")
-set(gRPC_CSHARP_VERSION   "2.53.0-pre1")
+set(gRPC_CSHARP_VERSION   "2.53.0-pre2")
 set(gRPC_CSHARP_SOVERSION "2.53")
 set(PACKAGE_STRING        "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_TARNAME       "${PACKAGE_NAME}-${PACKAGE_VERSION}")
@@ -292,7 +292,7 @@ endif()
 if (gRPC_XDS_USER_AGENT_IS_CSHARP)
   # The value of the defines needs to contain quotes.
   # See https://github.com/grpc/grpc/blob/fbf32836a418cc84f58786700273b65cb9174e1d/src/core/ext/xds/xds_api.cc#L854
-  add_definitions("-DGRPC_XDS_USER_AGENT_NAME_SUFFIX=\"csharp\"" "-DGRPC_XDS_USER_AGENT_VERSION_SUFFIX=\"2.53.0-pre1\"")
+  add_definitions("-DGRPC_XDS_USER_AGENT_NAME_SUFFIX=\"csharp\"" "-DGRPC_XDS_USER_AGENT_VERSION_SUFFIX=\"2.53.0-pre2\"")
 endif()
 
 if(UNIX AND NOT HAIKU)
@@ -7471,7 +7471,7 @@ target_link_libraries(cancel_callback_test
   ${_gRPC_ZLIB_LIBRARIES}
   ${_gRPC_ALLTARGETS_LIBRARIES}
   absl::type_traits
-  absl::variant
+  gpr
 )
 
 
@@ -13818,7 +13818,7 @@ target_link_libraries(if_test
   ${_gRPC_ALLTARGETS_LIBRARIES}
   absl::type_traits
   absl::statusor
-  absl::variant
+  gpr
 )
 
 
@@ -14241,9 +14241,8 @@ target_link_libraries(join_test
   ${_gRPC_ZLIB_LIBRARIES}
   ${_gRPC_ALLTARGETS_LIBRARIES}
   absl::type_traits
-  absl::strings
-  absl::variant
   absl::utility
+  gpr
 )
 
 
@@ -14691,10 +14690,9 @@ target_link_libraries(loop_test
   ${_gRPC_ZLIB_LIBRARIES}
   ${_gRPC_ALLTARGETS_LIBRARIES}
   absl::type_traits
-  absl::status
   absl::statusor
-  absl::variant
   absl::utility
+  gpr
 )
 
 
@@ -16324,7 +16322,7 @@ target_link_libraries(poll_test
   ${_gRPC_PROTOBUF_LIBRARIES}
   ${_gRPC_ZLIB_LIBRARIES}
   ${_gRPC_ALLTARGETS_LIBRARIES}
-  absl::variant
+  gpr
 )
 
 
@@ -16589,9 +16587,7 @@ target_link_libraries(promise_factory_test
   ${_gRPC_ALLTARGETS_LIBRARIES}
   absl::bind_front
   absl::type_traits
-  absl::status
-  absl::optional
-  absl::variant
+  gpr
 )
 
 
@@ -16629,9 +16625,7 @@ target_link_libraries(promise_map_test
   ${_gRPC_ZLIB_LIBRARIES}
   ${_gRPC_ALLTARGETS_LIBRARIES}
   absl::type_traits
-  absl::status
-  absl::optional
-  absl::variant
+  gpr
 )
 
 
@@ -16669,9 +16663,7 @@ target_link_libraries(promise_test
   ${_gRPC_ZLIB_LIBRARIES}
   ${_gRPC_ALLTARGETS_LIBRARIES}
   absl::type_traits
-  absl::status
-  absl::optional
-  absl::variant
+  gpr
 )
 
 
@@ -16956,7 +16948,7 @@ target_link_libraries(race_test
   ${_gRPC_PROTOBUF_LIBRARIES}
   ${_gRPC_ZLIB_LIBRARIES}
   ${_gRPC_ALLTARGETS_LIBRARIES}
-  absl::variant
+  gpr
 )
 
 
@@ -17921,8 +17913,8 @@ target_link_libraries(seq_test
   ${_gRPC_ZLIB_LIBRARIES}
   ${_gRPC_ALLTARGETS_LIBRARIES}
   absl::type_traits
-  absl::variant
   absl::utility
+  gpr
 )
 
 
@@ -21652,11 +21644,9 @@ target_link_libraries(try_join_test
   ${_gRPC_ZLIB_LIBRARIES}
   ${_gRPC_ALLTARGETS_LIBRARIES}
   absl::type_traits
-  absl::status
   absl::statusor
-  absl::strings
-  absl::variant
   absl::utility
+  gpr
 )
 
 
@@ -21731,10 +21721,9 @@ target_link_libraries(try_seq_test
   ${_gRPC_ZLIB_LIBRARIES}
   ${_gRPC_ALLTARGETS_LIBRARIES}
   absl::type_traits
-  absl::status
   absl::statusor
-  absl::variant
   absl::utility
+  gpr
 )
 
 

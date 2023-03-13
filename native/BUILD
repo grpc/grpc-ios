@@ -183,7 +183,7 @@ g_stands_for = "glockenspiel"  # @unused
 
 core_version = "30.1.0"  # @unused
 
-version = "1.53.0-pre1"  # @unused
+version = "1.53.0-pre2"  # @unused
 
 GPR_PUBLIC_HDRS = [
     "include/grpc/support/alloc.h",
@@ -2339,7 +2339,6 @@ grpc_cc_library(
     external_deps = [
         "absl/status",
         "absl/types:optional",
-        "absl/types:variant",
     ],
     language = "c++",
     public_hdrs = [
@@ -3651,7 +3650,6 @@ grpc_cc_library(
         "absl/strings:cord",
         "absl/strings:str_format",
         "absl/types:optional",
-        "absl/types:variant",
     ],
     language = "c++",
     visibility = ["@grpc:grpclb"],
