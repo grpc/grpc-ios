@@ -45,7 +45,9 @@
 #include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/resource_quota/arena.h"
 #include "src/core/lib/slice/slice.h"
+#include "src/core/lib/transport/custom_metadata.h"
 #include "src/core/lib/transport/parsed_metadata.h"
+#include "src/core/lib/transport/simple_slice_based_metadata.h"
 
 namespace grpc_core {
 
@@ -74,7 +76,8 @@ struct GrpcTimeoutMetadata {
   static MementoType ParseMemento(Slice value, MetadataParseErrorFn on_error);
   static ValueType MementoToValue(MementoType timeout);
   static Slice Encode(ValueType x);
-  static std::string DisplayValue(MementoType x) { return x.ToString(); }
+  static std::string DisplayValue(ValueType x) { return x.ToString(); }
+  static std::string DisplayMemento(MementoType x) { return x.ToString(); }
 };
 
 // TE metadata trait.
@@ -95,7 +98,8 @@ struct TeMetadata {
     GPR_ASSERT(x == kTrailers);
     return StaticSlice::FromStaticString("trailers");
   }
-  static const char* DisplayValue(MementoType te);
+  static const char* DisplayValue(ValueType te);
+  static const char* DisplayMemento(MementoType te) { return DisplayValue(te); }
 };
 
 inline size_t EncodedSizeOfKey(TeMetadata, TeMetadata::ValueType x) {
@@ -121,7 +125,10 @@ struct ContentTypeMetadata {
   }
 
   static StaticSlice Encode(ValueType x);
-  static const char* DisplayValue(MementoType content_type);
+  static const char* DisplayValue(ValueType content_type);
+  static const char* DisplayMemento(ValueType content_type) {
+    return DisplayValue(content_type);
+  }
 };
 
 // scheme metadata trait.
@@ -143,7 +150,10 @@ struct HttpSchemeMetadata {
     return content_type;
   }
   static StaticSlice Encode(ValueType x);
-  static const char* DisplayValue(MementoType content_type);
+  static const char* DisplayValue(ValueType content_type);
+  static const char* DisplayMemento(MementoType content_type) {
+    return DisplayValue(content_type);
+  }
 };
 
 size_t EncodedSizeOfKey(HttpSchemeMetadata, HttpSchemeMetadata::ValueType x);
@@ -164,7 +174,10 @@ struct HttpMethodMetadata {
     return content_type;
   }
   static StaticSlice Encode(ValueType x);
-  static const char* DisplayValue(MementoType content_type);
+  static const char* DisplayValue(ValueType content_type);
+  static const char* DisplayMemento(MementoType content_type) {
+    return DisplayValue(content_type);
+  }
 };
 
 // Base type for metadata pertaining to a single compression algorithm
@@ -178,13 +191,14 @@ struct CompressionAlgorithmBasedMetadata {
     GPR_ASSERT(x != GRPC_COMPRESS_ALGORITHMS_COUNT);
     return Slice::FromStaticString(CompressionAlgorithmAsString(x));
   }
-  static const char* DisplayValue(MementoType x) {
+  static const char* DisplayValue(ValueType x) {
     if (const char* p = CompressionAlgorithmAsString(x)) {
       return p;
     } else {
       return "<discarded-invalid-value>";
     }
   }
+  static const char* DisplayMemento(MementoType x) { return DisplayValue(x); }
 };
 
 // grpc-encoding metadata trait.
@@ -210,19 +224,9 @@ struct GrpcAcceptEncodingMetadata {
   }
   static ValueType MementoToValue(MementoType x) { return x; }
   static Slice Encode(ValueType x) { return x.ToSlice(); }
-  static absl::string_view DisplayValue(MementoType x) { return x.ToString(); }
-};
-
-struct SimpleSliceBasedMetadata {
-  using ValueType = Slice;
-  using MementoType = Slice;
-  static MementoType ParseMemento(Slice value, MetadataParseErrorFn) {
-    return value.TakeOwned();
-  }
-  static ValueType MementoToValue(MementoType value) { return value; }
-  static Slice Encode(const ValueType& x) { return x.Ref(); }
-  static absl::string_view DisplayValue(const MementoType& value) {
-    return value.as_string_view();
+  static absl::string_view DisplayValue(ValueType x) { return x.ToString(); }
+  static absl::string_view DisplayMemento(MementoType x) {
+    return DisplayValue(x);
   }
 };
 
@@ -289,7 +293,8 @@ struct SimpleIntBasedMetadataBase {
   using MementoType = Int;
   static ValueType MementoToValue(MementoType value) { return value; }
   static Slice Encode(ValueType x) { return Slice::FromInt64(x); }
-  static Int DisplayValue(MementoType x) { return x; }
+  static Int DisplayValue(ValueType x) { return x; }
+  static Int DisplayMemento(MementoType x) { return x; }
 };
 
 template <typename Int, Int kInvalidValue>
@@ -328,6 +333,7 @@ struct GrpcRetryPushbackMsMetadata {
   static ValueType MementoToValue(MementoType x) { return x; }
   static Slice Encode(Duration x) { return Slice::FromInt64(x.millis()); }
   static int64_t DisplayValue(Duration x) { return x.millis(); }
+  static int64_t DisplayMemento(Duration x) { return DisplayValue(x); }
   static Duration ParseMemento(Slice value, MetadataParseErrorFn on_error);
 };
 
@@ -349,7 +355,10 @@ struct GrpcLbClientStatsMetadata {
   using MementoType = ValueType;
   static ValueType MementoToValue(MementoType value) { return value; }
   static Slice Encode(ValueType) { abort(); }
-  static const char* DisplayValue(MementoType) { return "<internal-lb-stats>"; }
+  static const char* DisplayValue(ValueType) { return "<internal-lb-stats>"; }
+  static const char* DisplayMemento(MementoType) {
+    return "<internal-lb-stats>";
+  }
   static MementoType ParseMemento(Slice, MetadataParseErrorFn) {
     return nullptr;
   }
@@ -377,7 +386,8 @@ struct LbCostBinMetadata {
   using MementoType = ValueType;
   static ValueType MementoToValue(MementoType value) { return value; }
   static Slice Encode(const ValueType& x);
-  static std::string DisplayValue(MementoType x);
+  static std::string DisplayValue(ValueType x);
+  static std::string DisplayMemento(MementoType x) { return DisplayValue(x); }
   static MementoType ParseMemento(Slice value, MetadataParseErrorFn on_error);
 };
 
@@ -397,8 +407,8 @@ struct GrpcStreamNetworkState {
 struct PeerString {
   static absl::string_view DebugKey() { return "PeerString"; }
   static constexpr bool kRepeatable = false;
-  using ValueType = absl::string_view;
-  static std::string DisplayValue(ValueType x);
+  using ValueType = Slice;
+  static std::string DisplayValue(const ValueType& x);
 };
 
 // Annotation added by various systems to describe the reason for a failure.
@@ -412,6 +422,15 @@ struct GrpcStatusContext {
 // Annotation added by a transport to note that the status came from the wire.
 struct GrpcStatusFromWire {
   static absl::string_view DebugKey() { return "GrpcStatusFromWire"; }
+  static constexpr bool kRepeatable = false;
+  using ValueType = bool;
+  static absl::string_view DisplayValue(bool x) { return x ? "true" : "false"; }
+};
+
+// Annotation to denote that this call qualifies for cancelled=1 for the
+// RECV_CLOSE_ON_SERVER op
+struct GrpcCallWasCancelled {
+  static absl::string_view DebugKey() { return "GrpcCallWasCancelled"; }
   static constexpr bool kRepeatable = false;
   using ValueType = bool;
   static absl::string_view DisplayValue(bool x) { return x ? "true" : "false"; }
@@ -699,6 +718,11 @@ struct AdaptDisplayValueToLog<Slice> {
 };
 
 template <>
+struct AdaptDisplayValueToLog<const char*> {
+  static std::string ToString(const char* value) { return std::string(value); }
+};
+
+template <>
 struct AdaptDisplayValueToLog<StaticSlice> {
   static absl::string_view ToString(StaticSlice value) {
     return value.as_string_view();
@@ -739,7 +763,7 @@ struct Value<Which, absl::enable_if_t<Which::kRepeatable == false &&
     return EncodeTo(encoder);
   }
   void LogTo(LogFn log_fn) const {
-    LogKeyValueTo(Which::key(), value, Which::Encode, log_fn);
+    LogKeyValueTo(Which::key(), value, Which::DisplayValue, log_fn);
   }
   using StorageType = typename Which::ValueType;
   GPR_NO_UNIQUE_ADDRESS StorageType value;
@@ -1025,7 +1049,8 @@ MetadataValueAsSlice(typename Which::ValueType value) {
 //   // Convert a value to something that can be passed to StrCat and
 //   displayed
 //   // for debugging
-//   static SomeStrCatableType DisplayValue(MementoType value) { ... }
+//   static SomeStrCatableType DisplayValue(ValueType value) { ... }
+//   static SomeStrCatableType DisplayMemento(MementoType value) { ... }
 // };
 //
 // Non-encodable traits are determined by missing the key() method, and have
@@ -1230,8 +1255,6 @@ class MetadataMap {
 
   // Parse metadata from a key/value pair, and return an object representing
   // that result.
-  // TODO(ctiller): key should probably be an absl::string_view.
-  // Once we don't care about interning anymore, make that change!
   static ParsedMetadata<Derived> Parse(absl::string_view key, Slice value,
                                        uint32_t transport_size,
                                        MetadataParseErrorFn on_error) {
@@ -1348,7 +1371,9 @@ using grpc_metadata_batch_base = grpc_core::MetadataMap<
     // Non-encodable things
     grpc_core::GrpcStreamNetworkState, grpc_core::PeerString,
     grpc_core::GrpcStatusContext, grpc_core::GrpcStatusFromWire,
-    grpc_core::WaitForReady, grpc_core::GrpcTrailersOnly>;
+    grpc_core::GrpcCallWasCancelled, grpc_core::WaitForReady,
+    grpc_core::GrpcTrailersOnly GRPC_CUSTOM_CLIENT_METADATA
+        GRPC_CUSTOM_SERVER_METADATA>;
 
 struct grpc_metadata_batch : public grpc_metadata_batch_base {
   using grpc_metadata_batch_base::grpc_metadata_batch_base;

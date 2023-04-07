@@ -70,10 +70,11 @@
 
 #include <openssl/base.h>
 
+#include <assert.h>
+
 #include <openssl/bn.h>
 #include <openssl/ec.h>
 #include <openssl/ex_data.h>
-#include <openssl/type_check.h>
 
 #include "../bn/internal.h"
 
@@ -91,8 +92,8 @@ extern "C" {
 #define EC_MAX_BYTES 66
 #define EC_MAX_WORDS ((EC_MAX_BYTES + BN_BYTES - 1) / BN_BYTES)
 
-OPENSSL_STATIC_ASSERT(EC_MAX_WORDS <= BN_SMALL_MAX_WORDS,
-                      "bn_*_small functions not usable");
+static_assert(EC_MAX_WORDS <= BN_SMALL_MAX_WORDS,
+              "bn_*_small functions not usable");
 
 
 // Scalars.
@@ -100,9 +101,7 @@ OPENSSL_STATIC_ASSERT(EC_MAX_WORDS <= BN_SMALL_MAX_WORDS,
 // An EC_SCALAR is an integer fully reduced modulo the order. Only the first
 // |order->width| words are used. An |EC_SCALAR| is specific to an |EC_GROUP|
 // and must not be mixed between groups.
-typedef union {
-  // bytes is the representation of the scalar in little-endian order.
-  uint8_t bytes[EC_MAX_BYTES];
+typedef struct {
   BN_ULONG words[EC_MAX_WORDS];
 } EC_SCALAR;
 
@@ -192,9 +191,7 @@ void ec_scalar_select(const EC_GROUP *group, EC_SCALAR *out, BN_ULONG mask,
 // are used. An |EC_FELEM| is specific to an |EC_GROUP| and must not be mixed
 // between groups. Additionally, the representation (whether or not elements are
 // represented in Montgomery-form) may vary between |EC_METHOD|s.
-typedef union {
-  // bytes is the representation of the field element in little-endian order.
-  uint8_t bytes[EC_MAX_BYTES];
+typedef struct {
   BN_ULONG words[EC_MAX_WORDS];
 } EC_FELEM;
 
@@ -300,6 +297,13 @@ int ec_jacobian_to_affine_batch(const EC_GROUP *group, EC_AFFINE *out,
 // undefined.
 int ec_point_set_affine_coordinates(const EC_GROUP *group, EC_AFFINE *out,
                                     const EC_FELEM *x, const EC_FELEM *y);
+
+// ec_point_mul_no_self_test does the same as |EC_POINT_mul|, but doesn't try to
+// run the self-test first. This is for use in the self tests themselves, to
+// prevent an infinite loop.
+int ec_point_mul_no_self_test(const EC_GROUP *group, EC_POINT *r,
+                              const BIGNUM *g_scalar, const EC_POINT *p,
+                              const BIGNUM *p_scalar, BN_CTX *ctx);
 
 // ec_point_mul_scalar sets |r| to |p| * |scalar|. Both inputs are considered
 // secret.
@@ -435,11 +439,18 @@ int ec_get_x_coordinate_as_bytes(const EC_GROUP *group, uint8_t *out,
                                  size_t *out_len, size_t max_out,
                                  const EC_RAW_POINT *p);
 
-// ec_point_to_bytes behaves like |EC_POINT_point2oct| but takes an
-// |EC_AFFINE|.
+// ec_point_byte_len returns the number of bytes in the byte representation of
+// a non-infinity point in |group|, encoded according to |form|, or zero if
+// |form| is invalid.
+size_t ec_point_byte_len(const EC_GROUP *group, point_conversion_form_t form);
+
+// ec_point_to_bytes encodes |point| according to |form| and writes the result
+// |buf|. It returns the size of the output on success or zero on error. At most
+// |max_out| bytes will be written. The buffer should be at least
+// |ec_point_byte_len| long to guarantee success.
 size_t ec_point_to_bytes(const EC_GROUP *group, const EC_AFFINE *point,
                          point_conversion_form_t form, uint8_t *buf,
-                         size_t len);
+                         size_t max_out);
 
 // ec_point_from_uncompressed parses |in| as a point in uncompressed form and
 // sets the result to |out|. It returns one on success and zero if the input was
@@ -549,6 +560,12 @@ struct ec_method_st {
   //
   // This function is used in hash-to-curve and may be NULL in curves not used
   // with hash-to-curve.
+  //
+  // TODO(https://crbug.com/boringssl/567): hash-to-curve uses this as part of
+  // computing a square root, which is what compressed coordinates ultimately
+  // needs to avoid |BIGNUM|. Can we unify this a bit? By generalizing to
+  // arbitrary exponentiation, we also miss an opportunity to use a specialized
+  // addition chain.
   void (*felem_exp)(const EC_GROUP *group, EC_FELEM *out, const EC_FELEM *a,
                     const BN_ULONG *exp, size_t num_exp);
 
@@ -639,6 +656,11 @@ void ec_GFp_mont_mul_precomp(const EC_GROUP *group, EC_RAW_POINT *r,
                              const EC_PRECOMP *p0, const EC_SCALAR *scalar0,
                              const EC_PRECOMP *p1, const EC_SCALAR *scalar1,
                              const EC_PRECOMP *p2, const EC_SCALAR *scalar2);
+void ec_GFp_mont_felem_reduce(const EC_GROUP *group, EC_FELEM *out,
+                              const BN_ULONG *words, size_t num);
+void ec_GFp_mont_felem_exp(const EC_GROUP *group, EC_FELEM *out,
+                           const EC_FELEM *a, const BN_ULONG *exp,
+                           size_t num_exp);
 
 // ec_compute_wNAF writes the modified width-(w+1) Non-Adjacent Form (wNAF) of
 // |scalar| to |out|. |out| must have room for |bits| + 1 elements, each of

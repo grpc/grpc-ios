@@ -21,7 +21,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -43,6 +42,7 @@ type invocation struct {
 	wrapperPath  string
 	inPath       string
 	expectedPath string
+	configPath   string
 }
 
 func main() {
@@ -86,6 +86,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	configFile, err := os.CreateTemp("", "boringssl-check_expected-config-")
+	if err != nil {
+		log.Fatalf("Failed to create temp file for config: %s", err)
+	}
+	defer os.Remove(configFile.Name())
+	if _, err := configFile.WriteString("{}\n"); err != nil {
+		log.Fatalf("Failed to write config file: %s", err)
+	}
+
 	work := make(chan invocation, runtime.NumCPU())
 	var numFailed uint32
 
@@ -105,6 +114,7 @@ func main() {
 			wrapperPath:  wrapper,
 			inPath:       test.In,
 			expectedPath: test.Out,
+			configPath:   configFile.Name(),
 		}
 	}
 
@@ -138,7 +148,7 @@ func doTest(test invocation) error {
 	}
 	defer input.Close()
 
-	tempFile, err := ioutil.TempFile("", "boringssl-check_expected-")
+	tempFile, err := os.CreateTemp("", "boringssl-check_expected-")
 	if err != nil {
 		return fmt.Errorf("Failed to create temp file: %s", err)
 	}
@@ -150,7 +160,7 @@ func doTest(test invocation) error {
 		return fmt.Errorf("Failed to decompress %q: %s", test.inPath, err)
 	}
 
-	cmd := exec.Command(test.toolPath, "-wrapper", test.wrapperPath, "-json", tempFile.Name())
+	cmd := exec.Command(test.toolPath, "-wrapper", test.wrapperPath, "-json", tempFile.Name(), "-config", test.configPath)
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		os.Stderr.Write(result)
@@ -190,7 +200,8 @@ func doTest(test invocation) error {
 }
 
 func writeUpdate(path string, contents []byte) {
-	if err := ioutil.WriteFile(path, contents, 0644); err != nil {
+	path = strings.TrimSuffix(path, ".bz2")
+	if err := os.WriteFile(path, contents, 0644); err != nil {
 		log.Printf("Failed to create missing file %q: %s", path, err)
 	} else {
 		log.Printf("Wrote %q", path)

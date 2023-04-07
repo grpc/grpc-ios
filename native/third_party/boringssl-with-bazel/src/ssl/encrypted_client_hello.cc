@@ -203,6 +203,12 @@ bool ssl_decode_client_hello_inner(
         OPENSSL_PUT_ERROR(SSL, SSL_R_DECODE_ERROR);
         return false;
       }
+      // The ECH extension itself is not in the AAD and may not be referenced.
+      if (want == TLSEXT_TYPE_encrypted_client_hello) {
+        *out_alert = SSL_AD_ILLEGAL_PARAMETER;
+        OPENSSL_PUT_ERROR(SSL, SSL_R_INVALID_OUTER_EXTENSION);
+        return false;
+      }
       // Seek to |want| in |outer_extensions|. |ext_list| is required to match
       // ClientHelloOuter in order.
       uint16_t found;
@@ -210,7 +216,7 @@ bool ssl_decode_client_hello_inner(
       do {
         if (CBS_len(&outer_extensions) == 0) {
           *out_alert = SSL_AD_ILLEGAL_PARAMETER;
-          OPENSSL_PUT_ERROR(SSL, SSL_R_OUTER_EXTENSION_NOT_FOUND);
+          OPENSSL_PUT_ERROR(SSL, SSL_R_INVALID_OUTER_EXTENSION);
           return false;
         }
         if (!CBS_get_u16(&outer_extensions, &found) ||
@@ -252,8 +258,8 @@ bool ssl_decode_client_hello_inner(
   return true;
 }
 
-bool ssl_client_hello_decrypt(EVP_HPKE_CTX *hpke_ctx, Array<uint8_t> *out,
-                              bool *out_is_decrypt_error,
+bool ssl_client_hello_decrypt(SSL_HANDSHAKE *hs, uint8_t *out_alert,
+                              bool *out_is_decrypt_error, Array<uint8_t> *out,
                               const SSL_CLIENT_HELLO *client_hello_outer,
                               Span<const uint8_t> payload) {
   *out_is_decrypt_error = false;
@@ -264,6 +270,7 @@ bool ssl_client_hello_decrypt(EVP_HPKE_CTX *hpke_ctx, Array<uint8_t> *out,
   Array<uint8_t> aad;
   if (!aad.CopyFrom(MakeConstSpan(client_hello_outer->client_hello,
                                   client_hello_outer->client_hello_len))) {
+    *out_alert = SSL_AD_INTERNAL_ERROR;
     return false;
   }
 
@@ -278,35 +285,47 @@ bool ssl_client_hello_decrypt(EVP_HPKE_CTX *hpke_ctx, Array<uint8_t> *out,
       payload.data() - client_hello_outer->client_hello, payload.size());
   OPENSSL_memset(payload_aad.data(), 0, payload_aad.size());
 
+  // Decrypt the EncodedClientHelloInner.
+  Array<uint8_t> encoded;
 #if defined(BORINGSSL_UNSAFE_FUZZER_MODE)
   // In fuzzer mode, disable encryption to improve coverage. We reserve a short
   // input to signal decryption failure, so the fuzzer can explore fallback to
   // ClientHelloOuter.
   const uint8_t kBadPayload[] = {0xff};
   if (payload == kBadPayload) {
+    *out_alert = SSL_AD_DECRYPT_ERROR;
     *out_is_decrypt_error = true;
     OPENSSL_PUT_ERROR(SSL, SSL_R_DECRYPTION_FAILED);
     return false;
   }
-  if (!out->CopyFrom(payload)) {
+  if (!encoded.CopyFrom(payload)) {
+    *out_alert = SSL_AD_INTERNAL_ERROR;
     return false;
   }
 #else
-  // Attempt to decrypt into |out|.
-  if (!out->Init(payload.size())) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
+  if (!encoded.Init(payload.size())) {
+    *out_alert = SSL_AD_INTERNAL_ERROR;
     return false;
   }
   size_t len;
-  if (!EVP_HPKE_CTX_open(hpke_ctx, out->data(), &len, out->size(),
-                         payload.data(), payload.size(), aad.data(),
-                         aad.size())) {
+  if (!EVP_HPKE_CTX_open(hs->ech_hpke_ctx.get(), encoded.data(), &len,
+                         encoded.size(), payload.data(), payload.size(),
+                         aad.data(), aad.size())) {
+    *out_alert = SSL_AD_DECRYPT_ERROR;
     *out_is_decrypt_error = true;
     OPENSSL_PUT_ERROR(SSL, SSL_R_DECRYPTION_FAILED);
     return false;
   }
-  out->Shrink(len);
+  encoded.Shrink(len);
 #endif
+
+  if (!ssl_decode_client_hello_inner(hs->ssl, out_alert, out, encoded,
+                                     client_hello_outer)) {
+    return false;
+  }
+
+  ssl_do_msg_callback(hs->ssl, /*is_write=*/0, SSL3_RT_CLIENT_HELLO_INNER,
+                      *out);
   return true;
 }
 
@@ -315,8 +334,7 @@ static bool is_hex_component(Span<const uint8_t> in) {
     return false;
   }
   for (uint8_t b : in.subspan(2)) {
-    if (!('0' <= b && b <= '9') && !('a' <= b && b <= 'f') &&
-        !('A' <= b && b <= 'F')) {
+    if (!OPENSSL_isxdigit(b)) {
       return false;
     }
   }
@@ -368,8 +386,7 @@ bool ssl_is_valid_ech_public_name(Span<const uint8_t> public_name) {
       return false;
     }
     for (uint8_t c : component) {
-      if (!('a' <= c && c <= 'z') && !('A' <= c && c <= 'Z') &&
-          !('0' <= c && c <= '9') && c != '-') {
+      if (!OPENSSL_isalnum(c) && c != '-') {
         return false;
       }
     }
@@ -554,7 +571,6 @@ bool ECHServerConfig::SetupContext(EVP_HPKE_CTX *ctx, uint16_t kdf_id,
                      sizeof(kInfoLabel) /* includes trailing NUL */) ||
       !CBB_add_bytes(info_cbb.get(), ech_config_.raw.data(),
                      ech_config_.raw.size())) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return false;
   }
 
@@ -651,7 +667,6 @@ bool ssl_select_ech_config(SSL_HANDSHAKE *hs, Span<uint8_t> out_enc,
             !CBB_add_bytes(info.get(), kInfoLabel, sizeof(kInfoLabel)) ||
             !CBB_add_bytes(info.get(), ech_config.raw.data(),
                            ech_config.raw.size())) {
-          OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
           return false;
         }
 
@@ -789,6 +804,8 @@ bool ssl_encrypt_client_hello(SSL_HANDSHAKE *hs, Span<const uint8_t> enc) {
                    binder_len);
   }
 
+  ssl_do_msg_callback(ssl, /*is_write=*/1, SSL3_RT_CLIENT_HELLO_INNER,
+                      hello_inner);
   if (!hs->inner_transcript.Update(hello_inner)) {
     return false;
   }
@@ -1017,7 +1034,6 @@ int SSL_ECH_KEYS_add(SSL_ECH_KEYS *configs, int is_retry_config,
     return 0;
   }
   if (!configs->configs.Push(std::move(parsed_config))) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return 0;
   }
   return 1;
@@ -1040,14 +1056,12 @@ int SSL_ECH_KEYS_marshal_retry_configs(const SSL_ECH_KEYS *keys, uint8_t **out,
   CBB child;
   if (!CBB_init(cbb.get(), 128) ||
       !CBB_add_u16_length_prefixed(cbb.get(), &child)) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return false;
   }
   for (const auto &config : keys->configs) {
     if (config->is_retry_config() &&
         !CBB_add_bytes(&child, config->ech_config().raw.data(),
                        config->ech_config().raw.size())) {
-      OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
       return false;
     }
   }

@@ -56,6 +56,7 @@
 
 #include <openssl/rsa.h>
 
+#include <assert.h>
 #include <limits.h>
 #include <string.h>
 
@@ -87,7 +88,6 @@ RSA *RSA_new(void) { return RSA_new_method(NULL); }
 RSA *RSA_new_method(const ENGINE *engine) {
   RSA *rsa = OPENSSL_malloc(sizeof(RSA));
   if (rsa == NULL) {
-    OPENSSL_PUT_ERROR(RSA, ERR_R_MALLOC_FAILURE);
     return NULL;
   }
 
@@ -300,16 +300,24 @@ int RSA_public_encrypt(size_t flen, const uint8_t *from, uint8_t *to, RSA *rsa,
     OPENSSL_PUT_ERROR(RSA, ERR_R_OVERFLOW);
     return -1;
   }
-  return out_len;
+  return (int)out_len;
 }
 
-int RSA_sign_raw(RSA *rsa, size_t *out_len, uint8_t *out, size_t max_out,
-                 const uint8_t *in, size_t in_len, int padding) {
+static int rsa_sign_raw_no_self_test(RSA *rsa, size_t *out_len, uint8_t *out,
+                                     size_t max_out, const uint8_t *in,
+                                     size_t in_len, int padding) {
   if (rsa->meth->sign_raw) {
     return rsa->meth->sign_raw(rsa, out_len, out, max_out, in, in_len, padding);
   }
 
   return rsa_default_sign_raw(rsa, out_len, out, max_out, in, in_len, padding);
+}
+
+int RSA_sign_raw(RSA *rsa, size_t *out_len, uint8_t *out, size_t max_out,
+                 const uint8_t *in, size_t in_len, int padding) {
+  boringssl_ensure_rsa_self_test();
+  return rsa_sign_raw_no_self_test(rsa, out_len, out, max_out, in, in_len,
+                                   padding);
 }
 
 int RSA_private_encrypt(size_t flen, const uint8_t *from, uint8_t *to, RSA *rsa,
@@ -324,7 +332,7 @@ int RSA_private_encrypt(size_t flen, const uint8_t *from, uint8_t *to, RSA *rsa,
     OPENSSL_PUT_ERROR(RSA, ERR_R_OVERFLOW);
     return -1;
   }
-  return out_len;
+  return (int)out_len;
 }
 
 int RSA_decrypt(RSA *rsa, size_t *out_len, uint8_t *out, size_t max_out,
@@ -339,7 +347,6 @@ int RSA_decrypt(RSA *rsa, size_t *out_len, uint8_t *out, size_t max_out,
 int RSA_private_decrypt(size_t flen, const uint8_t *from, uint8_t *to, RSA *rsa,
                         int padding) {
   size_t out_len;
-
   if (!RSA_decrypt(rsa, &out_len, to, RSA_size(rsa), from, flen, padding)) {
     return -1;
   }
@@ -348,13 +355,12 @@ int RSA_private_decrypt(size_t flen, const uint8_t *from, uint8_t *to, RSA *rsa,
     OPENSSL_PUT_ERROR(RSA, ERR_R_OVERFLOW);
     return -1;
   }
-  return out_len;
+  return (int)out_len;
 }
 
 int RSA_public_decrypt(size_t flen, const uint8_t *from, uint8_t *to, RSA *rsa,
                        int padding) {
   size_t out_len;
-
   if (!RSA_verify_raw(rsa, &out_len, to, RSA_size(rsa), from, flen, padding)) {
     return -1;
   }
@@ -363,15 +369,16 @@ int RSA_public_decrypt(size_t flen, const uint8_t *from, uint8_t *to, RSA *rsa,
     OPENSSL_PUT_ERROR(RSA, ERR_R_OVERFLOW);
     return -1;
   }
-  return out_len;
+  return (int)out_len;
 }
 
 unsigned RSA_size(const RSA *rsa) {
-  if (rsa->meth->size) {
-    return rsa->meth->size(rsa);
-  }
-
-  return rsa_default_size(rsa);
+  size_t ret = rsa->meth->size ? rsa->meth->size(rsa) : rsa_default_size(rsa);
+  // RSA modulus sizes are bounded by |BIGNUM|, which must fit in |unsigned|.
+  //
+  // TODO(https://crbug.com/boringssl/516): Should we make this return |size_t|?
+  assert(ret < UINT_MAX);
+  return (unsigned)ret;
 }
 
 int RSA_is_opaque(const RSA *rsa) {
@@ -463,49 +470,65 @@ static const struct pkcs1_sig_prefix kPKCS1SigPrefixes[] = {
     },
 };
 
-int RSA_add_pkcs1_prefix(uint8_t **out_msg, size_t *out_msg_len,
-                         int *is_alloced, int hash_nid, const uint8_t *digest,
-                         size_t digest_len) {
-  unsigned i;
-
+static int rsa_check_digest_size(int hash_nid, size_t digest_len) {
   if (hash_nid == NID_md5_sha1) {
-    // Special case: SSL signature, just check the length.
     if (digest_len != SSL_SIG_LENGTH) {
       OPENSSL_PUT_ERROR(RSA, RSA_R_INVALID_MESSAGE_LENGTH);
       return 0;
     }
+    return 1;
+  }
 
+  for (size_t i = 0; kPKCS1SigPrefixes[i].nid != NID_undef; i++) {
+    const struct pkcs1_sig_prefix *sig_prefix = &kPKCS1SigPrefixes[i];
+    if (sig_prefix->nid == hash_nid) {
+      if (digest_len != sig_prefix->hash_len) {
+        OPENSSL_PUT_ERROR(RSA, RSA_R_INVALID_MESSAGE_LENGTH);
+        return 0;
+      }
+      return 1;
+    }
+  }
+
+  OPENSSL_PUT_ERROR(RSA, RSA_R_UNKNOWN_ALGORITHM_TYPE);
+  return 0;
+
+}
+
+int RSA_add_pkcs1_prefix(uint8_t **out_msg, size_t *out_msg_len,
+                         int *is_alloced, int hash_nid, const uint8_t *digest,
+                         size_t digest_len) {
+  if (!rsa_check_digest_size(hash_nid, digest_len)) {
+    return 0;
+  }
+
+  if (hash_nid == NID_md5_sha1) {
+    // The length should already have been checked.
+    assert(digest_len == SSL_SIG_LENGTH);
     *out_msg = (uint8_t *)digest;
-    *out_msg_len = SSL_SIG_LENGTH;
+    *out_msg_len = digest_len;
     *is_alloced = 0;
     return 1;
   }
 
-  for (i = 0; kPKCS1SigPrefixes[i].nid != NID_undef; i++) {
+  for (size_t i = 0; kPKCS1SigPrefixes[i].nid != NID_undef; i++) {
     const struct pkcs1_sig_prefix *sig_prefix = &kPKCS1SigPrefixes[i];
     if (sig_prefix->nid != hash_nid) {
       continue;
     }
 
-    if (digest_len != sig_prefix->hash_len) {
-      OPENSSL_PUT_ERROR(RSA, RSA_R_INVALID_MESSAGE_LENGTH);
-      return 0;
-    }
-
+    // The length should already have been checked.
+    assert(digest_len == sig_prefix->hash_len);
     const uint8_t* prefix = sig_prefix->bytes;
-    unsigned prefix_len = sig_prefix->len;
-    unsigned signed_msg_len;
-    uint8_t *signed_msg;
-
-    signed_msg_len = prefix_len + digest_len;
+    size_t prefix_len = sig_prefix->len;
+    size_t signed_msg_len = prefix_len + digest_len;
     if (signed_msg_len < prefix_len) {
       OPENSSL_PUT_ERROR(RSA, RSA_R_TOO_LONG);
       return 0;
     }
 
-    signed_msg = OPENSSL_malloc(signed_msg_len);
+    uint8_t *signed_msg = OPENSSL_malloc(signed_msg_len);
     if (!signed_msg) {
-      OPENSSL_PUT_ERROR(RSA, ERR_R_MALLOC_FAILURE);
       return 0;
     }
 
@@ -523,28 +546,41 @@ int RSA_add_pkcs1_prefix(uint8_t **out_msg, size_t *out_msg_len,
   return 0;
 }
 
-int RSA_sign(int hash_nid, const uint8_t *digest, unsigned digest_len,
-             uint8_t *out, unsigned *out_len, RSA *rsa) {
+int rsa_sign_no_self_test(int hash_nid, const uint8_t *digest,
+                          size_t digest_len, uint8_t *out, unsigned *out_len,
+                          RSA *rsa) {
+  if (rsa->meth->sign) {
+    if (!rsa_check_digest_size(hash_nid, digest_len)) {
+      return 0;
+    }
+    // All supported digest lengths fit in |unsigned|.
+    assert(digest_len <= EVP_MAX_MD_SIZE);
+    static_assert(EVP_MAX_MD_SIZE <= UINT_MAX, "digest too long");
+    return rsa->meth->sign(hash_nid, digest, (unsigned)digest_len, out, out_len,
+                           rsa);
+  }
+
   const unsigned rsa_size = RSA_size(rsa);
   int ret = 0;
   uint8_t *signed_msg = NULL;
   size_t signed_msg_len = 0;
   int signed_msg_is_alloced = 0;
   size_t size_t_out_len;
-
-  if (rsa->meth->sign) {
-    return rsa->meth->sign(hash_nid, digest, digest_len, out, out_len, rsa);
-  }
-
   if (!RSA_add_pkcs1_prefix(&signed_msg, &signed_msg_len,
                             &signed_msg_is_alloced, hash_nid, digest,
                             digest_len) ||
-      !RSA_sign_raw(rsa, &size_t_out_len, out, rsa_size, signed_msg,
-                    signed_msg_len, RSA_PKCS1_PADDING)) {
+      !rsa_sign_raw_no_self_test(rsa, &size_t_out_len, out, rsa_size,
+                                 signed_msg, signed_msg_len,
+                                 RSA_PKCS1_PADDING)) {
     goto err;
   }
 
-  *out_len = size_t_out_len;
+  if (size_t_out_len > UINT_MAX) {
+    OPENSSL_PUT_ERROR(RSA, ERR_R_OVERFLOW);
+    goto err;
+  }
+
+  *out_len = (unsigned)size_t_out_len;
   ret = 1;
 
 err:
@@ -552,6 +588,13 @@ err:
     OPENSSL_free(signed_msg);
   }
   return ret;
+}
+
+int RSA_sign(int hash_nid, const uint8_t *digest, size_t digest_len,
+             uint8_t *out, unsigned *out_len, RSA *rsa) {
+  boringssl_ensure_rsa_self_test();
+
+  return rsa_sign_no_self_test(hash_nid, digest, digest_len, out, out_len, rsa);
 }
 
 int RSA_sign_pss_mgf1(RSA *rsa, size_t *out_len, uint8_t *out, size_t max_out,
@@ -565,7 +608,6 @@ int RSA_sign_pss_mgf1(RSA *rsa, size_t *out_len, uint8_t *out, size_t max_out,
   size_t padded_len = RSA_size(rsa);
   uint8_t *padded = OPENSSL_malloc(padded_len);
   if (padded == NULL) {
-    OPENSSL_PUT_ERROR(RSA, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
@@ -577,8 +619,9 @@ int RSA_sign_pss_mgf1(RSA *rsa, size_t *out_len, uint8_t *out, size_t max_out,
   return ret;
 }
 
-int RSA_verify(int hash_nid, const uint8_t *digest, size_t digest_len,
-               const uint8_t *sig, size_t sig_len, RSA *rsa) {
+int rsa_verify_no_self_test(int hash_nid, const uint8_t *digest,
+                            size_t digest_len, const uint8_t *sig,
+                            size_t sig_len, RSA *rsa) {
   if (rsa->n == NULL || rsa->e == NULL) {
     OPENSSL_PUT_ERROR(RSA, RSA_R_VALUE_MISSING);
     return 0;
@@ -598,16 +641,12 @@ int RSA_verify(int hash_nid, const uint8_t *digest, size_t digest_len,
 
   buf = OPENSSL_malloc(rsa_size);
   if (!buf) {
-    OPENSSL_PUT_ERROR(RSA, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
-  if (!RSA_verify_raw(rsa, &len, buf, rsa_size, sig, sig_len,
-                      RSA_PKCS1_PADDING)) {
-    goto out;
-  }
-
-  if (!RSA_add_pkcs1_prefix(&signed_msg, &signed_msg_len,
+  if (!rsa_verify_raw_no_self_test(rsa, &len, buf, rsa_size, sig, sig_len,
+                                   RSA_PKCS1_PADDING) ||
+      !RSA_add_pkcs1_prefix(&signed_msg, &signed_msg_len,
                             &signed_msg_is_alloced, hash_nid, digest,
                             digest_len)) {
     goto out;
@@ -630,6 +669,13 @@ out:
   return ret;
 }
 
+int RSA_verify(int hash_nid, const uint8_t *digest, size_t digest_len,
+               const uint8_t *sig, size_t sig_len, RSA *rsa) {
+  boringssl_ensure_rsa_self_test();
+  return rsa_verify_no_self_test(hash_nid, digest, digest_len, sig, sig_len,
+                                 rsa);
+}
+
 int RSA_verify_pss_mgf1(RSA *rsa, const uint8_t *digest, size_t digest_len,
                         const EVP_MD *md, const EVP_MD *mgf1_md, int salt_len,
                         const uint8_t *sig, size_t sig_len) {
@@ -641,7 +687,6 @@ int RSA_verify_pss_mgf1(RSA *rsa, const uint8_t *digest, size_t digest_len,
   size_t em_len = RSA_size(rsa);
   uint8_t *em = OPENSSL_malloc(em_len);
   if (em == NULL) {
-    OPENSSL_PUT_ERROR(RSA, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
@@ -722,7 +767,6 @@ int RSA_check_key(const RSA *key) {
 
   BN_CTX *ctx = BN_CTX_new();
   if (ctx == NULL) {
-    OPENSSL_PUT_ERROR(RSA, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
@@ -737,7 +781,8 @@ int RSA_check_key(const RSA *key) {
 
   // Check that p * q == n. Before we multiply, we check that p and q are in
   // bounds, to avoid a DoS vector in |bn_mul_consttime| below. Note that
-  // n was bound by |rsa_check_public_key|.
+  // n was bound by |rsa_check_public_key|. This also implicitly checks p and q
+  // are odd, which is a necessary condition for Montgomery reduction.
   if (BN_is_negative(key->p) || BN_cmp(key->p, key->n) >= 0 ||
       BN_is_negative(key->q) || BN_cmp(key->q, key->n) >= 0) {
     OPENSSL_PUT_ERROR(RSA, RSA_R_N_NOT_EQUAL_P_Q);
@@ -849,7 +894,6 @@ int RSA_check_fips(RSA *key) {
 
   BN_CTX *ctx = BN_CTX_new();
   if (ctx == NULL) {
-    OPENSSL_PUT_ERROR(RSA, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
@@ -896,7 +940,6 @@ int RSA_check_fips(RSA *key) {
   unsigned sig_len = RSA_size(key);
   uint8_t *sig = OPENSSL_malloc(sig_len);
   if (sig == NULL) {
-    OPENSSL_PUT_ERROR(RSA, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
@@ -905,9 +948,9 @@ int RSA_check_fips(RSA *key) {
     ret = 0;
     goto cleanup;
   }
-#if defined(BORINGSSL_FIPS_BREAK_RSA_PWCT)
-  data[0] = ~data[0];
-#endif
+  if (boringssl_fips_break_test("RSA_PWCT")) {
+    data[0] = ~data[0];
+  }
   if (!RSA_verify(NID_sha256, data, sizeof(data), sig, sig_len, key)) {
     OPENSSL_PUT_ERROR(RSA, ERR_R_INTERNAL_ERROR);
     ret = 0;
@@ -929,6 +972,8 @@ int RSA_private_transform(RSA *rsa, uint8_t *out, const uint8_t *in,
 }
 
 int RSA_flags(const RSA *rsa) { return rsa->flags; }
+
+int RSA_test_flags(const RSA *rsa, int flags) { return rsa->flags & flags; }
 
 int RSA_blinding_on(RSA *rsa, BN_CTX *ctx) {
   return 1;

@@ -58,13 +58,11 @@ bool tls13_get_cert_verify_signature_input(
     enum ssl_cert_verify_context_t cert_verify_context) {
   ScopedCBB cbb;
   if (!CBB_init(cbb.get(), 64 + 33 + 1 + 2 * EVP_MAX_MD_SIZE)) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return false;
   }
 
   for (size_t i = 0; i < 64; i++) {
     if (!CBB_add_u8(cbb.get(), 0x20)) {
-      OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
       return false;
     }
   }
@@ -80,7 +78,6 @@ bool tls13_get_cert_verify_signature_input(
     static const char kContext[] = "TLS 1.3, Channel ID";
     context = kContext;
   } else {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return false;
   }
 
@@ -88,7 +85,6 @@ bool tls13_get_cert_verify_signature_input(
   if (!CBB_add_bytes(cbb.get(),
                      reinterpret_cast<const uint8_t *>(context.data()),
                      context.size())) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return false;
   }
 
@@ -97,7 +93,6 @@ bool tls13_get_cert_verify_signature_input(
   if (!hs->transcript.GetHash(context_hash, &context_hash_len) ||
       !CBB_add_bytes(cbb.get(), context_hash, context_hash_len) ||
       !CBBFinishArray(cbb.get(), out)) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return false;
   }
 
@@ -186,7 +181,6 @@ bool tls13_process_certificate(SSL_HANDSHAKE *hs, const SSLMessage &msg,
   UniquePtr<STACK_OF(CRYPTO_BUFFER)> certs(sk_CRYPTO_BUFFER_new_null());
   if (!certs) {
     ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_INTERNAL_ERROR);
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return false;
   }
 
@@ -230,7 +224,6 @@ bool tls13_process_certificate(SSL_HANDSHAKE *hs, const SSLMessage &msg,
     if (!buf ||
         !PushToStack(certs.get(), std::move(buf))) {
       ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_INTERNAL_ERROR);
-      OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
       return false;
     }
 
@@ -475,7 +468,7 @@ bool tls13_add_certificate(SSL_HANDSHAKE *hs) {
                        CRYPTO_BUFFER_len(raw)) ||
         !CBB_flush(&extensions)) {
       OPENSSL_PUT_ERROR(SSL, ERR_R_INTERNAL_ERROR);
-      return 0;
+      return false;
     }
     ssl->s3->delegated_credential_used = true;
   }
@@ -576,7 +569,6 @@ enum ssl_private_key_result_t tls13_add_certificate_verify(SSL_HANDSHAKE *hs) {
     return ssl_private_key_failure;
   }
 
-  // Sign the digest.
   CBB child;
   const size_t max_sig_len = EVP_PKEY_size(hs->local_pubkey.get());
   uint8_t *sig;
@@ -595,40 +587,10 @@ enum ssl_private_key_result_t tls13_add_certificate_verify(SSL_HANDSHAKE *hs) {
     return ssl_private_key_failure;
   }
 
-  SSL_HANDSHAKE_HINTS *const hints = hs->hints.get();
-  Array<uint8_t> spki;
-  if (hints) {
-    ScopedCBB spki_cbb;
-    if (!CBB_init(spki_cbb.get(), 64) ||
-        !EVP_marshal_public_key(spki_cbb.get(), hs->local_pubkey.get()) ||
-        !CBBFinishArray(spki_cbb.get(), &spki)) {
-      ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_INTERNAL_ERROR);
-      return ssl_private_key_failure;
-    }
-  }
-
-  if (hints && !hs->hints_requested &&
-      signature_algorithm == hints->signature_algorithm &&
-      MakeConstSpan(msg) == hints->signature_input &&
-      MakeConstSpan(spki) == hints->signature_spki &&
-      !hints->signature.empty() && hints->signature.size() <= max_sig_len) {
-    // Signature algorithm and input both match. Reuse the signature from hints.
-    sig_len = hints->signature.size();
-    OPENSSL_memcpy(sig, hints->signature.data(), sig_len);
-  } else {
-    enum ssl_private_key_result_t sign_result = ssl_private_key_sign(
-        hs, sig, &sig_len, max_sig_len, signature_algorithm, msg);
-    if (sign_result != ssl_private_key_success) {
-      return sign_result;
-    }
-    if (hints && hs->hints_requested) {
-      hints->signature_algorithm = signature_algorithm;
-      hints->signature_input = std::move(msg);
-      hints->signature_spki = std::move(spki);
-      if (!hints->signature.CopyFrom(MakeSpan(sig, sig_len))) {
-        return ssl_private_key_failure;
-      }
-    }
+  enum ssl_private_key_result_t sign_result = ssl_private_key_sign(
+      hs, sig, &sig_len, max_sig_len, signature_algorithm, msg);
+  if (sign_result != ssl_private_key_success) {
+    return sign_result;
   }
 
   if (!CBB_did_write(&child, sig_len) ||

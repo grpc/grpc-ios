@@ -407,9 +407,9 @@ static bool CheckHandshakeProperties(SSL *ssl, bool is_resume,
   }
 
   if (config->expect_version != 0 &&
-      SSL_version(ssl) != config->expect_version) {
+      SSL_version(ssl) != int{config->expect_version}) {
     fprintf(stderr, "want version %04x, got %04x\n", config->expect_version,
-            SSL_version(ssl));
+            static_cast<uint16_t>(SSL_version(ssl)));
     return false;
   }
 
@@ -575,9 +575,9 @@ static bool CheckHandshakeProperties(SSL *ssl, bool is_resume,
 
   if (config->expect_curve_id != 0) {
     uint16_t curve_id = SSL_get_curve_id(ssl);
-    if (static_cast<uint16_t>(config->expect_curve_id) != curve_id) {
+    if (config->expect_curve_id != curve_id) {
       fprintf(stderr, "curve_id was %04x, wanted %04x\n", curve_id,
-              static_cast<uint16_t>(config->expect_curve_id));
+              config->expect_curve_id);
       return false;
     }
   }
@@ -585,24 +585,24 @@ static bool CheckHandshakeProperties(SSL *ssl, bool is_resume,
   uint16_t cipher_id = SSL_CIPHER_get_protocol_id(SSL_get_current_cipher(ssl));
   if (config->expect_cipher_aes != 0 &&
       EVP_has_aes_hardware() &&
-      static_cast<uint16_t>(config->expect_cipher_aes) != cipher_id) {
+      config->expect_cipher_aes != cipher_id) {
     fprintf(stderr, "Cipher ID was %04x, wanted %04x (has AES hardware)\n",
-            cipher_id, static_cast<uint16_t>(config->expect_cipher_aes));
+            cipher_id, config->expect_cipher_aes);
     return false;
   }
 
   if (config->expect_cipher_no_aes != 0 &&
       !EVP_has_aes_hardware() &&
-      static_cast<uint16_t>(config->expect_cipher_no_aes) != cipher_id) {
+      config->expect_cipher_no_aes != cipher_id) {
     fprintf(stderr, "Cipher ID was %04x, wanted %04x (no AES hardware)\n",
-            cipher_id, static_cast<uint16_t>(config->expect_cipher_no_aes));
+            cipher_id, config->expect_cipher_no_aes);
     return false;
   }
 
   if (config->expect_cipher != 0 &&
-      static_cast<uint16_t>(config->expect_cipher) != cipher_id) {
+      config->expect_cipher != cipher_id) {
     fprintf(stderr, "Cipher ID was %04x, wanted %04x\n", cipher_id,
-            static_cast<uint16_t>(config->expect_cipher));
+            config->expect_cipher);
     return false;
   }
 
@@ -666,14 +666,26 @@ static bool CheckHandshakeProperties(SSL *ssl, bool is_resume,
     return false;
   }
 
+  if (config->expect_key_usage_invalid != !!SSL_was_key_usage_invalid(ssl)) {
+    fprintf(stderr, "X.509 key usage was %svalid, but wanted opposite.\n",
+            SSL_was_key_usage_invalid(ssl) ? "in" : "");
+    return false;
+  }
+
   // Test that handshake hints correctly skipped the expected operations.
-  //
-  // TODO(davidben): Add support for TLS 1.2 hints and remove the version check.
-  // Also add a check for the session cache lookup.
-  if (config->handshake_hints && !config->allow_hint_mismatch &&
-      SSL_version(ssl) == TLS1_3_VERSION) {
+  if (config->handshake_hints && !config->allow_hint_mismatch) {
     const TestState *state = GetTestState(ssl);
-    if (!SSL_used_hello_retry_request(ssl) && state->used_private_key) {
+    // If the private key operation is performed in the first roundtrip, a hint
+    // match should have skipped it. This is ECDHE-based cipher suites in TLS
+    // 1.2 and non-HRR handshakes in TLS 1.3.
+    bool private_key_allowed;
+    if (SSL_version(ssl) == TLS1_3_VERSION) {
+      private_key_allowed = SSL_used_hello_retry_request(ssl);
+    } else {
+      private_key_allowed =
+          SSL_CIPHER_get_kx_nid(SSL_get_current_cipher(ssl)) == NID_kx_rsa;
+    }
+    if (!private_key_allowed && state->used_private_key) {
       fprintf(
           stderr,
           "Performed private key operation, but hint should have skipped it\n");
@@ -685,6 +697,9 @@ static bool CheckHandshakeProperties(SSL *ssl, bool is_resume,
               "Performed ticket decryption, but hint should have skipped it\n");
       return false;
     }
+
+    // TODO(davidben): Decide what we want to do with TLS 1.2 stateful
+    // resumption.
   }
   return true;
 }

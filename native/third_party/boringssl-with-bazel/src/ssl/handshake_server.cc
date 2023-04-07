@@ -272,7 +272,6 @@ static UniquePtr<STACK_OF(SSL_CIPHER)> ssl_parse_client_cipher_list(
 
   UniquePtr<STACK_OF(SSL_CIPHER)> sk(sk_SSL_CIPHER_new_null());
   if (!sk) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return nullptr;
   }
 
@@ -286,7 +285,6 @@ static UniquePtr<STACK_OF(SSL_CIPHER)> ssl_parse_client_cipher_list(
 
     const SSL_CIPHER *c = SSL_get_cipher_by_value(cipher_suite);
     if (c != NULL && !sk_SSL_CIPHER_push(sk.get(), c)) {
-      OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
       return nullptr;
     }
   }
@@ -411,14 +409,14 @@ static bool is_probably_jdk11_with_tls13(const SSL_CLIENT_HELLO *client_hello) {
   // JDK 11 does not support ChaCha20-Poly1305. This is unusual: many modern
   // clients implement ChaCha20-Poly1305.
   if (ssl_client_cipher_list_contains_cipher(
-          client_hello, TLS1_CK_CHACHA20_POLY1305_SHA256 & 0xffff)) {
+          client_hello, TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff)) {
     return false;
   }
 
   // JDK 11 always sends extensions in a particular order.
   constexpr uint16_t kMaxFragmentLength = 0x0001;
   constexpr uint16_t kStatusRequestV2 = 0x0011;
-  static CONSTEXPR_ARRAY struct {
+  static constexpr struct {
     uint16_t id;
     bool required;
   } kJavaExtensions[] = {
@@ -554,29 +552,22 @@ static bool decrypt_ech(SSL_HANDSHAKE *hs, uint8_t *out_alert,
       ERR_clear_error();
       continue;
     }
-    Array<uint8_t> encoded_client_hello_inner;
     bool is_decrypt_error;
-    if (!ssl_client_hello_decrypt(hs->ech_hpke_ctx.get(),
-                                  &encoded_client_hello_inner,
-                                  &is_decrypt_error, client_hello, payload)) {
+    if (!ssl_client_hello_decrypt(hs, out_alert, &is_decrypt_error,
+                                  &hs->ech_client_hello_buf, client_hello,
+                                  payload)) {
       if (is_decrypt_error) {
         // Ignore the error and try another ECHConfig.
         ERR_clear_error();
+        // The |out_alert| calling convention currently relies on a default of
+        // |SSL_AD_DECODE_ERROR|. https://crbug.com/boringssl/373 tracks
+        // switching to sum types, which avoids this.
+        *out_alert = SSL_AD_DECODE_ERROR;
         continue;
       }
       OPENSSL_PUT_ERROR(SSL, SSL_R_DECRYPTION_FAILED);
       return false;
     }
-
-    // Recover the ClientHelloInner from the EncodedClientHelloInner.
-    bssl::Array<uint8_t> client_hello_inner;
-    if (!ssl_decode_client_hello_inner(ssl, out_alert, &client_hello_inner,
-                                       encoded_client_hello_inner,
-                                       client_hello)) {
-      OPENSSL_PUT_ERROR(SSL, SSL_R_DECODE_ERROR);
-      return false;
-    }
-    hs->ech_client_hello_buf = std::move(client_hello_inner);
     hs->ech_config_id = config_id;
     ssl->s3->ech_status = ssl_ech_accepted;
     return true;
@@ -808,12 +799,6 @@ static enum ssl_hs_wait_t do_select_certificate(SSL_HANDSHAKE *hs) {
   // or below.
   assert(ssl->s3->ech_status != ssl_ech_accepted);
 
-  // TODO(davidben): Also compute hints for TLS 1.2. When doing so, update the
-  // check in bssl_shim.cc to test this.
-  if (hs->hints_requested) {
-    return ssl_hs_hints_ready;
-  }
-
   ssl->s3->early_data_reason = ssl_early_data_protocol_version;
 
   SSLMessage msg_unused;
@@ -995,14 +980,23 @@ static enum ssl_hs_wait_t do_send_server_hello(SSL_HANDSHAKE *hs) {
     hs->channel_id_negotiated = false;
   }
 
-  struct OPENSSL_timeval now;
-  ssl_get_current_time(ssl, &now);
-  ssl->s3->server_random[0] = now.tv_sec >> 24;
-  ssl->s3->server_random[1] = now.tv_sec >> 16;
-  ssl->s3->server_random[2] = now.tv_sec >> 8;
-  ssl->s3->server_random[3] = now.tv_sec;
-  if (!RAND_bytes(ssl->s3->server_random + 4, SSL3_RANDOM_SIZE - 4)) {
-    return ssl_hs_error;
+  SSL_HANDSHAKE_HINTS *const hints = hs->hints.get();
+  if (hints && !hs->hints_requested &&
+      hints->server_random_tls12.size() == SSL3_RANDOM_SIZE) {
+    OPENSSL_memcpy(ssl->s3->server_random, hints->server_random_tls12.data(),
+                   SSL3_RANDOM_SIZE);
+  } else {
+    struct OPENSSL_timeval now;
+    ssl_get_current_time(ssl, &now);
+    CRYPTO_store_u32_be(ssl->s3->server_random,
+                        static_cast<uint32_t>(now.tv_sec));
+    if (!RAND_bytes(ssl->s3->server_random + 4, SSL3_RANDOM_SIZE - 4)) {
+      return ssl_hs_error;
+    }
+    if (hints && hs->hints_requested &&
+        !hints->server_random_tls12.CopyFrom(ssl->s3->server_random)) {
+      return ssl_hs_error;
+    }
   }
 
   // Implement the TLS 1.3 anti-downgrade feature.
@@ -1047,7 +1041,11 @@ static enum ssl_hs_wait_t do_send_server_hello(SSL_HANDSHAKE *hs) {
     return ssl_hs_error;
   }
 
-  if (ssl->session != NULL) {
+  if (ssl->session != nullptr) {
+    // No additional hints to generate in resumption.
+    if (hs->hints_requested) {
+      return ssl_hs_hints_ready;
+    }
     hs->state = state12_send_server_finished;
   } else {
     hs->state = state12_send_server_certificate;
@@ -1120,17 +1118,50 @@ static enum ssl_hs_wait_t do_send_server_certificate(SSL_HANDSHAKE *hs) {
         OPENSSL_PUT_ERROR(SSL, ERR_R_INTERNAL_ERROR);
         ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_HANDSHAKE_FAILURE);
         return ssl_hs_error;
-       }
+      }
       hs->new_session->group_id = group_id;
 
-      // Set up ECDH, generate a key, and emit the public half.
       hs->key_shares[0] = SSLKeyShare::Create(group_id);
       if (!hs->key_shares[0] ||
           !CBB_add_u8(cbb.get(), NAMED_CURVE_TYPE) ||
           !CBB_add_u16(cbb.get(), group_id) ||
-          !CBB_add_u8_length_prefixed(cbb.get(), &child) ||
-          !hs->key_shares[0]->Offer(&child)) {
+          !CBB_add_u8_length_prefixed(cbb.get(), &child)) {
         return ssl_hs_error;
+      }
+
+      SSL_HANDSHAKE_HINTS *const hints = hs->hints.get();
+      bool hint_ok = false;
+      if (hints && !hs->hints_requested &&
+          hints->ecdhe_group_id == group_id &&
+          !hints->ecdhe_public_key.empty() &&
+          !hints->ecdhe_private_key.empty()) {
+        CBS cbs = MakeConstSpan(hints->ecdhe_private_key);
+        hint_ok = hs->key_shares[0]->DeserializePrivateKey(&cbs);
+      }
+      if (hint_ok) {
+        // Reuse the ECDH key from handshake hints.
+        if (!CBB_add_bytes(&child, hints->ecdhe_public_key.data(),
+                           hints->ecdhe_public_key.size())) {
+          return ssl_hs_error;
+        }
+      } else {
+        // Generate a key, and emit the public half.
+        if (!hs->key_shares[0]->Generate(&child)) {
+          return ssl_hs_error;
+        }
+        // If generating hints, save the ECDHE key.
+        if (hints && hs->hints_requested) {
+          bssl::ScopedCBB private_key_cbb;
+          if (!hints->ecdhe_public_key.CopyFrom(
+                  MakeConstSpan(CBB_data(&child), CBB_len(&child))) ||
+              !CBB_init(private_key_cbb.get(), 32) ||
+              !hs->key_shares[0]->SerializePrivateKey(private_key_cbb.get()) ||
+              !CBBFinishArray(private_key_cbb.get(),
+                              &hints->ecdhe_private_key)) {
+            return ssl_hs_error;
+          }
+          hints->ecdhe_group_id = group_id;
+        }
       }
     } else {
       assert(alg_k & SSL_kPSK);
@@ -1221,6 +1252,9 @@ static enum ssl_hs_wait_t do_send_server_key_exchange(SSL_HANDSHAKE *hs) {
 
 static enum ssl_hs_wait_t do_send_server_hello_done(SSL_HANDSHAKE *hs) {
   SSL *const ssl = hs->ssl;
+  if (hs->hints_requested) {
+    return ssl_hs_hints_ready;
+  }
 
   ScopedCBB cbb;
   CBB body;
@@ -1311,7 +1345,7 @@ static enum ssl_hs_wait_t do_read_client_certificate(SSL_HANDSHAKE *hs) {
     hs->new_session->verify_result = X509_V_OK;
   } else if (hs->config->retain_only_sha256_of_client_certs) {
     // The hash will have been filled in.
-    hs->new_session->peer_sha256_valid = 1;
+    hs->new_session->peer_sha256_valid = true;
   }
 
   ssl->method->next_message(ssl);
@@ -1371,7 +1405,6 @@ static enum ssl_hs_wait_t do_read_client_key_exchange(SSL_HANDSHAKE *hs) {
     }
     char *raw = nullptr;
     if (!CBS_strdup(&psk_identity, &raw)) {
-      OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
       ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_INTERNAL_ERROR);
       return ssl_hs_error;
     }
@@ -1457,17 +1490,17 @@ static enum ssl_hs_wait_t do_read_client_key_exchange(SSL_HANDSHAKE *hs) {
     }
   } else if (alg_k & SSL_kECDHE) {
     // Parse the ClientKeyExchange.
-    CBS peer_key;
-    if (!CBS_get_u8_length_prefixed(&client_key_exchange, &peer_key) ||
+    CBS ciphertext;
+    if (!CBS_get_u8_length_prefixed(&client_key_exchange, &ciphertext) ||
         CBS_len(&client_key_exchange) != 0) {
       OPENSSL_PUT_ERROR(SSL, SSL_R_DECODE_ERROR);
       ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_DECODE_ERROR);
       return ssl_hs_error;
     }
 
-    // Compute the premaster.
+    // Decapsulate the premaster secret.
     uint8_t alert = SSL_AD_DECODE_ERROR;
-    if (!hs->key_shares[0]->Finish(&premaster_secret, &alert, peer_key)) {
+    if (!hs->key_shares[0]->Decap(&premaster_secret, &alert, ciphertext)) {
       ssl_send_alert(ssl, SSL3_AL_FATAL, alert);
       return ssl_hs_error;
     }
@@ -1524,7 +1557,6 @@ static enum ssl_hs_wait_t do_read_client_key_exchange(SSL_HANDSHAKE *hs) {
         !CBB_add_u16_length_prefixed(new_premaster.get(), &child) ||
         !CBB_add_bytes(&child, psk, psk_len) ||
         !CBBFinishArray(new_premaster.get(), &premaster_secret)) {
-      OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
       return ssl_hs_error;
     }
   }

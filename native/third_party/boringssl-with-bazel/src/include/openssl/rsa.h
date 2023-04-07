@@ -298,8 +298,8 @@ OPENSSL_EXPORT int RSA_private_decrypt(size_t flen, const uint8_t *from,
 // |hash_nid|. Passing unhashed inputs will not result in a secure signature
 // scheme.
 OPENSSL_EXPORT int RSA_sign(int hash_nid, const uint8_t *digest,
-                            unsigned digest_len, uint8_t *out,
-                            unsigned *out_len, RSA *rsa);
+                            size_t digest_len, uint8_t *out, unsigned *out_len,
+                            RSA *rsa);
 
 // RSA_sign_pss_mgf1 signs |digest_len| bytes from |digest| with the public key
 // from |rsa| using RSASSA-PSS with MGF1 as the mask generation function. It
@@ -615,6 +615,9 @@ OPENSSL_EXPORT void *RSA_get_ex_data(const RSA *rsa, int idx);
 // constants.
 OPENSSL_EXPORT int RSA_flags(const RSA *rsa);
 
+// RSA_test_flags returns the subset of flags in |flags| which are set in |rsa|.
+OPENSSL_EXPORT int RSA_test_flags(const RSA *rsa, int flags);
+
 // RSA_blinding_on returns one.
 OPENSSL_EXPORT int RSA_blinding_on(RSA *rsa, BN_CTX *ctx);
 
@@ -622,7 +625,7 @@ OPENSSL_EXPORT int RSA_blinding_on(RSA *rsa, BN_CTX *ctx);
 // should use instead. It returns NULL on error, or a newly-allocated |RSA| on
 // success. This function is provided for compatibility only. The |callback|
 // and |cb_arg| parameters must be NULL.
-OPENSSL_EXPORT RSA *RSA_generate_key(int bits, unsigned long e, void *callback,
+OPENSSL_EXPORT RSA *RSA_generate_key(int bits, uint64_t e, void *callback,
                                      void *cb_arg);
 
 // d2i_RSAPublicKey parses a DER-encoded RSAPublicKey structure (RFC 8017) from
@@ -772,7 +775,7 @@ struct rsa_st {
   // num_blindings contains the size of the |blindings| and |blindings_inuse|
   // arrays. This member and the |blindings_inuse| array are protected by
   // |lock|.
-  unsigned num_blindings;
+  size_t num_blindings;
   // blindings is an array of BN_BLINDING structures that can be reserved by a
   // thread by locking |lock| and changing the corresponding element in
   // |blindings_inuse| from 0 to 1.
