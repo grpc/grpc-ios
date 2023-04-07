@@ -12,6 +12,7 @@
 // OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 // CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+//go:build interactive
 // +build interactive
 
 package main
@@ -22,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	neturl "net/url"
 	"os"
 	"os/exec"
@@ -158,7 +158,7 @@ func (set ServerObjectSet) Action(action string, args []string) error {
 						}
 						set.env.server.PrefixTokens[url] = token
 						if len(set.env.config.SessionTokensCache) > 0 {
-							ioutil.WriteFile(filepath.Join(set.env.config.SessionTokensCache, neturl.PathEscape(url))+".token", []byte(token), 0600)
+							os.WriteFile(filepath.Join(set.env.config.SessionTokensCache, neturl.PathEscape(url))+".token", []byte(token), 0600)
 						}
 					}
 				}
@@ -204,7 +204,7 @@ func (ServerObject) Search(condition acvp.Query) (Object, error) {
 }
 
 func edit(initialContents string) ([]byte, error) {
-	tmp, err := ioutil.TempFile("", "acvp*.json")
+	tmp, err := os.CreateTemp("", "acvp*.json")
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +230,7 @@ func edit(initialContents string) ([]byte, error) {
 		return nil, err
 	}
 
-	return ioutil.ReadFile(path)
+	return os.ReadFile(path)
 }
 
 func (obj ServerObject) Action(action string, args []string) error {

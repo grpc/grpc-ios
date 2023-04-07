@@ -657,7 +657,8 @@ def _exclude_unwanted_cc_tests(tests: List[str]) -> List[str]:
         if not test.startswith('test/cpp/ext/filters/census:') and
         not test.startswith('test/core/xds:xds_channel_stack_modifier_test') and
         not test.startswith('test/cpp/ext/gcp:') and
-        not test.startswith('test/cpp/ext/filters/logging:')
+        not test.startswith('test/cpp/ext/filters/logging:') and
+        not test.startswith('test/cpp/interop:observability_interop')
     ]
 
     # missing opencensus/stats/stats.h
@@ -992,13 +993,6 @@ _BUILD_EXTRA_METADATA = {
         '_RENAME': 'grpc++_test_util'
     },
 
-    # end2end test support libraries
-    'test/core/end2end:end2end_tests': {
-        'language': 'c',
-        'build': 'private',
-        '_RENAME': 'end2end_tests'
-    },
-
     # benchmark support libraries
     'test/cpp/microbenchmarks:helpers': {
         'language': 'c++',
@@ -1085,7 +1079,6 @@ _BAZEL_DEPS_QUERIES = [
     'deps("//test/...")',
     'deps("//:all")',
     'deps("//src/compiler/...")',
-    'deps("//src/proto/...")',
     # The ^ is needed to differentiate proto_library from go_proto_library
     'deps(kind("^proto_library", @envoy_api//envoy/...))',
 ]

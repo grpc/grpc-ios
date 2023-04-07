@@ -119,7 +119,7 @@
   default: false
   expiry: 2023/06/01
   owner: ctiller@google.com
-  test_tags: ["core_end2end_test"]
+  test_tags: ["core_end2end_test", "cpp_end2end_test", "xds_end2end_test"]
 - name: transport_supplies_client_latency
   description:
     If set, use the transport represented value for client latency in opencensus
@@ -131,6 +131,20 @@
   description:
     Use EventEngine listeners instead of iomgr's grpc_tcp_server
   default: false
-  expiry: 2023/02/13
+  expiry: 2023/05/13
   owner: vigneshbabu@google.com
   test_tags: ["event_engine_listener_test"]
+- name: schedule_cancellation_over_write
+  description:
+    Allow cancellation op to be scheduled over a write
+  default: false
+  expiry: 2023/07/01
+  owner: vigneshbabu@google.com
+  test_tags: []
+- name: trace_record_callops
+  description:
+    Enables tracing of call batch initiation and completion.
+  default: false
+  expiry: 2023/07/01
+  owner: vigneshbabu@google.com
+  test_tags: []

@@ -66,25 +66,25 @@ static bool resolve_ecdhe_secret(SSL_HANDSHAKE *hs,
   SSL_HANDSHAKE_HINTS *const hints = hs->hints.get();
   if (hints && !hs->hints_requested && hints->key_share_group_id == group_id &&
       !hints->key_share_secret.empty()) {
-    // Copy DH secret from hints.
-    if (!hs->ecdh_public_key.CopyFrom(hints->key_share_public_key) ||
+    // Copy the key_share secret from hints.
+    if (!hs->key_share_ciphertext.CopyFrom(hints->key_share_ciphertext) ||
         !secret.CopyFrom(hints->key_share_secret)) {
       ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_INTERNAL_ERROR);
       return false;
     }
   } else {
-    ScopedCBB public_key;
+    ScopedCBB ciphertext;
     UniquePtr<SSLKeyShare> key_share = SSLKeyShare::Create(group_id);
     if (!key_share ||  //
-        !CBB_init(public_key.get(), 32) ||
-        !key_share->Accept(public_key.get(), &secret, &alert, peer_key) ||
-        !CBBFinishArray(public_key.get(), &hs->ecdh_public_key)) {
+        !CBB_init(ciphertext.get(), 32) ||
+        !key_share->Encap(ciphertext.get(), &secret, &alert, peer_key) ||
+        !CBBFinishArray(ciphertext.get(), &hs->key_share_ciphertext)) {
       ssl_send_alert(ssl, SSL3_AL_FATAL, alert);
       return false;
     }
     if (hints && hs->hints_requested) {
       hints->key_share_group_id = group_id;
-      if (!hints->key_share_public_key.CopyFrom(hs->ecdh_public_key) ||
+      if (!hints->key_share_ciphertext.CopyFrom(hs->key_share_ciphertext) ||
           !hints->key_share_secret.CopyFrom(secret)) {
         ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_INTERNAL_ERROR);
         return false;
@@ -116,7 +116,8 @@ static const SSL_CIPHER *choose_tls13_cipher(
 
   const uint16_t version = ssl_protocol_version(ssl);
 
-  return ssl_choose_tls13_cipher(cipher_suites, version, group_id);
+  return ssl_choose_tls13_cipher(cipher_suites, version, group_id,
+                                 ssl->config->only_fips_cipher_suites_in_tls13);
 }
 
 static bool add_new_session_tickets(SSL_HANDSHAKE *hs, bool *out_sent_tickets) {
@@ -131,15 +132,12 @@ static bool add_new_session_tickets(SSL_HANDSHAKE *hs, bool *out_sent_tickets) {
     return true;
   }
 
-  // TLS 1.3 recommends single-use tickets, so issue multiple tickets in case
-  // the client makes several connections before getting a renewal.
-  static const int kNumTickets = 2;
-
   // Rebase the session timestamp so that it is measured from ticket
   // issuance.
   ssl_session_rebase_time(ssl, hs->new_session.get());
 
-  for (int i = 0; i < kNumTickets; i++) {
+  assert(ssl->session_ctx->num_tickets <= kMaxTickets);
+  for (size_t i = 0; i < ssl->session_ctx->num_tickets; i++) {
     UniquePtr<SSL_SESSION> session(
         SSL_SESSION_dup(hs->new_session.get(), SSL_SESSION_INCLUDE_NONAUTH));
     if (!session) {
@@ -160,7 +158,8 @@ static bool add_new_session_tickets(SSL_HANDSHAKE *hs, bool *out_sent_tickets) {
           ssl->quic_method != nullptr ? 0xffffffff : kMaxEarlyDataAccepted;
     }
 
-    static_assert(kNumTickets < 256, "Too many tickets");
+    static_assert(kMaxTickets < 256, "Too many tickets");
+    assert(i < 256);
     uint8_t nonce[] = {static_cast<uint8_t>(i)};
 
     ScopedCBB cbb;
@@ -658,28 +657,16 @@ static enum ssl_hs_wait_t do_read_second_client_hello(SSL_HANDSHAKE *hs) {
     }
 
     // Decrypt the payload with the HPKE context from the first ClientHello.
-    Array<uint8_t> encoded_client_hello_inner;
+    uint8_t alert = SSL_AD_DECODE_ERROR;
     bool unused;
-    if (!ssl_client_hello_decrypt(hs->ech_hpke_ctx.get(),
-                                  &encoded_client_hello_inner, &unused,
-                                  &client_hello, payload)) {
+    if (!ssl_client_hello_decrypt(hs, &alert, &unused,
+                                  &hs->ech_client_hello_buf, &client_hello,
+                                  payload)) {
       // Decryption failure is fatal in the second ClientHello.
       OPENSSL_PUT_ERROR(SSL, SSL_R_DECRYPTION_FAILED);
-      ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_DECRYPT_ERROR);
-      return ssl_hs_error;
-    }
-
-    // Recover the ClientHelloInner from the EncodedClientHelloInner.
-    uint8_t alert = SSL_AD_DECODE_ERROR;
-    bssl::Array<uint8_t> client_hello_inner;
-    if (!ssl_decode_client_hello_inner(ssl, &alert, &client_hello_inner,
-                                       encoded_client_hello_inner,
-                                       &client_hello)) {
-      OPENSSL_PUT_ERROR(SSL, SSL_R_DECODE_ERROR);
       ssl_send_alert(ssl, SSL3_AL_FATAL, alert);
       return ssl_hs_error;
     }
-    hs->ech_client_hello_buf = std::move(client_hello_inner);
 
     // Reparse |client_hello| from the buffer owned by |hs|.
     if (!hs->GetClientHello(&msg, &client_hello)) {
@@ -751,12 +738,13 @@ static enum ssl_hs_wait_t do_send_server_hello(SSL_HANDSHAKE *hs) {
 
   SSL_HANDSHAKE_HINTS *const hints = hs->hints.get();
   if (hints && !hs->hints_requested &&
-      hints->server_random.size() == random.size()) {
-    OPENSSL_memcpy(random.data(), hints->server_random.data(), random.size());
+      hints->server_random_tls13.size() == random.size()) {
+    OPENSSL_memcpy(random.data(), hints->server_random_tls13.data(),
+                   random.size());
   } else {
     RAND_bytes(random.data(), random.size());
     if (hints && hs->hints_requested &&
-        !hints->server_random.CopyFrom(random)) {
+        !hints->server_random_tls13.CopyFrom(random)) {
       return ssl_hs_error;
     }
   }
@@ -802,7 +790,7 @@ static enum ssl_hs_wait_t do_send_server_hello(SSL_HANDSHAKE *hs) {
     return ssl_hs_error;
   }
 
-  hs->ecdh_public_key.Reset();  // No longer needed.
+  hs->key_share_ciphertext.Reset();  // No longer needed.
   if (!ssl->s3->used_hello_retry_request &&
       !ssl->method->add_change_cipher_spec(ssl)) {
     return ssl_hs_error;

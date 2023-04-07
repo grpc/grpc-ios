@@ -59,6 +59,7 @@ using ::envoy::extensions::filters::network::http_connection_manager::v3::
 
 using ::grpc::experimental::ExternalCertificateVerifier;
 using ::grpc::experimental::IdentityKeyCertPair;
+using ::grpc::experimental::ServerMetricRecorder;
 using ::grpc::experimental::StaticDataCertificateProvider;
 
 //
@@ -251,7 +252,9 @@ XdsEnd2endTest::BackendServerThread::Credentials() {
 
 void XdsEnd2endTest::BackendServerThread::RegisterAllServices(
     ServerBuilder* builder) {
-  ServerBuilder::experimental_type(builder).EnableCallMetricRecording();
+  server_metric_recorder_ = ServerMetricRecorder::Create();
+  ServerBuilder::experimental_type(builder).EnableCallMetricRecording(
+      server_metric_recorder_.get());
   builder->RegisterService(&backend_service_);
   builder->RegisterService(&backend_service1_);
   builder->RegisterService(&backend_service2_);
@@ -431,6 +434,9 @@ void XdsEnd2endTest::RpcOptions::SetupRpc(ClientContext* context,
   }
   if (skip_cancelled_check) {
     request->mutable_param()->set_skip_cancelled_check(true);
+  }
+  if (backend_metrics.has_value()) {
+    *request->mutable_param()->mutable_backend_metrics() = *backend_metrics;
   }
 }
 

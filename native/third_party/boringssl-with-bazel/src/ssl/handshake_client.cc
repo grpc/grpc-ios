@@ -235,16 +235,22 @@ static bool ssl_write_client_cipher_list(const SSL_HANDSHAKE *hs, CBB *out,
   // Add TLS 1.3 ciphers. Order ChaCha20-Poly1305 relative to AES-GCM based on
   // hardware support.
   if (hs->max_version >= TLS1_3_VERSION) {
-    if (!EVP_has_aes_hardware() &&
-        !CBB_add_u16(&child, TLS1_CK_CHACHA20_POLY1305_SHA256 & 0xffff)) {
+    const bool include_chacha20 = ssl_tls13_cipher_meets_policy(
+        TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff,
+        ssl->config->only_fips_cipher_suites_in_tls13);
+
+    if (!EVP_has_aes_hardware() &&  //
+        include_chacha20 &&         //
+        !CBB_add_u16(&child, TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff)) {
       return false;
     }
-    if (!CBB_add_u16(&child, TLS1_CK_AES_128_GCM_SHA256 & 0xffff) ||
-        !CBB_add_u16(&child, TLS1_CK_AES_256_GCM_SHA384 & 0xffff)) {
+    if (!CBB_add_u16(&child, TLS1_3_CK_AES_128_GCM_SHA256 & 0xffff) ||
+        !CBB_add_u16(&child, TLS1_3_CK_AES_256_GCM_SHA384 & 0xffff)) {
       return false;
     }
-    if (EVP_has_aes_hardware() &&
-        !CBB_add_u16(&child, TLS1_CK_CHACHA20_POLY1305_SHA256 & 0xffff)) {
+    if (EVP_has_aes_hardware() &&  //
+        include_chacha20 &&        //
+        !CBB_add_u16(&child, TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff)) {
       return false;
     }
   }
@@ -307,7 +313,8 @@ bool ssl_write_client_hello_without_extensions(const SSL_HANDSHAKE *hs,
 
   if (SSL_is_dtls(ssl)) {
     if (!CBB_add_u8_length_prefixed(cbb, &child) ||
-        !CBB_add_bytes(&child, ssl->d1->cookie, ssl->d1->cookie_len)) {
+        !CBB_add_bytes(&child, hs->dtls_cookie.data(),
+                       hs->dtls_cookie.size())) {
       return false;
     }
   }
@@ -331,7 +338,7 @@ bool ssl_add_client_hello(SSL_HANDSHAKE *hs) {
   Array<uint8_t> msg;
   if (!ssl->method->init_message(ssl, cbb.get(), &body, SSL3_MT_CLIENT_HELLO) ||
       !ssl_write_client_hello_without_extensions(hs, &body, type,
-                                                 /*empty_session_id*/ false) ||
+                                                 /*empty_session_id=*/false) ||
       !ssl_add_clienthello_tlsext(hs, &body, /*out_encoded=*/nullptr,
                                   &needs_psk_binder, type, CBB_len(&body)) ||
       !ssl->method->finish_message(ssl, cbb.get(), &msg)) {
@@ -620,15 +627,16 @@ static enum ssl_hs_wait_t do_read_hello_verify_request(SSL_HANDSHAKE *hs) {
   uint16_t server_version;
   if (!CBS_get_u16(&hello_verify_request, &server_version) ||
       !CBS_get_u8_length_prefixed(&hello_verify_request, &cookie) ||
-      CBS_len(&cookie) > sizeof(ssl->d1->cookie) ||
       CBS_len(&hello_verify_request) != 0) {
     OPENSSL_PUT_ERROR(SSL, SSL_R_DECODE_ERROR);
     ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_DECODE_ERROR);
     return ssl_hs_error;
   }
 
-  OPENSSL_memcpy(ssl->d1->cookie, CBS_data(&cookie), CBS_len(&cookie));
-  ssl->d1->cookie_len = CBS_len(&cookie);
+  if (!hs->dtls_cookie.CopyFrom(cookie)) {
+    ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_INTERNAL_ERROR);
+    return ssl_hs_error;
+  }
 
   ssl->method->next_message(ssl);
 
@@ -1090,7 +1098,6 @@ static enum ssl_hs_wait_t do_read_server_key_exchange(SSL_HANDSHAKE *hs) {
     char *raw = nullptr;
     if (CBS_len(&psk_identity_hint) != 0 &&
         !CBS_strdup(&psk_identity_hint, &raw)) {
-      OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
       ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_INTERNAL_ERROR);
       return ssl_hs_error;
     }
@@ -1110,7 +1117,6 @@ static enum ssl_hs_wait_t do_read_server_key_exchange(SSL_HANDSHAKE *hs) {
       ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_DECODE_ERROR);
       return ssl_hs_error;
     }
-    hs->new_session->group_id = group_id;
 
     // Ensure the group is consistent with preferences.
     if (!tls1_check_group_id(hs, group_id)) {
@@ -1119,10 +1125,9 @@ static enum ssl_hs_wait_t do_read_server_key_exchange(SSL_HANDSHAKE *hs) {
       return ssl_hs_error;
     }
 
-    // Initialize ECDH and save the peer public key for later.
-    hs->key_shares[0] = SSLKeyShare::Create(group_id);
-    if (!hs->key_shares[0] ||
-        !hs->peer_key.CopyFrom(point)) {
+    // Save the group and peer public key for later.
+    hs->new_session->group_id = group_id;
+    if (!hs->peer_key.CopyFrom(point)) {
       return ssl_hs_error;
     }
   } else if (!(alg_k & SSL_kPSK)) {
@@ -1382,11 +1387,13 @@ static enum ssl_hs_wait_t do_send_client_key_exchange(SSL_HANDSHAKE *hs) {
     ssl_key_usage_t intended_use = (alg_k & SSL_kRSA)
                                        ? key_usage_encipherment
                                        : key_usage_digital_signature;
-    if (hs->config->enforce_rsa_key_usage ||
-        EVP_PKEY_id(hs->peer_pubkey.get()) != EVP_PKEY_RSA) {
-      if (!ssl_cert_check_key_usage(&leaf_cbs, intended_use)) {
+    if (!ssl_cert_check_key_usage(&leaf_cbs, intended_use)) {
+      if (hs->config->enforce_rsa_key_usage ||
+          EVP_PKEY_id(hs->peer_pubkey.get()) != EVP_PKEY_RSA) {
         return ssl_hs_error;
       }
+      ERR_clear_error();
+      ssl->s3->was_key_usage_invalid = true;
     }
   }
 
@@ -1413,7 +1420,6 @@ static enum ssl_hs_wait_t do_send_client_key_exchange(SSL_HANDSHAKE *hs) {
 
     hs->new_session->psk_identity.reset(OPENSSL_strdup(identity));
     if (hs->new_session->psk_identity == nullptr) {
-      OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
       return ssl_hs_error;
     }
 
@@ -1457,15 +1463,16 @@ static enum ssl_hs_wait_t do_send_client_key_exchange(SSL_HANDSHAKE *hs) {
       return ssl_hs_error;
     }
   } else if (alg_k & SSL_kECDHE) {
-    // Generate a keypair and serialize the public half.
     CBB child;
     if (!CBB_add_u8_length_prefixed(&body, &child)) {
       return ssl_hs_error;
     }
 
-    // Compute the premaster.
+    // Generate a premaster secret and encapsulate it.
+    bssl::UniquePtr<SSLKeyShare> kem =
+        SSLKeyShare::Create(hs->new_session->group_id);
     uint8_t alert = SSL_AD_DECODE_ERROR;
-    if (!hs->key_shares[0]->Accept(&child, &pms, &alert, hs->peer_key)) {
+    if (!kem || !kem->Encap(&child, &pms, &alert, hs->peer_key)) {
       ssl_send_alert(ssl, SSL3_AL_FATAL, alert);
       return ssl_hs_error;
     }
@@ -1473,9 +1480,7 @@ static enum ssl_hs_wait_t do_send_client_key_exchange(SSL_HANDSHAKE *hs) {
       return ssl_hs_error;
     }
 
-    // The key exchange state may now be discarded.
-    hs->key_shares[0].reset();
-    hs->key_shares[1].reset();
+    // The peer key can now be discarded.
     hs->peer_key.Reset();
   } else if (alg_k & SSL_kPSK) {
     // For plain PSK, other_secret is a block of 0s with the same length as
@@ -1501,7 +1506,6 @@ static enum ssl_hs_wait_t do_send_client_key_exchange(SSL_HANDSHAKE *hs) {
         !CBB_add_u16_length_prefixed(pms_cbb.get(), &child) ||
         !CBB_add_bytes(&child, psk, psk_len) ||
         !CBBFinishArray(pms_cbb.get(), &pms)) {
-      OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
       return ssl_hs_error;
     }
   }
