@@ -50,7 +50,6 @@
 #include "src/core/lib/gprpp/ref_counted_ptr.h"
 #include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/gprpp/validation_errors.h"
-#include "src/core/lib/json/json_writer.h"
 #include "src/core/lib/matchers/matchers.h"
 #include "src/proto/grpc/testing/xds/v3/regex.pb.h"
 #include "src/proto/grpc/testing/xds/v3/string.pb.h"
@@ -570,7 +569,7 @@ TEST_F(ExtractXdsExtensionTest, TypedStruct) {
   ASSERT_TRUE(extension.has_value());
   EXPECT_EQ(extension->type, "MyType");
   ASSERT_TRUE(absl::holds_alternative<Json>(extension->value));
-  EXPECT_EQ(JsonDump(absl::get<Json>(extension->value)), "{\"foo\":\"bar\"}");
+  EXPECT_EQ(absl::get<Json>(extension->value).Dump(), "{\"foo\":\"bar\"}");
 }
 
 TEST_F(ExtractXdsExtensionTest, UdpaTypedStruct) {
@@ -591,7 +590,7 @@ TEST_F(ExtractXdsExtensionTest, UdpaTypedStruct) {
   ASSERT_TRUE(extension.has_value());
   EXPECT_EQ(extension->type, "MyType");
   ASSERT_TRUE(absl::holds_alternative<Json>(extension->value));
-  EXPECT_EQ(JsonDump(absl::get<Json>(extension->value)), "{\"foo\":\"bar\"}");
+  EXPECT_EQ(absl::get<Json>(extension->value).Dump(), "{\"foo\":\"bar\"}");
 }
 
 TEST_F(ExtractXdsExtensionTest, TypedStructWithoutValue) {
@@ -610,7 +609,7 @@ TEST_F(ExtractXdsExtensionTest, TypedStructWithoutValue) {
   ASSERT_TRUE(extension.has_value());
   EXPECT_EQ(extension->type, "MyType");
   ASSERT_TRUE(absl::holds_alternative<Json>(extension->value));
-  EXPECT_EQ(JsonDump(absl::get<Json>(extension->value)), "{}");
+  EXPECT_EQ(absl::get<Json>(extension->value).Dump(), "{}");
 }
 
 TEST_F(ExtractXdsExtensionTest, TypedStructJsonConversion) {
@@ -667,7 +666,7 @@ TEST_F(ExtractXdsExtensionTest, TypedStructJsonConversion) {
   ASSERT_TRUE(extension.has_value());
   EXPECT_EQ(extension->type, "envoy.ExtensionType");
   ASSERT_TRUE(absl::holds_alternative<Json>(extension->value));
-  EXPECT_EQ(JsonDump(absl::get<Json>(extension->value)),
+  EXPECT_EQ(absl::get<Json>(extension->value).Dump(),
             "{"
             "\"key\":null,"
             "\"list\":[null,234],"

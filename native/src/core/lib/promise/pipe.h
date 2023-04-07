@@ -477,13 +477,6 @@ class PipeSender {
     }
   }
 
-  void CloseWithError() {
-    if (center_ != nullptr) {
-      center_->MarkCancelled();
-      center_.reset();
-    }
-  }
-
   void Swap(PipeSender<T>* other) { std::swap(center_, other->center_); }
 
   // Send a single message along the pipe.

@@ -49,7 +49,6 @@
 #include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/json/json.h"
-#include "src/core/lib/json/json_writer.h"
 #include "src/proto/grpc/testing/xds/v3/address.pb.h"
 #include "src/proto/grpc/testing/xds/v3/aggregate_cluster.pb.h"
 #include "src/proto/grpc/testing/xds/v3/base.pb.h"
@@ -163,7 +162,7 @@ TEST_F(XdsClusterTest, MinimumValidConfig) {
   ASSERT_NE(eds, nullptr);
   EXPECT_EQ(eds->eds_service_name, "");
   // Check defaults.
-  EXPECT_EQ(JsonDump(Json{resource.lb_policy_config}),
+  EXPECT_EQ(Json{resource.lb_policy_config}.Dump(),
             "[{\"xds_wrr_locality_experimental\":{\"childPolicy\":"
             "[{\"round_robin\":{}}]}}]");
   EXPECT_FALSE(resource.lrs_load_reporting_server.has_value());
@@ -626,7 +625,7 @@ TEST_F(LbPolicyTest, EnumLbPolicyRingHash) {
   ASSERT_TRUE(decode_result.name.has_value());
   EXPECT_EQ(*decode_result.name, "foo");
   auto& resource = static_cast<XdsClusterResource&>(**decode_result.resource);
-  EXPECT_EQ(JsonDump(Json{resource.lb_policy_config}),
+  EXPECT_EQ(Json{resource.lb_policy_config}.Dump(),
             "[{\"ring_hash_experimental\":{"
             "\"maxRingSize\":8388608,\"minRingSize\":1024}}]");
 }
@@ -649,7 +648,7 @@ TEST_F(LbPolicyTest, EnumLbPolicyRingHashSetMinAndMaxRingSize) {
   ASSERT_TRUE(decode_result.name.has_value());
   EXPECT_EQ(*decode_result.name, "foo");
   auto& resource = static_cast<XdsClusterResource&>(**decode_result.resource);
-  EXPECT_EQ(JsonDump(Json{resource.lb_policy_config}),
+  EXPECT_EQ(Json{resource.lb_policy_config}.Dump(),
             "[{\"ring_hash_experimental\":{"
             "\"maxRingSize\":4096,\"minRingSize\":2048}}]");
 }
@@ -805,7 +804,7 @@ TEST_F(LbPolicyTest, LoadBalancingPolicyField) {
   ASSERT_TRUE(decode_result.name.has_value());
   EXPECT_EQ(*decode_result.name, "foo");
   auto& resource = static_cast<XdsClusterResource&>(**decode_result.resource);
-  EXPECT_EQ(JsonDump(Json{resource.lb_policy_config}),
+  EXPECT_EQ(Json{resource.lb_policy_config}.Dump(),
             "[{\"xds_wrr_locality_experimental\":{"
             "\"childPolicy\":[{\"round_robin\":{}}]}}]");
 }
@@ -832,7 +831,7 @@ TEST_F(LbPolicyTest, LoadBalancingPolicyFieldIgnoredUnlessEnabled) {
   ASSERT_TRUE(decode_result.name.has_value());
   EXPECT_EQ(*decode_result.name, "foo");
   auto& resource = static_cast<XdsClusterResource&>(**decode_result.resource);
-  EXPECT_EQ(JsonDump(Json{resource.lb_policy_config}),
+  EXPECT_EQ(Json{resource.lb_policy_config}.Dump(),
             "[{\"ring_hash_experimental\":{"
             "\"maxRingSize\":8388608,\"minRingSize\":1024}}]");
 }

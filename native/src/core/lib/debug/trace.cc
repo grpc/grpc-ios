@@ -24,7 +24,6 @@
 
 #include <string>
 #include <type_traits>
-#include <utility>
 
 #include "absl/strings/string_view.h"
 
@@ -78,14 +77,9 @@ void TraceFlagList::Add(TraceFlag* flag) {
 
 void TraceFlagList::LogAllTracers() {
   gpr_log(GPR_DEBUG, "available tracers:");
-  for (TraceFlag* t = root_tracer_; t != nullptr; t = t->next_tracer_) {
+  TraceFlag* t;
+  for (t = root_tracer_; t != nullptr; t = t->next_tracer_) {
     gpr_log(GPR_DEBUG, "\t%s", t->name_);
-  }
-}
-
-void TraceFlagList::SaveTo(std::map<std::string, bool>& values) {
-  for (TraceFlag* t = root_tracer_; t != nullptr; t = t->next_tracer_) {
-    values[t->name_] = t->enabled();
   }
 }
 
@@ -95,14 +89,6 @@ TraceFlag::TraceFlag(bool default_enabled, const char* name) : name_(name) {
                 "TraceFlag needs to be trivially destructible.");
   set_enabled(default_enabled);
   TraceFlagList::Add(this);
-}
-
-SavedTraceFlags::SavedTraceFlags() { TraceFlagList::SaveTo(values_); }
-
-void SavedTraceFlags::Restore() {
-  for (const auto& flag : values_) {
-    TraceFlagList::Set(flag.first.c_str(), flag.second);
-  }
 }
 
 }  // namespace grpc_core
@@ -150,6 +136,11 @@ static void parse(const char* s) {
     gpr_free(strings[i]);
   }
   gpr_free(strings);
+}
+
+void grpc_tracer_init(const char* env_var_name) {
+  (void)env_var_name;  // suppress unused variable error
+  grpc_tracer_init();
 }
 
 void grpc_tracer_init() {

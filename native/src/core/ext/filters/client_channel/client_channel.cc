@@ -400,7 +400,7 @@ class DynamicTerminationFilter::CallData {
             calld->call_context_[GRPC_CONTEXT_SERVICE_CONFIG_CALL_DATA].value);
     calld->lb_call_ = client_channel->CreateLoadBalancedCall(
         args, pollent, nullptr,
-        [service_config_call_data]() { service_config_call_data->Commit(); },
+        service_config_call_data->call_dispatch_controller(),
         /*is_transparent_retry=*/false);
     if (GRPC_TRACE_FLAG_ENABLED(grpc_client_channel_call_trace)) {
       gpr_log(GPR_INFO,
@@ -1121,11 +1121,12 @@ OrphanablePtr<ClientChannel::FilterBasedLoadBalancedCall>
 ClientChannel::CreateLoadBalancedCall(
     const grpc_call_element_args& args, grpc_polling_entity* pollent,
     grpc_closure* on_call_destruction_complete,
-    absl::AnyInvocable<void()> on_commit, bool is_transparent_retry) {
+    ConfigSelector::CallDispatchController* call_dispatch_controller,
+    bool is_transparent_retry) {
   return OrphanablePtr<FilterBasedLoadBalancedCall>(
       args.arena->New<FilterBasedLoadBalancedCall>(
           this, args, pollent, on_call_destruction_complete,
-          std::move(on_commit), is_transparent_retry));
+          call_dispatch_controller, is_transparent_retry));
 }
 
 ChannelArgs ClientChannel::MakeSubchannelArgs(
@@ -1848,7 +1849,7 @@ grpc_error_handle ClientChannel::CallData::ApplyServiceConfigToCallLocked(
       arena()->New<ClientChannelServiceConfigCallData>(
           std::move(call_config->service_config), call_config->method_configs,
           std::move(call_config->call_attributes),
-          std::move(call_config->on_commit), call_context());
+          call_config->call_dispatch_controller, call_context());
   // Apply our own method params to the call.
   auto* method_params = static_cast<ClientChannelMethodParsedConfig*>(
       service_config_call_data->GetMethodParsedConfig(
@@ -2009,8 +2010,9 @@ void ClientChannel::FilterBasedCallData::StartTransportStreamOpBatch(
     grpc_deadline_state_client_start_transport_stream_op_batch(
         &calld->deadline_state_, batch);
   }
-  // Intercept recv_trailing_metadata to commit the call, in case we wind up
-  // failing the call before we get down to the retry or LB call layer.
+  // Intercept recv_trailing_metadata to call CallDispatchController::Commit(),
+  // in case we wind up failing the call before we get down to the retry
+  // or LB call layer.
   if (batch->recv_trailing_metadata) {
     calld->original_recv_trailing_metadata_ready_ =
         batch->payload->recv_trailing_metadata.recv_trailing_metadata_ready;
@@ -2335,7 +2337,7 @@ void ClientChannel::FilterBasedCallData::
             service_config_call_data);
   }
   if (service_config_call_data != nullptr) {
-    service_config_call_data->Commit();
+    service_config_call_data->call_dispatch_controller()->Commit();
   }
   // Chain to original callback.
   Closure::Run(DEBUG_LOCATION, calld->original_recv_trailing_metadata_ready_,
@@ -2516,13 +2518,14 @@ ClientCallTracer::CallAttemptTracer* CreateCallAttemptTracer(
 
 ClientChannel::LoadBalancedCall::LoadBalancedCall(
     ClientChannel* chand, grpc_call_context_element* call_context,
-    absl::AnyInvocable<void()> on_commit, bool is_transparent_retry)
+    ConfigSelector::CallDispatchController* call_dispatch_controller,
+    bool is_transparent_retry)
     : InternallyRefCounted(
           GRPC_TRACE_FLAG_ENABLED(grpc_client_channel_lb_call_trace)
               ? "LoadBalancedCall"
               : nullptr),
       chand_(chand),
-      on_commit_(std::move(on_commit)) {
+      call_dispatch_controller_(call_dispatch_controller) {
   CreateCallAttemptTracer(call_context, is_transparent_retry);
   if (GRPC_TRACE_FLAG_ENABLED(grpc_client_channel_lb_call_trace)) {
     gpr_log(GPR_INFO, "chand=%p lb_call=%p: created", chand_, this);
@@ -2658,7 +2661,7 @@ absl::optional<absl::Status> ClientChannel::LoadBalancedCall::PickSubchannel(
       return error;
     }
     // Pick succeeded.
-    Commit();
+    call_dispatch_controller_->Commit();
     return absl::OkStatus();
   }
 }
@@ -2759,8 +2762,9 @@ bool ClientChannel::LoadBalancedCall::PickSubchannelImpl(
 ClientChannel::FilterBasedLoadBalancedCall::FilterBasedLoadBalancedCall(
     ClientChannel* chand, const grpc_call_element_args& args,
     grpc_polling_entity* pollent, grpc_closure* on_call_destruction_complete,
-    absl::AnyInvocable<void()> on_commit, bool is_transparent_retry)
-    : LoadBalancedCall(chand, args.context, std::move(on_commit),
+    ConfigSelector::CallDispatchController* call_dispatch_controller,
+    bool is_transparent_retry)
+    : LoadBalancedCall(chand, args.context, call_dispatch_controller,
                        is_transparent_retry),
       deadline_(args.deadline),
       arena_(args.arena),
@@ -3127,7 +3131,7 @@ class ClientChannel::FilterBasedLoadBalancedCall::LbQueuedCallCanceller {
                 lb_call->lb_call_canceller_);
       }
       if (lb_call->lb_call_canceller_ == self && !error.ok()) {
-        lb_call->Commit();
+        lb_call->call_dispatch_controller()->Commit();
         // Remove pick from list of queued picks.
         lb_call->RemoveCallFromLbQueuedCallsLocked();
         // Remove from queued picks list.

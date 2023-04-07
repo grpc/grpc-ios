@@ -17,7 +17,6 @@ syntax = "proto3";
 package api_fuzzer;
 
 import "test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.proto";
-import "test/core/util/fuzz_config_vars.proto";
 
 message Empty {}
 
@@ -194,5 +193,4 @@ message Action {
 message Msg {
     repeated Action actions = 1;
     fuzzing_event_engine.Actions event_engine_actions = 2;
-    grpc.testing.FuzzConfigVars config_vars = 3;
 }

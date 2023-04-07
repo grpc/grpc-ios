@@ -51,7 +51,6 @@
 #include "src/core/lib/http/httpcli.h"
 #include "src/core/lib/http/httpcli_ssl_credentials.h"
 #include "src/core/lib/iomgr/error.h"
-#include "src/core/lib/json/json_reader.h"
 #include "src/core/lib/promise/exec_ctx_wakeup_scheduler.h"
 #include "src/core/lib/promise/promise.h"
 #include "src/core/lib/promise/seq.h"
@@ -2552,7 +2551,7 @@ TEST(CredentialsTest,
 
 TEST(CredentialsTest, TestUrlExternalAccountCredsSuccessFormatText) {
   ExecCtx exec_ctx;
-  auto credential_source = JsonParse(
+  auto credential_source = Json::Parse(
       valid_url_external_account_creds_options_credential_source_format_text);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
@@ -2589,7 +2588,7 @@ TEST(CredentialsTest,
   std::map<std::string, std::string> emd = {
       {"authorization", "Bearer token_exchange_access_token"}};
   ExecCtx exec_ctx;
-  auto credential_source = JsonParse(
+  auto credential_source = Json::Parse(
       valid_url_external_account_creds_options_credential_source_with_qurey_params_format_text);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
@@ -2623,7 +2622,7 @@ TEST(CredentialsTest,
 
 TEST(CredentialsTest, TestUrlExternalAccountCredsSuccessFormatJson) {
   ExecCtx exec_ctx;
-  auto credential_source = JsonParse(
+  auto credential_source = Json::Parse(
       valid_url_external_account_creds_options_credential_source_format_json);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
@@ -2658,7 +2657,7 @@ TEST(CredentialsTest, TestUrlExternalAccountCredsSuccessFormatJson) {
 TEST(CredentialsTest,
      TestUrlExternalAccountCredsFailureInvalidCredentialSourceUrl) {
   auto credential_source =
-      JsonParse(invalid_url_external_account_creds_options_credential_source);
+      Json::Parse(invalid_url_external_account_creds_options_credential_source);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
       "external_account",                 // type;
@@ -2685,7 +2684,7 @@ TEST(CredentialsTest,
 TEST(CredentialsTest, TestFileExternalAccountCredsSuccessFormatText) {
   ExecCtx exec_ctx;
   char* subject_token_path = write_tmp_jwt_file("test_subject_token");
-  auto credential_source = JsonParse(absl::StrFormat(
+  auto credential_source = Json::Parse(absl::StrFormat(
       "{\"file\":\"%s\"}",
       absl::StrReplaceAll(subject_token_path, {{"\\", "\\\\"}})));
   GPR_ASSERT(credential_source.ok());
@@ -2723,7 +2722,7 @@ TEST(CredentialsTest, TestFileExternalAccountCredsSuccessFormatJson) {
   ExecCtx exec_ctx;
   char* subject_token_path =
       write_tmp_jwt_file("{\"access_token\":\"test_subject_token\"}");
-  auto credential_source = JsonParse(absl::StrFormat(
+  auto credential_source = Json::Parse(absl::StrFormat(
       "{\n"
       "\"file\":\"%s\",\n"
       "\"format\":\n"
@@ -2766,7 +2765,7 @@ TEST(CredentialsTest, TestFileExternalAccountCredsSuccessFormatJson) {
 
 TEST(CredentialsTest, TestFileExternalAccountCredsFailureFileNotFound) {
   ExecCtx exec_ctx;
-  auto credential_source = JsonParse("{\"file\":\"non_exisiting_file\"}");
+  auto credential_source = Json::Parse("{\"file\":\"non_exisiting_file\"}");
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
       "external_account",                 // type;
@@ -2801,7 +2800,7 @@ TEST(CredentialsTest, TestFileExternalAccountCredsFailureFileNotFound) {
 TEST(CredentialsTest, TestFileExternalAccountCredsFailureInvalidJsonContent) {
   ExecCtx exec_ctx;
   char* subject_token_path = write_tmp_jwt_file("not_a_valid_json_file");
-  auto credential_source = JsonParse(absl::StrFormat(
+  auto credential_source = Json::Parse(absl::StrFormat(
       "{\n"
       "\"file\":\"%s\",\n"
       "\"format\":\n"
@@ -2847,7 +2846,7 @@ TEST(CredentialsTest, TestFileExternalAccountCredsFailureInvalidJsonContent) {
 TEST(CredentialsTest, TestAwsExternalAccountCredsSuccess) {
   ExecCtx exec_ctx;
   auto credential_source =
-      JsonParse(valid_aws_external_account_creds_options_credential_source);
+      Json::Parse(valid_aws_external_account_creds_options_credential_source);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
       "external_account",                 // type;
@@ -2880,7 +2879,7 @@ TEST(CredentialsTest, TestAwsExternalAccountCredsSuccess) {
 
 TEST(CredentialsTest, TestAwsImdsv2ExternalAccountCredsSuccess) {
   ExecCtx exec_ctx;
-  auto credential_source = JsonParse(
+  auto credential_source = Json::Parse(
       valid_aws_imdsv2_external_account_creds_options_credential_source);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
@@ -2920,7 +2919,7 @@ TEST(CredentialsTest,
   SetEnv("AWS_ACCESS_KEY_ID", "test_access_key_id");
   SetEnv("AWS_SECRET_ACCESS_KEY", "test_secret_access_key");
   SetEnv("AWS_SESSION_TOKEN", "test_token");
-  auto credential_source = JsonParse(
+  auto credential_source = Json::Parse(
       valid_aws_imdsv2_external_account_creds_options_credential_source);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
@@ -2963,7 +2962,7 @@ TEST(
   SetEnv("AWS_REGION", "test_regionz");
   SetEnv("AWS_ACCESS_KEY_ID", "test_access_key_id");
   SetEnv("AWS_SECRET_ACCESS_KEY", "test_secret_access_key");
-  auto credential_source = JsonParse(
+  auto credential_source = Json::Parse(
       valid_aws_imdsv2_external_account_creds_options_credential_source);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
@@ -3000,7 +2999,7 @@ TEST(
 
 TEST(CredentialsTest, TestAwsExternalAccountCredsSuccessIpv6) {
   ExecCtx exec_ctx;
-  auto credential_source = JsonParse(
+  auto credential_source = Json::Parse(
       valid_aws_external_account_creds_options_credential_source_ipv6);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
@@ -3037,7 +3036,7 @@ TEST(CredentialsTest, TestAwsExternalAccountCredsSuccessPathRegionEnvKeysUrl) {
   ExecCtx exec_ctx;
   SetEnv("AWS_REGION", "test_regionz");
   auto credential_source =
-      JsonParse(valid_aws_external_account_creds_options_credential_source);
+      Json::Parse(valid_aws_external_account_creds_options_credential_source);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
       "external_account",                 // type;
@@ -3074,7 +3073,7 @@ TEST(CredentialsTest,
   ExecCtx exec_ctx;
   SetEnv("AWS_DEFAULT_REGION", "test_regionz");
   auto credential_source =
-      JsonParse(valid_aws_external_account_creds_options_credential_source);
+      Json::Parse(valid_aws_external_account_creds_options_credential_source);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
       "external_account",                 // type;
@@ -3113,7 +3112,7 @@ TEST(CredentialsTest,
   SetEnv("AWS_REGION", "test_regionz");
   SetEnv("AWS_DEFAULT_REGION", "ERROR_REGION");
   auto credential_source =
-      JsonParse(valid_aws_external_account_creds_options_credential_source);
+      Json::Parse(valid_aws_external_account_creds_options_credential_source);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
       "external_account",                 // type;
@@ -3152,7 +3151,7 @@ TEST(CredentialsTest, TestAwsExternalAccountCredsSuccessPathRegionUrlKeysEnv) {
   SetEnv("AWS_SECRET_ACCESS_KEY", "test_secret_access_key");
   SetEnv("AWS_SESSION_TOKEN", "test_token");
   auto credential_source =
-      JsonParse(valid_aws_external_account_creds_options_credential_source);
+      Json::Parse(valid_aws_external_account_creds_options_credential_source);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
       "external_account",                 // type;
@@ -3193,7 +3192,7 @@ TEST(CredentialsTest, TestAwsExternalAccountCredsSuccessPathRegionEnvKeysEnv) {
   SetEnv("AWS_SECRET_ACCESS_KEY", "test_secret_access_key");
   SetEnv("AWS_SESSION_TOKEN", "test_token");
   auto credential_source =
-      JsonParse(valid_aws_external_account_creds_options_credential_source);
+      Json::Parse(valid_aws_external_account_creds_options_credential_source);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
       "external_account",                 // type;
@@ -3238,7 +3237,7 @@ TEST(CredentialsTest,
   SetEnv("AWS_SECRET_ACCESS_KEY", "test_secret_access_key");
   SetEnv("AWS_SESSION_TOKEN", "test_token");
   auto credential_source =
-      JsonParse(valid_aws_external_account_creds_options_credential_source);
+      Json::Parse(valid_aws_external_account_creds_options_credential_source);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
       "external_account",                 // type;
@@ -3283,7 +3282,7 @@ TEST(CredentialsTest,
   SetEnv("AWS_SECRET_ACCESS_KEY", "test_secret_access_key");
   SetEnv("AWS_SESSION_TOKEN", "test_token");
   auto credential_source =
-      JsonParse(valid_aws_external_account_creds_options_credential_source);
+      Json::Parse(valid_aws_external_account_creds_options_credential_source);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
       "external_account",                 // type;
@@ -3375,7 +3374,7 @@ TEST(CredentialsTest, TestExternalAccountCredentialsCreateSuccess) {
 
 TEST(CredentialsTest,
      TestAwsExternalAccountCredsFailureUnmatchedEnvironmentId) {
-  auto credential_source = JsonParse(
+  auto credential_source = Json::Parse(
       invalid_aws_external_account_creds_options_credential_source_unmatched_environment_id);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
@@ -3404,7 +3403,7 @@ TEST(CredentialsTest,
 TEST(CredentialsTest,
      TestAwsExternalAccountCredsFailureInvalidRegionalCredVerificationUrl) {
   ExecCtx exec_ctx;
-  auto credential_source = JsonParse(
+  auto credential_source = Json::Parse(
       invalid_aws_external_account_creds_options_credential_source_invalid_regional_cred_verification_url);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {
@@ -3440,7 +3439,7 @@ TEST(CredentialsTest,
 
 TEST(CredentialsTest, TestAwsExternalAccountCredsFailureMissingRoleName) {
   ExecCtx exec_ctx;
-  auto credential_source = JsonParse(
+  auto credential_source = Json::Parse(
       invalid_aws_external_account_creds_options_credential_source_missing_role_name);
   GPR_ASSERT(credential_source.ok());
   ExternalAccountCredentials::Options options = {

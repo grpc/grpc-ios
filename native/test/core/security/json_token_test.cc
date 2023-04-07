@@ -30,7 +30,6 @@
 
 #include "src/core/lib/gprpp/crash.h"
 #include "src/core/lib/json/json.h"
-#include "src/core/lib/json/json_reader.h"
 #include "src/core/lib/security/credentials/oauth2/oauth2_credentials.h"
 #include "src/core/lib/slice/b64.h"
 #include "src/core/lib/slice/slice_internal.h"
@@ -220,7 +219,7 @@ static Json parse_json_part_from_jwt(const char* str, size_t len) {
   gpr_free(b64);
   EXPECT_FALSE(GRPC_SLICE_IS_EMPTY(slice));
   absl::string_view string = grpc_core::StringViewFromSlice(slice);
-  auto json = grpc_core::JsonParse(string);
+  auto json = Json::Parse(string);
   grpc_slice_unref(slice);
   if (!json.ok()) {
     gpr_log(GPR_ERROR, "JSON parse error: %s",
@@ -231,54 +230,54 @@ static Json parse_json_part_from_jwt(const char* str, size_t len) {
 }
 
 static void check_jwt_header(const Json& header) {
-  Json::Object object = header.object();
+  Json::Object object = header.object_value();
   Json value = object["alg"];
-  ASSERT_EQ(value.type(), Json::Type::kString);
-  ASSERT_STREQ(value.string().c_str(), "RS256");
+  ASSERT_EQ(value.type(), Json::Type::STRING);
+  ASSERT_STREQ(value.string_value().c_str(), "RS256");
   value = object["typ"];
-  ASSERT_EQ(value.type(), Json::Type::kString);
-  ASSERT_STREQ(value.string().c_str(), "JWT");
+  ASSERT_EQ(value.type(), Json::Type::STRING);
+  ASSERT_STREQ(value.string_value().c_str(), "JWT");
   value = object["kid"];
-  ASSERT_EQ(value.type(), Json::Type::kString);
-  ASSERT_STREQ(value.string().c_str(),
+  ASSERT_EQ(value.type(), Json::Type::STRING);
+  ASSERT_STREQ(value.string_value().c_str(),
                "e6b5137873db8d2ef81e06a47289e6434ec8a165");
 }
 
 static void check_jwt_claim(const Json& claim, const char* expected_audience,
                             const char* expected_scope) {
-  Json::Object object = claim.object();
+  Json::Object object = claim.object_value();
 
   Json value = object["iss"];
-  ASSERT_EQ(value.type(), Json::Type::kString);
-  ASSERT_EQ(value.string(),
+  ASSERT_EQ(value.type(), Json::Type::STRING);
+  ASSERT_EQ(value.string_value(),
             "777-abaslkan11hlb6nmim3bpspl31ud@developer.gserviceaccount.com");
 
   if (expected_scope != nullptr) {
     ASSERT_EQ(object.find("sub"), object.end());
     value = object["scope"];
-    ASSERT_EQ(value.type(), Json::Type::kString);
-    ASSERT_EQ(value.string(), expected_scope);
+    ASSERT_EQ(value.type(), Json::Type::STRING);
+    ASSERT_EQ(value.string_value(), expected_scope);
   } else {
     // Claims without scope must have a sub.
     ASSERT_EQ(object.find("scope"), object.end());
     value = object["sub"];
-    ASSERT_EQ(value.type(), Json::Type::kString);
-    ASSERT_EQ(value.string(), object["iss"].string());
+    ASSERT_EQ(value.type(), Json::Type::STRING);
+    ASSERT_EQ(value.string_value(), object["iss"].string_value());
   }
 
   value = object["aud"];
-  ASSERT_EQ(value.type(), Json::Type::kString);
-  ASSERT_EQ(value.string(), expected_audience);
+  ASSERT_EQ(value.type(), Json::Type::STRING);
+  ASSERT_EQ(value.string_value(), expected_audience);
 
   gpr_timespec expiration = gpr_time_0(GPR_CLOCK_REALTIME);
   value = object["exp"];
-  ASSERT_EQ(value.type(), Json::Type::kNumber);
-  expiration.tv_sec = strtol(value.string().c_str(), nullptr, 10);
+  ASSERT_EQ(value.type(), Json::Type::NUMBER);
+  expiration.tv_sec = strtol(value.string_value().c_str(), nullptr, 10);
 
   gpr_timespec issue_time = gpr_time_0(GPR_CLOCK_REALTIME);
   value = object["iat"];
-  ASSERT_EQ(value.type(), Json::Type::kNumber);
-  issue_time.tv_sec = strtol(value.string().c_str(), nullptr, 10);
+  ASSERT_EQ(value.type(), Json::Type::NUMBER);
+  issue_time.tv_sec = strtol(value.string_value().c_str(), nullptr, 10);
 
   gpr_timespec parsed_lifetime = gpr_time_sub(expiration, issue_time);
   ASSERT_EQ(parsed_lifetime.tv_sec, grpc_max_auth_token_lifetime().tv_sec);
@@ -344,7 +343,7 @@ static void test_jwt_encode_and_sign(
   ASSERT_NE(dot, nullptr);
   Json parsed_header =
       parse_json_part_from_jwt(jwt, static_cast<size_t>(dot - jwt));
-  ASSERT_EQ(parsed_header.type(), Json::Type::kObject);
+  ASSERT_EQ(parsed_header.type(), Json::Type::OBJECT);
   check_jwt_header(parsed_header);
   offset = static_cast<size_t>(dot - jwt) + 1;
 
@@ -352,7 +351,7 @@ static void test_jwt_encode_and_sign(
   ASSERT_NE(dot, nullptr);
   Json parsed_claim = parse_json_part_from_jwt(
       jwt + offset, static_cast<size_t>(dot - (jwt + offset)));
-  ASSERT_EQ(parsed_claim.type(), Json::Type::kObject);
+  ASSERT_EQ(parsed_claim.type(), Json::Type::OBJECT);
   check_jwt_claim_func(parsed_claim);
   offset = static_cast<size_t>(dot - jwt) + 1;
 

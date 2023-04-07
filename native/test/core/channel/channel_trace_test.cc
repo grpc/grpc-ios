@@ -31,7 +31,6 @@
 #include "src/core/lib/channel/channelz.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/json/json.h"
-#include "src/core/lib/json/json_writer.h"
 #include "test/core/util/test_config.h"
 #include "test/cpp/util/channel_trace_proto_helper.h"
 
@@ -55,25 +54,25 @@ namespace {
 
 void ValidateJsonArraySize(const Json& array, size_t expected) {
   if (expected == 0) {
-    ASSERT_EQ(array.type(), Json::Type::kNull);
+    ASSERT_EQ(array.type(), Json::Type::JSON_NULL);
   } else {
-    ASSERT_EQ(array.type(), Json::Type::kArray);
-    EXPECT_EQ(array.array().size(), expected);
+    ASSERT_EQ(array.type(), Json::Type::ARRAY);
+    EXPECT_EQ(array.array_value().size(), expected);
   }
 }
 
 void ValidateChannelTraceData(const Json& json,
                               size_t num_events_logged_expected,
                               size_t actual_num_events_expected) {
-  ASSERT_EQ(json.type(), Json::Type::kObject);
-  Json::Object object = json.object();
+  ASSERT_EQ(json.type(), Json::Type::OBJECT);
+  Json::Object object = json.object_value();
   Json& num_events_logged_json = object["numEventsLogged"];
-  ASSERT_EQ(num_events_logged_json.type(), Json::Type::kString);
+  ASSERT_EQ(num_events_logged_json.type(), Json::Type::STRING);
   size_t num_events_logged = static_cast<size_t>(
-      strtol(num_events_logged_json.string().c_str(), nullptr, 0));
+      strtol(num_events_logged_json.string_value().c_str(), nullptr, 0));
   ASSERT_EQ(num_events_logged, num_events_logged_expected);
   Json& start_time_json = object["creationTimestamp"];
-  ASSERT_EQ(start_time_json.type(), Json::Type::kString);
+  ASSERT_EQ(start_time_json.type(), Json::Type::STRING);
   ValidateJsonArraySize(object["events"], actual_num_events_expected);
 }
 
@@ -86,8 +85,8 @@ void AddSimpleTrace(ChannelTrace* tracer) {
 void ValidateChannelTraceCustom(ChannelTrace* tracer, size_t num_events_logged,
                                 size_t num_events_expected) {
   Json json = tracer->RenderJson();
-  ASSERT_EQ(json.type(), Json::Type::kObject);
-  std::string json_str = JsonDump(json);
+  ASSERT_EQ(json.type(), Json::Type::OBJECT);
+  std::string json_str = json.Dump();
   grpc::testing::ValidateChannelTraceProtoJsonTranslation(json_str.c_str());
   ValidateChannelTraceData(json, num_events_logged, num_events_expected);
 }

@@ -103,33 +103,33 @@ void PopulateMetadata(const XdsApiContext& context,
 void PopulateMetadataValue(const XdsApiContext& context,
                            google_protobuf_Value* value_pb, const Json& value) {
   switch (value.type()) {
-    case Json::Type::kNull:
+    case Json::Type::JSON_NULL:
       google_protobuf_Value_set_null_value(value_pb, 0);
       break;
-    case Json::Type::kNumber:
+    case Json::Type::NUMBER:
       google_protobuf_Value_set_number_value(
-          value_pb, strtod(value.string().c_str(), nullptr));
+          value_pb, strtod(value.string_value().c_str(), nullptr));
       break;
-    case Json::Type::kString:
+    case Json::Type::STRING:
       google_protobuf_Value_set_string_value(
-          value_pb, StdStringToUpbString(value.string()));
+          value_pb, StdStringToUpbString(value.string_value()));
       break;
-    case Json::Type::kTrue:
+    case Json::Type::JSON_TRUE:
       google_protobuf_Value_set_bool_value(value_pb, true);
       break;
-    case Json::Type::kFalse:
+    case Json::Type::JSON_FALSE:
       google_protobuf_Value_set_bool_value(value_pb, false);
       break;
-    case Json::Type::kObject: {
+    case Json::Type::OBJECT: {
       google_protobuf_Struct* struct_value =
           google_protobuf_Value_mutable_struct_value(value_pb, context.arena);
-      PopulateMetadata(context, struct_value, value.object());
+      PopulateMetadata(context, struct_value, value.object_value());
       break;
     }
-    case Json::Type::kArray: {
+    case Json::Type::ARRAY: {
       google_protobuf_ListValue* list_value =
           google_protobuf_Value_mutable_list_value(value_pb, context.arena);
-      PopulateListValue(context, list_value, value.array());
+      PopulateListValue(context, list_value, value.array_value());
       break;
     }
   }

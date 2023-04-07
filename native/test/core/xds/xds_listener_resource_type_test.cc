@@ -52,7 +52,6 @@
 #include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/json/json.h"
-#include "src/core/lib/json/json_writer.h"
 #include "src/proto/grpc/testing/xds/v3/address.pb.h"
 #include "src/proto/grpc/testing/xds/v3/base.pb.h"
 #include "src/proto/grpc/testing/xds/v3/config_source.pb.h"
@@ -290,7 +289,7 @@ TEST_P(HttpConnectionManagerTest, MinimumValidConfig) {
   EXPECT_EQ(router.name, "router");
   EXPECT_EQ(router.config.config_proto_type_name,
             "envoy.extensions.filters.http.router.v3.Router");
-  EXPECT_EQ(router.config.config, Json()) << JsonDump(router.config.config);
+  EXPECT_EQ(router.config.config, Json()) << router.config.config.Dump();
   EXPECT_EQ(http_connection_manager->http_max_stream_duration,
             Duration::Zero());
 }
@@ -324,7 +323,7 @@ TEST_P(HttpConnectionManagerTest, RdsConfigSourceUsesAds) {
   EXPECT_EQ(router.name, "router");
   EXPECT_EQ(router.config.config_proto_type_name,
             "envoy.extensions.filters.http.router.v3.Router");
-  EXPECT_EQ(router.config.config, Json()) << JsonDump(router.config.config);
+  EXPECT_EQ(router.config.config, Json()) << router.config.config.Dump();
   EXPECT_EQ(http_connection_manager->http_max_stream_duration,
             Duration::Zero());
 }
@@ -437,7 +436,7 @@ TEST_P(HttpConnectionManagerTest, SetsMaxStreamDuration) {
   EXPECT_EQ(router.name, "router");
   EXPECT_EQ(router.config.config_proto_type_name,
             "envoy.extensions.filters.http.router.v3.Router");
-  EXPECT_EQ(router.config.config, Json()) << JsonDump(router.config.config);
+  EXPECT_EQ(router.config.config, Json()) << router.config.config.Dump();
   EXPECT_EQ(http_connection_manager->http_max_stream_duration,
             Duration::Milliseconds(5005));
 }
@@ -638,7 +637,7 @@ TEST_P(HttpConnectionManagerTest, HttpFilterTypeNotSupportedButOptional) {
   EXPECT_EQ(router.name, "router");
   EXPECT_EQ(router.config.config_proto_type_name,
             "envoy.extensions.filters.http.router.v3.Router");
-  EXPECT_EQ(router.config.config, Json()) << JsonDump(router.config.config);
+  EXPECT_EQ(router.config.config, Json()) << router.config.config.Dump();
 }
 
 TEST_P(HttpConnectionManagerTest, NoHttpFilters) {
@@ -776,7 +775,7 @@ TEST_F(HttpConnectionManagerClientOrServerOnlyTest,
   EXPECT_EQ(router.name, "router");
   EXPECT_EQ(router.config.config_proto_type_name,
             "envoy.extensions.filters.http.router.v3.Router");
-  EXPECT_EQ(router.config.config, Json()) << JsonDump(router.config.config);
+  EXPECT_EQ(router.config.config, Json()) << router.config.config.Dump();
 }
 
 TEST_F(HttpConnectionManagerClientOrServerOnlyTest,
@@ -861,7 +860,7 @@ TEST_F(HttpConnectionManagerClientOrServerOnlyTest,
   EXPECT_EQ(router.name, "router");
   EXPECT_EQ(router.config.config_proto_type_name,
             "envoy.extensions.filters.http.router.v3.Router");
-  EXPECT_EQ(router.config.config, Json()) << JsonDump(router.config.config);
+  EXPECT_EQ(router.config.config, Json()) << router.config.config.Dump();
 }
 
 //
@@ -980,7 +979,7 @@ TEST_F(TcpListenerTest, MinimumValidConfig) {
   EXPECT_EQ(router.name, "router");
   EXPECT_EQ(router.config.config_proto_type_name,
             "envoy.extensions.filters.http.router.v3.Router");
-  EXPECT_EQ(router.config.config, Json()) << JsonDump(router.config.config);
+  EXPECT_EQ(router.config.config, Json()) << router.config.config.Dump();
   EXPECT_EQ(http_connection_manager.http_max_stream_duration, Duration::Zero());
 }
 
@@ -1057,7 +1056,7 @@ TEST_F(TcpListenerTest, FilterChainMatchCriteria) {
   EXPECT_EQ(router.name, "router");
   EXPECT_EQ(router.config.config_proto_type_name,
             "envoy.extensions.filters.http.router.v3.Router");
-  EXPECT_EQ(router.config.config, Json()) << JsonDump(router.config.config);
+  EXPECT_EQ(router.config.config, Json()) << router.config.config.Dump();
   EXPECT_EQ(http_connection_manager.http_max_stream_duration, Duration::Zero());
 }
 

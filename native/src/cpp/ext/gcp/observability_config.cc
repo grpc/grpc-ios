@@ -39,7 +39,6 @@
 #include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/iomgr/load_file.h"
 #include "src/core/lib/json/json.h"
-#include "src/core/lib/json/json_reader.h"
 #include "src/core/lib/slice/slice_internal.h"
 #include "src/core/lib/transport/error_utils.h"
 
@@ -169,7 +168,7 @@ absl::StatusOr<GcpObservabilityConfig> GcpObservabilityConfig::ReadFromEnv() {
   if (!config_contents.ok()) {
     return config_contents.status();
   }
-  auto config_json = grpc_core::JsonParse(*config_contents);
+  auto config_json = grpc_core::Json::Parse(*config_contents);
   if (!config_json.ok()) {
     return config_json.status();
   }

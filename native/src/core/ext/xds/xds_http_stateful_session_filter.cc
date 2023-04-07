@@ -41,7 +41,6 @@
 #include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/gprpp/validation_errors.h"
 #include "src/core/lib/json/json.h"
-#include "src/core/lib/json/json_writer.h"
 
 namespace grpc_core {
 
@@ -213,7 +212,7 @@ XdsHttpStatefulSessionFilter::GenerateServiceConfig(
   Json config = filter_config_override != nullptr
                     ? filter_config_override->config
                     : hcm_filter_config.config;
-  return ServiceConfigJsonEntry{"stateful_session", JsonDump(config)};
+  return ServiceConfigJsonEntry{"stateful_session", config.Dump()};
 }
 
 }  // namespace grpc_core

@@ -91,7 +91,6 @@ grpc_cc_library(
         "//src/core:json",
         "//src/core:json_args",
         "//src/core:json_object_loader",
-        "//src/core:json_reader",
         "//src/core:slice",
         "//src/core:slice_refcount",
         "//src/core:status_helper",

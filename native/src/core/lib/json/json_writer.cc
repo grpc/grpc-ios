@@ -243,7 +243,7 @@ void JsonWriter::EscapeString(const std::string& string) {
 void JsonWriter::ContainerBegins(Json::Type type) {
   if (!got_key_) ValueEnd();
   OutputIndent();
-  OutputChar(type == Json::Type::kObject ? '{' : '[');
+  OutputChar(type == Json::Type::OBJECT ? '{' : '[');
   container_empty_ = true;
   got_key_ = false;
   depth_++;
@@ -253,7 +253,7 @@ void JsonWriter::ContainerEnds(Json::Type type) {
   if (indent_ && !container_empty_) OutputChar('\n');
   depth_--;
   if (!container_empty_) OutputIndent();
-  OutputChar(type == Json::Type::kObject ? '}' : ']');
+  OutputChar(type == Json::Type::OBJECT ? '}' : ']');
   container_empty_ = false;
   got_key_ = false;
 }
@@ -281,43 +281,43 @@ void JsonWriter::ValueString(const std::string& string) {
 }
 
 void JsonWriter::DumpObject(const Json::Object& object) {
-  ContainerBegins(Json::Type::kObject);
+  ContainerBegins(Json::Type::OBJECT);
   for (const auto& p : object) {
     ObjectKey(p.first);
     DumpValue(p.second);
   }
-  ContainerEnds(Json::Type::kObject);
+  ContainerEnds(Json::Type::OBJECT);
 }
 
 void JsonWriter::DumpArray(const Json::Array& array) {
-  ContainerBegins(Json::Type::kArray);
+  ContainerBegins(Json::Type::ARRAY);
   for (const auto& v : array) {
     DumpValue(v);
   }
-  ContainerEnds(Json::Type::kArray);
+  ContainerEnds(Json::Type::ARRAY);
 }
 
 void JsonWriter::DumpValue(const Json& value) {
   switch (value.type()) {
-    case Json::Type::kObject:
-      DumpObject(value.object());
+    case Json::Type::OBJECT:
+      DumpObject(value.object_value());
       break;
-    case Json::Type::kArray:
-      DumpArray(value.array());
+    case Json::Type::ARRAY:
+      DumpArray(value.array_value());
       break;
-    case Json::Type::kString:
-      ValueString(value.string());
+    case Json::Type::STRING:
+      ValueString(value.string_value());
       break;
-    case Json::Type::kNumber:
-      ValueRaw(value.string());
+    case Json::Type::NUMBER:
+      ValueRaw(value.string_value());
       break;
-    case Json::Type::kTrue:
+    case Json::Type::JSON_TRUE:
       ValueRaw(std::string("true", 4));
       break;
-    case Json::Type::kFalse:
+    case Json::Type::JSON_FALSE:
       ValueRaw(std::string("false", 5));
       break;
-    case Json::Type::kNull:
+    case Json::Type::JSON_NULL:
       ValueRaw(std::string("null", 4));
       break;
     default:
@@ -333,8 +333,8 @@ std::string JsonWriter::Dump(const Json& value, int indent) {
 
 }  // namespace
 
-std::string JsonDump(const Json& json, int indent) {
-  return JsonWriter::Dump(json, indent);
+std::string Json::Dump(int indent) const {
+  return JsonWriter::Dump(*this, indent);
 }
 
 }  // namespace grpc_core

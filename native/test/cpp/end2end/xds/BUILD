@@ -101,7 +101,6 @@ grpc_cc_test(
     tags = [
         "no_test_ios",
         "no_windows",
-        "xds_end2end_test",
     ],  # TODO(jtattermusch): fix test on windows
     deps = [
         ":xds_end2end_test_lib",
@@ -140,11 +139,10 @@ grpc_cc_test(
     ],
     flaky = True,  # TODO(b/144705388)
     linkstatic = True,  # Fixes dyld error on MacOS
-    shard_count = 50,
+    shard_count = 20,
     tags = [
         "no_test_ios",
         "no_windows",
-        "xds_end2end_test",
     ],  # TODO(jtattermusch): fix test on windows
     deps = [
         ":xds_end2end_test_lib",
@@ -168,7 +166,6 @@ grpc_cc_test(
     tags = [
         "no_test_ios",
         "no_windows",
-        "xds_end2end_test",
     ],  # TODO(jtattermusch): fix test on windows
     deps = [
         ":xds_end2end_test_lib",
@@ -195,7 +192,6 @@ grpc_cc_test(
     tags = [
         "no_test_ios",
         "no_windows",
-        "xds_end2end_test",
     ],  # TODO(jtattermusch): fix test on windows
     deps = [
         ":xds_end2end_test_lib",
@@ -218,7 +214,6 @@ grpc_cc_test(
     tags = [
         "no_test_ios",
         "no_windows",
-        "xds_end2end_test",
     ],  # TODO(jtattermusch): fix test on windows
     deps = [
         ":xds_end2end_test_lib",
@@ -247,7 +242,6 @@ grpc_cc_test(
     tags = [
         "no_test_ios",
         "no_windows",
-        "xds_end2end_test",
     ],  # TODO(jtattermusch): fix test on windows
     deps = [
         ":xds_end2end_test_lib",
@@ -274,7 +268,6 @@ grpc_cc_test(
     tags = [
         "no_test_ios",
         "no_windows",
-        "xds_end2end_test",
     ],  # TODO(jtattermusch): fix test on windows
     deps = [
         ":xds_end2end_test_lib",
@@ -298,7 +291,6 @@ grpc_cc_test(
     tags = [
         "no_test_ios",
         "no_windows",
-        "xds_end2end_test",
     ],  # TODO(jtattermusch): fix test on windows
     deps = [
         ":xds_end2end_test_lib",
@@ -326,7 +318,6 @@ grpc_cc_test(
     tags = [
         "no_test_ios",
         "no_windows",
-        "xds_end2end_test",
     ],  # TODO(jtattermusch): fix test on windows
     deps = [
         ":xds_end2end_test_lib",
@@ -355,7 +346,6 @@ grpc_cc_test(
     tags = [
         "no_test_ios",
         "no_windows",
-        "xds_end2end_test",
     ],  # TODO(jtattermusch): fix test on windows
     deps = [
         ":xds_end2end_test_lib",
@@ -383,7 +373,6 @@ grpc_cc_test(
     tags = [
         "no_test_ios",
         "no_windows",
-        "xds_end2end_test",
     ],  # TODO(jtattermusch): fix test on windows
     deps = [
         ":xds_end2end_test_lib",
@@ -402,10 +391,7 @@ grpc_cc_test(
     external_deps = [
         "gtest",
     ],
-    tags = [
-        "no_test_ios",
-        "xds_end2end_test",
-    ],
+    tags = ["no_test_ios"],
     deps = [
         "//:gpr",
         "//:grpc",
@@ -429,7 +415,6 @@ grpc_cc_test(
     tags = [
         "no_test_ios",
         "no_windows",
-        "xds_end2end_test",
     ],  # TODO(jtattermusch): fix test on windows
     deps = [
         ":xds_end2end_test_lib",

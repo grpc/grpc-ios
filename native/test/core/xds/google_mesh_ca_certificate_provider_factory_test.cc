@@ -27,7 +27,6 @@
 
 #include "src/core/lib/gprpp/status_helper.h"
 #include "src/core/lib/gprpp/time.h"
-#include "src/core/lib/json/json_reader.h"
 #include "test/core/util/test_config.h"
 
 namespace grpc_core {
@@ -73,7 +72,7 @@ TEST(GoogleMeshCaConfigTest, Basic) {
       "\"https://container.googleapis.com/v1/project/test-project1/locations/"
       "test-zone2/clusters/test-cluster3\""
       "}";
-  auto json = JsonParse(json_str);
+  auto json = Json::Parse(json_str);
   ASSERT_TRUE(json.ok()) << json.status();
   grpc_error_handle error;
   auto config =
@@ -126,7 +125,7 @@ TEST(GoogleMeshCaConfigTest, Defaults) {
       "\"https://container.googleapis.com/v1/project/test-project1/locations/"
       "test-zone2/clusters/test-cluster3\""
       "}";
-  auto json = JsonParse(json_str);
+  auto json = Json::Parse(json_str);
   ASSERT_TRUE(json.ok()) << json.status();
   grpc_error_handle error;
   auto config =
@@ -178,7 +177,7 @@ TEST(GoogleMeshCaConfigTest, WrongExpectedValues) {
       "\"https://container.googleapis.com/v1/project/test-project1/locations/"
       "test-zone2/clusters/test-cluster3\""
       "}";
-  auto json = JsonParse(json_str);
+  auto json = Json::Parse(json_str);
   ASSERT_TRUE(json.ok()) << json.status();
   grpc_error_handle error;
   auto config =
@@ -220,7 +219,7 @@ TEST(GoogleMeshCaConfigTest, WrongTypes) {
       "  \"key_size\": \"1024A\","
       "  \"location\": 123"
       "}";
-  auto json = JsonParse(json_str);
+  auto json = Json::Parse(json_str);
   ASSERT_TRUE(json.ok()) << json.status();
   grpc_error_handle error;
   auto config =
@@ -263,7 +262,7 @@ TEST(GoogleMeshCaConfigTest, GrpcServicesNotAnArray) {
       "\"https://container.googleapis.com/v1/project/test-project1/locations/"
       "test-zone2/clusters/test-cluster3\""
       "}";
-  auto json = JsonParse(json_str);
+  auto json = Json::Parse(json_str);
   ASSERT_TRUE(json.ok()) << json.status();
   grpc_error_handle error;
   auto config =
@@ -287,7 +286,7 @@ TEST(GoogleMeshCaConfigTest, GoogleGrpcNotAnObject) {
       "\"https://container.googleapis.com/v1/project/test-project1/locations/"
       "test-zone2/clusters/test-cluster3\""
       "}";
-  auto json = JsonParse(json_str);
+  auto json = Json::Parse(json_str);
   ASSERT_TRUE(json.ok()) << json.status();
   grpc_error_handle error;
   auto config =
@@ -313,7 +312,7 @@ TEST(GoogleMeshCaConfigTest, CallCredentialsNotAnArray) {
       "\"https://container.googleapis.com/v1/project/test-project1/locations/"
       "test-zone2/clusters/test-cluster3\""
       "}";
-  auto json = JsonParse(json_str);
+  auto json = Json::Parse(json_str);
   ASSERT_TRUE(json.ok()) << json.status();
   grpc_error_handle error;
   auto config =
@@ -341,7 +340,7 @@ TEST(GoogleMeshCaConfigTest, StsServiceNotAnObject) {
       "\"https://container.googleapis.com/v1/project/test-project1/locations/"
       "test-zone2/clusters/test-cluster3\""
       "}";
-  auto json = JsonParse(json_str);
+  auto json = Json::Parse(json_str);
   ASSERT_TRUE(json.ok()) << json.status();
   grpc_error_handle error;
   auto config =

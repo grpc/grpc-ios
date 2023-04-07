@@ -34,7 +34,6 @@
 #include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/json/json.h"
-#include "src/core/lib/json/json_writer.h"
 
 namespace grpc_core {
 namespace channelz {
@@ -112,7 +111,7 @@ std::string ChannelzRegistry::InternalGetTopChannels(
   }
   if (node_after_pagination_limit == nullptr) object["end"] = true;
   Json json(std::move(object));
-  return JsonDump(json);
+  return json.Dump();
 }
 
 std::string ChannelzRegistry::InternalGetServers(intptr_t start_server_id) {
@@ -151,7 +150,7 @@ std::string ChannelzRegistry::InternalGetServers(intptr_t start_server_id) {
   }
   if (node_after_pagination_limit == nullptr) object["end"] = true;
   Json json(std::move(object));
-  return JsonDump(json);
+  return json.Dump();
 }
 
 void ChannelzRegistry::InternalLogAllEntities() {
@@ -203,7 +202,7 @@ char* grpc_channelz_get_server(intptr_t server_id) {
   grpc_core::Json json = grpc_core::Json::Object{
       {"server", server_node->RenderJson()},
   };
-  return gpr_strdup(JsonDump(json).c_str());
+  return gpr_strdup(json.Dump().c_str());
 }
 
 char* grpc_channelz_get_server_sockets(intptr_t server_id,
@@ -242,7 +241,7 @@ char* grpc_channelz_get_channel(intptr_t channel_id) {
   grpc_core::Json json = grpc_core::Json::Object{
       {"channel", channel_node->RenderJson()},
   };
-  return gpr_strdup(JsonDump(json).c_str());
+  return gpr_strdup(json.Dump().c_str());
 }
 
 char* grpc_channelz_get_subchannel(intptr_t subchannel_id) {
@@ -258,7 +257,7 @@ char* grpc_channelz_get_subchannel(intptr_t subchannel_id) {
   grpc_core::Json json = grpc_core::Json::Object{
       {"subchannel", subchannel_node->RenderJson()},
   };
-  return gpr_strdup(JsonDump(json).c_str());
+  return gpr_strdup(json.Dump().c_str());
 }
 
 char* grpc_channelz_get_socket(intptr_t socket_id) {
@@ -274,5 +273,5 @@ char* grpc_channelz_get_socket(intptr_t socket_id) {
   grpc_core::Json json = grpc_core::Json::Object{
       {"socket", socket_node->RenderJson()},
   };
-  return gpr_strdup(JsonDump(json).c_str());
+  return gpr_strdup(json.Dump().c_str());
 }

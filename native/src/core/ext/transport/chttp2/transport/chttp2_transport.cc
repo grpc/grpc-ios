@@ -78,6 +78,7 @@
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/iomgr/iomgr_fwd.h"
 #include "src/core/lib/iomgr/port.h"
+#include "src/core/lib/iomgr/timer.h"
 #include "src/core/lib/promise/poll.h"
 #include "src/core/lib/resource_quota/arena.h"
 #include "src/core/lib/resource_quota/memory_quota.h"
@@ -369,8 +370,6 @@ static void read_channel_args(grpc_chttp2_transport* t,
                 .GetObjectRef<grpc_core::channelz::SocketNode::Security>());
   }
 
-  t->ack_pings = channel_args.GetBool("grpc.http2.ack_pings").value_or(true);
-
   const int soft_limit =
       channel_args.GetInt(GRPC_ARG_MAX_METADATA_SIZE).value_or(-1);
   if (soft_limit < 0) {
@@ -445,7 +444,7 @@ static void read_channel_args(grpc_chttp2_transport* t,
         // `GRPC_ARG_ABSOLUTE_MAX_METADATA_SIZE` is not set.
         const int soft_limit = channel_args.GetInt(GRPC_ARG_MAX_METADATA_SIZE)
                                    .value_or(setting.default_value);
-        const int value = (soft_limit >= 0 && soft_limit < (INT_MAX / 1.25))
+        const int value = (soft_limit < (INT_MAX / 1.25))
                               ? static_cast<int>(soft_limit * 1.25)
                               : soft_limit;
         if (value > DEFAULT_MAX_HEADER_LIST_SIZE) {
@@ -1695,7 +1694,7 @@ namespace {
 // Fire and forget (deletes itself on completion). Does a graceful shutdown by
 // sending a GOAWAY frame with the last stream id set to 2^31-1, sending a ping
 // and waiting for an ack (effective waiting for an RTT) and then sending a
-// final GOAWAY frame with an updated last stream identifier. This helps ensure
+// final GOAWAY freame with an updated last stream identifier. This helps ensure
 // that a connection can be cleanly shut down without losing requests.
 // In the event, that the client does not respond to the ping for some reason,
 // we add a 20 second deadline, after which we send the second goaway.
@@ -1708,8 +1707,6 @@ class GracefulGoaway : public grpc_core::RefCounted<GracefulGoaway> {
   }
 
  private:
-  using TaskHandle = ::grpc_event_engine::experimental::EventEngine::TaskHandle;
-
   explicit GracefulGoaway(grpc_chttp2_transport* t) : t_(t) {
     t->sent_goaway_state = GRPC_CHTTP2_GRACEFUL_GOAWAY;
     GRPC_CHTTP2_REF_TRANSPORT(t_, "graceful goaway");
@@ -1717,17 +1714,10 @@ class GracefulGoaway : public grpc_core::RefCounted<GracefulGoaway> {
     send_ping_locked(
         t, nullptr, GRPC_CLOSURE_INIT(&on_ping_ack_, OnPingAck, this, nullptr));
     grpc_chttp2_initiate_write(t, GRPC_CHTTP2_INITIATE_WRITE_GOAWAY_SENT);
-    timer_handle_ = t_->event_engine->RunAfter(
-        grpc_core::Duration::Seconds(20),
-        [self = Ref(DEBUG_LOCATION, "GoawayTimer")]() mutable {
-          grpc_core::ApplicationCallbackExecCtx callback_exec_ctx;
-          grpc_core::ExecCtx exec_ctx;
-          // The ref will be unreffed in the combiner.
-          auto* ptr = self.release();
-          ptr->t_->combiner->Run(
-              GRPC_CLOSURE_INIT(&ptr->on_timer_, OnTimerLocked, ptr, nullptr),
-              absl::OkStatus());
-        });
+    Ref().release();  // Ref for the timer
+    grpc_timer_init(
+        &timer_, grpc_core::Timestamp::Now() + grpc_core::Duration::Seconds(20),
+        GRPC_CLOSURE_INIT(&on_timer_, OnTimer, this, nullptr));
   }
 
   void MaybeSendFinalGoawayLocked() {
@@ -1767,25 +1757,31 @@ class GracefulGoaway : public grpc_core::RefCounted<GracefulGoaway> {
 
   static void OnPingAckLocked(void* arg, grpc_error_handle /* error */) {
     auto* self = static_cast<GracefulGoaway*>(arg);
-    if (self->timer_handle_ != TaskHandle::kInvalid) {
-      self->t_->event_engine->Cancel(
-          std::exchange(self->timer_handle_, TaskHandle::kInvalid));
-    }
+    grpc_timer_cancel(&self->timer_);
     self->MaybeSendFinalGoawayLocked();
     self->Unref();
   }
 
+  static void OnTimer(void* arg, grpc_error_handle error) {
+    auto* self = static_cast<GracefulGoaway*>(arg);
+    if (!error.ok()) {
+      self->Unref();
+      return;
+    }
+    self->t_->combiner->Run(
+        GRPC_CLOSURE_INIT(&self->on_timer_, OnTimerLocked, self, nullptr),
+        absl::OkStatus());
+  }
+
   static void OnTimerLocked(void* arg, grpc_error_handle /* error */) {
     auto* self = static_cast<GracefulGoaway*>(arg);
-    // Clearing the handle since the timer has fired and the handle is invalid.
-    self->timer_handle_ = TaskHandle::kInvalid;
     self->MaybeSendFinalGoawayLocked();
     self->Unref();
   }
 
   grpc_chttp2_transport* t_;
   grpc_closure on_ping_ack_;
-  TaskHandle timer_handle_ = TaskHandle::kInvalid;
+  grpc_timer timer_;
   grpc_closure on_timer_;
 };
 

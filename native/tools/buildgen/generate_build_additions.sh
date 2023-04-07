@@ -24,6 +24,7 @@ gen_build_yaml_dirs="  \
   src/upb              \
   src/zlib             \
   src/c-ares           \
+  test/core/end2end    \
   test/cpp/naming"
 
 

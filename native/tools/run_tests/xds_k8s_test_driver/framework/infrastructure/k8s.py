@@ -276,11 +276,6 @@ class KubernetesNamespace:  # pylint: disable=too-many-public-methods
             # resumes normal operation.
             return _quick_recovery_retryer()
 
-        # 504 Gateway Timeout:
-        # "Timeout: request did not complete within the allotted timeout"
-        if code == 504:
-            return _server_restart_retryer()
-
         return None
 
     @classmethod
