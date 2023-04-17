@@ -61,6 +61,7 @@ let package = Package(
       ],
       sources: [
         "src/core/ext/filters/",
+        "src/core/ext/gcp/",
         "src/core/ext/transport/",
         "src/core/ext/upb-generated/",
         "src/core/ext/upbdefs-generated/",
