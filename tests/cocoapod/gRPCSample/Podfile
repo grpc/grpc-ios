@@ -6,7 +6,6 @@ install! 'cocoapods', :deterministic_uuids => false
 GRPC_PODSPEC_ROOT = '../../../native'
 
 target 'gRPCSample' do
-  use_frameworks!
   pod 'gRPC-ProtoRPC',  :path => GRPC_PODSPEC_ROOT
   pod 'gRPC', :path => GRPC_PODSPEC_ROOT
   pod 'gRPC-RxLibrary', :path => GRPC_PODSPEC_ROOT

@@ -39,6 +39,7 @@ let package = Package(
         "src/core/ext/xds/google_mesh_ca_certificate_provider_factory.h",
         "src/core/ext/xds/google_mesh_ca_certificate_provider_factory.cc",
         "src/objective-c/examples/",
+        "src/objective-c/manual_tests/",
         "src/objective-c/tests/",
         "third_party/re2/re2/testing/",
         "third_party/re2/re2/fuzzing/",
@@ -60,6 +61,7 @@ let package = Package(
       ],
       sources: [
         "src/core/ext/filters/",
+        "src/core/ext/gcp/",
         "src/core/ext/transport/",
         "src/core/ext/upb-generated/",
         "src/core/ext/upbdefs-generated/",
@@ -113,6 +115,7 @@ let package = Package(
         "src/cpp/util/core_stats.h",
         "src/cpp/util/error_details.cc",
         "src/objective-c/examples/",
+        "src/objective-c/manual_tests/",
         "src/objective-c/tests/",
       ],
       sources: [
