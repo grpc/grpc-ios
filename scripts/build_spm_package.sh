@@ -8,10 +8,12 @@ source ./scripts/build_commons.sh
 # build configuration and paths
 SCHEME=gRPC-Package
 
+DESTINATION="${1:-$GRPC_IOS_DESTINATION}"
+
 # build via xcodebuild command line
 time xcodebuild \
 -scheme $SCHEME \
 -verbose \
--destination "${GRPC_IOS_DESTINATION}" \
+-destination "${DESTINATION}" \
 build \
 $GRPC_IOS_BUILD_FLAGS
