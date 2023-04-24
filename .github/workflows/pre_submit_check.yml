@@ -2,8 +2,8 @@ name: Pre submit checks
 on:
   pull_request:
     branches:
-      - 'main'
-      - 'grpc_release_**'
+      - "main"
+      - "grpc_release_**"
   repository_dispatch:
     types: [pre-submit-check]
 concurrency:
@@ -12,6 +12,9 @@ concurrency:
 jobs:
   pre-submit-spm-build-package:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        platform: [iOS, macOS, tvOS]
     steps:
       - name: repo checkout
         uses: actions/checkout@v3
@@ -22,7 +25,7 @@ jobs:
         run: scripts/prepare_env.sh
 
       - name: spm package build
-        run: scripts/build_spm_package.sh
+        run: scripts/build_spm_package.sh generic/platform=${{ matrix.platform }}
 
   pre-submit-spm-build-test:
     runs-on: macos-latest
