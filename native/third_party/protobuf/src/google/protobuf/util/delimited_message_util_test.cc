@@ -31,14 +31,14 @@
 // Adapted from the patch of kenton@google.com (Kenton Varda)
 // See https://github.com/protocolbuffers/protobuf/pull/710 for details.
 
-#include <google/protobuf/util/delimited_message_util.h>
+#include "google/protobuf/util/delimited_message_util.h"
 
 #include <sstream>
 
-#include <google/protobuf/test_util.h>
-#include <google/protobuf/unittest.pb.h>
-#include <google/protobuf/testing/googletest.h>
+#include "google/protobuf/testing/googletest.h"
 #include <gtest/gtest.h>
+#include "google/protobuf/test_util.h"
+#include "google/protobuf/unittest.pb.h"
 
 namespace google {
 namespace protobuf {

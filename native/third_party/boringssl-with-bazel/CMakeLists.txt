@@ -332,10 +332,12 @@ add_library(
   src/crypto/cpu_aarch64_freebsd.c
   src/crypto/cpu_aarch64_fuchsia.c
   src/crypto/cpu_aarch64_linux.c
+  src/crypto/cpu_aarch64_openbsd.c
   src/crypto/cpu_aarch64_win.c
   src/crypto/cpu_arm.c
   src/crypto/cpu_arm_freebsd.c
   src/crypto/cpu_arm_linux.c
+  src/crypto/cpu_arm_openbsd.c
   src/crypto/cpu_intel.c
   src/crypto/crypto.c
   src/crypto/curve25519/curve25519.c
@@ -373,10 +375,10 @@ add_library(
   src/crypto/ex_data.c
   src/crypto/fipsmodule/bcm.c
   src/crypto/fipsmodule/fips_shared_support.c
-  src/crypto/hkdf/hkdf.c
   src/crypto/hpke/hpke.c
   src/crypto/hrss/hrss.c
   src/crypto/kyber/keccak.c
+  src/crypto/kyber/kyber.c
   src/crypto/lhash/lhash.c
   src/crypto/mem.c
   src/crypto/obj/obj.c
@@ -406,8 +408,10 @@ add_library(
   src/crypto/rand_extra/windows.c
   src/crypto/rc4/rc4.c
   src/crypto/refcount_c11.c
-  src/crypto/refcount_lock.c
+  src/crypto/refcount_no_threads.c
+  src/crypto/refcount_win.c
   src/crypto/rsa_extra/rsa_asn1.c
+  src/crypto/rsa_extra/rsa_crypt.c
   src/crypto/rsa_extra/rsa_print.c
   src/crypto/siphash/siphash.c
   src/crypto/stack/stack.c

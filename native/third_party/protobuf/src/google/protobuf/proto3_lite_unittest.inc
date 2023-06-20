@@ -1,3 +1,4 @@
+// -*- c++ -*-
 // Protocol Buffers - Google's data interchange format
 // Copyright 2008 Google Inc.  All rights reserved.
 // https://developers.google.com/protocol-buffers/
@@ -32,8 +33,7 @@
 #include <string>
 #include <vector>
 
-#include <google/protobuf/arena.h>
-#include <google/protobuf/testing/googletest.h>
+#include "google/protobuf/arena.h"
 #include <gtest/gtest.h>
 
 using UNITTEST::TestAllTypes;

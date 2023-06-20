@@ -28,39 +28,44 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <google/protobuf/arena.h>
+#include "google/protobuf/arena.h"
 
 #include <algorithm>
+#include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstring>
 #include <memory>
 #include <string>
+#include <thread>
 #include <type_traits>
 #include <typeinfo>
 #include <vector>
 
-#include <google/protobuf/stubs/logging.h>
-#include <google/protobuf/stubs/common.h>
-#include <google/protobuf/unittest.pb.h>
-#include <google/protobuf/unittest_arena.pb.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <google/protobuf/stubs/strutil.h>
-#include <google/protobuf/arena_test_util.h>
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/extension_set.h>
-#include <google/protobuf/io/coded_stream.h>
-#include <google/protobuf/io/zero_copy_stream_impl_lite.h>
-#include <google/protobuf/message.h>
-#include <google/protobuf/message_lite.h>
-#include <google/protobuf/repeated_field.h>
-#include <google/protobuf/test_util.h>
-#include <google/protobuf/unknown_field_set.h>
-#include <google/protobuf/wire_format_lite.h>
+#include "absl/log/absl_check.h"
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/barrier.h"
+#include "google/protobuf/arena_test_util.h"
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/extension_set.h"
+#include "google/protobuf/io/coded_stream.h"
+#include "google/protobuf/io/zero_copy_stream_impl_lite.h"
+#include "google/protobuf/message.h"
+#include "google/protobuf/message_lite.h"
+#include "google/protobuf/port.h"
+#include "google/protobuf/repeated_field.h"
+#include "google/protobuf/test_util.h"
+#include "google/protobuf/unittest.pb.h"
+#include "google/protobuf/unittest_arena.pb.h"
+#include "google/protobuf/unknown_field_set.h"
+#include "google/protobuf/wire_format_lite.h"
 
+#include "absl/synchronization/mutex.h"
 
 // Must be included last
-#include <google/protobuf/port_def.inc>
+#include "google/protobuf/port_def.inc"
 
 using proto2_arena_unittest::ArenaMessage;
 using protobuf_unittest::ForeignMessage;
@@ -68,6 +73,7 @@ using protobuf_unittest::TestAllExtensions;
 using protobuf_unittest::TestAllTypes;
 using protobuf_unittest::TestEmptyMessage;
 using protobuf_unittest::TestOneof2;
+using protobuf_unittest::TestRepeatedString;
 
 namespace google {
 namespace protobuf {
@@ -84,10 +90,10 @@ class Notifier {
 
 class SimpleDataType {
  public:
-  SimpleDataType() : notifier_(NULL) {}
+  SimpleDataType() : notifier_(nullptr) {}
   void SetNotifier(Notifier* notifier) { notifier_ = notifier; }
   virtual ~SimpleDataType() {
-    if (notifier_ != NULL) {
+    if (notifier_ != nullptr) {
       notifier_->Notify();
     }
   };
@@ -101,12 +107,13 @@ class SimpleDataType {
 class PleaseDontCopyMe {
  public:
   explicit PleaseDontCopyMe(int value) : value_(value) {}
+  PleaseDontCopyMe(const PleaseDontCopyMe&) = delete;
+  PleaseDontCopyMe& operator=(const PleaseDontCopyMe&) = delete;
 
   int value() const { return value_; }
 
  private:
   int value_;
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(PleaseDontCopyMe);
 };
 
 // A class that takes four different types as constructor arguments.
@@ -116,14 +123,15 @@ class MustBeConstructedWithOneThroughFour {
                                       const std::string& three,
                                       const PleaseDontCopyMe* four)
       : one_(one), two_(two), three_(three), four_(four) {}
+  MustBeConstructedWithOneThroughFour(
+      const MustBeConstructedWithOneThroughFour&) = delete;
+  MustBeConstructedWithOneThroughFour& operator=(
+      const MustBeConstructedWithOneThroughFour&) = delete;
 
   int one_;
   const char* const two_;
   std::string three_;
   const PleaseDontCopyMe* four_;
-
- private:
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(MustBeConstructedWithOneThroughFour);
 };
 
 // A class that takes eight different types as constructor arguments.
@@ -143,6 +151,10 @@ class MustBeConstructedWithOneThroughEight {
         six_(six),
         seven_(seven),
         eight_(eight) {}
+  MustBeConstructedWithOneThroughEight(
+      const MustBeConstructedWithOneThroughEight&) = delete;
+  MustBeConstructedWithOneThroughEight& operator=(
+      const MustBeConstructedWithOneThroughEight&) = delete;
 
   int one_;
   const char* const two_;
@@ -152,9 +164,6 @@ class MustBeConstructedWithOneThroughEight {
   const char* const six_;
   std::string seven_;
   std::string eight_;
-
- private:
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(MustBeConstructedWithOneThroughEight);
 };
 
 TEST(ArenaTest, ArenaConstructable) {
@@ -171,17 +180,17 @@ TEST(ArenaTest, DestructorSkippable) {
 
 TEST(ArenaTest, BasicCreate) {
   Arena arena;
-  EXPECT_TRUE(Arena::Create<int32_t>(&arena) != NULL);
-  EXPECT_TRUE(Arena::Create<int64_t>(&arena) != NULL);
-  EXPECT_TRUE(Arena::Create<float>(&arena) != NULL);
-  EXPECT_TRUE(Arena::Create<double>(&arena) != NULL);
-  EXPECT_TRUE(Arena::Create<std::string>(&arena) != NULL);
+  EXPECT_TRUE(Arena::Create<int32_t>(&arena) != nullptr);
+  EXPECT_TRUE(Arena::Create<int64_t>(&arena) != nullptr);
+  EXPECT_TRUE(Arena::Create<float>(&arena) != nullptr);
+  EXPECT_TRUE(Arena::Create<double>(&arena) != nullptr);
+  EXPECT_TRUE(Arena::Create<std::string>(&arena) != nullptr);
   arena.Own(new int32_t);
   arena.Own(new int64_t);
   arena.Own(new float);
   arena.Own(new double);
   arena.Own(new std::string);
-  arena.Own<int>(NULL);
+  arena.Own<int>(nullptr);
   Notifier notifier;
   SimpleDataType* data = Arena::Create<SimpleDataType>(&arena);
   data->SetNotifier(&notifier);
@@ -196,7 +205,7 @@ TEST(ArenaTest, CreateAndConstCopy) {
   Arena arena;
   const std::string s("foo");
   const std::string* s_copy = Arena::Create<std::string>(&arena, s);
-  EXPECT_TRUE(s_copy != NULL);
+  EXPECT_TRUE(s_copy != nullptr);
   EXPECT_EQ("foo", s);
   EXPECT_EQ("foo", *s_copy);
 }
@@ -205,7 +214,7 @@ TEST(ArenaTest, CreateAndNonConstCopy) {
   Arena arena;
   std::string s("foo");
   const std::string* s_copy = Arena::Create<std::string>(&arena, s);
-  EXPECT_TRUE(s_copy != NULL);
+  EXPECT_TRUE(s_copy != nullptr);
   EXPECT_EQ("foo", s);
   EXPECT_EQ("foo", *s_copy);
 }
@@ -214,7 +223,7 @@ TEST(ArenaTest, CreateAndMove) {
   Arena arena;
   std::string s("foo");
   const std::string* s_move = Arena::Create<std::string>(&arena, std::move(s));
-  EXPECT_TRUE(s_move != NULL);
+  EXPECT_TRUE(s_move != nullptr);
   EXPECT_TRUE(s.empty());  // NOLINT
   EXPECT_EQ("foo", *s_move);
 }
@@ -226,7 +235,7 @@ TEST(ArenaTest, CreateWithFourConstructorArguments) {
   const MustBeConstructedWithOneThroughFour* new_object =
       Arena::Create<MustBeConstructedWithOneThroughFour>(&arena, 1, "2", three,
                                                          &four);
-  EXPECT_TRUE(new_object != NULL);
+  EXPECT_TRUE(new_object != nullptr);
   ASSERT_EQ(1, new_object->one_);
   ASSERT_STREQ("2", new_object->two_);
   ASSERT_EQ("3", new_object->three_);
@@ -242,7 +251,7 @@ TEST(ArenaTest, CreateWithEightConstructorArguments) {
   const MustBeConstructedWithOneThroughEight* new_object =
       Arena::Create<MustBeConstructedWithOneThroughEight>(
           &arena, 1, "2", three, &four, 5, "6", seven, eight);
-  EXPECT_TRUE(new_object != NULL);
+  EXPECT_TRUE(new_object != nullptr);
   ASSERT_EQ(1, new_object->one_);
   ASSERT_STREQ("2", new_object->two_);
   ASSERT_EQ("3", new_object->three_);
@@ -277,7 +286,8 @@ TEST(ArenaTest, CreateWithMoveArguments) {
 TEST(ArenaTest, InitialBlockTooSmall) {
   // Construct a small blocks of memory to be used by the arena allocator; then,
   // allocate an object which will not fit in the initial block.
-  for (int size = 0; size <= Arena::kBlockOverhead + 32; size++) {
+  for (uint32_t size = 0; size <= internal::SerialArena::kBlockHeaderSize + 32;
+       size++) {
     std::vector<char> arena_block(size);
     ArenaOptions options;
     options.initial_block = arena_block.data();
@@ -305,6 +315,36 @@ TEST(ArenaTest, InitialBlockTooSmall) {
     // initially-provided block.
     memset(p, '\0', 96);
   }
+}
+
+TEST(ArenaTest, CreateDestroy) {
+  TestAllTypes original;
+  TestUtil::SetAllFields(&original);
+
+  // Test memory leak.
+  Arena arena;
+  TestAllTypes* heap_message = Arena::CreateMessage<TestAllTypes>(nullptr);
+  TestAllTypes* arena_message = Arena::CreateMessage<TestAllTypes>(&arena);
+
+  *heap_message = original;
+  *arena_message = original;
+
+  Arena::Destroy(heap_message);
+  Arena::Destroy(arena_message);
+
+  // The arena message should still exist.
+  EXPECT_EQ(strlen(original.optional_string().c_str()),
+            strlen(arena_message->optional_string().c_str()));
+}
+
+struct OnlyArenaConstructible {
+  using InternalArenaConstructable_ = void;
+  explicit OnlyArenaConstructible(Arena* arena) {}
+};
+
+TEST(ArenaTest, ArenaOnlyTypesCanBeConstructed) {
+  Arena arena;
+  Arena::CreateMessage<OnlyArenaConstructible>(&arena);
 }
 
 TEST(ArenaTest, Parsing) {
@@ -484,7 +524,7 @@ TEST(ArenaTest, ReleaseMessage) {
 
   TestAllTypes::NestedMessage* released_null =
       arena_message->release_optional_nested_message();
-  EXPECT_EQ(NULL, released_null);
+  EXPECT_EQ(nullptr, released_null);
 }
 
 TEST(ArenaTest, SetAllocatedString) {
@@ -585,8 +625,8 @@ TEST(ArenaTest, SwapBetweenArenaAndNonArenaUsingReflection) {
 }
 
 TEST(ArenaTest, ReleaseFromArenaMessageMakesCopy) {
-  TestAllTypes::NestedMessage* nested_msg = NULL;
-  std::string* nested_string = NULL;
+  TestAllTypes::NestedMessage* nested_msg = nullptr;
+  std::string* nested_string = nullptr;
   {
     Arena arena;
     TestAllTypes* arena_message = Arena::CreateMessage<TestAllTypes>(&arena);
@@ -603,7 +643,7 @@ TEST(ArenaTest, ReleaseFromArenaMessageMakesCopy) {
 
 #if PROTOBUF_RTTI
 TEST(ArenaTest, ReleaseFromArenaMessageUsingReflectionMakesCopy) {
-  TestAllTypes::NestedMessage* nested_msg = NULL;
+  TestAllTypes::NestedMessage* nested_msg = nullptr;
   // Note: no string: reflection API only supports releasing submessages.
   {
     Arena arena;
@@ -634,7 +674,7 @@ TEST(ArenaTest, SetAllocatedAcrossArenas) {
     TestAllTypes::NestedMessage* arena2_submessage =
         Arena::CreateMessage<TestAllTypes::NestedMessage>(&arena2);
     arena2_submessage->set_bb(42);
-#ifdef PROTOBUF_HAS_DEATH_TEST
+#if GTEST_HAS_DEATH_TEST
     EXPECT_DEBUG_DEATH(arena1_message->set_allocated_optional_nested_message(
                            arena2_submessage),
                        "submessage_arena");
@@ -647,7 +687,7 @@ TEST(ArenaTest, SetAllocatedAcrossArenas) {
       Arena::CreateMessage<TestAllTypes::NestedMessage>(&arena1);
   arena1_submessage->set_bb(42);
   TestAllTypes* heap_message = new TestAllTypes;
-#ifdef PROTOBUF_HAS_DEATH_TEST
+#if GTEST_HAS_DEATH_TEST
   EXPECT_DEBUG_DEATH(
       heap_message->set_allocated_optional_nested_message(arena1_submessage),
       "submessage_arena");
@@ -703,7 +743,7 @@ TEST(ArenaTest, SetAllocatedAcrossArenasWithReflection) {
     TestAllTypes::NestedMessage* arena2_submessage =
         Arena::CreateMessage<TestAllTypes::NestedMessage>(&arena2);
     arena2_submessage->set_bb(42);
-#ifdef PROTOBUF_HAS_DEATH_TEST
+#if GTEST_HAS_DEATH_TEST
     EXPECT_DEBUG_DEATH(
         r->SetAllocatedMessage(arena1_message, arena2_submessage, msg_field),
         "GetOwningArena");
@@ -716,7 +756,7 @@ TEST(ArenaTest, SetAllocatedAcrossArenasWithReflection) {
       Arena::CreateMessage<TestAllTypes::NestedMessage>(&arena1);
   arena1_submessage->set_bb(42);
   TestAllTypes* heap_message = new TestAllTypes;
-#ifdef PROTOBUF_HAS_DEATH_TEST
+#if GTEST_HAS_DEATH_TEST
   EXPECT_DEBUG_DEATH(
       r->SetAllocatedMessage(heap_message, arena1_submessage, msg_field),
       "GetOwningArena");
@@ -771,8 +811,9 @@ TEST(ArenaTest, AddAllocatedWithReflection) {
 }
 
 TEST(ArenaTest, RepeatedPtrFieldAddClearedTest) {
-#ifndef PROTOBUF_FUTURE_BREAKING_CHANGES
+#ifndef PROTOBUF_FUTURE_REMOVE_CLEARED_API
   {
+    PROTOBUF_IGNORE_DEPRECATION_START
     RepeatedPtrField<TestAllTypes> repeated_field;
     EXPECT_TRUE(repeated_field.empty());
     EXPECT_EQ(0, repeated_field.size());
@@ -781,8 +822,9 @@ TEST(ArenaTest, RepeatedPtrFieldAddClearedTest) {
     repeated_field.AddCleared(cleared);
     EXPECT_TRUE(repeated_field.empty());
     EXPECT_EQ(0, repeated_field.size());
+    PROTOBUF_IGNORE_DEPRECATION_STOP
   }
-#endif  // !PROTOBUF_FUTURE_BREAKING_CHANGES
+#endif  // !PROTOBUF_FUTURE_REMOVE_CLEARED_API
   {
     RepeatedPtrField<TestAllTypes> repeated_field;
     EXPECT_TRUE(repeated_field.empty());
@@ -817,14 +859,13 @@ TEST(ArenaTest, AddAllocatedToRepeatedField) {
     TestAllTypes::NestedMessage* arena2_submessage =
         Arena::CreateMessage<TestAllTypes::NestedMessage>(&arena2);
     arena2_submessage->set_bb(42);
-#ifdef PROTOBUF_HAS_DEATH_TEST
-    EXPECT_DEBUG_DEATH(
-        arena1_message->mutable_repeated_nested_message()->AddAllocated(
-            arena2_submessage),
-        "value_arena");
-#endif
-    // Should not receive object.
-    EXPECT_TRUE(arena1_message->repeated_nested_message().empty());
+    arena1_message->mutable_repeated_nested_message()->AddAllocated(
+        arena2_submessage);
+    ASSERT_THAT(arena1_message->repeated_nested_message(), testing::SizeIs(1));
+    EXPECT_EQ(
+        arena1_message->mutable_repeated_nested_message()->at(0).GetArena(),
+        &arena1);
+    arena1_message->clear_repeated_nested_message();
   }
 
   // Arena->heap case.
@@ -834,14 +875,12 @@ TEST(ArenaTest, AddAllocatedToRepeatedField) {
     TestAllTypes::NestedMessage* arena2_submessage =
         Arena::CreateMessage<TestAllTypes::NestedMessage>(&arena2);
     arena2_submessage->set_bb(42);
-#ifdef PROTOBUF_HAS_DEATH_TEST
-    EXPECT_DEBUG_DEATH(
-        heap_message->mutable_repeated_nested_message()->AddAllocated(
-            arena2_submessage),
-        "value_arena");
-#endif
-    // Should not receive object.
-    EXPECT_TRUE(heap_message->repeated_nested_message().empty());
+    heap_message->mutable_repeated_nested_message()->AddAllocated(
+        arena2_submessage);
+    ASSERT_THAT(heap_message->repeated_nested_message(), testing::SizeIs(1));
+    EXPECT_EQ(heap_message->mutable_repeated_nested_message()->at(0).GetArena(),
+              nullptr);
+    heap_message->clear_repeated_nested_message();
   }
   delete heap_message;
 
@@ -939,13 +978,12 @@ TEST(ArenaTest, AddAllocatedToRepeatedFieldViaReflection) {
     TestAllTypes::NestedMessage* arena2_submessage =
         Arena::CreateMessage<TestAllTypes::NestedMessage>(&arena2);
     arena2_submessage->set_bb(42);
-#ifdef PROTOBUF_HAS_DEATH_TEST
-    EXPECT_DEBUG_DEATH(
-        r->AddAllocatedMessage(arena1_message, fd, arena2_submessage),
-        "value_arena");
-#endif
-    // Should not receive object.
-    EXPECT_TRUE(arena1_message->repeated_nested_message().empty());
+    r->AddAllocatedMessage(arena1_message, fd, arena2_submessage);
+    ASSERT_THAT(arena1_message->repeated_nested_message(), testing::SizeIs(1));
+    EXPECT_EQ(
+        arena1_message->mutable_repeated_nested_message()->at(0).GetArena(),
+        &arena1);
+    arena1_message->clear_repeated_nested_message();
   }
 
   // Arena->heap case.
@@ -955,13 +993,11 @@ TEST(ArenaTest, AddAllocatedToRepeatedFieldViaReflection) {
     TestAllTypes::NestedMessage* arena2_submessage =
         Arena::CreateMessage<TestAllTypes::NestedMessage>(&arena2);
     arena2_submessage->set_bb(42);
-#ifdef PROTOBUF_HAS_DEATH_TEST
-    EXPECT_DEBUG_DEATH(
-        r->AddAllocatedMessage(heap_message, fd, arena2_submessage),
-        "value_arena");
-#endif
-    // Should not receive object.
-    EXPECT_TRUE(heap_message->repeated_nested_message().empty());
+    r->AddAllocatedMessage(heap_message, fd, arena2_submessage);
+    ASSERT_THAT(heap_message->repeated_nested_message(), testing::SizeIs(1));
+    EXPECT_EQ(heap_message->mutable_repeated_nested_message()->at(0).GetArena(),
+              nullptr);
+    heap_message->clear_repeated_nested_message();
   }
   delete heap_message;
 }
@@ -1078,7 +1114,7 @@ TEST(ArenaTest, ArenaOneofReflection) {
   EXPECT_TRUE(refl->HasOneof(*message, oneof));
   submsg = refl->ReleaseMessage(message, msg_field);
   EXPECT_FALSE(refl->HasOneof(*message, oneof));
-  EXPECT_TRUE(submsg->GetArena() == NULL);
+  EXPECT_TRUE(submsg->GetArena() == nullptr);
   delete submsg;
 }
 
@@ -1091,7 +1127,7 @@ void TestSwapRepeatedField(Arena* arena1, Arena* arena2) {
     TestAllTypes* t = Arena::CreateMessage<TestAllTypes>(arena1);
     t->set_optional_string("field1");
     t->set_optional_int32(i);
-    if (arena1 != NULL) {
+    if (arena1 != nullptr) {
       field1.UnsafeArenaAddAllocated(t);
     } else {
       field1.AddAllocated(t);
@@ -1101,7 +1137,7 @@ void TestSwapRepeatedField(Arena* arena1, Arena* arena2) {
     TestAllTypes* t = Arena::CreateMessage<TestAllTypes>(arena2);
     t->set_optional_string("field2");
     t->set_optional_int32(i);
-    if (arena2 != NULL) {
+    if (arena2 != nullptr) {
       field2.UnsafeArenaAddAllocated(t);
     } else {
       field2.AddAllocated(t);
@@ -1134,12 +1170,12 @@ TEST(ArenaTest, SwapRepeatedFieldWithDifferentArenas) {
 
 TEST(ArenaTest, SwapRepeatedFieldWithNoArenaOnRightHandSide) {
   Arena arena;
-  TestSwapRepeatedField(&arena, NULL);
+  TestSwapRepeatedField(&arena, nullptr);
 }
 
 TEST(ArenaTest, SwapRepeatedFieldWithNoArenaOnLeftHandSide) {
   Arena arena;
-  TestSwapRepeatedField(NULL, &arena);
+  TestSwapRepeatedField(nullptr, &arena);
 }
 
 TEST(ArenaTest, ExtensionsOnArena) {
@@ -1198,11 +1234,11 @@ TEST(ArenaTest, RepeatedFieldOnArena) {
     TestAllTypes* extracted_messages[5];
     // ExtractSubrange should copy to the heap.
     repeated_message.ExtractSubrange(0, 5, extracted_messages);
-    EXPECT_EQ(NULL, extracted_messages[0]->GetArena());
+    EXPECT_EQ(nullptr, extracted_messages[0]->GetArena());
     // We need to free the heap-allocated messages to prevent a leak.
     for (int i = 0; i < 5; i++) {
       delete extracted_messages[i];
-      extracted_messages[i] = NULL;
+      extracted_messages[i] = nullptr;
     }
   }
 
@@ -1322,7 +1358,7 @@ TEST(ArenaTest, MessageLiteOnArena) {
   {
 
     MessageLite* generic_message = prototype->New(&arena);
-    EXPECT_TRUE(generic_message != NULL);
+    EXPECT_TRUE(generic_message != nullptr);
     EXPECT_EQ(&arena, generic_message->GetArena());
     EXPECT_TRUE(generic_message->ParseFromString(serialized));
     TestAllTypes* deserialized = static_cast<TestAllTypes*>(generic_message);
@@ -1332,25 +1368,6 @@ TEST(ArenaTest, MessageLiteOnArena) {
   arena.Reset();
 }
 #endif  // PROTOBUF_RTTI
-
-// RepeatedField should support non-POD types, and invoke constructors and
-// destructors appropriately, because it's used this way by lots of other code
-// (even if this was not its original intent).
-TEST(ArenaTest, RepeatedFieldWithNonPODType) {
-  {
-    RepeatedField<std::string> field_on_heap;
-    for (int i = 0; i < 100; i++) {
-      *field_on_heap.Add() = "test string long enough to exceed inline buffer";
-    }
-  }
-  {
-    Arena arena;
-    RepeatedField<std::string> field_on_arena(&arena);
-    for (int i = 0; i < 100; i++) {
-      *field_on_arena.Add() = "test string long enough to exceed inline buffer";
-    }
-  }
-}
 
 // Align n to next multiple of 8
 uint64_t Align8(uint64_t n) { return (n + 7) & -8; }
@@ -1383,6 +1400,31 @@ TEST(ArenaTest, SpaceAllocated_and_Used) {
   EXPECT_EQ(1024, arena_2.Reset());
 }
 
+namespace {
+
+void VerifyArenaOverhead(Arena& arena, size_t overhead) {
+  EXPECT_EQ(0, arena.SpaceAllocated());
+
+  // Allocate a tiny block and record the allocation size.
+  constexpr size_t kTinySize = 8;
+  Arena::CreateArray<char>(&arena, kTinySize);
+  uint64_t space_allocated = arena.SpaceAllocated();
+
+  // Next allocation expects to fill up the block but no new block.
+  uint64_t next_size = space_allocated - overhead - kTinySize;
+  Arena::CreateArray<char>(&arena, next_size);
+
+  EXPECT_EQ(space_allocated, arena.SpaceAllocated());
+}
+
+}  // namespace
+
+TEST(ArenaTest, FirstArenaOverhead) {
+  Arena arena;
+  VerifyArenaOverhead(arena, internal::SerialArena::kBlockHeaderSize);
+}
+
+
 TEST(ArenaTest, BlockSizeDoubling) {
   Arena arena;
   EXPECT_EQ(0, arena.SpaceUsed());
@@ -1399,14 +1441,14 @@ TEST(ArenaTest, BlockSizeDoubling) {
   ASSERT_GT(arena.SpaceAllocated(), first_block_size);
   auto second_block_size = (arena.SpaceAllocated() - first_block_size);
 
-  EXPECT_EQ(second_block_size, 2*first_block_size);
+  EXPECT_GE(second_block_size, 2*first_block_size);
 }
 
 TEST(ArenaTest, Alignment) {
   Arena arena;
   for (int i = 0; i < 200; i++) {
     void* p = Arena::CreateArray<char>(&arena, i);
-    GOOGLE_CHECK_EQ(reinterpret_cast<uintptr_t>(p) % 8, 0) << i << ": " << p;
+    ABSL_CHECK_EQ(reinterpret_cast<uintptr_t>(p) % 8, 0) << i << ": " << p;
   }
 }
 
@@ -1430,44 +1472,21 @@ TEST(ArenaTest, GetArenaShouldReturnTheArenaForArenaAllocatedMessages) {
   Arena arena;
   ArenaMessage* message = Arena::CreateMessage<ArenaMessage>(&arena);
   const ArenaMessage* const_pointer_to_message = message;
-  EXPECT_EQ(&arena, Arena::GetArena(message));
-  EXPECT_EQ(&arena, Arena::GetArena(const_pointer_to_message));
+  EXPECT_EQ(&arena, message->GetArena());
+  EXPECT_EQ(&arena, const_pointer_to_message->GetArena());
 
   // Test that the Message* / MessageLite* specialization SFINAE works.
   const Message* const_pointer_to_message_type = message;
-  EXPECT_EQ(&arena, Arena::GetArena(const_pointer_to_message_type));
+  EXPECT_EQ(&arena, const_pointer_to_message_type->GetArena());
   const MessageLite* const_pointer_to_message_lite_type = message;
-  EXPECT_EQ(&arena, Arena::GetArena(const_pointer_to_message_lite_type));
+  EXPECT_EQ(&arena, const_pointer_to_message_lite_type->GetArena());
 }
 
 TEST(ArenaTest, GetArenaShouldReturnNullForNonArenaAllocatedMessages) {
   ArenaMessage message;
   const ArenaMessage* const_pointer_to_message = &message;
-  EXPECT_EQ(NULL, Arena::GetArena(&message));
-  EXPECT_EQ(NULL, Arena::GetArena(const_pointer_to_message));
-}
-
-TEST(ArenaTest, GetArenaShouldReturnNullForNonArenaCompatibleTypes) {
-  // Test that GetArena returns nullptr for types that have a GetArena method
-  // that doesn't return Arena*.
-  struct {
-    int GetArena() const { return 0; }
-  } has_get_arena_method_wrong_return_type;
-  EXPECT_EQ(nullptr, Arena::GetArena(&has_get_arena_method_wrong_return_type));
-
-  // Test that GetArena returns nullptr for types that have a GetArena alias.
-  struct {
-    using GetArena = Arena*;
-    GetArena unused;
-  } has_get_arena_alias;
-  EXPECT_EQ(nullptr, Arena::GetArena(&has_get_arena_alias));
-
-  // Test that GetArena returns nullptr for types that have a GetArena data
-  // member.
-  struct {
-    Arena GetArena;
-  } has_get_arena_data_member;
-  EXPECT_EQ(nullptr, Arena::GetArena(&has_get_arena_data_member));
+  EXPECT_EQ(nullptr, message.GetArena());
+  EXPECT_EQ(nullptr, const_pointer_to_message->GetArena());
 }
 
 TEST(ArenaTest, AddCleanup) {
@@ -1510,14 +1529,19 @@ TEST(ArenaTest, SpaceReuseForArraysSizeChecks) {
 TEST(ArenaTest, SpaceReusePoisonsAndUnpoisonsMemory) {
 #ifdef ADDRESS_SANITIZER
   char buf[1024]{};
+  constexpr int kSize = 32;
   {
     Arena arena(buf, sizeof(buf));
     std::vector<void*> pointers;
     for (int i = 0; i < 100; ++i) {
-      pointers.push_back(Arena::CreateArray<char>(&arena, 16));
+      void* p = Arena::CreateArray<char>(&arena, kSize);
+      // Simulate other ASan client managing shadow memory.
+      ASAN_POISON_MEMORY_REGION(p, kSize);
+      ASAN_UNPOISON_MEMORY_REGION(p, kSize - 4);
+      pointers.push_back(p);
     }
     for (void* p : pointers) {
-      internal::ArenaTestPeer::ReturnArrayMemory(&arena, p, 16);
+      internal::ArenaTestPeer::ReturnArrayMemory(&arena, p, kSize);
       // The first one is not poisoned because it becomes the freelist.
       if (p != pointers[0]) EXPECT_TRUE(__asan_address_is_poisoned(p));
     }
@@ -1542,93 +1566,8 @@ TEST(ArenaTest, SpaceReusePoisonsAndUnpoisonsMemory) {
 #endif  // ADDRESS_SANITIZER
 }
 
-namespace {
-uint32_t hooks_num_init = 0;
-uint32_t hooks_num_allocations = 0;
-uint32_t hooks_num_reset = 0;
-uint32_t hooks_num_destruct = 0;
-
-void ClearHookCounts() {
-  hooks_num_init = 0;
-  hooks_num_allocations = 0;
-  hooks_num_reset = 0;
-  hooks_num_destruct = 0;
-}
-}  // namespace
-
-// A helper utility class that handles arena callbacks.
-class ArenaOptionsTestFriend final : public internal::ArenaMetricsCollector {
- public:
-  static internal::ArenaMetricsCollector* NewWithAllocs() {
-    return new ArenaOptionsTestFriend(true);
-  }
-
-  static internal::ArenaMetricsCollector* NewWithoutAllocs() {
-    return new ArenaOptionsTestFriend(false);
-  }
-
-  static void Enable(ArenaOptions* options) {
-    ClearHookCounts();
-    options->make_metrics_collector = &ArenaOptionsTestFriend::NewWithAllocs;
-  }
-
-  static void EnableWithoutAllocs(ArenaOptions* options) {
-    ClearHookCounts();
-    options->make_metrics_collector = &ArenaOptionsTestFriend::NewWithoutAllocs;
-  }
-
-  explicit ArenaOptionsTestFriend(bool record_allocs)
-      : ArenaMetricsCollector(record_allocs) {
-    ++hooks_num_init;
-  }
-  void OnDestroy(uint64_t space_allocated) override {
-    ++hooks_num_destruct;
-    delete this;
-  }
-  void OnReset(uint64_t space_allocated) override { ++hooks_num_reset; }
-  void OnAlloc(const std::type_info* allocated_type,
-               uint64_t alloc_size) override {
-    ++hooks_num_allocations;
-  }
-};
-
-// Test the hooks are correctly called.
-TEST(ArenaTest, ArenaHooksSanity) {
-  ArenaOptions options;
-  ArenaOptionsTestFriend::Enable(&options);
-
-  // Scope for defining the arena
-  {
-    Arena arena(options);
-    EXPECT_EQ(1, hooks_num_init);
-    EXPECT_EQ(0, hooks_num_allocations);
-    Arena::Create<uint64_t>(&arena);
-    if (std::is_trivially_destructible<uint64_t>::value) {
-      EXPECT_EQ(1, hooks_num_allocations);
-    } else {
-      EXPECT_EQ(2, hooks_num_allocations);
-    }
-    arena.Reset();
-    arena.Reset();
-    EXPECT_EQ(2, hooks_num_reset);
-  }
-  EXPECT_EQ(2, hooks_num_reset);
-  EXPECT_EQ(1, hooks_num_destruct);
-}
-
-// Test that allocation hooks are not called when we don't need them.
-TEST(ArenaTest, ArenaHooksWhenAllocationsNotNeeded) {
-  ArenaOptions options;
-  ArenaOptionsTestFriend::EnableWithoutAllocs(&options);
-
-  Arena arena(options);
-  EXPECT_EQ(0, hooks_num_allocations);
-  Arena::Create<uint64_t>(&arena);
-  EXPECT_EQ(0, hooks_num_allocations);
-}
-
 
 }  // namespace protobuf
 }  // namespace google
 
-#include <google/protobuf/port_undef.inc>
+#include "google/protobuf/port_undef.inc"

@@ -31,11 +31,11 @@
 #ifndef GOOGLE_PROTOBUF_HAS_BITS_H__
 #define GOOGLE_PROTOBUF_HAS_BITS_H__
 
-#include <google/protobuf/stubs/common.h>
-#include <google/protobuf/port.h>
+#include "google/protobuf/stubs/common.h"
+#include "google/protobuf/port.h"
 
 // Must be included last.
-#include <google/protobuf/port_def.inc>
+#include "google/protobuf/port_def.inc"
 
 #ifdef SWIG
 #error "You cannot SWIG proto headers"
@@ -71,7 +71,7 @@ class HasBits {
   }
 
   void Or(const HasBits<doublewords>& rhs) {
-    for (size_t i = 0; i < doublewords; i++) has_bits_[i] |= rhs[i];
+    for (size_t i = 0; i < doublewords; i++) has_bits_[i] |= rhs.has_bits_[i];
   }
 
   bool empty() const;
@@ -112,6 +112,6 @@ inline bool HasBits<doublewords>::empty() const {
 }  // namespace protobuf
 }  // namespace google
 
-#include <google/protobuf/port_undef.inc>
+#include "google/protobuf/port_undef.inc"
 
 #endif  // GOOGLE_PROTOBUF_HAS_BITS_H__

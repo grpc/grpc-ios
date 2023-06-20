@@ -28,10 +28,10 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <google/protobuf/stubs/common.h>
-#include <google/protobuf/test_util.h>
-#include <google/protobuf/unittest.pb.h>
+#include "google/protobuf/stubs/common.h"
 #include <gtest/gtest.h>
+#include "google/protobuf/test_util.h"
+#include "google/protobuf/unittest.pb.h"
 
 #if LANG_CXX11
 #include <type_traits>

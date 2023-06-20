@@ -1,5 +1,7 @@
 
-CSOURCES = ares__close_sockets.c	\
+CSOURCES = ares__addrinfo2hostent.c	\
+  ares__addrinfo_localhost.c	\
+  ares__close_sockets.c	\
   ares__get_hostent.c			\
   ares__parse_into_addrinfo.c		\
   ares__readaddrinfo.c			\
@@ -39,9 +41,11 @@ CSOURCES = ares__close_sockets.c	\
   ares_parse_soa_reply.c		\
   ares_parse_srv_reply.c		\
   ares_parse_txt_reply.c		\
+  ares_parse_uri_reply.c		\
   ares_platform.c			\
   ares_process.c			\
   ares_query.c				\
+  ares_rand.c				\
   ares_search.c				\
   ares_send.c				\
   ares_strcasecmp.c			\
@@ -56,13 +60,12 @@ CSOURCES = ares__close_sockets.c	\
   inet_ntop.c				\
   windows_port.c
 
-HHEADERS = ares_android.h                        \
+HHEADERS = ares_android.h	\
   ares_data.h				\
   ares_getenv.h				\
   ares_inet_net_pton.h			\
   ares_iphlpapi.h			\
   ares_ipv6.h				\
-  ares_library_init.h			\
   ares_llist.h				\
   ares_nowarn.h				\
   ares_platform.h			\
@@ -72,7 +75,6 @@ HHEADERS = ares_android.h                        \
   ares_strsplit.h			\
   ares_writev.h				\
   bitncmp.h				\
-  ares_nameser.h			\
   ares_setup.h				\
   setup_once.h
 

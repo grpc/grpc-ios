@@ -78,6 +78,7 @@ import java.util.logging.Logger;
  *
  * @author kenton@google.com Kenton Varda
  */
+@CheckReturnValue
 public final class Descriptors {
   private static final Logger logger = Logger.getLogger(Descriptors.class.getName());
   private static final int[] EMPTY_INT_ARRAY = new int[0];
@@ -161,7 +162,9 @@ public final class Descriptors {
     }
 
     /** The syntax of the .proto file. */
-    public enum Syntax {
+    @Deprecated
+    public
+    enum Syntax {
       UNKNOWN("unknown"),
       PROTO2("proto2"),
       PROTO3("proto3");
@@ -174,11 +177,24 @@ public final class Descriptors {
     }
 
     /** Get the syntax of the .proto file. */
-    public Syntax getSyntax() {
+    @Deprecated
+    public
+    Syntax getSyntax() {
       if (Syntax.PROTO3.name.equals(proto.getSyntax())) {
         return Syntax.PROTO3;
       }
       return Syntax.PROTO2;
+    }
+
+    public void copyHeadingTo(FileDescriptorProto.Builder protoBuilder) {
+      protoBuilder.setName(getName()).setSyntax(getSyntax().name);
+      if (!getPackage().isEmpty()) {
+        protoBuilder.setPackage(getPackage());
+      }
+
+      if (!getOptions().equals(FileOptions.getDefaultInstance())) {
+        protoBuilder.setOptions(getOptions());
+      }
     }
 
     /**
@@ -302,9 +318,7 @@ public final class Descriptors {
      *     two messages were defined with the same name.
      */
     public static FileDescriptor buildFrom(
-        FileDescriptorProto proto,
-        FileDescriptor[] dependencies,
-        boolean allowUnknownDependencies)
+        FileDescriptorProto proto, FileDescriptor[] dependencies, boolean allowUnknownDependencies)
         throws DescriptorValidationException {
       // Building descriptors involves two steps:  translating and linking.
       // In the translation step (implemented by FileDescriptor's
@@ -461,21 +475,20 @@ public final class Descriptors {
     }
 
     /**
-     * This method is to be called by generated code only. It is used to update the
-     * FileDescriptorProto associated with the descriptor by parsing it again with the given
-     * ExtensionRegistry. This is needed to recognize custom options.
+     * This method is to be called by generated code only. It updates the FileDescriptorProto
+     * associated with the descriptor by parsing it again with the given ExtensionRegistry. This is
+     * needed to recognize custom options.
      */
     public static void internalUpdateFileDescriptor(
-        final FileDescriptor descriptor, final ExtensionRegistry registry) {
+        FileDescriptor descriptor, ExtensionRegistry registry) {
       ByteString bytes = descriptor.proto.toByteString();
-      FileDescriptorProto proto;
       try {
-        proto = FileDescriptorProto.parseFrom(bytes, registry);
+        FileDescriptorProto proto = FileDescriptorProto.parseFrom(bytes, registry);
+        descriptor.setProto(proto);
       } catch (InvalidProtocolBufferException e) {
         throw new IllegalArgumentException(
             "Failed to parse protocol buffer descriptor for generated code.", e);
       }
-      descriptor.setProto(proto);
     }
 
     /**
@@ -635,10 +648,6 @@ public final class Descriptors {
       for (int i = 0; i < extensions.length; i++) {
         extensions[i].setProto(proto.getExtension(i));
       }
-    }
-
-    boolean supportsUnknownEnumValue() {
-      return getSyntax() == Syntax.PROTO3;
     }
   }
 
@@ -1331,6 +1340,30 @@ public final class Descriptors {
     }
 
     /**
+     * Determines if the given enum field is treated as closed based on legacy non-conformant
+     * behavior.
+     *
+     * <p>Conformant behavior determines closedness based on the enum and can be queried using
+     * {@code EnumDescriptor.isClosed()}.
+     *
+     * <p>Some runtimes currently have a quirk where non-closed enums are treated as closed when
+     * used as the type of fields defined in a `syntax = proto2;` file. This quirk is not present in
+     * all runtimes; as of writing, we know that:
+     *
+     * <ul>
+     *   <li>C++, Java, and C++-based Python share this quirk.
+     *   <li>UPB and UPB-based Python do not.
+     *   <li>PHP and Ruby treat all enums as open regardless of declaration.
+     * </ul>
+     *
+     * <p>Care should be taken when using this function to respect the target runtime's enum
+     * handling quirks.
+     */
+    public boolean legacyEnumFieldTreatedAsClosed() {
+      return getType() == Type.ENUM && getFile().getSyntax() == Syntax.PROTO2;
+    }
+
+    /**
      * Compare with another {@code FieldDescriptor}. This orders fields in "canonical" order, which
      * simply means ascending order by field number. {@code other} must be a field of the same type.
      * That is, {@code getContainingType()} must return the same {@code Descriptor} for both fields.
@@ -1728,7 +1761,6 @@ public final class Descriptors {
       // down-cast and call mergeFrom directly.
       return ((Message.Builder) to).mergeFrom((Message) from);
     }
-
   }
 
   // =================================================================
@@ -1773,6 +1805,34 @@ public final class Descriptors {
       return file;
     }
 
+    /**
+     * Determines if the given enum is closed.
+     *
+     * <p>Closed enum means that it:
+     *
+     * <ul>
+     *   <li>Has a fixed set of values, rather than being equivalent to an int32.
+     *   <li>Encountering values not in this set causes them to be treated as unknown fields.
+     *   <li>The first value (i.e., the default) may be nonzero.
+     * </ul>
+     *
+     * <p>WARNING: Some runtimes currently have a quirk where non-closed enums are treated as closed
+     * when used as the type of fields defined in a `syntax = proto2;` file. This quirk is not
+     * present in all runtimes; as of writing, we know that:
+     *
+     * <ul>
+     *   <li> C++, Java, and C++-based Python share this quirk.
+     *   <li> UPB and UPB-based Python do not.
+     *   <li> PHP and Ruby treat all enums as open regardless of declaration.
+     * </ul>
+     *
+     * <p>Care should be taken when using this function to respect the target runtime's enum
+     * handling quirks.
+     */
+    public boolean isClosed() {
+      return getFile().getSyntax() != Syntax.PROTO3;
+    }
+
     /** If this is a nested type, get the outer descriptor, otherwise null. */
     public Descriptor getContainingType() {
       return containingType;
@@ -1786,6 +1846,27 @@ public final class Descriptors {
     /** Get a list of defined values for this enum. */
     public List<EnumValueDescriptor> getValues() {
       return Collections.unmodifiableList(Arrays.asList(values));
+    }
+
+    /** Determines if the given field number is reserved. */
+    public boolean isReservedNumber(final int number) {
+      for (final EnumDescriptorProto.EnumReservedRange range : proto.getReservedRangeList()) {
+        if (range.getStart() <= number && number <= range.getEnd()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /** Determines if the given field name is reserved. */
+    public boolean isReservedName(final String name) {
+      checkNotNull(name);
+      for (final String reservedName : proto.getReservedNameList()) {
+        if (reservedName.equals(name)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     /**

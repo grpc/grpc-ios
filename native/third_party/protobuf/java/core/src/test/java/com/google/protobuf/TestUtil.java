@@ -235,6 +235,7 @@ import protobuf_unittest.UnittestProto.TestRequired;
 import protobuf_unittest.UnittestProto.TestUnpackedTypes;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -2652,6 +2653,9 @@ public final class TestUtil {
       case FOO_LAZY_MESSAGE:
         Assert.assertTrue(message.hasFooLazyMessage());
         break;
+      case FOO_BYTES_CORD:
+        Assert.assertTrue(message.hasFooBytesCord());
+        break;
       case FOO_NOT_SET:
         break;
         // TODO(b/18683919): go/enum-switch-lsc
@@ -3842,7 +3846,11 @@ public final class TestUtil {
 
   private static ByteString readBytesFromResource(String name) {
     try {
-      return ByteString.readFrom(TestUtil.class.getResourceAsStream(name));
+      InputStream in = TestUtil.class.getResourceAsStream(name);
+      if (in == null) { //
+        throw new RuntimeException("Tests data file " + name + " is missing.");
+      }
+      return ByteString.readFrom(in);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

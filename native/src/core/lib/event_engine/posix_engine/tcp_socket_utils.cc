@@ -125,9 +125,11 @@ absl::Status PrepareTcpClientSocket(PosixSocketWrapper sock,
   });
   GRPC_RETURN_IF_ERROR(sock.SetSocketNonBlocking(1));
   GRPC_RETURN_IF_ERROR(sock.SetSocketCloexec(1));
-
-  if (reinterpret_cast<const sockaddr*>(addr.address())->sa_family != AF_UNIX) {
-    // If its not a unix socket address.
+  if (options.tcp_receive_buffer_size != options.kReadBufferSizeUnset) {
+    GRPC_RETURN_IF_ERROR(sock.SetSocketRcvBuf(options.tcp_receive_buffer_size));
+  }
+  if (addr.address()->sa_family != AF_UNIX && !ResolvedAddressIsVSock(addr)) {
+    // If its not a unix socket or vsock address.
     GRPC_RETURN_IF_ERROR(sock.SetSocketLowLatency(1));
     GRPC_RETURN_IF_ERROR(sock.SetSocketReuseAddr(1));
     sock.TrySetSocketTcpUserTimeout(options, true);
@@ -169,6 +171,9 @@ PosixTcpOptions TcpOptionsFromEndpointConfig(const EndpointConfig& config) {
   options.tcp_tx_zerocopy_max_simultaneous_sends =
       AdjustValue(PosixTcpOptions::kDefaultMaxSends, 0, INT_MAX,
                   config.GetInt(GRPC_ARG_TCP_TX_ZEROCOPY_MAX_SIMULT_SENDS));
+  options.tcp_receive_buffer_size =
+      AdjustValue(PosixTcpOptions::kReadBufferSizeUnset, 0, INT_MAX,
+                  config.GetInt(GRPC_ARG_TCP_RECEIVE_BUFFER_SIZE));
   options.tcp_tx_zero_copy_enabled =
       (AdjustValue(PosixTcpOptions::kZerocpTxEnabledDefault, 0, 1,
                    config.GetInt(GRPC_ARG_TCP_TX_ZEROCOPY_ENABLED)) != 0);

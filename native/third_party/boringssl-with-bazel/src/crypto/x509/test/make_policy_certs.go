@@ -12,6 +12,8 @@
 // OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 // CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+//go:build ignore
+
 // make_policy_certs.go generates certificates for testing policy handling.
 package main
 
@@ -301,6 +303,10 @@ func main() {
 	mustGenerateCertificate("policy_leaf_oid4.pem", &leafSingle, &intermediate)
 	leafSingle.template.PolicyIdentifiers = []asn1.ObjectIdentifier{testOID5}
 	mustGenerateCertificate("policy_leaf_oid5.pem", &leafSingle, &intermediate)
+
+	leafNone := leaf
+	leafNone.template.PolicyIdentifiers = nil
+	mustGenerateCertificate("policy_leaf_none.pem", &leafNone, &intermediate)
 
 	// Make version of Root, signed by Root 2, with policy mapping inhibited.
 	// This can be combined with intermediateMapped to test the combination.

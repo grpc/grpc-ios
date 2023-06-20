@@ -85,7 +85,7 @@ static int asn1_template_ex_d2i(ASN1_VALUE **pval, const unsigned char **in,
 static int asn1_template_noexp_d2i(ASN1_VALUE **val, const unsigned char **in,
                                    long len, const ASN1_TEMPLATE *tt, char opt,
                                    CRYPTO_BUFFER *buf, int depth);
-static int asn1_ex_c2i(ASN1_VALUE **pval, const unsigned char *cont, int len,
+static int asn1_ex_c2i(ASN1_VALUE **pval, const unsigned char *cont, long len,
                        int utype, const ASN1_ITEM *it);
 static int asn1_d2i_ex_primitive(ASN1_VALUE **pval, const unsigned char **in,
                                  long len, const ASN1_ITEM *it, int tag,
@@ -749,7 +749,7 @@ err:
 
 // Translate ASN1 content octets into a structure
 
-static int asn1_ex_c2i(ASN1_VALUE **pval, const unsigned char *cont, int len,
+static int asn1_ex_c2i(ASN1_VALUE **pval, const unsigned char *cont, long len,
                        int utype, const ASN1_ITEM *it) {
   ASN1_VALUE **opval = NULL;
   ASN1_STRING *stmp;
@@ -837,7 +837,14 @@ static int asn1_ex_c2i(ASN1_VALUE **pval, const unsigned char *cont, int len,
     case V_ASN1_UTF8STRING:
     case V_ASN1_OTHER:
     case V_ASN1_SET:
-    case V_ASN1_SEQUENCE: {
+    case V_ASN1_SEQUENCE:
+    // TODO(crbug.com/boringssl/412): This default case should be removed, now
+    // that we've resolved https://crbug.com/boringssl/561. However, it is still
+    // needed to support some edge cases in |ASN1_PRINTABLE|. |ASN1_PRINTABLE|
+    // broadly doesn't tolerate unrecognized universal tags, but except for
+    // eight values that map to |B_ASN1_UNKNOWN| instead of zero. See the
+    // X509Test.NameAttributeValues test.
+    default: {
       CBS cbs;
       CBS_init(&cbs, cont, (size_t)len);
       if (utype == V_ASN1_BMPSTRING) {
@@ -900,9 +907,6 @@ static int asn1_ex_c2i(ASN1_VALUE **pval, const unsigned char *cont, int len,
       }
       break;
     }
-    default:
-      OPENSSL_PUT_ERROR(ASN1, ASN1_R_BAD_TEMPLATE);
-      goto err;
   }
   // If ASN1_ANY and NULL type fix up value
   if (typ && (utype == V_ASN1_NULL)) {

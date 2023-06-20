@@ -32,19 +32,18 @@
 //  Based on original Protocol Buffers design by
 //  Sanjay Ghemawat, Jeff Dean, and others.
 
-#include <google/protobuf/compiler/java/enum_lite.h>
+#include "google/protobuf/compiler/java/enum_lite.h"
 
-#include <map>
 #include <string>
 
-#include <google/protobuf/io/printer.h>
-#include <google/protobuf/stubs/strutil.h>
-#include <google/protobuf/compiler/java/context.h>
-#include <google/protobuf/compiler/java/doc_comment.h>
-#include <google/protobuf/compiler/java/helpers.h>
-#include <google/protobuf/compiler/java/name_resolver.h>
-#include <google/protobuf/descriptor.pb.h>
-#include <google/protobuf/stubs/map_util.h>
+#include "absl/container/flat_hash_map.h"
+#include "absl/strings/str_cat.h"
+#include "google/protobuf/compiler/java/context.h"
+#include "google/protobuf/compiler/java/doc_comment.h"
+#include "google/protobuf/compiler/java/helpers.h"
+#include "google/protobuf/compiler/java/name_resolver.h"
+#include "google/protobuf/descriptor.pb.h"
+#include "google/protobuf/io/printer.h"
 
 namespace google {
 namespace protobuf {
@@ -87,9 +86,9 @@ void EnumLiteGenerator::Generate(io::Printer* printer) {
   printer->Indent();
 
   for (int i = 0; i < canonical_values_.size(); i++) {
-    std::map<std::string, std::string> vars;
+    absl::flat_hash_map<absl::string_view, std::string> vars;
     vars["name"] = canonical_values_[i]->name();
-    vars["number"] = StrCat(canonical_values_[i]->number());
+    vars["number"] = absl::StrCat(canonical_values_[i]->number());
     WriteEnumValueDocComment(printer, canonical_values_[i]);
     if (canonical_values_[i]->options().deprecated()) {
       printer->Print("@java.lang.Deprecated\n");
@@ -98,7 +97,7 @@ void EnumLiteGenerator::Generate(io::Printer* printer) {
     printer->Annotate("name", canonical_values_[i]);
   }
 
-  if (SupportUnknownEnumValue(descriptor_->file())) {
+  if (!descriptor_->is_closed()) {
     printer->Print("${$UNRECOGNIZED$}$(-1),\n", "{", "", "}", "");
     printer->Annotate("{", "}", descriptor_);
   }
@@ -110,7 +109,7 @@ void EnumLiteGenerator::Generate(io::Printer* printer) {
   // -----------------------------------------------------------------
 
   for (int i = 0; i < aliases_.size(); i++) {
-    std::map<std::string, std::string> vars;
+    absl::flat_hash_map<absl::string_view, std::string> vars;
     vars["classname"] = descriptor_->name();
     vars["name"] = aliases_[i].value->name();
     vars["canonical_name"] = aliases_[i].canonical_value->name();
@@ -121,9 +120,9 @@ void EnumLiteGenerator::Generate(io::Printer* printer) {
   }
 
   for (int i = 0; i < descriptor_->value_count(); i++) {
-    std::map<std::string, std::string> vars;
+    absl::flat_hash_map<absl::string_view, std::string> vars;
     vars["name"] = descriptor_->value(i)->name();
-    vars["number"] = StrCat(descriptor_->value(i)->number());
+    vars["number"] = absl::StrCat(descriptor_->value(i)->number());
     vars["{"] = "";
     vars["}"] = "";
     vars["deprecation"] = descriptor_->value(i)->options().deprecated()
@@ -143,7 +142,7 @@ void EnumLiteGenerator::Generate(io::Printer* printer) {
       "\n"
       "@java.lang.Override\n"
       "public final int getNumber() {\n");
-  if (SupportUnknownEnumValue(descriptor_->file())) {
+  if (!descriptor_->is_closed()) {
     printer->Print(
         "  if (this == UNRECOGNIZED) {\n"
         "    throw new java.lang.IllegalArgumentException(\n"
@@ -153,17 +152,26 @@ void EnumLiteGenerator::Generate(io::Printer* printer) {
   printer->Print(
       "  return value;\n"
       "}\n"
-      "\n"
-      "/**\n"
-      " * @param value The number of the enum to look for.\n"
-      " * @return The enum associated with the given number.\n"
-      " * @deprecated Use {@link #forNumber(int)} instead.\n"
-      " */\n"
-      "@java.lang.Deprecated\n"
-      "public static $classname$ valueOf(int value) {\n"
-      "  return forNumber(value);\n"
-      "}\n"
-      "\n"
+      "\n");
+  if (context_->options().opensource_runtime) {
+    printer->Print(
+        "/**\n"
+        " * @param value The number of the enum to look for.\n"
+        " * @return The enum associated with the given number.\n"
+        " * @deprecated Use {@link #forNumber(int)} instead.\n"
+        " */\n"
+        "@java.lang.Deprecated\n"
+        "public static $classname$ valueOf(int value) {\n"
+        "  return forNumber(value);\n"
+        "}\n"
+        "\n",
+        "classname", descriptor_->name());
+  }
+
+  if (!context_->options().opensource_runtime) {
+    printer->Print("@com.google.protobuf.Internal.ProtoMethodMayReturnNull\n");
+  }
+  printer->Print(
       "public static $classname$ forNumber(int value) {\n"
       "  switch (value) {\n",
       "classname", descriptor_->name());
@@ -173,7 +181,7 @@ void EnumLiteGenerator::Generate(io::Printer* printer) {
   for (int i = 0; i < canonical_values_.size(); i++) {
     printer->Print("case $number$: return $name$;\n", "name",
                    canonical_values_[i]->name(), "number",
-                   StrCat(canonical_values_[i]->number()));
+                   absl::StrCat(canonical_values_[i]->number()));
   }
 
   printer->Outdent();
@@ -212,6 +220,35 @@ void EnumLiteGenerator::Generate(io::Printer* printer) {
       "      };\n"
       "\n",
       "classname", descriptor_->name());
+  if (!context_->options().opensource_runtime) {
+    printer->Print(
+        "/**\n"
+        " * Override of toString that prints the number and name.\n"
+        " * This is primarily intended as a developer aid.\n"
+        " *\n"
+        " * <p>NOTE: This implementation is liable to change in the future,\n"
+        " * and should not be relied on in code.\n"
+        " */\n"
+        "@java.lang.Override\n"
+        "public java.lang.String toString() {\n"
+        "  StringBuilder result = new StringBuilder(\"<\");\n"
+        "  result.append(getClass().getName()).append('@')\n"
+        "      .append(java.lang.Integer.toHexString(\n"
+        "        java.lang.System.identityHashCode(this)));\n");
+    if (!descriptor_->is_closed()) {
+      printer->Print(
+          "  if (this != UNRECOGNIZED) {\n"
+          "    result.append(\" number=\").append(getNumber());\n"
+          "  }\n");
+    } else {
+      printer->Print("  result.append(\" number=\").append(getNumber());\n");
+    }
+    printer->Print(
+        "  return result.append(\" name=\")\n"
+        "      .append(name()).append('>').toString();\n"
+        "}\n"
+        "\n");
+  }
 
   printer->Print(
       "private final int value;\n\n"

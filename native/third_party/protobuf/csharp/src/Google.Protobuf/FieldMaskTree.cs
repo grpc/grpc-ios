@@ -120,8 +120,7 @@ namespace Google.Protobuf
                     return this;
                 }
 
-                Node childNode;
-                if (!node.Children.TryGetValue(part, out childNode))
+                if (!node.Children.TryGetValue(part, out Node childNode))
                 {
                     createNewBranch = true;
                     childNode = new Node();
@@ -333,15 +332,24 @@ namespace Google.Protobuf
                         {
                             if (sourceField != null)
                             {
-                                var sourceByteString = ((IMessage)sourceField).ToByteString();
-                                var destinationValue = (IMessage)field.Accessor.GetValue(destination);
-                                if (destinationValue != null)
+                                // Well-known wrapper types are represented as nullable primitive types, so we do not "merge" them.
+                                // Instead, any non-null value just overwrites the previous value directly.
+                                if (field.MessageType.IsWrapperType)
                                 {
-                                    destinationValue.MergeFrom(sourceByteString);
+                                    field.Accessor.SetValue(destination, sourceField);
                                 }
                                 else
                                 {
-                                    field.Accessor.SetValue(destination, field.MessageType.Parser.ParseFrom(sourceByteString));
+                                    var sourceByteString = ((IMessage)sourceField).ToByteString();
+                                    var destinationValue = (IMessage)field.Accessor.GetValue(destination);
+                                    if (destinationValue != null)
+                                    {
+                                        destinationValue.MergeFrom(sourceByteString);
+                                    }
+                                    else
+                                    {
+                                        field.Accessor.SetValue(destination, field.MessageType.Parser.ParseFrom(sourceByteString));
+                                    }
                                 }
                             }
                         }

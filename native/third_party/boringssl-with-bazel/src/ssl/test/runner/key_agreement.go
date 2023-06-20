@@ -17,7 +17,7 @@ import (
 	"io"
 	"math/big"
 
-	"boringssl.googlesource.com/boringssl/ssl/test/runner/hrss"
+	"boringssl.googlesource.com/boringssl/ssl/test/runner/kyber"
 	"golang.org/x/crypto/curve25519"
 )
 
@@ -341,32 +341,35 @@ func (e *x25519KEM) decap(ciphertext []byte) (secret []byte, err error) {
 	return out[:], nil
 }
 
-// cecpq2KEM implements CECPQ2, which is HRSS+SXY combined with X25519.
-type cecpq2KEM struct {
+// kyberKEM implements Kyber combined with X25519.
+type kyberKEM struct {
 	x25519PrivateKey [32]byte
-	hrssPrivateKey   hrss.PrivateKey
+	kyberPrivateKey  *kyber.PrivateKey
 }
 
-func (e *cecpq2KEM) generate(rand io.Reader) (publicKey []byte, err error) {
+func (e *kyberKEM) generate(rand io.Reader) (publicKey []byte, err error) {
 	if _, err := io.ReadFull(rand, e.x25519PrivateKey[:]); err != nil {
 		return nil, err
 	}
-
 	var x25519Public [32]byte
 	curve25519.ScalarBaseMult(&x25519Public, &e.x25519PrivateKey)
 
-	e.hrssPrivateKey = hrss.GenerateKey(rand)
-	hrssPublic := e.hrssPrivateKey.PublicKey.Marshal()
+	var kyberEntropy [64]byte
+	if _, err := io.ReadFull(rand, kyberEntropy[:]); err != nil {
+		return nil, err
+	}
+	var kyberPublic *[kyber.PublicKeySize]byte
+	e.kyberPrivateKey, kyberPublic = kyber.NewPrivateKey(&kyberEntropy)
 
 	var ret []byte
 	ret = append(ret, x25519Public[:]...)
-	ret = append(ret, hrssPublic...)
+	ret = append(ret, kyberPublic[:]...)
 	return ret, nil
 }
 
-func (e *cecpq2KEM) encap(rand io.Reader, peerKey []byte) (ciphertext []byte, secret []byte, err error) {
-	if len(peerKey) != 32+hrss.PublicKeySize {
-		return nil, nil, errors.New("tls: bad length CECPQ2 offer")
+func (e *kyberKEM) encap(rand io.Reader, peerKey []byte) (ciphertext []byte, secret []byte, err error) {
+	if len(peerKey) != 32+kyber.PublicKeySize {
+		return nil, nil, errors.New("tls: bad length Kyber offer")
 	}
 
 	if _, err := io.ReadFull(rand, e.x25519PrivateKey[:]); err != nil {
@@ -384,24 +387,28 @@ func (e *cecpq2KEM) encap(rand io.Reader, peerKey []byte) (ciphertext []byte, se
 		return nil, nil, errors.New("tls: X25519 value with wrong order")
 	}
 
-	hrssPublicKey, ok := hrss.ParsePublicKey(peerKey[32:])
+	kyberPublicKey, ok := kyber.UnmarshalPublicKey((*[kyber.PublicKeySize]byte)(peerKey[32:]))
 	if !ok {
-		return nil, nil, errors.New("tls: bad CECPQ2 offer")
+		return nil, nil, errors.New("tls: bad Kyber offer")
 	}
 
-	hrssCiphertext, hrssShared := hrssPublicKey.Encap(rand)
+	var kyberShared, kyberEntropy [32]byte
+	if _, err := io.ReadFull(rand, kyberEntropy[:]); err != nil {
+		return nil, nil, err
+	}
+	kyberCiphertext := kyberPublicKey.Encap(kyberShared[:], &kyberEntropy)
 
 	ciphertext = append(ciphertext, x25519Public[:]...)
-	ciphertext = append(ciphertext, hrssCiphertext...)
+	ciphertext = append(ciphertext, kyberCiphertext[:]...)
 	secret = append(secret, x25519Shared[:]...)
-	secret = append(secret, hrssShared...)
+	secret = append(secret, kyberShared[:]...)
 
 	return ciphertext, secret, nil
 }
 
-func (e *cecpq2KEM) decap(ciphertext []byte) (secret []byte, err error) {
-	if len(ciphertext) != 32+hrss.CiphertextSize {
-		return nil, errors.New("tls: bad length CECPQ2 reply")
+func (e *kyberKEM) decap(ciphertext []byte) (secret []byte, err error) {
+	if len(ciphertext) != 32+kyber.CiphertextSize {
+		return nil, errors.New("tls: bad length Kyber reply")
 	}
 
 	var x25519Shared, x25519PeerKey [32]byte
@@ -414,13 +421,11 @@ func (e *cecpq2KEM) decap(ciphertext []byte) (secret []byte, err error) {
 		return nil, errors.New("tls: X25519 value with wrong order")
 	}
 
-	hrssShared, ok := e.hrssPrivateKey.Decap(ciphertext[32:])
-	if !ok {
-		return nil, errors.New("tls: invalid HRSS ciphertext")
-	}
+	var kyberShared [32]byte
+	e.kyberPrivateKey.Decap(kyberShared[:], (*[kyber.CiphertextSize]byte)(ciphertext[32:]))
 
 	secret = append(secret, x25519Shared[:]...)
-	secret = append(secret, hrssShared...)
+	secret = append(secret, kyberShared[:]...)
 
 	return secret, nil
 }
@@ -437,8 +442,8 @@ func kemForCurveID(id CurveID, config *Config) (kemImplementation, bool) {
 		return &ecdhKEM{curve: elliptic.P521(), sendCompressed: config.Bugs.SendCompressedCoordinates}, true
 	case CurveX25519:
 		return &x25519KEM{setHighBit: config.Bugs.SetX25519HighBit}, true
-	case CurveCECPQ2:
-		return &cecpq2KEM{}, true
+	case CurveX25519Kyber768:
+		return &kyberKEM{}, true
 	default:
 		return nil, false
 	}
@@ -587,7 +592,7 @@ func (ka *ecdheKeyAgreement) generateServerKeyExchange(config *Config, cert *Cer
 NextCandidate:
 	for _, candidate := range preferredCurves {
 		if isPqGroup(candidate) && version < VersionTLS13 {
-			// CECPQ2 is TLS 1.3-only.
+			// Post-quantum "groups" require TLS 1.3.
 			continue
 		}
 

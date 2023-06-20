@@ -67,6 +67,7 @@ set(
   crypto/hmac_extra/hmac_tests.txt
   crypto/hpke/hpke_test_vectors.txt
   crypto/kyber/keccak_tests.txt
+  crypto/kyber/kyber_tests.txt
   crypto/pkcs8/test/empty_password.p12
   crypto/pkcs8/test/no_encryption.p12
   crypto/pkcs8/test/nss.p12
@@ -127,6 +128,7 @@ set(
   crypto/x509/test/policy_leaf_any.pem
   crypto/x509/test/policy_leaf_duplicate.pem
   crypto/x509/test/policy_leaf_invalid.pem
+  crypto/x509/test/policy_leaf_none.pem
   crypto/x509/test/policy_leaf_oid1.pem
   crypto/x509/test/policy_leaf_oid2.pem
   crypto/x509/test/policy_leaf_oid3.pem

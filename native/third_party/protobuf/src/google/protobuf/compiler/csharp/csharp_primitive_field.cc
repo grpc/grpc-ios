@@ -28,19 +28,20 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "google/protobuf/compiler/csharp/csharp_primitive_field.h"
+
 #include <sstream>
+#include <string>
+#include <utility>
 
-#include <google/protobuf/compiler/code_generator.h>
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/descriptor.pb.h>
-#include <google/protobuf/io/printer.h>
-#include <google/protobuf/io/zero_copy_stream.h>
-#include <google/protobuf/stubs/strutil.h>
-
-#include <google/protobuf/compiler/csharp/csharp_doc_comment.h>
-#include <google/protobuf/compiler/csharp/csharp_helpers.h>
-#include <google/protobuf/compiler/csharp/csharp_options.h>
-#include <google/protobuf/compiler/csharp/csharp_primitive_field.h>
+#include "google/protobuf/compiler/code_generator.h"
+#include "absl/strings/str_cat.h"
+#include "google/protobuf/compiler/csharp/csharp_doc_comment.h"
+#include "google/protobuf/compiler/csharp/csharp_helpers.h"
+#include "google/protobuf/compiler/csharp/csharp_options.h"
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/descriptor.pb.h"
+#include "google/protobuf/io/printer.h"
 
 namespace google {
 namespace protobuf {
@@ -54,8 +55,11 @@ PrimitiveFieldGenerator::PrimitiveFieldGenerator(
   is_value_type = descriptor->type() != FieldDescriptor::TYPE_STRING
       && descriptor->type() != FieldDescriptor::TYPE_BYTES;
   if (!is_value_type && !SupportsPresenceApi(descriptor_)) {
-    variables_["has_property_check"] = variables_["property_name"] + ".Length != 0";
-    variables_["other_has_property_check"] = "other." + variables_["property_name"] + ".Length != 0";
+    std::string property_name = variables_["property_name"];
+    variables_["has_property_check"] =
+        absl::StrCat(property_name, ".Length != 0");
+    variables_["other_has_property_check"] =
+        absl::StrCat("other.", property_name, ".Length != 0");
   }
 }
 
@@ -63,28 +67,28 @@ PrimitiveFieldGenerator::~PrimitiveFieldGenerator() {
 }
 
 void PrimitiveFieldGenerator::GenerateMembers(io::Printer* printer) {
-  
   // Note: in multiple places, this code assumes that all fields
   // that support presence are either nullable, or use a presence field bit.
   // Fields which are oneof members are not generated here; they're generated in PrimitiveOneofFieldGenerator below.
   // Extensions are not generated here either.
 
-
-  // Proto2 allows different default values to be specified. These are retained
-  // via static fields. They don't particularly need to be, but we don't need
-  // to change that. In Proto3 the default value we don't generate these
-  // fields, just using the literal instead.
-  if (IsProto2(descriptor_->file())) {
+  // Explicit presence allows different default values to be specified. These
+  // are retained via static fields. They don't particularly need to be, but we
+  // don't need to change that. Under implicit presence we don't use static
+  // fields for default values and just use the literals instead.
+  if (descriptor_->has_presence()) {
     // Note: "private readonly static" isn't as idiomatic as
     // "private static readonly", but changing this now would create a lot of
     // churn in generated code with near-to-zero benefit.
     printer->Print(
       variables_,
       "private readonly static $type_name$ $property_name$DefaultValue = $default_value$;\n\n");
+    std::string property_name = variables_["property_name"];
     variables_["default_value_access"] =
-      variables_["property_name"] + "DefaultValue";
+        absl::StrCat(property_name, "DefaultValue");
   } else {
-    variables_["default_value_access"] = variables_["default_value"];
+    std::string default_value = variables_["default_value"];
+    variables_["default_value_access"] = std::move(default_value);
   }
 
   // Declare the field itself.
@@ -215,7 +219,7 @@ void PrimitiveFieldGenerator::GenerateSerializedSizeCode(io::Printer* printer) {
   } else {
     printer->Print(
       "size += $tag_size$ + $fixed_size$;\n",
-      "fixed_size", StrCat(fixedSize),
+      "fixed_size", absl::StrCat(fixedSize),
       "tag_size", variables_["tag_size"]);
   }
   printer->Outdent();

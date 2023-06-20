@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -365,7 +366,7 @@ std::vector<Flag> SortedFlags() {
       IntFlag("-install-one-cert-compression-alg",
               &TestConfig::install_one_cert_compression_alg),
       BoolFlag("-reverify-on-resume", &TestConfig::reverify_on_resume),
-      BoolFlag("-enforce-rsa-key-usage", &TestConfig::enforce_rsa_key_usage),
+      BoolFlag("-ignore-rsa-key-usage", &TestConfig::ignore_rsa_key_usage),
       BoolFlag("-expect-key-usage-invalid",
                &TestConfig::expect_key_usage_invalid),
       BoolFlag("-is-handshaker-supported",
@@ -389,6 +390,7 @@ std::vector<Flag> SortedFlags() {
       IntFlag("-early-write-after-message",
               &TestConfig::early_write_after_message),
       BoolFlag("-fips-202205", &TestConfig::fips_202205),
+      BoolFlag("-wpa-202304", &TestConfig::wpa_202304),
   };
   std::sort(flags.begin(), flags.end(), [](const Flag &a, const Flag &b) {
     return strcmp(a.name, b.name) < 0;
@@ -572,8 +574,13 @@ static int NextProtosAdvertisedCallback(SSL *ssl, const uint8_t **out,
     return SSL_TLSEXT_ERR_NOACK;
   }
 
-  *out = (const uint8_t *)config->advertise_npn.data();
-  *out_len = config->advertise_npn.size();
+  if (config->advertise_npn.size() > UINT_MAX) {
+    fprintf(stderr, "NPN value too large.\n");
+    return SSL_TLSEXT_ERR_ALERT_FATAL;
+  }
+
+  *out = reinterpret_cast<const uint8_t *>(config->advertise_npn.data());
+  *out_len = static_cast<unsigned>(config->advertise_npn.size());
   return SSL_TLSEXT_ERR_OK;
 }
 
@@ -1384,7 +1391,7 @@ bssl::UniquePtr<SSL_CTX> TestConfig::SetupCtx(SSL_CTX *old_ctx) const {
 
   SSL_CTX_set0_buffer_pool(ssl_ctx.get(), g_pool);
 
-  std::string cipher_list = "ALL";
+  std::string cipher_list = "ALL:TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256";
   if (!cipher.empty()) {
     cipher_list = cipher;
     SSL_CTX_set_options(ssl_ctx.get(), SSL_OP_CIPHER_SERVER_PREFERENCE);
@@ -1735,8 +1742,8 @@ bssl::UniquePtr<SSL> TestConfig::NewSSL(
   if (reverify_on_resume) {
     SSL_CTX_set_reverify_on_resume(ssl_ctx, 1);
   }
-  if (enforce_rsa_key_usage) {
-    SSL_set_enforce_rsa_key_usage(ssl.get(), 1);
+  if (ignore_rsa_key_usage) {
+    SSL_set_enforce_rsa_key_usage(ssl.get(), 0);
   }
   if (no_tls13) {
     SSL_set_options(ssl.get(), SSL_OP_NO_TLSv1_3);
@@ -1759,8 +1766,17 @@ bssl::UniquePtr<SSL> TestConfig::NewSSL(
   if (enable_ech_grease) {
     SSL_set_enable_ech_grease(ssl.get(), 1);
   }
+  if (static_cast<int>(fips_202205) + static_cast<int>(wpa_202304) > 1) {
+    fprintf(stderr, "Multiple policy options given\n");
+    return nullptr;
+  }
   if (fips_202205 && !SSL_set_compliance_policy(
                          ssl.get(), ssl_compliance_policy_fips_202205)) {
+    fprintf(stderr, "SSL_set_compliance_policy failed\n");
+    return nullptr;
+  }
+  if (wpa_202304 && !SSL_set_compliance_policy(
+                         ssl.get(), ssl_compliance_policy_wpa3_192_202304)) {
     fprintf(stderr, "SSL_set_compliance_policy failed\n");
     return nullptr;
   }
@@ -1903,8 +1919,8 @@ bssl::UniquePtr<SSL> TestConfig::NewSSL(
           nids.push_back(NID_X25519);
           break;
 
-        case SSL_CURVE_CECPQ2:
-          nids.push_back(NID_CECPQ2);
+        case SSL_CURVE_X25519_KYBER768_DRAFT00:
+          nids.push_back(NID_X25519Kyber768Draft00);
           break;
       }
       if (!SSL_set1_curves(ssl.get(), &nids[0], nids.size())) {

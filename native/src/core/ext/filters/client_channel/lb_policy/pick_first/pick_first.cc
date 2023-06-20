@@ -35,6 +35,7 @@
 #include <grpc/impl/connectivity_state.h>
 #include <grpc/support/log.h>
 
+#include "src/core/ext/filters/client_channel/lb_policy/outlier_detection/outlier_detection.h"
 #include "src/core/ext/filters/client_channel/lb_policy/subchannel_list.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/config/core_configuration.h"
@@ -42,6 +43,7 @@
 #include "src/core/lib/gprpp/debug_location.h"
 #include "src/core/lib/gprpp/orphanable.h"
 #include "src/core/lib/gprpp/ref_counted_ptr.h"
+#include "src/core/lib/gprpp/work_serializer.h"
 #include "src/core/lib/json/json.h"
 #include "src/core/lib/load_balancing/lb_policy.h"
 #include "src/core/lib/load_balancing/lb_policy_factory.h"
@@ -130,6 +132,10 @@ class PickFirst : public LoadBalancingPolicy {
     void set_attempting_index(size_t index) { attempting_index_ = index; }
 
    private:
+    std::shared_ptr<WorkSerializer> work_serializer() const override {
+      return static_cast<PickFirst*>(policy())->work_serializer();
+    }
+
     bool in_transient_failure_ = false;
     size_t attempting_index_ = 0;
   };
@@ -235,12 +241,6 @@ void PickFirst::AttemptToConnectUsingLatestUpdateArgsLocked() {
         MakeRefCounted<TransientFailurePicker>(status));
     channel_control_helper()->RequestReresolution();
   }
-  // Otherwise, if this is the initial update, report CONNECTING.
-  else if (subchannel_list_.get() == nullptr) {
-    channel_control_helper()->UpdateState(
-        GRPC_CHANNEL_CONNECTING, absl::Status(),
-        MakeRefCounted<QueuePicker>(Ref(DEBUG_LOCATION, "QueuePicker")));
-  }
   // If the new update is empty or we don't yet have a selected subchannel in
   // the current list, replace the current subchannel list immediately.
   if (latest_pending_subchannel_list_->num_subchannels() == 0 ||
@@ -274,6 +274,19 @@ absl::Status PickFirst::UpdateLocked(UpdateArgs args) {
     status = args.addresses.status();
   } else if (args.addresses->empty()) {
     status = absl::UnavailableError("address list must not be empty");
+  }
+  // TODO(roth): This is a hack to disable outlier_detection when used
+  // with pick_first, for the reasons described in
+  // https://github.com/grpc/grpc/issues/32967.  Remove this when
+  // implementing the dualstack design.
+  if (args.addresses.ok()) {
+    ServerAddressList addresses;
+    for (const auto& address : *args.addresses) {
+      addresses.emplace_back(address.WithAttribute(
+          DisableOutlierDetectionAttribute::kName,
+          std::make_unique<DisableOutlierDetectionAttribute>()));
+    }
+    args.addresses = std::move(addresses);
   }
   // If the update contains a resolver error and we have a previous update
   // that was not a resolver error, keep using the previous addresses.

@@ -1,3 +1,4 @@
+// -*- c++ -*-
 // Protocol Buffers - Google's data interchange format
 // Copyright 2008 Google Inc.  All rights reserved.
 // https://developers.google.com/protocol-buffers/
@@ -28,9 +29,9 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/map_test_util_impl.h>
-#include <google/protobuf/message.h>
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/map_test_util_impl.h"
+#include "google/protobuf/message.h"
 
 namespace google {
 namespace protobuf {

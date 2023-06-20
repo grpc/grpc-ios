@@ -280,10 +280,10 @@ func (hs *serverHandshakeState) readClientHello() error {
 		}
 	}
 
-	if config.Bugs.FailIfCECPQ2Offered {
+	if config.Bugs.FailIfKyberOffered {
 		for _, offeredCurve := range hs.clientHello.supportedCurves {
 			if isPqGroup(offeredCurve) {
-				return errors.New("tls: CECPQ2 was offered")
+				return errors.New("tls: X25519Kyber768 was offered")
 			}
 		}
 	}
@@ -1467,7 +1467,7 @@ func (hs *serverHandshakeState) processClientHello() (isResume bool, err error) 
 Curves:
 	for _, curve := range hs.clientHello.supportedCurves {
 		if isPqGroup(curve) && c.vers < VersionTLS13 {
-			// CECPQ2 is TLS 1.3-only.
+			// Post-quantum is TLS 1.3 only.
 			continue
 		}
 
@@ -2076,7 +2076,7 @@ func (hs *serverHandshakeState) establishKeys() error {
 	clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV :=
 		keysFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.clientHello.random, hs.hello.random, hs.suite.macLen, hs.suite.keyLen, hs.suite.ivLen(c.vers))
 
-	var clientCipher, serverCipher interface{}
+	var clientCipher, serverCipher any
 	var clientHash, serverHash macFunction
 
 	if hs.suite.aead == nil {
