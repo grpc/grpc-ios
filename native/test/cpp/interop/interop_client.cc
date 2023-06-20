@@ -1021,7 +1021,6 @@ bool InteropClient::DoOrcaPerRpc() {
 }
 
 bool InteropClient::DoOrcaOob() {
-  static constexpr auto kTimeout = absl::Seconds(10);
   gpr_log(GPR_DEBUG, "testing orca oob");
   load_report_tracker_.ResetCollectedLoadReports();
   grpc_core::CoreConfiguration::RegisterBuilder(RegisterBackendMetricsLbPolicy);
@@ -1060,7 +1059,7 @@ bool InteropClient::DoOrcaOob() {
                          }
                          return true;
                        },
-                       kTimeout, 10)
+                       absl::Seconds(5), 10)
                    .has_value());
   }
   {
@@ -1085,7 +1084,7 @@ bool InteropClient::DoOrcaOob() {
                 [orca_report](const auto& report) {
                   return !OrcaLoadReportsDiff(*orca_report, report).has_value();
                 },
-                kTimeout, 10)
+                absl::Seconds(5), 10)
             .has_value());
   }
   gpr_log(GPR_DEBUG, "orca oob successfully finished");

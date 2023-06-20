@@ -23,13 +23,15 @@ def _get_number_active_threads():
     return cygrpc._fork_state.active_thread_count._num_active_threads
 
 
-@unittest.skipIf(os.name == "nt", "Posix-specific tests")
+@unittest.skipIf(os.name == 'nt', 'Posix-specific tests')
 class ForkPosixTester(unittest.TestCase):
+
     def setUp(self):
         self._saved_fork_support_flag = cygrpc._GRPC_ENABLE_FORK_SUPPORT
         cygrpc._GRPC_ENABLE_FORK_SUPPORT = True
 
     def testForkManagedThread(self):
+
         def cb():
             self.assertEqual(1, _get_number_active_threads())
 
@@ -39,6 +41,7 @@ class ForkPosixTester(unittest.TestCase):
         self.assertEqual(0, _get_number_active_threads())
 
     def testForkManagedThreadThrowsException(self):
+
         def cb():
             self.assertEqual(1, _get_number_active_threads())
             raise Exception("expected exception")
@@ -52,9 +55,11 @@ class ForkPosixTester(unittest.TestCase):
         cygrpc._GRPC_ENABLE_FORK_SUPPORT = self._saved_fork_support_flag
 
 
-@unittest.skipUnless(os.name == "nt", "Windows-specific tests")
+@unittest.skipUnless(os.name == 'nt', 'Windows-specific tests')
 class ForkWindowsTester(unittest.TestCase):
+
     def testForkManagedThreadIsNoOp(self):
+
         def cb():
             pass
 
@@ -63,5 +68,5 @@ class ForkWindowsTester(unittest.TestCase):
         thread.join()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main(verbosity=2)

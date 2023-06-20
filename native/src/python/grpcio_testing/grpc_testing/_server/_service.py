@@ -18,6 +18,7 @@ import grpc
 
 
 class _RequestIterator(object):
+
     def __init__(self, rpc, handler):
         self._rpc = rpc
         self._handler = handler
@@ -80,12 +81,10 @@ def unary_stream(implementation, rpc, request, servicer_context):
 
 
 def stream_unary(implementation, rpc, handler, servicer_context):
-    _unary_response(
-        _RequestIterator(rpc, handler), implementation, rpc, servicer_context
-    )
+    _unary_response(_RequestIterator(rpc, handler), implementation, rpc,
+                    servicer_context)
 
 
 def stream_stream(implementation, rpc, handler, servicer_context):
-    _stream_response(
-        _RequestIterator(rpc, handler), implementation, rpc, servicer_context
-    )
+    _stream_response(_RequestIterator(rpc, handler), implementation, rpc,
+                     servicer_context)

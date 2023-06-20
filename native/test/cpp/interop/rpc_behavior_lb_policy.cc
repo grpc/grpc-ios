@@ -25,7 +25,6 @@
 #include "src/core/lib/iomgr/pollset_set.h"
 #include "src/core/lib/json/json_args.h"
 #include "src/core/lib/json/json_object_loader.h"
-#include "src/core/lib/load_balancing/delegating_helper.h"
 
 namespace grpc {
 namespace testing {
@@ -115,19 +114,45 @@ class RpcBehaviorLbPolicy : public LoadBalancingPolicy {
     std::string rpc_behavior_;
   };
 
-  class Helper
-      : public ParentOwningDelegatingChannelControlHelper<RpcBehaviorLbPolicy> {
+  class Helper : public ChannelControlHelper {
    public:
     explicit Helper(RefCountedPtr<RpcBehaviorLbPolicy> parent)
-        : ParentOwningDelegatingChannelControlHelper(std::move(parent)) {}
+        : parent_(std::move(parent)) {}
+
+    RefCountedPtr<grpc_core::SubchannelInterface> CreateSubchannel(
+        grpc_core::ServerAddress address,
+        const grpc_core::ChannelArgs& args) override {
+      return parent_->channel_control_helper()->CreateSubchannel(
+          std::move(address), args);
+    }
 
     void UpdateState(grpc_connectivity_state state, const absl::Status& status,
                      RefCountedPtr<SubchannelPicker> picker) override {
-      parent_helper()->UpdateState(
+      parent_->channel_control_helper()->UpdateState(
           state, status,
           grpc_core::MakeRefCounted<Picker>(std::move(picker),
-                                            parent()->rpc_behavior_));
+                                            parent_->rpc_behavior_));
     }
+
+    void RequestReresolution() override {
+      parent_->channel_control_helper()->RequestReresolution();
+    }
+
+    absl::string_view GetAuthority() override {
+      return parent_->channel_control_helper()->GetAuthority();
+    }
+
+    grpc_event_engine::experimental::EventEngine* GetEventEngine() override {
+      return parent_->channel_control_helper()->GetEventEngine();
+    }
+
+    void AddTraceEvent(TraceSeverity severity,
+                       absl::string_view message) override {
+      parent_->channel_control_helper()->AddTraceEvent(severity, message);
+    }
+
+   private:
+    RefCountedPtr<RpcBehaviorLbPolicy> parent_;
   };
 
   void ShutdownLocked() override {

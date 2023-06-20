@@ -20,16 +20,15 @@ import setuptools
 
 ROOT_DIR = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
 STATUS_PROTO = os.path.join(
-    ROOT_DIR, "../../../third_party/googleapis/google/rpc/status.proto"
-)
-PACKAGE_STATUS_PROTO_PATH = "grpc_status/google/rpc"
-LICENSE = os.path.join(ROOT_DIR, "../../../LICENSE")
+    ROOT_DIR, '../../../third_party/googleapis/google/rpc/status.proto')
+PACKAGE_STATUS_PROTO_PATH = 'grpc_status/google/rpc'
+LICENSE = os.path.join(ROOT_DIR, '../../../LICENSE')
 
 
 class Preprocess(setuptools.Command):
     """Command to copy LICENSE from root directory."""
 
-    description = ""
+    description = ''
     user_options = []
 
     def initialize_options(self):
@@ -44,9 +43,7 @@ class Preprocess(setuptools.Command):
                 os.makedirs(PACKAGE_STATUS_PROTO_PATH)
             shutil.copyfile(
                 STATUS_PROTO,
-                os.path.join(
-                    ROOT_DIR, PACKAGE_STATUS_PROTO_PATH, "status.proto"
-                ),
-            )
+                os.path.join(ROOT_DIR, PACKAGE_STATUS_PROTO_PATH,
+                             'status.proto'))
         if os.path.isfile(LICENSE):
-            shutil.copyfile(LICENSE, os.path.join(ROOT_DIR, "LICENSE"))
+            shutil.copyfile(LICENSE, os.path.join(ROOT_DIR, 'LICENSE'))

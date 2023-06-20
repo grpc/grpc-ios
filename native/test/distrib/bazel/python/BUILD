@@ -20,7 +20,6 @@ load(
     "py_grpc_library",
     "py_proto_library",
 )
-load("//:python_rules_test.bzl", "python_rules_test_suite")
 
 package(
     default_testonly = 1,
@@ -155,8 +154,4 @@ py_test(
     deps = [
         ":helloworld_py_pb2",
     ],
-)
-
-python_rules_test_suite(
-    name = "python_rules_test",
 )

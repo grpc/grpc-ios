@@ -173,7 +173,6 @@ class SubchannelData {
   // Will be non-null when the subchannel's state is being watched.
   SubchannelInterface::ConnectivityStateWatcherInterface* pending_watcher_ =
       nullptr;
-  SubchannelInterface::DataWatcherInterface* health_watcher_ = nullptr;
   // Data updated by the watcher.
   absl::optional<grpc_connectivity_state> connectivity_state_;
   absl::Status connectivity_status_;
@@ -260,7 +259,7 @@ void SubchannelData<SubchannelListType, SubchannelDataType>::Watcher::
         GPR_INFO,
         "[%s %p] subchannel list %p index %" PRIuPTR " of %" PRIuPTR
         " (subchannel %p): connectivity changed: old_state=%s, new_state=%s, "
-        "status=%s, shutting_down=%d, pending_watcher=%p, health_watcher=%p",
+        "status=%s, shutting_down=%d, pending_watcher=%p",
         subchannel_list_->tracer(), subchannel_list_->policy(),
         subchannel_list_.get(), subchannel_data_->Index(),
         subchannel_list_->num_subchannels(),
@@ -269,12 +268,10 @@ void SubchannelData<SubchannelListType, SubchannelDataType>::Watcher::
              ? ConnectivityStateName(*subchannel_data_->connectivity_state_)
              : "N/A"),
         ConnectivityStateName(new_state), status.ToString().c_str(),
-        subchannel_list_->shutting_down(), subchannel_data_->pending_watcher_,
-        subchannel_data_->health_watcher_);
+        subchannel_list_->shutting_down(), subchannel_data_->pending_watcher_);
   }
   if (!subchannel_list_->shutting_down() &&
-      (subchannel_data_->pending_watcher_ != nullptr ||
-       subchannel_data_->health_watcher_ != nullptr)) {
+      subchannel_data_->pending_watcher_ != nullptr) {
     absl::optional<grpc_connectivity_state> old_state =
         subchannel_data_->connectivity_state_;
     subchannel_data_->connectivity_state_ = new_state;
@@ -339,17 +336,14 @@ void SubchannelData<SubchannelListType,
         subchannel_list()->health_check_service_name_.value_or("N/A").c_str());
   }
   GPR_ASSERT(pending_watcher_ == nullptr);
-  GPR_ASSERT(health_watcher_ == nullptr);
   auto watcher = std::make_unique<Watcher>(
       this, subchannel_list()->WeakRef(DEBUG_LOCATION, "Watcher"));
+  pending_watcher_ = watcher.get();
   if (subchannel_list()->health_check_service_name_.has_value()) {
-    auto health_watcher = MakeHealthCheckWatcher(
+    subchannel_->AddDataWatcher(MakeHealthCheckWatcher(
         subchannel_list_->work_serializer(),
-        *subchannel_list()->health_check_service_name_, std::move(watcher));
-    health_watcher_ = health_watcher.get();
-    subchannel_->AddDataWatcher(std::move(health_watcher));
+        *subchannel_list()->health_check_service_name_, std::move(watcher)));
   } else {
-    pending_watcher_ = watcher.get();
     subchannel_->WatchConnectivityState(std::move(watcher));
   }
 }
@@ -366,19 +360,12 @@ void SubchannelData<SubchannelListType, SubchannelDataType>::
               subchannel_list_, Index(), subchannel_list_->num_subchannels(),
               subchannel_.get(), reason);
     }
-    subchannel_->CancelConnectivityStateWatch(pending_watcher_);
-    pending_watcher_ = nullptr;
-  } else if (health_watcher_ != nullptr) {
-    if (GPR_UNLIKELY(subchannel_list_->tracer() != nullptr)) {
-      gpr_log(GPR_INFO,
-              "[%s %p] subchannel list %p index %" PRIuPTR " of %" PRIuPTR
-              " (subchannel %p): canceling health watch (%s)",
-              subchannel_list_->tracer(), subchannel_list_->policy(),
-              subchannel_list_, Index(), subchannel_list_->num_subchannels(),
-              subchannel_.get(), reason);
+    // No need to cancel if using health checking, because the data
+    // watcher will be destroyed automatically when the subchannel is.
+    if (!subchannel_list()->health_check_service_name_.has_value()) {
+      subchannel_->CancelConnectivityStateWatch(pending_watcher_);
     }
-    subchannel_->CancelDataWatcher(health_watcher_);
-    health_watcher_ = nullptr;
+    pending_watcher_ = nullptr;
   }
 }
 

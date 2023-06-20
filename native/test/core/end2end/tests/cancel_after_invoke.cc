@@ -28,13 +28,12 @@
 #include "test/core/end2end/tests/cancel_test_helpers.h"
 
 namespace grpc_core {
-namespace {
-const Duration kTimeout = Duration::Seconds(2);
-}  // namespace
 
 void CancelAfterInvoke6(CoreEnd2endTest& test,
                         std::unique_ptr<CancellationMode> mode) {
-  auto c = test.NewClientCall("/service/method").Timeout(kTimeout).Create();
+  auto c = test.NewClientCall("/service/method")
+               .Timeout(Duration::Seconds(5))
+               .Create();
   CoreEnd2endTest::IncomingStatusOnClient server_status;
   CoreEnd2endTest::IncomingMetadata server_initial_metadata;
   CoreEnd2endTest::IncomingMessage server_message;
@@ -54,7 +53,9 @@ void CancelAfterInvoke6(CoreEnd2endTest& test,
 
 void CancelAfterInvoke5(CoreEnd2endTest& test,
                         std::unique_ptr<CancellationMode> mode) {
-  auto c = test.NewClientCall("/service/method").Timeout(kTimeout).Create();
+  auto c = test.NewClientCall("/service/method")
+               .Timeout(Duration::Seconds(5))
+               .Create();
   CoreEnd2endTest::IncomingStatusOnClient server_status;
   CoreEnd2endTest::IncomingMetadata server_initial_metadata;
   c.NewBatch(1)
@@ -72,7 +73,9 @@ void CancelAfterInvoke5(CoreEnd2endTest& test,
 
 void CancelAfterInvoke4(CoreEnd2endTest& test,
                         std::unique_ptr<CancellationMode> mode) {
-  auto c = test.NewClientCall("/service/method").Timeout(kTimeout).Create();
+  auto c = test.NewClientCall("/service/method")
+               .Timeout(Duration::Seconds(5))
+               .Create();
   CoreEnd2endTest::IncomingStatusOnClient server_status;
   CoreEnd2endTest::IncomingMetadata server_initial_metadata;
   c.NewBatch(1)
@@ -89,7 +92,9 @@ void CancelAfterInvoke4(CoreEnd2endTest& test,
 
 void CancelAfterInvoke3(CoreEnd2endTest& test,
                         std::unique_ptr<CancellationMode> mode) {
-  auto c = test.NewClientCall("/service/method").Timeout(kTimeout).Create();
+  auto c = test.NewClientCall("/service/method")
+               .Timeout(Duration::Seconds(5))
+               .Create();
   CoreEnd2endTest::IncomingStatusOnClient server_status;
   CoreEnd2endTest::IncomingMetadata server_initial_metadata;
   c.NewBatch(1)

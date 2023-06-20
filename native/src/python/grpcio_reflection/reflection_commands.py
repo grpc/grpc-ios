@@ -20,16 +20,15 @@ import setuptools
 
 ROOT_DIR = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
 REFLECTION_PROTO = os.path.join(
-    ROOT_DIR, "../../proto/grpc/reflection/v1alpha/reflection.proto"
-)
-LICENSE = os.path.join(ROOT_DIR, "../../../LICENSE")
+    ROOT_DIR, '../../proto/grpc/reflection/v1alpha/reflection.proto')
+LICENSE = os.path.join(ROOT_DIR, '../../../LICENSE')
 
 
 class Preprocess(setuptools.Command):
     """Command to copy proto modules from grpc/src/proto and LICENSE from
     the root directory"""
 
-    description = ""
+    description = ''
     user_options = []
 
     def initialize_options(self):
@@ -42,18 +41,16 @@ class Preprocess(setuptools.Command):
         if os.path.isfile(REFLECTION_PROTO):
             shutil.copyfile(
                 REFLECTION_PROTO,
-                os.path.join(
-                    ROOT_DIR, "grpc_reflection/v1alpha/reflection.proto"
-                ),
-            )
+                os.path.join(ROOT_DIR,
+                             'grpc_reflection/v1alpha/reflection.proto'))
         if os.path.isfile(LICENSE):
-            shutil.copyfile(LICENSE, os.path.join(ROOT_DIR, "LICENSE"))
+            shutil.copyfile(LICENSE, os.path.join(ROOT_DIR, 'LICENSE'))
 
 
 class BuildPackageProtos(setuptools.Command):
     """Command to generate project *_pb2.py modules from proto files."""
 
-    description = "build grpc protobuf modules"
+    description = 'build grpc protobuf modules'
     user_options = []
 
     def initialize_options(self):
@@ -68,5 +65,4 @@ class BuildPackageProtos(setuptools.Command):
         # to `self.distribution.package_dir` (and get a key error if it's not
         # there).
         from grpc_tools import command
-
-        command.build_package_protos(self.distribution.package_dir[""])
+        command.build_package_protos(self.distribution.package_dir[''])

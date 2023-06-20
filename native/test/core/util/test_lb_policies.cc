@@ -26,6 +26,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/variant.h"
 
+#include <grpc/event_engine/event_engine.h>
 #include <grpc/grpc.h>
 #include <grpc/support/log.h>
 
@@ -42,7 +43,6 @@
 #include "src/core/lib/iomgr/resolved_address.h"
 #include "src/core/lib/json/json.h"
 #include "src/core/lib/json/json_util.h"
-#include "src/core/lib/load_balancing/delegating_helper.h"
 #include "src/core/lib/load_balancing/lb_policy.h"
 #include "src/core/lib/load_balancing/lb_policy_factory.h"
 #include "src/core/lib/load_balancing/lb_policy_registry.h"
@@ -132,20 +132,42 @@ class TestPickArgsLb : public ForwardingLoadBalancingPolicy {
     TestPickArgsCallback cb_;
   };
 
-  class Helper
-      : public ParentOwningDelegatingChannelControlHelper<TestPickArgsLb> {
+  class Helper : public ChannelControlHelper {
    public:
     Helper(RefCountedPtr<TestPickArgsLb> parent, TestPickArgsCallback cb)
-        : ParentOwningDelegatingChannelControlHelper(std::move(parent)),
-          cb_(std::move(cb)) {}
+        : parent_(std::move(parent)), cb_(std::move(cb)) {}
+
+    RefCountedPtr<SubchannelInterface> CreateSubchannel(
+        ServerAddress address, const ChannelArgs& args) override {
+      return parent_->channel_control_helper()->CreateSubchannel(
+          std::move(address), args);
+    }
 
     void UpdateState(grpc_connectivity_state state, const absl::Status& status,
                      RefCountedPtr<SubchannelPicker> picker) override {
-      parent_helper()->UpdateState(
+      parent_->channel_control_helper()->UpdateState(
           state, status, MakeRefCounted<Picker>(std::move(picker), cb_));
     }
 
+    void RequestReresolution() override {
+      parent_->channel_control_helper()->RequestReresolution();
+    }
+
+    absl::string_view GetAuthority() override {
+      return parent_->channel_control_helper()->GetAuthority();
+    }
+
+    grpc_event_engine::experimental::EventEngine* GetEventEngine() override {
+      return parent_->channel_control_helper()->GetEventEngine();
+    }
+
+    void AddTraceEvent(TraceSeverity severity,
+                       absl::string_view message) override {
+      parent_->channel_control_helper()->AddTraceEvent(severity, message);
+    }
+
    private:
+    RefCountedPtr<TestPickArgsLb> parent_;
     TestPickArgsCallback cb_;
   };
 };
@@ -230,22 +252,44 @@ class InterceptRecvTrailingMetadataLoadBalancingPolicy
     InterceptRecvTrailingMetadataCallback cb_;
   };
 
-  class Helper : public ParentOwningDelegatingChannelControlHelper<
-                     InterceptRecvTrailingMetadataLoadBalancingPolicy> {
+  class Helper : public ChannelControlHelper {
    public:
     Helper(
         RefCountedPtr<InterceptRecvTrailingMetadataLoadBalancingPolicy> parent,
         InterceptRecvTrailingMetadataCallback cb)
-        : ParentOwningDelegatingChannelControlHelper(std::move(parent)),
-          cb_(std::move(cb)) {}
+        : parent_(std::move(parent)), cb_(std::move(cb)) {}
+
+    RefCountedPtr<SubchannelInterface> CreateSubchannel(
+        ServerAddress address, const ChannelArgs& args) override {
+      return parent_->channel_control_helper()->CreateSubchannel(
+          std::move(address), args);
+    }
 
     void UpdateState(grpc_connectivity_state state, const absl::Status& status,
                      RefCountedPtr<SubchannelPicker> picker) override {
-      parent_helper()->UpdateState(
+      parent_->channel_control_helper()->UpdateState(
           state, status, MakeRefCounted<Picker>(std::move(picker), cb_));
     }
 
+    void RequestReresolution() override {
+      parent_->channel_control_helper()->RequestReresolution();
+    }
+
+    absl::string_view GetAuthority() override {
+      return parent_->channel_control_helper()->GetAuthority();
+    }
+
+    grpc_event_engine::experimental::EventEngine* GetEventEngine() override {
+      return parent_->channel_control_helper()->GetEventEngine();
+    }
+
+    void AddTraceEvent(TraceSeverity severity,
+                       absl::string_view message) override {
+      parent_->channel_control_helper()->AddTraceEvent(severity, message);
+    }
+
    private:
+    RefCountedPtr<InterceptRecvTrailingMetadataLoadBalancingPolicy> parent_;
     InterceptRecvTrailingMetadataCallback cb_;
   };
 
@@ -323,21 +367,44 @@ class AddressTestLoadBalancingPolicy : public ForwardingLoadBalancingPolicy {
   absl::string_view name() const override { return kAddressTestLbPolicyName; }
 
  private:
-  class Helper : public ParentOwningDelegatingChannelControlHelper<
-                     AddressTestLoadBalancingPolicy> {
+  class Helper : public ChannelControlHelper {
    public:
     Helper(RefCountedPtr<AddressTestLoadBalancingPolicy> parent,
            AddressTestCallback cb)
-        : ParentOwningDelegatingChannelControlHelper(std::move(parent)),
-          cb_(std::move(cb)) {}
+        : parent_(std::move(parent)), cb_(std::move(cb)) {}
 
     RefCountedPtr<SubchannelInterface> CreateSubchannel(
         ServerAddress address, const ChannelArgs& args) override {
       cb_(address);
-      return parent_helper()->CreateSubchannel(std::move(address), args);
+      return parent_->channel_control_helper()->CreateSubchannel(
+          std::move(address), args);
+    }
+
+    void UpdateState(grpc_connectivity_state state, const absl::Status& status,
+                     RefCountedPtr<SubchannelPicker> picker) override {
+      parent_->channel_control_helper()->UpdateState(state, status,
+                                                     std::move(picker));
+    }
+
+    void RequestReresolution() override {
+      parent_->channel_control_helper()->RequestReresolution();
+    }
+
+    absl::string_view GetAuthority() override {
+      return parent_->channel_control_helper()->GetAuthority();
+    }
+
+    grpc_event_engine::experimental::EventEngine* GetEventEngine() override {
+      return parent_->channel_control_helper()->GetEventEngine();
+    }
+
+    void AddTraceEvent(TraceSeverity severity,
+                       absl::string_view message) override {
+      parent_->channel_control_helper()->AddTraceEvent(severity, message);
     }
 
    private:
+    RefCountedPtr<AddressTestLoadBalancingPolicy> parent_;
     AddressTestCallback cb_;
   };
 };
@@ -421,8 +488,43 @@ class FixedAddressLoadBalancingPolicy : public ForwardingLoadBalancingPolicy {
   }
 
  private:
-  using Helper = ParentOwningDelegatingChannelControlHelper<
-      FixedAddressLoadBalancingPolicy>;
+  class Helper : public ChannelControlHelper {
+   public:
+    explicit Helper(RefCountedPtr<FixedAddressLoadBalancingPolicy> parent)
+        : parent_(std::move(parent)) {}
+
+    RefCountedPtr<SubchannelInterface> CreateSubchannel(
+        ServerAddress address, const ChannelArgs& args) override {
+      return parent_->channel_control_helper()->CreateSubchannel(
+          std::move(address), args);
+    }
+
+    void UpdateState(grpc_connectivity_state state, const absl::Status& status,
+                     RefCountedPtr<SubchannelPicker> picker) override {
+      parent_->channel_control_helper()->UpdateState(state, status,
+                                                     std::move(picker));
+    }
+
+    void RequestReresolution() override {
+      parent_->channel_control_helper()->RequestReresolution();
+    }
+
+    absl::string_view GetAuthority() override {
+      return parent_->channel_control_helper()->GetAuthority();
+    }
+
+    grpc_event_engine::experimental::EventEngine* GetEventEngine() override {
+      return parent_->channel_control_helper()->GetEventEngine();
+    }
+
+    void AddTraceEvent(TraceSeverity severity,
+                       absl::string_view message) override {
+      parent_->channel_control_helper()->AddTraceEvent(severity, message);
+    }
+
+   private:
+    RefCountedPtr<FixedAddressLoadBalancingPolicy> parent_;
+  };
 };
 
 class FixedAddressFactory : public LoadBalancingPolicyFactory {
@@ -502,21 +604,47 @@ class OobBackendMetricTestLoadBalancingPolicy
     RefCountedPtr<OobBackendMetricTestLoadBalancingPolicy> parent_;
   };
 
-  class Helper : public ParentOwningDelegatingChannelControlHelper<
-                     OobBackendMetricTestLoadBalancingPolicy> {
+  class Helper : public ChannelControlHelper {
    public:
     explicit Helper(
         RefCountedPtr<OobBackendMetricTestLoadBalancingPolicy> parent)
-        : ParentOwningDelegatingChannelControlHelper(std::move(parent)) {}
+        : parent_(std::move(parent)) {}
 
     RefCountedPtr<SubchannelInterface> CreateSubchannel(
         ServerAddress address, const ChannelArgs& args) override {
-      auto subchannel = parent_helper()->CreateSubchannel(address, args);
+      auto subchannel =
+          parent_->channel_control_helper()->CreateSubchannel(address, args);
       subchannel->AddDataWatcher(MakeOobBackendMetricWatcher(
-          Duration::Seconds(1), std::make_unique<BackendMetricWatcher>(
-                                    std::move(address), parent()->Ref())));
+          Duration::Seconds(1),
+          std::make_unique<BackendMetricWatcher>(std::move(address), parent_)));
       return subchannel;
     }
+
+    void UpdateState(grpc_connectivity_state state, const absl::Status& status,
+                     RefCountedPtr<SubchannelPicker> picker) override {
+      parent_->channel_control_helper()->UpdateState(state, status,
+                                                     std::move(picker));
+    }
+
+    void RequestReresolution() override {
+      parent_->channel_control_helper()->RequestReresolution();
+    }
+
+    absl::string_view GetAuthority() override {
+      return parent_->channel_control_helper()->GetAuthority();
+    }
+
+    grpc_event_engine::experimental::EventEngine* GetEventEngine() override {
+      return parent_->channel_control_helper()->GetEventEngine();
+    }
+
+    void AddTraceEvent(TraceSeverity severity,
+                       absl::string_view message) override {
+      parent_->channel_control_helper()->AddTraceEvent(severity, message);
+    }
+
+   private:
+    RefCountedPtr<OobBackendMetricTestLoadBalancingPolicy> parent_;
   };
 
   OobBackendMetricCallback cb_;
@@ -648,27 +776,52 @@ class QueueOnceLoadBalancingPolicy : public ForwardingLoadBalancingPolicy {
   absl::string_view name() const override { return kQueueOncePolicyName; }
 
  private:
-  class Helper : public ParentOwningDelegatingChannelControlHelper<
-                     QueueOnceLoadBalancingPolicy> {
+  class Helper : public ChannelControlHelper {
    public:
     explicit Helper(RefCountedPtr<QueueOnceLoadBalancingPolicy> parent)
-        : ParentOwningDelegatingChannelControlHelper(std::move(parent)) {}
+        : parent_(std::move(parent)) {}
+
+    RefCountedPtr<SubchannelInterface> CreateSubchannel(
+        ServerAddress address, const ChannelArgs& args) override {
+      return parent_->channel_control_helper()->CreateSubchannel(
+          std::move(address), args);
+    }
 
     void UpdateState(grpc_connectivity_state state, const absl::Status& status,
                      RefCountedPtr<SubchannelPicker> picker) override {
       // If we've already seen a queued pick, just propagate the update
       // directly.
-      if (parent()->seen_pick_queued_) {
-        parent()->channel_control_helper()->UpdateState(state, status,
-                                                        std::move(picker));
+      if (parent_->seen_pick_queued_) {
+        parent_->channel_control_helper()->UpdateState(state, status,
+                                                       std::move(picker));
         return;
       }
       // Otherwise, store the update in the LB policy, to be propagated later,
       // and return a queueing picker.
-      parent()->state_to_update_ = {state, status, std::move(picker)};
-      parent_helper()->UpdateState(
-          state, status, MakeRefCounted<QueuePicker>(parent()->Ref()));
+      parent_->state_to_update_ = {state, status, std::move(picker)};
+      parent_->channel_control_helper()->UpdateState(
+          state, status, MakeRefCounted<QueuePicker>(parent_->Ref()));
     }
+
+    void RequestReresolution() override {
+      parent_->channel_control_helper()->RequestReresolution();
+    }
+
+    absl::string_view GetAuthority() override {
+      return parent_->channel_control_helper()->GetAuthority();
+    }
+
+    grpc_event_engine::experimental::EventEngine* GetEventEngine() override {
+      return parent_->channel_control_helper()->GetEventEngine();
+    }
+
+    void AddTraceEvent(TraceSeverity severity,
+                       absl::string_view message) override {
+      parent_->channel_control_helper()->AddTraceEvent(severity, message);
+    }
+
+   private:
+    RefCountedPtr<QueueOnceLoadBalancingPolicy> parent_;
   };
   struct StateToUpdate {
     grpc_connectivity_state state;

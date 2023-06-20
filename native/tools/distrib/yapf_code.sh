@@ -15,8 +15,8 @@
 
 set -ex
 
-ACTION="${1:-}"
-[[ $ACTION == '' ]] || [[ $ACTION == '--diff' ]] || [[ $ACTION == '--check' ]]
+ACTION=${1:---in-place}
+[[ $ACTION == '--in-place' ]] || [[ $ACTION == '--diff' ]]
 
 # change to root directory
 cd "$(dirname "${0}")/../.."
@@ -29,10 +29,10 @@ DIRS=(
     'setup.py'
 )
 
-VIRTUALENV=black_virtual_environment
+VIRTUALENV=yapf_virtual_environment
 
 python3 -m virtualenv $VIRTUALENV -p $(which python3)
 PYTHON=${VIRTUALENV}/bin/python
-"$PYTHON" -m pip install black==23.3.0
+"$PYTHON" -m pip install yapf==0.30.0
 
-$PYTHON -m black --config=black.toml $ACTION "${DIRS[@]}"
+$PYTHON -m yapf $ACTION --parallel --recursive --style=setup.cfg "${DIRS[@]}" -e "**/site-packages/**/*"

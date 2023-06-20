@@ -55,6 +55,7 @@ fi
 # typing is the only module allowed to put imports on the same line:
 # https://google.github.io/styleguide/pyguide.html#313-imports-formatting
 exec python -m isort "${MODE}" \
-  --settings-path=../../../black.toml \
+  --force-sort-within-sections \
+  --force-single-line-imports --single-line-exclusions=typing \
   framework bin tests
 

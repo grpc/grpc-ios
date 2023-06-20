@@ -81,10 +81,7 @@ grpc_cc_library(
         "absl/types:optional",
     ],
     language = "c++",
-    visibility = [
-        "//test:__subpackages__",
-        "@grpc:grpc_python_observability",
-    ],
+    visibility = ["//test:__subpackages__"],
     deps = [
         "//:gpr",
         "//:grpc_base",

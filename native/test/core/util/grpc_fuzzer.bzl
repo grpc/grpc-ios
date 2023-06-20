@@ -18,7 +18,7 @@ Includes fuzzer rules.
 
 load("//bazel:grpc_build_system.bzl", "grpc_cc_test", "grpc_proto_library")
 
-def grpc_fuzzer(name, corpus, owner = "grpc", srcs = [], tags = [], external_deps = [], deps = [], data = [], size = "large", **kwargs):
+def grpc_fuzzer(name, corpus, srcs = [], tags = [], external_deps = [], deps = [], data = [], size = "large", **kwargs):
     """Instantiates a fuzzer test.
 
     Args:
@@ -30,7 +30,6 @@ def grpc_fuzzer(name, corpus, owner = "grpc", srcs = [], tags = [], external_dep
         data: The data dependencies of the test.
         size: The size of the test.
         tags: The tags for the test.
-        owner: The owning team of the test (for auto-bug-filing).
         **kwargs: Other arguments to supply to the test.
     """
     CORPUS_DIR = native.package_name() + "/" + corpus
@@ -54,7 +53,7 @@ def grpc_fuzzer(name, corpus, owner = "grpc", srcs = [], tags = [], external_dep
         **kwargs
     )
 
-def grpc_proto_fuzzer(name, corpus, proto, owner = "grpc", proto_deps = [], external_deps = [], srcs = [], tags = [], deps = [], data = [], size = "large", **kwargs):
+def grpc_proto_fuzzer(name, corpus, proto, proto_deps = [], external_deps = [], srcs = [], tags = [], deps = [], data = [], size = "large", **kwargs):
     """Instantiates a protobuf mutator fuzzer test.
 
     Args:
@@ -71,7 +70,6 @@ def grpc_proto_fuzzer(name, corpus, proto, owner = "grpc", proto_deps = [], exte
         data: The data dependencies of the test.
         size: The size of the test.
         tags: The tags for the test.
-        owner: The owning team of the test (for auto-bug-filing).
         **kwargs: Other arguments to supply to the test.
     """
     CORPUS_DIR = native.package_name() + "/" + corpus
