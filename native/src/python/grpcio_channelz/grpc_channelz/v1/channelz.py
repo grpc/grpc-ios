@@ -43,14 +43,13 @@ if sys.version_info[0] >= 3 and sys.version_info[1] >= 6:
     from grpc_channelz.v1 import _async as aio
 
     def add_channelz_servicer(server):
+
         if isinstance(server, grpc.experimental.aio.Server):
             _channelz_pb2_grpc.add_ChannelzServicer_to_server(
-                aio.ChannelzServicer(), server
-            )
+                aio.ChannelzServicer(), server)
         else:
             _channelz_pb2_grpc.add_ChannelzServicer_to_server(
-                ChannelzServicer(), server
-            )
+                ChannelzServicer(), server)
 
     add_channelz_servicer.__doc__ = _add_channelz_servicer_doc
 
@@ -64,8 +63,7 @@ else:
 
     def add_channelz_servicer(server):
         _channelz_pb2_grpc.add_ChannelzServicer_to_server(
-            ChannelzServicer(), server
-        )
+            ChannelzServicer(), server)
 
     add_channelz_servicer.__doc__ = _add_channelz_servicer_doc
 

@@ -24,6 +24,7 @@ INTERPRETER = sys.executable
 
 
 class LoggingTest(unittest.TestCase):
+
     def test_logger_not_occupied(self):
         script = """if True:
             import logging
@@ -43,7 +44,7 @@ class LoggingTest(unittest.TestCase):
             import grpc
         """
         out, err = self._verifyScriptSucceeds(script)
-        self.assertEqual(0, len(err), "unexpected output to stderr")
+        self.assertEqual(0, len(err), 'unexpected output to stderr')
 
     def test_can_configure_logger(self):
         script = """if True:
@@ -83,20 +84,16 @@ class LoggingTest(unittest.TestCase):
         self._verifyScriptSucceeds(script)
 
     def _verifyScriptSucceeds(self, script):
-        process = subprocess.Popen(
-            [INTERPRETER, "-c", script],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        process = subprocess.Popen([INTERPRETER, '-c', script],
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
         out, err = process.communicate()
         self.assertEqual(
-            0,
-            process.returncode,
-            "process failed with exit code %d (stdout: %s, stderr: %s)"
-            % (process.returncode, out, err),
-        )
+            0, process.returncode,
+            'process failed with exit code %d (stdout: %s, stderr: %s)' %
+            (process.returncode, out, err))
         return out, err
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main(verbosity=2)

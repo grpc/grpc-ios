@@ -63,7 +63,7 @@ class LoggingSink {
 
   struct Entry {
     enum class EventType {
-      kUnknown = 0,
+      kUnkown = 0,
       kClientHeader,
       kServerHeader,
       kClientMessage,
@@ -73,7 +73,7 @@ class LoggingSink {
       kCancel
     };
 
-    enum class Logger { kUnknown = 0, kClient, kServer };
+    enum class Logger { kUnkown = 0, kClient, kServer };
 
     struct Payload {
       std::map<std::string, std::string> metadata;
@@ -94,8 +94,8 @@ class LoggingSink {
 
     absl::uint128 call_id = 0;
     uint64_t sequence_id = 0;
-    EventType type = LoggingSink::Entry::EventType::kUnknown;
-    Logger logger = LoggingSink::Entry::Logger::kUnknown;
+    EventType type = LoggingSink::Entry::EventType::kUnkown;
+    Logger logger = LoggingSink::Entry::Logger::kUnkown;
     Payload payload;
     bool payload_truncated = false;
     Address peer;
@@ -106,7 +106,7 @@ class LoggingSink {
     // Optional tracing details
     std::string trace_id;
     std::string span_id;
-    bool is_sampled = false;
+    bool is_sampled;
   };
 
   virtual ~LoggingSink() = default;

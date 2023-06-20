@@ -36,33 +36,30 @@ def gen_content_strings(input_files: Iterable[str]) -> Iterable[str]:
     for input_file in input_files[1:]:
         with open(input_file) as f:
             content = f.read()
-        yield "---\n"
+        yield '---\n'
         yield content
 
 
 def main() -> None:
-    argp = argparse.ArgumentParser(description="Concatenates YAML files.")
+    argp = argparse.ArgumentParser(description='Concatenates YAML files.')
+    argp.add_argument('-i',
+                      '--inputs',
+                      action='extend',
+                      nargs='+',
+                      type=str,
+                      required=True,
+                      help='Input files.')
     argp.add_argument(
-        "-i",
-        "--inputs",
-        action="extend",
-        nargs="+",
+        '-o',
+        '--output',
         type=str,
-        required=True,
-        help="Input files.",
-    )
-    argp.add_argument(
-        "-o",
-        "--output",
-        type=str,
-        help="Concatenated output file. Output to stdout if not set.",
-    )
+        help='Concatenated output file. Output to stdout if not set.')
     args = argp.parse_args()
 
-    with open(args.output, "w") if args.output else sys.stdout as f:
+    with open(args.output, 'w') if args.output else sys.stdout as f:
         for content in gen_content_strings(args.inputs):
-            print(content, file=f, sep="", end="")
+            print(content, file=f, sep='', end='')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -24,6 +24,5 @@ import scenario_generator_helper as gen
 
 gen.generate_scenarios_bzl(
     gen.generate_qps_json_driver_scenarios(),
-    os.path.join(script_dir, "qps_json_driver_scenarios.bzl"),
-    "QPS_JSON_DRIVER_SCENARIOS",
-)
+    os.path.join(script_dir, 'qps_json_driver_scenarios.bzl'),
+    'QPS_JSON_DRIVER_SCENARIOS')

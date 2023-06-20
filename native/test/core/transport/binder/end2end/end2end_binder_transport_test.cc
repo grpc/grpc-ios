@@ -119,8 +119,7 @@ TEST_P(End2EndBinderTransportTest, UnaryCallWithNonOkStatus) {
   EXPECT_THAT(status.error_message(), ::testing::HasSubstr("expected to fail"));
 }
 
-// Disabled because the test is ~0.01% flaky
-TEST_P(End2EndBinderTransportTest, DISABLED_UnaryCallServerTimeout) {
+TEST_P(End2EndBinderTransportTest, UnaryCallServerTimeout) {
   std::unique_ptr<grpc::testing::EchoTestService::Stub> stub = NewStub();
   grpc::ClientContext context;
   context.set_deadline(absl::ToChronoTime(
@@ -377,9 +376,8 @@ TEST_P(End2EndBinderTransportTest, ClientStreamingCall) {
   EXPECT_EQ(response.message(), expected);
 }
 
-// Disabled because the test case is ~0.002% flaky
 TEST_P(End2EndBinderTransportTest,
-       DISABLED_ClientStreamingCallTryCancelBeforeProcessing) {
+       ClientStreamingCallTryCancelBeforeProcessing) {
   std::unique_ptr<grpc::testing::EchoTestService::Stub> stub = NewStub();
   grpc::ClientContext context;
   context.AddMetadata(grpc::testing::kServerTryCancelRequest,
@@ -400,9 +398,8 @@ TEST_P(End2EndBinderTransportTest,
   EXPECT_EQ(status.error_code(), grpc::StatusCode::CANCELLED);
 }
 
-// Disabled because the test case is ~0.002% flaky
 TEST_P(End2EndBinderTransportTest,
-       DISABLED_ClientStreamingCallTryCancelDuringProcessing) {
+       ClientStreamingCallTryCancelDuringProcessing) {
   std::unique_ptr<grpc::testing::EchoTestService::Stub> stub = NewStub();
   grpc::ClientContext context;
   context.AddMetadata(grpc::testing::kServerTryCancelRequest,
@@ -486,9 +483,7 @@ TEST_P(End2EndBinderTransportTest, BiDirStreamingCall) {
   writer_thread.Join();
 }
 
-// Disabled because the test case is ~0.01% flaky
-TEST_P(End2EndBinderTransportTest,
-       DISABLED_BiDirStreamingCallServerFinishesHalfway) {
+TEST_P(End2EndBinderTransportTest, BiDirStreamingCallServerFinishesHalfway) {
   std::unique_ptr<grpc::testing::EchoTestService::Stub> stub = NewStub();
   constexpr size_t kBiDirStreamingCounts = 100;
   grpc::ClientContext context;
@@ -553,11 +548,12 @@ TEST_P(End2EndBinderTransportTest, LargeMessages) {
   }
 }
 
-INSTANTIATE_TEST_SUITE_P(End2EndBinderTransportTestWithDifferentDelayTimes,
-                         End2EndBinderTransportTest,
-                         testing::Values(absl::ZeroDuration(),
-                                         absl::Microseconds(10),
-                                         absl::Milliseconds(10)));
+INSTANTIATE_TEST_SUITE_P(
+    End2EndBinderTransportTestWithDifferentDelayTimes,
+    End2EndBinderTransportTest,
+    testing::Values(absl::ZeroDuration(), absl::Nanoseconds(10),
+                    absl::Microseconds(10), absl::Microseconds(100),
+                    absl::Milliseconds(1), absl::Milliseconds(20)));
 
 }  // namespace grpc_binder
 
