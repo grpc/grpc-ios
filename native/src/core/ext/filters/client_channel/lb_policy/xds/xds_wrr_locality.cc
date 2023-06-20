@@ -28,8 +28,8 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 
-#include <grpc/event_engine/event_engine.h>
 #include <grpc/impl/connectivity_state.h>
+#include <grpc/support/json.h>
 #include <grpc/support/log.h>
 
 #include "src/core/ext/filters/client_channel/lb_policy/xds/xds_attributes.h"
@@ -46,12 +46,11 @@
 #include "src/core/lib/json/json_args.h"
 #include "src/core/lib/json/json_object_loader.h"
 #include "src/core/lib/json/json_writer.h"
+#include "src/core/lib/load_balancing/delegating_helper.h"
 #include "src/core/lib/load_balancing/lb_policy.h"
 #include "src/core/lib/load_balancing/lb_policy_factory.h"
 #include "src/core/lib/load_balancing/lb_policy_registry.h"
-#include "src/core/lib/load_balancing/subchannel_interface.h"
 #include "src/core/lib/resolver/server_address.h"
-#include "src/core/lib/transport/connectivity_state.h"
 
 namespace grpc_core {
 
@@ -118,26 +117,7 @@ class XdsWrrLocalityLb : public LoadBalancingPolicy {
   void ResetBackoffLocked() override;
 
  private:
-  class Helper : public ChannelControlHelper {
-   public:
-    explicit Helper(RefCountedPtr<XdsWrrLocalityLb> xds_wrr_locality)
-        : xds_wrr_locality_(std::move(xds_wrr_locality)) {}
-
-    ~Helper() override { xds_wrr_locality_.reset(DEBUG_LOCATION, "Helper"); }
-
-    RefCountedPtr<SubchannelInterface> CreateSubchannel(
-        ServerAddress address, const ChannelArgs& args) override;
-    void UpdateState(grpc_connectivity_state state, const absl::Status& status,
-                     RefCountedPtr<SubchannelPicker> picker) override;
-    void RequestReresolution() override;
-    absl::string_view GetAuthority() override;
-    grpc_event_engine::experimental::EventEngine* GetEventEngine() override;
-    void AddTraceEvent(TraceSeverity severity,
-                       absl::string_view message) override;
-
-   private:
-    RefCountedPtr<XdsWrrLocalityLb> xds_wrr_locality_;
-  };
+  using Helper = ParentOwningDelegatingChannelControlHelper<XdsWrrLocalityLb>;
 
   ~XdsWrrLocalityLb() override;
 
@@ -211,19 +191,19 @@ absl::Status XdsWrrLocalityLb::UpdateLocked(UpdateArgs args) {
     const std::string& locality_name = p.first;
     uint32_t weight = p.second;
     // Add weighted target entry.
-    weighted_targets[locality_name] = Json::Object{
-        {"weight", weight},
+    weighted_targets[locality_name] = Json::FromObject({
+        {"weight", Json::FromNumber(weight)},
         {"childPolicy", config->child_config()},
-    };
+    });
   }
-  Json child_config_json = Json::Array{
-      Json::Object{
+  Json child_config_json = Json::FromArray({
+      Json::FromObject({
           {"weighted_target_experimental",
-           Json::Object{
-               {"targets", std::move(weighted_targets)},
-           }},
-      },
-  };
+           Json::FromObject({
+               {"targets", Json::FromObject(std::move(weighted_targets))},
+           })},
+      }),
+  });
   if (GRPC_TRACE_FLAG_ENABLED(grpc_xds_wrr_locality_lb_trace)) {
     gpr_log(GPR_INFO,
             "[xds_wrr_locality_lb %p] generated child policy config: %s", this,
@@ -290,48 +270,6 @@ OrphanablePtr<LoadBalancingPolicy> XdsWrrLocalityLb::CreateChildPolicyLocked(
 }
 
 //
-// XdsWrrLocalityLb::Helper
-//
-
-RefCountedPtr<SubchannelInterface> XdsWrrLocalityLb::Helper::CreateSubchannel(
-    ServerAddress address, const ChannelArgs& args) {
-  return xds_wrr_locality_->channel_control_helper()->CreateSubchannel(
-      std::move(address), args);
-}
-
-void XdsWrrLocalityLb::Helper::UpdateState(
-    grpc_connectivity_state state, const absl::Status& status,
-    RefCountedPtr<SubchannelPicker> picker) {
-  if (GRPC_TRACE_FLAG_ENABLED(grpc_xds_wrr_locality_lb_trace)) {
-    gpr_log(
-        GPR_INFO,
-        "[xds_wrr_locality_lb %p] update from child: state=%s (%s) picker=%p",
-        xds_wrr_locality_.get(), ConnectivityStateName(state),
-        status.ToString().c_str(), picker.get());
-  }
-  xds_wrr_locality_->channel_control_helper()->UpdateState(state, status,
-                                                           std::move(picker));
-}
-
-void XdsWrrLocalityLb::Helper::RequestReresolution() {
-  xds_wrr_locality_->channel_control_helper()->RequestReresolution();
-}
-
-absl::string_view XdsWrrLocalityLb::Helper::GetAuthority() {
-  return xds_wrr_locality_->channel_control_helper()->GetAuthority();
-}
-
-grpc_event_engine::experimental::EventEngine*
-XdsWrrLocalityLb::Helper::GetEventEngine() {
-  return xds_wrr_locality_->channel_control_helper()->GetEventEngine();
-}
-
-void XdsWrrLocalityLb::Helper::AddTraceEvent(TraceSeverity severity,
-                                             absl::string_view message) {
-  xds_wrr_locality_->channel_control_helper()->AddTraceEvent(severity, message);
-}
-
-//
 // factory
 //
 
@@ -346,15 +284,7 @@ class XdsWrrLocalityLbFactory : public LoadBalancingPolicyFactory {
 
   absl::StatusOr<RefCountedPtr<LoadBalancingPolicy::Config>>
   ParseLoadBalancingConfig(const Json& json) const override {
-    if (json.type() == Json::Type::kNull) {
-      // xds_wrr_locality was mentioned as a policy in the deprecated
-      // loadBalancingPolicy field or in the client API.
-      return absl::InvalidArgumentError(
-          "field:loadBalancingPolicy error:xds_wrr_locality policy requires "
-          "configuration.  Please use loadBalancingConfig field of service "
-          "config instead.");
-    }
-    return LoadRefCountedFromJson<XdsWrrLocalityLbConfig>(
+    return LoadFromJson<RefCountedPtr<XdsWrrLocalityLbConfig>>(
         json, JsonArgs(),
         "errors validating xds_wrr_locality LB policy config");
   }

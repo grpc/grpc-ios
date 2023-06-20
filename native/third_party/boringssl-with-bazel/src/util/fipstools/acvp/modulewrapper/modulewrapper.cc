@@ -37,6 +37,7 @@
 #include <openssl/ecdh.h>
 #include <openssl/ecdsa.h>
 #include <openssl/err.h>
+#include <openssl/hkdf.h>
 #include <openssl/hmac.h>
 #include <openssl/obj.h>
 #include <openssl/rsa.h>
@@ -164,8 +165,51 @@ Span<const Span<const uint8_t>> ParseArgsFromFd(int fd,
   return Span<const Span<const uint8_t>>(buffer->args, num_args);
 }
 
+// g_reply_buffer contains buffered replies which will be flushed when acvp
+// requests.
+static std::vector<uint8_t> g_reply_buffer;
+
+bool WriteReplyToBuffer(const std::vector<Span<const uint8_t>> &spans) {
+  if (spans.size() > kMaxArgs) {
+    abort();
+  }
+
+  uint8_t buf[4];
+  CRYPTO_store_u32_le(buf, spans.size());
+  g_reply_buffer.insert(g_reply_buffer.end(), buf, buf + sizeof(buf));
+  for (const auto &span : spans) {
+    CRYPTO_store_u32_le(buf, span.size());
+    g_reply_buffer.insert(g_reply_buffer.end(), buf, buf + sizeof(buf));
+  }
+  for (const auto &span : spans) {
+    g_reply_buffer.insert(g_reply_buffer.end(), span.begin(), span.end());
+  }
+
+  return true;
+}
+
+bool FlushBuffer(int fd) {
+  size_t done = 0;
+
+  while (done < g_reply_buffer.size()) {
+    ssize_t n;
+    do {
+      n = write(fd, g_reply_buffer.data() + done, g_reply_buffer.size() - done);
+    } while (n < 0 && errno == EINTR);
+
+    if (n < 0) {
+      return false;
+    }
+    done += static_cast<size_t>(n);
+  }
+
+  g_reply_buffer.clear();
+
+  return true;
+}
+
 bool WriteReplyToFd(int fd, const std::vector<Span<const uint8_t>> &spans) {
-  if (spans.empty() || spans.size() > kMaxArgs) {
+  if (spans.size() > kMaxArgs) {
     abort();
   }
 
@@ -226,6 +270,10 @@ bool WriteReplyToFd(int fd, const std::vector<Span<const uint8_t>> &spans) {
 static bool GetConfig(const Span<const uint8_t> args[], ReplyCallback write_reply) {
   static constexpr char kConfig[] =
       R"([
+      {
+        "algorithm": "acvptool",
+        "features": ["batch"]
+      },
       {
         "algorithm": "SHA2-224",
         "revision": "1.0",
@@ -834,20 +882,6 @@ static bool GetConfig(const Span<const uint8_t> args[], ReplyCallback write_repl
         }]
       },
       {
-        "algorithm": "kdf-components",
-        "revision": "1.0",
-        "mode": "tls",
-        "tlsVersion": [
-          "v1.0/1.1",
-          "v1.2"
-        ],
-        "hashAlg": [
-          "SHA2-256",
-          "SHA2-384",
-          "SHA2-512"
-        ]
-      },
-      {
         "algorithm": "KAS-ECC-SSC",
         "revision": "Sp800-56Ar3",
         "scheme": {
@@ -885,10 +919,70 @@ static bool GetConfig(const Span<const uint8_t> args[], ReplyCallback write_repl
           "FB",
           "FC"
         ]
+      },
+      {
+        "algorithm": "KDA",
+        "mode": "HKDF",
+        "revision": "Sp800-56Cr1",
+        "fixedInfoPattern": "uPartyInfo||vPartyInfo",
+        "encoding": [
+          "concatenation"
+        ],
+        "hmacAlg": [
+          "SHA2-224",
+          "SHA2-256",
+          "SHA2-384",
+          "SHA2-512",
+          "SHA2-512/256"
+        ],
+        "macSaltMethods": [
+          "default",
+          "random"
+        ],
+        "l": 2048,
+        "z": [
+          {
+            "min": 224,
+            "max": 65336,
+            "increment": 8
+          }
+        ]
+      },
+      {
+        "algorithm": "TLS-v1.2",
+        "mode": "KDF",
+        "revision": "RFC7627",
+        "hashAlg": [
+          "SHA2-256",
+          "SHA2-384",
+          "SHA2-512"
+        ]
+      },
+      {
+        "algorithm": "TLS-v1.3",
+        "mode": "KDF",
+        "revision": "RFC8446",
+        "hmacAlg": [
+          "SHA2-256",
+          "SHA2-384"
+        ],
+        "runningMode": [
+          "DHE",
+          "PSK",
+          "PSK-DHE"
+        ]
       }
     ])";
   return write_reply({Span<const uint8_t>(
       reinterpret_cast<const uint8_t *>(kConfig), sizeof(kConfig) - 1)});
+}
+
+static bool Flush(const Span<const uint8_t> args[], ReplyCallback write_reply) {
+  fprintf(
+      stderr,
+      "modulewrapper code processed a `flush` command but this must be handled "
+      "at a higher-level. See the example in main.cc in BoringSSL\n");
+  abort();
 }
 
 template <uint8_t *(*OneShotHash)(const uint8_t *, size_t, uint8_t *),
@@ -1431,6 +1525,73 @@ static bool HMAC(const Span<const uint8_t> args[], ReplyCallback write_reply) {
   return write_reply({Span<const uint8_t>(digest, digest_len)});
 }
 
+template <const EVP_MD *HashFunc()>
+static bool HKDF(const Span<const uint8_t> args[], ReplyCallback write_reply) {
+  const EVP_MD *const md = HashFunc();
+  const auto key = args[0];
+  const auto salt = args[1];
+  const auto info = args[2];
+  const auto out_len_bytes = args[3];
+
+  if (out_len_bytes.size() != sizeof(uint32_t)) {
+    return false;
+  }
+  const uint32_t out_len = CRYPTO_load_u32_le(out_len_bytes.data());
+  if (out_len > (1 << 24)) {
+    return false;
+  }
+
+  std::vector<uint8_t> out(out_len);
+  if (!::HKDF(out.data(), out_len, md, key.data(), key.size(), salt.data(),
+              salt.size(), info.data(), info.size())) {
+    return false;
+  }
+  return write_reply({out});
+}
+
+template <const EVP_MD *HashFunc()>
+static bool HKDFExtract(const Span<const uint8_t> args[],
+                        ReplyCallback write_reply) {
+  const EVP_MD *const md = HashFunc();
+  const auto secret = args[0];
+  const auto salt = args[1];
+
+  std::vector<uint8_t> out(EVP_MD_size(md));
+  size_t out_len;
+  if (!HKDF_extract(out.data(), &out_len, md, secret.data(), secret.size(),
+                    salt.data(), salt.size())) {
+    return false;
+  }
+  assert(out_len == out.size());
+  return write_reply({out});
+}
+
+template <const EVP_MD *HashFunc()>
+static bool HKDFExpandLabel(const Span<const uint8_t> args[],
+                            ReplyCallback write_reply) {
+  const EVP_MD *const md = HashFunc();
+  const auto out_len_bytes = args[0];
+  const auto secret = args[1];
+  const auto label = args[2];
+  const auto hash = args[3];
+
+  if (out_len_bytes.size() != sizeof(uint32_t)) {
+    return false;
+  }
+  const uint32_t out_len = CRYPTO_load_u32_le(out_len_bytes.data());
+  if (out_len > (1 << 24)) {
+    return false;
+  }
+
+  std::vector<uint8_t> out(out_len);
+  if (!CRYPTO_tls13_hkdf_expand_label(out.data(), out_len, md, secret.data(),
+                                      secret.size(), label.data(), label.size(),
+                                      hash.data(), hash.size())) {
+    return false;
+  }
+  return write_reply({out});
+}
+
 template <bool WithReseed>
 static bool DRBG(const Span<const uint8_t> args[], ReplyCallback write_reply) {
   const auto out_len_bytes = args[0];
@@ -1941,6 +2102,7 @@ static constexpr struct {
   bool (*handler)(const Span<const uint8_t> args[], ReplyCallback write_reply);
 } kFunctions[] = {
     {"getConfig", 0, GetConfig},
+    {"flush", 0, Flush},
     {"SHA-1", 1, Hash<SHA1, SHA_DIGEST_LENGTH>},
     {"SHA2-224", 1, Hash<SHA224, SHA224_DIGEST_LENGTH>},
     {"SHA2-256", 1, Hash<SHA256, SHA256_DIGEST_LENGTH>},
@@ -1971,6 +2133,15 @@ static constexpr struct {
     {"3DES-ECB/decrypt", 3, TDES<false>},
     {"3DES-CBC/encrypt", 4, TDES_CBC<true>},
     {"3DES-CBC/decrypt", 4, TDES_CBC<false>},
+    {"HKDF/SHA2-224", 4, HKDF<EVP_sha224>},
+    {"HKDF/SHA2-256", 4, HKDF<EVP_sha256>},
+    {"HKDF/SHA2-384", 4, HKDF<EVP_sha384>},
+    {"HKDF/SHA2-512", 4, HKDF<EVP_sha512>},
+    {"HKDF/SHA2-512/256", 4, HKDF<EVP_sha512_256>},
+    {"HKDFExpandLabel/SHA2-256", 4, HKDFExpandLabel<EVP_sha256>},
+    {"HKDFExpandLabel/SHA2-384", 4, HKDFExpandLabel<EVP_sha384>},
+    {"HKDFExtract/SHA2-256", 2, HKDFExtract<EVP_sha256>},
+    {"HKDFExtract/SHA2-384", 2, HKDFExtract<EVP_sha384>},
     {"HMAC-SHA-1", 2, HMAC<EVP_sha1>},
     {"HMAC-SHA2-224", 2, HMAC<EVP_sha224>},
     {"HMAC-SHA2-256", 2, HMAC<EVP_sha256>},
@@ -2008,7 +2179,6 @@ static constexpr struct {
     {"RSA/sigVer/SHA2-512/pss", 4, RSASigVer<EVP_sha512, true>},
     {"RSA/sigVer/SHA2-512/256/pss", 4, RSASigVer<EVP_sha512_256, true>},
     {"RSA/sigVer/SHA-1/pss", 4, RSASigVer<EVP_sha1, true>},
-    {"TLSKDF/1.0/SHA-1", 5, TLSKDF<EVP_md5_sha1>},
     {"TLSKDF/1.2/SHA2-256", 5, TLSKDF<EVP_sha256>},
     {"TLSKDF/1.2/SHA2-384", 5, TLSKDF<EVP_sha384>},
     {"TLSKDF/1.2/SHA2-512", 5, TLSKDF<EVP_sha512>},

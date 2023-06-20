@@ -18,14 +18,16 @@
 ares_getaddrinfo \- Initiate a host query by name and service
 .SH SYNOPSIS
 .nf
-.B #include <ares.h>
-.PP
-.B typedef void (*ares_addrinfo_callback)(void *\fIarg\fP, int \fIstatus\fP,
-.B 	int \fItimeouts\fP, struct ares_addrinfo *\fIresult\fP)
-.PP
-.B void ares_getaddrinfo(ares_channel \fIchannel\fP, const char *\fIname\fP,
-.B 	const char* \fIservice\fP, const struct ares_addrinfo_hints *\fIhints\fP,
-.B 	ares_addrinfo_callback \fIcallback\fP, void *\fIarg\fP)
+#include <ares.h>
+
+typedef void (*ares_addrinfo_callback)(void *\fIarg\fP, int \fIstatus\fP,
+                                       int \fItimeouts\fP,
+                                       struct ares_addrinfo *\fIresult\fP)
+
+void ares_getaddrinfo(ares_channel \fIchannel\fP, const char *\fIname\fP,
+                      const char* \fIservice\fP,
+                      const struct ares_addrinfo_hints *\fIhints\fP,
+                      ares_addrinfo_callback \fIcallback\fP, void *\fIarg\fP)
 .fi
 .SH DESCRIPTION
 The
@@ -127,13 +129,15 @@ On successful completion of the query, the callback argument
 .I result
 points to a
 .B struct ares_addrinfo
-which contains two linked lists, one with resolved addresses and another with canonical names.
+which contains two linked lists, one with resolved addresses and another with canonical names. 
+Also included is the official name of the host (analogous to gethostbyname() h_name).
 .PP
 .RS
 .EX
 struct ares_addrinfo {
   struct ares_addrinfo_cname *cnames;
   struct ares_addrinfo_node  *nodes;
+  char *name;
 };
 .EE
 .RE
@@ -187,6 +191,8 @@ The result is sorted according to RFC6724 except:
 
 Please note that the function will attempt a connection
 on each of the resolved addresses as per RFC6724.
+.SH AVAILABILITY
+This function was added in c-ares 1.16.0, released in March 2020.
 .SH SEE ALSO
 .BR ares_freeaddrinfo (3)
 .SH AUTHOR

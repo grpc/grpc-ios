@@ -75,6 +75,7 @@ import java.util.NoSuchElementException;
  */
 @CheckReturnValue
 public abstract class ByteString implements Iterable<Byte>, Serializable {
+  private static final long serialVersionUID = 1L;
 
   /**
    * When two strings to be concatenated have a combined length shorter than this, we just copy
@@ -385,8 +386,7 @@ public abstract class ByteString implements Iterable<Byte>, Serializable {
   // String -> ByteString
 
   /**
-   * Returns a {@code ByteString} from a hexadecimal String. Alternative CharSequences should use
-   * {@link ByteStrings#decode(CharSequence, BaseEncoding)}
+   * Returns a {@code ByteString} from a hexadecimal String.
    *
    * @param hexString String of hexadecimal digits to create {@code ByteString} from.
    * @throws NumberFormatException if the hexString does not contain a parsable hex String.
@@ -432,7 +432,10 @@ public abstract class ByteString implements Iterable<Byte>, Serializable {
     return copyFrom(bytes, 0, bytes.length);
   }
 
-  /** Wraps the given bytes into a {@code ByteString}. Intended for internal only usage. */
+  /**
+   * Wraps the given bytes into a {@code ByteString}. Intended for internal usage within the
+   * library.
+   */
   static ByteString wrap(ByteBuffer buffer) {
     if (buffer.hasArray()) {
       final int offset = buffer.arrayOffset();
@@ -443,8 +446,8 @@ public abstract class ByteString implements Iterable<Byte>, Serializable {
   }
 
   /**
-   * Wraps the given bytes into a {@code ByteString}. Intended for internal only usage to force a
-   * classload of ByteString before LiteralByteString.
+   * Wraps the given bytes into a {@code ByteString}. Intended for internal usage within the library
+   * to force a classload of ByteString before LiteralByteString.
    */
   static ByteString wrap(byte[] bytes) {
     // TODO(dweis): Return EMPTY when bytes are empty to reduce allocations?
@@ -452,8 +455,8 @@ public abstract class ByteString implements Iterable<Byte>, Serializable {
   }
 
   /**
-   * Wraps the given bytes into a {@code ByteString}. Intended for internal only usage to force a
-   * classload of ByteString before BoundedByteString and LiteralByteString.
+   * Wraps the given bytes into a {@code ByteString}. Intended for internal usage within the library
+   * to force a classload of ByteString before BoundedByteString and LiteralByteString.
    */
   static ByteString wrap(byte[] bytes, int offset, int length) {
     return new BoundedByteString(bytes, offset, length);
@@ -946,6 +949,8 @@ public abstract class ByteString implements Iterable<Byte>, Serializable {
 
   /** Base class for leaf {@link ByteString}s (i.e. non-ropes). */
   abstract static class LeafByteString extends ByteString {
+    private static final long serialVersionUID = 1L;
+
     @Override
     protected final int getTreeDepth() {
       return 0;
@@ -1130,13 +1135,6 @@ public abstract class ByteString implements Iterable<Byte>, Serializable {
       return ByteString.copyFrom(flushedBuffers);
     }
 
-    /** Implement java.util.Arrays.copyOf() for jdk 1.5. */
-    private byte[] copyArray(byte[] buffer, int length) {
-      byte[] result = new byte[length];
-      System.arraycopy(buffer, 0, result, 0, Math.min(buffer.length, length));
-      return result;
-    }
-
     /**
      * Writes the complete contents of this byte array output stream to the specified output stream
      * argument.
@@ -1151,7 +1149,7 @@ public abstract class ByteString implements Iterable<Byte>, Serializable {
       synchronized (this) {
         // Copy the information we need into local variables so as to hold
         // the lock for as short a time as possible.
-        cachedFlushBuffers = flushedBuffers.toArray(new ByteString[flushedBuffers.size()]);
+        cachedFlushBuffers = flushedBuffers.toArray(new ByteString[0]);
         cachedBuffer = buffer;
         cachedBufferPos = bufferPos;
       }
@@ -1159,7 +1157,7 @@ public abstract class ByteString implements Iterable<Byte>, Serializable {
         byteString.writeTo(out);
       }
 
-      out.write(copyArray(cachedBuffer, cachedBufferPos));
+      out.write(Arrays.copyOf(cachedBuffer, cachedBufferPos));
     }
 
     /**
@@ -1210,7 +1208,7 @@ public abstract class ByteString implements Iterable<Byte>, Serializable {
     private void flushLastBuffer() {
       if (bufferPos < buffer.length) {
         if (bufferPos > 0) {
-          byte[] bufferCopy = copyArray(buffer, bufferPos);
+          byte[] bufferCopy = Arrays.copyOf(buffer, bufferPos);
           flushedBuffers.add(new LiteralByteString(bufferCopy));
         }
         // We reuse this buffer for further writes.
@@ -1611,7 +1609,6 @@ public abstract class ByteString implements Iterable<Byte>, Serializable {
   // Keep this class private to avoid deadlocks in classloading across threads as ByteString's
   // static initializer loads LiteralByteString and another thread loads BoundedByteString.
   private static final class BoundedByteString extends LiteralByteString {
-
     private final int bytesOffset;
     private final int bytesLength;
 

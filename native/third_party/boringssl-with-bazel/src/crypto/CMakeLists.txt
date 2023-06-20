@@ -126,10 +126,12 @@ add_library(
   conf/conf.c
   cpu_aarch64_apple.c
   cpu_aarch64_freebsd.c
+  cpu_aarch64_openbsd.c
   cpu_aarch64_fuchsia.c
   cpu_aarch64_linux.c
   cpu_aarch64_win.c
   cpu_arm_freebsd.c
+  cpu_arm_openbsd.c
   cpu_arm_linux.c
   cpu_arm.c
   cpu_intel.c
@@ -168,10 +170,10 @@ add_library(
   evp/scrypt.c
   evp/sign.c
   ex_data.c
-  hkdf/hkdf.c
   hpke/hpke.c
   hrss/hrss.c
   kyber/keccak.c
+  kyber/kyber.c
   lhash/lhash.c
   mem.c
   obj/obj.c
@@ -201,8 +203,10 @@ add_library(
   rand_extra/windows.c
   rc4/rc4.c
   refcount_c11.c
-  refcount_lock.c
+  refcount_no_threads.c
+  refcount_win.c
   rsa_extra/rsa_asn1.c
+  rsa_extra/rsa_crypt.c
   rsa_extra/rsa_print.c
   stack/stack.c
   siphash/siphash.c
@@ -388,13 +392,13 @@ add_executable(
   fipsmodule/ec/ec_test.cc
   fipsmodule/ec/p256-nistz_test.cc
   fipsmodule/ecdsa/ecdsa_test.cc
+  fipsmodule/hkdf/hkdf_test.cc
   fipsmodule/md5/md5_test.cc
   fipsmodule/modes/gcm_test.cc
   fipsmodule/rand/ctrdrbg_test.cc
   fipsmodule/rand/fork_detect_test.cc
   fipsmodule/service_indicator/service_indicator_test.cc
   fipsmodule/sha/sha_test.cc
-  hkdf/hkdf_test.cc
   hpke/hpke_test.cc
   hmac_extra/hmac_test.cc
   hrss/hrss_test.cc

@@ -33,15 +33,16 @@
 
 #include <type_traits>
 
-#include <google/protobuf/io/coded_stream.h>
-#include <google/protobuf/port.h>
-#include <google/protobuf/map.h>
-#include <google/protobuf/map_entry_lite.h>
-#include <google/protobuf/parse_context.h>
-#include <google/protobuf/wire_format_lite.h>
+#include "google/protobuf/port.h"
+#include "absl/log/absl_check.h"
+#include "google/protobuf/io/coded_stream.h"
+#include "google/protobuf/map.h"
+#include "google/protobuf/map_entry_lite.h"
+#include "google/protobuf/parse_context.h"
+#include "google/protobuf/wire_format_lite.h"
 
 // Must be included last.
-#include <google/protobuf/port_def.inc>
+#include "google/protobuf/port_def.inc"
 
 #ifdef SWIG
 #error "You cannot SWIG proto headers"
@@ -50,10 +51,6 @@
 namespace google {
 namespace protobuf {
 namespace internal {
-
-#ifndef NDEBUG
-void MapFieldLiteNotDestructed(void* map_field_lite);
-#endif
 
 // This class provides access to map field using generated api. It is used for
 // internal generated message implementation only. Users should never use this
@@ -67,28 +64,25 @@ class MapFieldLite {
 
  public:
   typedef Map<Key, T> MapType;
+  static constexpr WireFormatLite::FieldType kKeyFieldType = key_wire_type;
+  static constexpr WireFormatLite::FieldType kValueFieldType = value_wire_type;
 
   constexpr MapFieldLite() : map_() {}
   explicit MapFieldLite(Arena* arena) : map_(arena) {}
   MapFieldLite(ArenaInitialized, Arena* arena) : MapFieldLite(arena) {}
 
 #ifdef NDEBUG
-  void Destruct() { map_.~Map(); }
-  ~MapFieldLite() {}
+  ~MapFieldLite() { map_.~Map(); }
 #else
-  void Destruct() {
+  ~MapFieldLite() {
+    ABSL_DCHECK_EQ(map_.arena(), nullptr);
     // We want to destruct the map in such a way that we can verify
     // that we've done that, but also be sure that we've deallocated
     // everything (as opposed to leaving an allocation behind with no
     // data in it, as would happen if a vector was resize'd to zero.
     // Map::Swap with an empty map accomplishes that.
     decltype(map_) swapped_map(map_.arena());
-    map_.InternalSwap(swapped_map);
-  }
-  ~MapFieldLite() {
-    if (map_.arena() == nullptr && !map_.empty()) {
-      MapFieldLiteNotDestructed(this);
-    }
+    map_.InternalSwap(&swapped_map);
   }
 #endif
   // Accessors
@@ -99,13 +93,10 @@ class MapFieldLite {
   int size() const { return static_cast<int>(map_.size()); }
   void Clear() { return map_.clear(); }
   void MergeFrom(const MapFieldLite& other) {
-    for (typename Map<Key, T>::const_iterator it = other.map_.begin();
-         it != other.map_.end(); ++it) {
-      map_[it->first] = it->second;
-    }
+    internal::MapMergeFrom(map_, other.map_);
   }
   void Swap(MapFieldLite* other) { map_.swap(other->map_); }
-  void InternalSwap(MapFieldLite* other) { map_.InternalSwap(other->map_); }
+  void InternalSwap(MapFieldLite* other) { map_.InternalSwap(&other->map_); }
 
   // Used in the implementation of parsing. Caller should take the ownership iff
   // arena_ is nullptr.
@@ -193,17 +184,10 @@ struct MapEntryToMapField<
       MapFieldType;
 };
 
-#ifndef NDEBUG
-inline PROTOBUF_NOINLINE void MapFieldLiteNotDestructed(void* map_field_lite) {
-  bool proper_destruct = false;
-  GOOGLE_CHECK(proper_destruct) << map_field_lite;
-}
-#endif
-
 }  // namespace internal
 }  // namespace protobuf
 }  // namespace google
 
-#include <google/protobuf/port_undef.inc>
+#include "google/protobuf/port_undef.inc"
 
 #endif  // GOOGLE_PROTOBUF_MAP_FIELD_LITE_H__

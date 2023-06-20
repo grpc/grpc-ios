@@ -32,26 +32,35 @@
 //  Based on original Protocol Buffers design by
 //  Sanjay Ghemawat, Jeff Dean, and others.
 
-#include <google/protobuf/compiler/parser.h>
+#include "google/protobuf/compiler/parser.h"
 
 #include <algorithm>
-#include <map>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
-#include <google/protobuf/test_util2.h>
-#include <google/protobuf/unittest.pb.h>
-#include <google/protobuf/any.pb.h>
-#include <google/protobuf/unittest_custom_options.pb.h>
-#include <google/protobuf/io/tokenizer.h>
-#include <google/protobuf/io/zero_copy_stream_impl.h>
-#include <google/protobuf/descriptor.pb.h>
-#include <google/protobuf/text_format.h>
-#include <google/protobuf/wire_format.h>
-#include <google/protobuf/testing/googletest.h>
+#include "google/protobuf/any.pb.h"
+#include "google/protobuf/descriptor.pb.h"
+#include "google/protobuf/text_format.h"
+#include "google/protobuf/testing/googletest.h"
 #include <gtest/gtest.h>
-#include <google/protobuf/stubs/substitute.h>
-#include <google/protobuf/stubs/map_util.h>
+#include "absl/container/flat_hash_map.h"
+#include "absl/log/absl_check.h"
+#include "absl/memory/memory.h"
+#include "absl/strings/str_join.h"
+#include "absl/strings/substitute.h"
+#include "google/protobuf/compiler/retention.h"
+#include "google/protobuf/test_util2.h"
+#include "google/protobuf/unittest.pb.h"
+#include "google/protobuf/unittest_custom_options.pb.h"
+#include "google/protobuf/unittest_import.pb.h"
+#include "google/protobuf/unittest_import_public.pb.h"
+#include "google/protobuf/wire_format.h"
+
+
+// Must be included last.
+#include "google/protobuf/port_def.inc"
 
 namespace google {
 namespace protobuf {
@@ -68,12 +77,12 @@ class MockErrorCollector : public io::ErrorCollector {
   std::string text_;
 
   // implements ErrorCollector ---------------------------------------
-  void AddWarning(int line, int column, const std::string& message) override {
-    strings::SubstituteAndAppend(&warning_, "$0:$1: $2\n", line, column, message);
+  void RecordWarning(int line, int column, absl::string_view message) override {
+    absl::SubstituteAndAppend(&warning_, "$0:$1: $2\n", line, column, message);
   }
 
-  void AddError(int line, int column, const std::string& message) override {
-    strings::SubstituteAndAppend(&text_, "$0:$1: $2\n", line, column, message);
+  void RecordError(int line, int column, absl::string_view message) override {
+    absl::SubstituteAndAppend(&text_, "$0:$1: $2\n", line, column, message);
   }
 };
 
@@ -83,19 +92,19 @@ class MockValidationErrorCollector : public DescriptorPool::ErrorCollector {
                                io::ErrorCollector* wrapped_collector)
       : source_locations_(source_locations),
         wrapped_collector_(wrapped_collector) {}
-  ~MockValidationErrorCollector() override {}
+  ~MockValidationErrorCollector() override = default;
 
   // implements ErrorCollector ---------------------------------------
-  void AddError(const std::string& filename, const std::string& element_name,
-                const Message* descriptor, ErrorLocation location,
-                const std::string& message) override {
+  void RecordError(absl::string_view filename, absl::string_view element_name,
+                   const Message* descriptor, ErrorLocation location,
+                   absl::string_view message) override {
     int line, column;
     if (location == DescriptorPool::ErrorCollector::IMPORT) {
       source_locations_.FindImport(descriptor, element_name, &line, &column);
     } else {
       source_locations_.Find(descriptor, location, &line, &column);
     }
-    wrapped_collector_->AddError(line, column, message);
+    wrapped_collector_->RecordError(line, column, message);
   }
 
  private:
@@ -109,9 +118,10 @@ class ParserTest : public testing::Test {
 
   // Set up the parser to parse the given text.
   void SetupParser(const char* text) {
-    raw_input_.reset(new io::ArrayInputStream(text, strlen(text)));
-    input_.reset(new io::Tokenizer(raw_input_.get(), &error_collector_));
-    parser_.reset(new Parser());
+    raw_input_ = absl::make_unique<io::ArrayInputStream>(text, strlen(text));
+    input_ =
+        absl::make_unique<io::Tokenizer>(raw_input_.get(), &error_collector_);
+    parser_ = absl::make_unique<Parser>();
     parser_->RecordErrorsTo(&error_collector_);
     parser_->SetRequireSyntaxIdentifier(require_syntax_identifier_);
   }
@@ -123,7 +133,7 @@ class ParserTest : public testing::Test {
     SetupParser(input);
     FileDescriptorProto actual, expected;
 
-    parser_->Parse(input_.get(), &actual);
+    EXPECT_TRUE(parser_->Parse(input_.get(), &actual));
     EXPECT_EQ(io::Tokenizer::TYPE_END, input_->current().type);
     ASSERT_EQ("", error_collector_.text_);
 
@@ -147,12 +157,22 @@ class ParserTest : public testing::Test {
     EXPECT_EQ(io::Tokenizer::TYPE_END, input_->current().type);
   }
 
+  // Parse the text and expect that the given warnings are reported.
+  void ExpectHasWarnings(const char* text, const char* expected_warnings) {
+    SetupParser(text);
+    FileDescriptorProto file;
+    ASSERT_TRUE(parser_->Parse(input_.get(), &file));
+    EXPECT_EQ(io::Tokenizer::TYPE_END, input_->current().type);
+    ASSERT_EQ("", error_collector_.text_);
+    EXPECT_EQ(expected_warnings, error_collector_.warning_);
+  }
+
   // Same as above but does not expect that the parser parses the complete
   // input.
   void ExpectHasEarlyExitErrors(const char* text, const char* expected_errors) {
     SetupParser(text);
     FileDescriptorProto file;
-    parser_->Parse(input_.get(), &file);
+    EXPECT_FALSE(parser_->Parse(input_.get(), &file));
     EXPECT_EQ(expected_errors, error_collector_.text_);
   }
 
@@ -587,6 +607,56 @@ TEST_F(ParseMessageTest, FieldOptions) {
       "                                                   is_extension: true } "
       "                                            identifier_value: \"hey\" }"
       "          }"
+      "  }"
+      "}");
+}
+
+TEST_F(ParseMessageTest, FieldOptionsSupportLargeDecimalLiteral) {
+  // decimal integer literal > uint64 max
+  ExpectParsesTo(
+      "import \"google/protobuf/descriptor.proto\";\n"
+      "extend google.protobuf.FieldOptions {\n"
+      "  optional double f = 10101;\n"
+      "}\n"
+      "message TestMessage {\n"
+      "  optional double a = 1 [default = 18446744073709551616];\n"
+      "  optional double b = 2 [default = -18446744073709551616];\n"
+      "  optional double c = 3 [(f) = 18446744073709551616];\n"
+      "  optional double d = 4 [(f) = -18446744073709551616];\n"
+      "}\n",
+
+      "dependency: \"google/protobuf/descriptor.proto\""
+      "extension {"
+      "  name: \"f\" label: LABEL_OPTIONAL type: TYPE_DOUBLE number: 10101"
+      "  extendee: \"google.protobuf.FieldOptions\""
+      "}"
+      "message_type {"
+      "  name: \"TestMessage\""
+      "  field {"
+      "    name: \"a\" label: LABEL_OPTIONAL type: TYPE_DOUBLE number: 1"
+      "    default_value: \"1.8446744073709552e+19\""
+      "  }"
+      "  field {"
+      "    name: \"b\" label: LABEL_OPTIONAL type: TYPE_DOUBLE number: 2"
+      "    default_value: \"-1.8446744073709552e+19\""
+      "  }"
+      "  field {"
+      "    name: \"c\" label: LABEL_OPTIONAL type: TYPE_DOUBLE number: 3"
+      "    options{"
+      "      uninterpreted_option{"
+      "        name{ name_part: \"f\" is_extension: true }"
+      "        double_value: 1.8446744073709552e+19"
+      "      }"
+      "    }"
+      "  }"
+      "  field {"
+      "    name: \"d\" label: LABEL_OPTIONAL type: TYPE_DOUBLE number: 4"
+      "    options{"
+      "      uninterpreted_option{"
+      "        name{ name_part: \"f\" is_extension: true }"
+      "        double_value: -1.8446744073709552e+19"
+      "      }"
+      "    }"
       "  }"
       "}");
 }
@@ -1674,6 +1744,17 @@ TEST_F(ParseErrorTest, EnumReservedMissingQuotes) {
       "2:11: Expected enum value or number range.\n");
 }
 
+TEST_F(ParseErrorTest, EnumReservedInvalidIdentifier) {
+  ExpectHasWarnings(
+      R"pb(
+      enum TestEnum {
+        FOO = 1;
+        reserved "foo bar";
+      }
+      )pb",
+      "3:17: Reserved name \"foo bar\" is not a valid identifier.\n");
+}
+
 // -------------------------------------------------------------------
 // Reserved field number errors
 
@@ -1699,6 +1780,16 @@ TEST_F(ParseErrorTest, ReservedMissingQuotes) {
       "  reserved foo;\n"
       "}\n",
       "1:11: Expected field name or number range.\n");
+}
+
+TEST_F(ParseErrorTest, ReservedInvalidIdentifier) {
+  ExpectHasWarnings(
+      R"pb(
+      message Foo {
+        reserved "foo bar";
+      }
+      )pb",
+      "2:17: Reserved name \"foo bar\" is not a valid identifier.\n");
 }
 
 TEST_F(ParseErrorTest, ReservedNegativeNumber) {
@@ -1890,6 +1981,22 @@ TEST_F(ParserValidationErrorTest, FieldDefaultValueError) {
       "2:32: Enum type \"Baz\" has no value named \"NO_SUCH_VALUE\".\n");
 }
 
+TEST_F(ParserValidationErrorTest, FieldDefaultIntegerOutOfRange) {
+  ExpectHasErrors(
+      "message Foo {\n"
+      "  optional double bar = 1 [default = 0x10000000000000000];\n"
+      "}\n",
+      "1:37: Integer out of range.\n");
+}
+
+TEST_F(ParserValidationErrorTest, FieldOptionOutOfRange) {
+  ExpectHasErrors(
+      "message Foo {\n"
+      "  optional double bar = 1 [foo = 0x10000000000000000];\n"
+      "}\n",
+      "1:33: Integer out of range.\n");
+}
+
 TEST_F(ParserValidationErrorTest, FileOptionNameError) {
   ExpectHasValidationErrors(
       "option foo = 5;",
@@ -1973,11 +2080,124 @@ TEST_F(ParserValidationErrorTest, Proto3JsonConflictError) {
   ExpectHasValidationErrors(
       "syntax = 'proto3';\n"
       "message TestMessage {\n"
-      "  uint32 foo = 1;\n"
+      "  uint32 _foo = 1;\n"
       "  uint32 Foo = 2;\n"
       "}\n",
-      "3:9: The JSON camel-case name of field \"Foo\" conflicts with field "
-      "\"foo\". This is not allowed in proto3.\n");
+      "3:9: The default JSON name of field \"Foo\" (\"Foo\") conflicts "
+      "with the default JSON name of field \"_foo\".\n");
+}
+
+TEST_F(ParserValidationErrorTest, Proto2JsonConflictError) {
+  ExpectParsesTo(
+      "syntax = 'proto2';\n"
+      "message TestMessage {\n"
+      "  optional uint32 _foo = 1;\n"
+      "  optional uint32 Foo = 2;\n"
+      "}\n",
+      "syntax: 'proto2'\n"
+      "message_type {\n"
+      "  name: 'TestMessage'\n"
+      "  field {\n"
+      "    label: LABEL_OPTIONAL type: TYPE_UINT32 name: '_foo' number: 1\n"
+      "  }\n"
+      "  field {\n"
+      "    label: LABEL_OPTIONAL type: TYPE_UINT32 name: 'Foo' number: 2\n"
+      "  }\n"
+      "}\n");
+}
+
+TEST_F(ParserValidationErrorTest, Proto3CustomJsonConflictWithDefaultError) {
+  ExpectHasValidationErrors(
+      "syntax = 'proto3';\n"
+      "message TestMessage {\n"
+      "  uint32 foo = 1 [json_name='bar'];\n"
+      "  uint32 bar = 2;\n"
+      "}\n",
+      "3:9: The default JSON name of field \"bar\" (\"bar\") conflicts "
+      "with the custom JSON name of field \"foo\".\n");
+}
+
+TEST_F(ParserValidationErrorTest, Proto2CustomJsonConflictWithDefaultError) {
+  ExpectParsesTo(
+      "syntax = 'proto2';\n"
+      "message TestMessage {\n"
+      "  optional uint32 foo = 1 [json_name='bar'];\n"
+      "  optional uint32 bar = 2;\n"
+      "}\n",
+      "syntax: 'proto2'\n"
+      "message_type {\n"
+      "  name: 'TestMessage'\n"
+      "  field {\n"
+      "    label: LABEL_OPTIONAL type: TYPE_UINT32 name: 'foo' number: 1 "
+      "json_name: 'bar'\n"
+      "  }\n"
+      "  field {\n"
+      "    label: LABEL_OPTIONAL type: TYPE_UINT32 name: 'bar' number: 2\n"
+      "  }\n"
+      "}\n");
+}
+
+TEST_F(ParserValidationErrorTest, Proto3CustomJsonConflictError) {
+  ExpectHasValidationErrors(
+      "syntax = 'proto3';\n"
+      "message TestMessage {\n"
+      "  uint32 foo = 1 [json_name='baz'];\n"
+      "  uint32 bar = 2 [json_name='baz'];\n"
+      "}\n",
+      "3:9: The custom JSON name of field \"bar\" (\"baz\") conflicts "
+      "with the custom JSON name of field \"foo\".\n");
+}
+
+TEST_F(ParserValidationErrorTest, Proto2CustomJsonConflictError) {
+  ExpectHasValidationErrors(
+      "syntax = 'proto2';\n"
+      "message TestMessage {\n"
+      "  optional uint32 foo = 1 [json_name='baz'];\n"
+      "  optional uint32 bar = 2 [json_name='baz'];\n"
+      "}\n",
+      "3:18: The custom JSON name of field \"bar\" (\"baz\") conflicts "
+      "with the custom JSON name of field \"foo\".\n");
+}
+
+TEST_F(ParserValidationErrorTest, Proto3JsonConflictLegacy) {
+  ExpectHasValidationErrors(
+      "syntax = 'proto3';\n"
+      "message TestMessage {\n"
+      "  option deprecated_legacy_json_field_conflicts = true;\n"
+      "  uint32 fooBar = 1;\n"
+      "  uint32 foo_bar = 2;\n"
+      "}\n",
+      "4:9: The default JSON name of field \"foo_bar\" (\"fooBar\") conflicts "
+      "with the default JSON name of field \"fooBar\".\n");
+}
+
+TEST_F(ParserValidationErrorTest, Proto2JsonConflictLegacy) {
+  ExpectParsesTo(
+      "syntax = 'proto2';\n"
+      "message TestMessage {\n"
+      "  option deprecated_legacy_json_field_conflicts = true;\n"
+      "  optional uint32 fooBar = 1;\n"
+      "  optional uint32 foo_bar = 2;\n"
+      "}\n",
+      "syntax: 'proto2'\n"
+      "message_type {\n"
+      "  name: 'TestMessage'\n"
+      "  field {\n"
+      "    label: LABEL_OPTIONAL type: TYPE_UINT32 name: 'fooBar' number: 1\n"
+      "  }\n"
+      "  field {\n"
+      "    label: LABEL_OPTIONAL type: TYPE_UINT32 name: 'foo_bar' number: 2\n"
+      "  }\n"
+      "  options {\n"
+      "    uninterpreted_option {\n"
+      "      name {\n"
+      "        name_part: 'deprecated_legacy_json_field_conflicts'\n"
+      "        is_extension: false\n"
+      "      }\n"
+      "      identifier_value: 'true'\n"
+      "    }\n"
+      "  }\n"
+      "}\n");
 }
 
 TEST_F(ParserValidationErrorTest, EnumNameError) {
@@ -2011,7 +2231,7 @@ TEST_F(ParserValidationErrorTest, EnumValueAliasError) {
       "}\n",
       "2:8: \"BAZ\" uses the same enum value as \"BAR\". If this is "
       "intended, set 'option allow_alias = true;' to the enum "
-      "definition.\n");
+      "definition. The next available enum value is 2.\n");
 }
 
 TEST_F(ParserValidationErrorTest, ExplicitlyMapEntryError) {
@@ -2203,11 +2423,29 @@ void StripFieldTypeName(FileDescriptorProto* file_proto) {
   }
 }
 
+void StripEmptyOptions(DescriptorProto& proto) {
+  for (auto& ext : *proto.mutable_extension_range()) {
+    if (ext.has_options() && ext.options().DebugString().empty()) {
+      ext.clear_options();
+    }
+  }
+}
+
+void StripEmptyOptions(FileDescriptorProto& file_proto) {
+  if (file_proto.message_type_size() == 0) {
+    return;
+  }
+  for (auto& msg : *file_proto.mutable_message_type()) {
+    StripEmptyOptions(msg);
+  }
+}
+
 TEST_F(ParseDescriptorDebugTest, TestAllDescriptorTypes) {
   const FileDescriptor* original_file =
       protobuf_unittest::TestAllTypes::descriptor()->file();
   FileDescriptorProto expected;
   original_file->CopyTo(&expected);
+  StripEmptyOptions(expected);
 
   // Get the DebugString of the unittest.proto FileDecriptor, which includes
   // all other descriptor types
@@ -2224,7 +2462,7 @@ TEST_F(ParseDescriptorDebugTest, TestAllDescriptorTypes) {
   // need to link to a FileDecriptor, then output back to a proto. We'll
   // also need to give it the same name as the original.
   parsed.set_name(
-      TestUtil::MaybeTranslatePath("net/proto2/internal/unittest.proto"));
+      TestUtil::MaybeTranslatePath("third_party/protobuf/unittest.proto"));
   // We need the imported dependency before we can build our parsed proto
   const FileDescriptor* public_import =
       protobuf_unittest_import::PublicImportMessage::descriptor()->file();
@@ -2401,7 +2639,7 @@ TEST_F(ParseDescriptorDebugTest, TestCommentsInDebugString) {
     const std::string debug_string =
         descriptor->DebugStringWithOptions(debug_string_options);
 
-    for (int i = 0; i < GOOGLE_ARRAYSIZE(expected_comments); ++i) {
+    for (int i = 0; i < ABSL_ARRAYSIZE(expected_comments); ++i) {
       std::string::size_type found_pos =
           debug_string.find(expected_comments[i]);
       EXPECT_TRUE(found_pos != std::string::npos)
@@ -2585,16 +2823,18 @@ class SourceInfoTest : public ParserTest {
         return false;
       }
 
-      spans_.insert(
-          std::make_pair(SpanKey(*descriptor_proto, field, index), &location));
+      spans_[SpanKey(*descriptor_proto, field, index)].push_back(&location);
     }
 
     return true;
   }
 
   void TearDown() override {
-    EXPECT_TRUE(spans_.empty()) << "Forgot to call HasSpan() for:\n"
-                                << spans_.begin()->second->DebugString();
+    for (auto& kv : spans_) {
+      EXPECT_TRUE(kv.second.empty())
+          << "Forgot to call HasSpan() for "
+          << (*kv.second.begin())->DebugString() << " spans.";
+    }
   }
 
   // -----------------------------------------------------------------
@@ -2666,59 +2906,52 @@ class SourceInfoTest : public ParserTest {
                           const char* expected_leading_comments,
                           const char* expected_trailing_comments,
                           const char* expected_leading_detached_comments) {
-    std::pair<SpanMap::iterator, SpanMap::iterator> range =
-        spans_.equal_range(SpanKey(descriptor_proto, field, index));
-
+    SpanKey key(descriptor_proto, field, index);
     if (start_marker == '\0') {
-      if (range.first == range.second) {
-        return false;
-      } else {
-        spans_.erase(range.first);
+      auto old = spans_.extract(key);
+      // Return true if we actually removed something.
+      return !(old.empty() || old.mapped().empty());
+    }
+
+    std::vector<const SourceCodeInfo::Location*>& range = spans_[key];
+    std::pair<int, int> start_pos = markers_.at(start_marker);
+    std::pair<int, int> end_pos = markers_.at(end_marker);
+
+    RepeatedField<int> expected_span;
+    expected_span.Add(start_pos.first);
+    expected_span.Add(start_pos.second);
+    if (end_pos.first != start_pos.first) {
+      expected_span.Add(end_pos.first);
+    }
+    expected_span.Add(end_pos.second);
+
+    for (auto iter = range.begin(); iter != range.end(); ++iter) {
+      const SourceCodeInfo::Location* location = *iter;
+      if (CompareSpans(expected_span, location->span())) {
+        if (expected_leading_comments == nullptr) {
+          EXPECT_FALSE(location->has_leading_comments());
+        } else {
+          EXPECT_TRUE(location->has_leading_comments());
+          EXPECT_EQ(expected_leading_comments, location->leading_comments());
+        }
+        if (expected_trailing_comments == nullptr) {
+          EXPECT_FALSE(location->has_trailing_comments());
+        } else {
+          EXPECT_TRUE(location->has_trailing_comments());
+          EXPECT_EQ(expected_trailing_comments, location->trailing_comments());
+        }
+        if (expected_leading_detached_comments == nullptr) {
+          EXPECT_EQ(0, location->leading_detached_comments_size());
+        } else {
+          EXPECT_EQ(expected_leading_detached_comments,
+                    absl::StrJoin(location->leading_detached_comments(), "\n"));
+        }
+        range.erase(iter);
         return true;
       }
-    } else {
-      std::pair<int, int> start_pos = FindOrDie(markers_, start_marker);
-      std::pair<int, int> end_pos = FindOrDie(markers_, end_marker);
-
-      RepeatedField<int> expected_span;
-      expected_span.Add(start_pos.first);
-      expected_span.Add(start_pos.second);
-      if (end_pos.first != start_pos.first) {
-        expected_span.Add(end_pos.first);
-      }
-      expected_span.Add(end_pos.second);
-
-      for (SpanMap::iterator iter = range.first; iter != range.second; ++iter) {
-        if (CompareSpans(expected_span, iter->second->span())) {
-          if (expected_leading_comments == nullptr) {
-            EXPECT_FALSE(iter->second->has_leading_comments());
-          } else {
-            EXPECT_TRUE(iter->second->has_leading_comments());
-            EXPECT_EQ(expected_leading_comments,
-                      iter->second->leading_comments());
-          }
-          if (expected_trailing_comments == nullptr) {
-            EXPECT_FALSE(iter->second->has_trailing_comments());
-          } else {
-            EXPECT_TRUE(iter->second->has_trailing_comments());
-            EXPECT_EQ(expected_trailing_comments,
-                      iter->second->trailing_comments());
-          }
-          if (expected_leading_detached_comments == nullptr) {
-            EXPECT_EQ(0, iter->second->leading_detached_comments_size());
-          } else {
-            EXPECT_EQ(
-                expected_leading_detached_comments,
-                Join(iter->second->leading_detached_comments(), "\n"));
-          }
-
-          spans_.erase(iter);
-          return true;
-        }
-      }
+    }
 
       return false;
-    }
   }
 
  private:
@@ -2727,25 +2960,29 @@ class SourceInfoTest : public ParserTest {
     const FieldDescriptor* field;
     int index;
 
-    inline SpanKey() {}
+    inline SpanKey() = default;
     inline SpanKey(const Message& descriptor_proto_param,
                    const FieldDescriptor* field_param, int index_param)
         : descriptor_proto(&descriptor_proto_param),
           field(field_param),
           index(index_param) {}
 
-    inline bool operator<(const SpanKey& other) const {
-      if (descriptor_proto < other.descriptor_proto) return true;
-      if (descriptor_proto > other.descriptor_proto) return false;
-      if (field < other.field) return true;
-      if (field > other.field) return false;
-      return index < other.index;
+    template <typename H>
+    friend H AbslHashValue(H h, const SpanKey& key) {
+      return H::combine(std::move(h), key.descriptor_proto, key.field,
+                        key.index);
+    }
+
+    friend bool operator==(const SpanKey& lhs, const SpanKey& rhs) {
+      return lhs.descriptor_proto == rhs.descriptor_proto &&  //
+             lhs.field == rhs.field &&                        //
+             lhs.index == rhs.index;
     }
   };
 
-  typedef std::multimap<SpanKey, const SourceCodeInfo::Location*> SpanMap;
-  SpanMap spans_;
-  std::map<char, std::pair<int, int> > markers_;
+  absl::flat_hash_map<SpanKey, std::vector<const SourceCodeInfo::Location*>>
+      spans_;
+  absl::flat_hash_map<char, std::pair<int, int>> markers_;
   std::string text_without_markers_;
 
   void ExtractMarkers(const char* text) {
@@ -2756,14 +2993,14 @@ class SourceInfoTest : public ParserTest {
     while (*text != '\0') {
       if (*text == '$') {
         ++text;
-        GOOGLE_CHECK_NE('\0', *text);
+        ABSL_CHECK_NE('\0', *text);
         if (*text == '$') {
           text_without_markers_ += '$';
           ++column;
         } else {
           markers_[*text] = std::make_pair(line, column);
           ++text;
-          GOOGLE_CHECK_EQ('$', *text);
+          ABSL_CHECK_EQ('$', *text);
         }
       } else if (*text == '\n') {
         ++line;
@@ -3678,8 +3915,12 @@ TEST_F(SourceInfoTest, DocCommentsOneof) {
 
 // ===================================================================
 
+
+
 }  // anonymous namespace
 
 }  // namespace compiler
 }  // namespace protobuf
 }  // namespace google
+
+#include "google/protobuf/port_undef.inc"

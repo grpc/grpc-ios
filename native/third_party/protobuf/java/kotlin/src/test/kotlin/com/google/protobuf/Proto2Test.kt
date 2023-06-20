@@ -33,13 +33,6 @@ package com.google.protobuf.kotlin
 import com.google.common.truth.Truth.assertThat
 import com.google.protobuf.TestUtil
 import com.google.protobuf.TestUtil.toBytes
-import com.google.protobuf.kotlin.generator.EvilNamesProto2OuterClass.EvilNamesProto2
-import com.google.protobuf.kotlin.generator.EvilNamesProto2OuterClass.HardKeywordsAllTypesProto2
-import com.google.protobuf.kotlin.generator.EvilNamesProto2OuterClass.Interface
-import com.google.protobuf.kotlin.generator.HardKeywordsAllTypesProto2Kt
-import com.google.protobuf.kotlin.generator.evilNamesProto2
-import com.google.protobuf.kotlin.generator.hardKeywordsAllTypesProto2
-import com.google.protobuf.kotlin.generator.interface_
 import com.google.protobuf.test.UnittestImport.ImportEnum
 import com.google.protobuf.test.UnittestImport.ImportMessage
 import com.google.protobuf.test.UnittestImportPublic.PublicImportMessage
@@ -67,6 +60,13 @@ import protobuf_unittest.testEmptyMessageWithExtensions
 import protobuf_unittest.testEnumMap
 import protobuf_unittest.testIntIntMap
 import protobuf_unittest.testMaps
+import `in`.com.google.protobuf.kotlin.generator.EvilNamesProto2
+import `in`.com.google.protobuf.kotlin.generator.HardKeywordsAllTypesProto2
+import `in`.com.google.protobuf.kotlin.generator.Interface
+import `in`.com.google.protobuf.kotlin.generator.HardKeywordsAllTypesProto2Kt
+import `in`.com.google.protobuf.kotlin.generator.evilNamesProto2
+import `in`.com.google.protobuf.kotlin.generator.hardKeywordsAllTypesProto2
+import `in`.com.google.protobuf.kotlin.generator.interface_
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -183,6 +183,7 @@ class Proto2Test {
       .isEqualTo(TestUtil.getAllSetBuilder().build())
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testGetters() {
     testAllTypes {
@@ -203,6 +204,7 @@ class Proto2Test {
     }
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testDefaultGetters() {
     testAllTypes {
@@ -213,6 +215,7 @@ class Proto2Test {
     }
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testRepeatedGettersAndSetters() {
     testAllTypes {
@@ -294,6 +297,7 @@ class Proto2Test {
     }
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testHazzers() {
     testAllTypes {
@@ -324,6 +328,7 @@ class Proto2Test {
     }
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testClears() {
     testAllTypes {
@@ -482,26 +487,26 @@ class Proto2Test {
           this[UnittestProto.repeatedImportEnumExtension] += ImportEnum.IMPORT_BAZ
           this[UnittestProto.repeatedStringPieceExtension] += "324"
           this[UnittestProto.repeatedCordExtension] += "325"
-          this[UnittestProto.defaultInt32Extension] = 401
-          this[UnittestProto.defaultInt64Extension] = 402L
-          this[UnittestProto.defaultUint32Extension] = 403
-          this[UnittestProto.defaultUint64Extension] = 404L
-          this[UnittestProto.defaultSint32Extension] = 405
-          this[UnittestProto.defaultSint64Extension] = 406L
-          this[UnittestProto.defaultFixed32Extension] = 407
-          this[UnittestProto.defaultFixed64Extension] = 408L
-          this[UnittestProto.defaultSfixed32Extension] = 409
-          this[UnittestProto.defaultSfixed64Extension] = 410L
-          this[UnittestProto.defaultFloatExtension] = 411F
-          this[UnittestProto.defaultDoubleExtension] = 412.0
-          this[UnittestProto.defaultBoolExtension] = false
-          this[UnittestProto.defaultStringExtension] = "415"
-          this[UnittestProto.defaultBytesExtension] = toBytes("416")
-          this[UnittestProto.defaultNestedEnumExtension] = NestedEnum.FOO
-          this[UnittestProto.defaultForeignEnumExtension] = ForeignEnum.FOREIGN_FOO
-          this[UnittestProto.defaultImportEnumExtension] = ImportEnum.IMPORT_FOO
-          this[UnittestProto.defaultStringPieceExtension] = "424"
-          this[UnittestProto.defaultCordExtension] = "425"
+          setExtension(UnittestProto.defaultInt32Extension, 401)
+          setExtension(UnittestProto.defaultInt64Extension, 402L)
+          setExtension(UnittestProto.defaultUint32Extension, 403)
+          setExtension(UnittestProto.defaultUint64Extension, 404L)
+          setExtension(UnittestProto.defaultSint32Extension, 405)
+          setExtension(UnittestProto.defaultSint64Extension, 406L)
+          setExtension(UnittestProto.defaultFixed32Extension, 407)
+          setExtension(UnittestProto.defaultFixed64Extension, 408L)
+          setExtension(UnittestProto.defaultSfixed32Extension, 409)
+          setExtension(UnittestProto.defaultSfixed64Extension, 410L)
+          setExtension(UnittestProto.defaultFloatExtension, 411F)
+          setExtension(UnittestProto.defaultDoubleExtension, 412.0)
+          setExtension(UnittestProto.defaultBoolExtension, false)
+          setExtension(UnittestProto.defaultStringExtension, "415")
+          setExtension(UnittestProto.defaultBytesExtension, toBytes("416"))
+          setExtension(UnittestProto.defaultNestedEnumExtension, NestedEnum.FOO)
+          setExtension(UnittestProto.defaultForeignEnumExtension, ForeignEnum.FOREIGN_FOO)
+          setExtension(UnittestProto.defaultImportEnumExtension, ImportEnum.IMPORT_FOO)
+          setExtension(UnittestProto.defaultStringPieceExtension, "424")
+          setExtension(UnittestProto.defaultCordExtension, "425")
           this[UnittestProto.oneofUint32Extension] = 601
           this[UnittestProto.oneofNestedMessageExtension] =
             TestAllTypesKt.nestedMessage { bb = 602 }
@@ -512,6 +517,7 @@ class Proto2Test {
       .isEqualTo(TestUtil.getAllExtensionsSet())
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testExtensionGetters() {
     testAllExtensions {
@@ -534,6 +540,7 @@ class Proto2Test {
     }
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testRepeatedExtensionGettersAndSetters() {
     testAllExtensions {
@@ -614,6 +621,7 @@ class Proto2Test {
     }
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testExtensionContains() {
     testAllExtensions {
@@ -644,6 +652,7 @@ class Proto2Test {
     }
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testExtensionClears() {
     testAllExtensions {
@@ -725,6 +734,7 @@ class Proto2Test {
       )
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testMapGettersAndSetters() {
     val intMap = testIntIntMap {
@@ -776,6 +786,7 @@ class Proto2Test {
     }
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testMapRemove() {
     val intMap = testIntIntMap {
@@ -803,6 +814,7 @@ class Proto2Test {
     }
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testMapClear() {
     val intMap = testIntIntMap {
@@ -851,7 +863,6 @@ class Proto2Test {
           boolean = 1L
           sealed = "foo"
           interface_ = 1F
-          in_ = 1
           object_ = "foo"
           cachedSize_ = "foo"
           serializedSize_ = true
@@ -877,7 +888,6 @@ class Proto2Test {
           .setBoolean(1L)
           .setSealed("foo")
           .setInterface(1F)
-          .setIn(1)
           .setObject("foo")
           .setCachedSize_("foo")
           .setSerializedSize_(true)
@@ -888,14 +898,12 @@ class Proto2Test {
     assertThat(interface_ {}).isEqualTo(Interface.newBuilder().build())
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testHardKeywordGettersAndSetters() {
     hardKeywordsAllTypesProto2 {
       as_ = 1
       assertThat(as_).isEqualTo(1)
-
-      in_ = "foo"
-      assertThat(in_).isEqualTo("foo")
 
       break_ = HardKeywordsAllTypesProto2.NestedEnum.FOO
       assertThat(break_).isEqualTo(HardKeywordsAllTypesProto2.NestedEnum.FOO)
@@ -920,14 +928,12 @@ class Proto2Test {
     }
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testHardKeywordHazzers() {
     hardKeywordsAllTypesProto2 {
       as_ = 1
       assertThat(hasAs_()).isTrue()
-
-      in_ = "foo"
-      assertThat(hasIn_()).isTrue()
 
       break_ = HardKeywordsAllTypesProto2.NestedEnum.FOO
       assertThat(hasBreak_()).isTrue()
@@ -937,16 +943,13 @@ class Proto2Test {
     }
   }
 
+  @Suppress("CheckResult")
   @Test
   fun testHardKeywordClears() {
     hardKeywordsAllTypesProto2 {
       as_ = 1
       clearAs_()
       assertThat(hasAs_()).isFalse()
-
-      in_ = "foo"
-      clearIn_()
-      assertThat(hasIn_()).isFalse()
 
       break_ = HardKeywordsAllTypesProto2.NestedEnum.FOO
       clearBreak_()

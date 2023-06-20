@@ -65,6 +65,7 @@ var (
 	allowHintMismatch  = flag.String("allow-hint-mismatch", "", "Semicolon-separated patterns of tests where hints may mismatch")
 	numWorkersFlag     = flag.Int("num-workers", runtime.NumCPU(), "The number of workers to run in parallel.")
 	shimPath           = flag.String("shim-path", "../../../build/ssl/test/bssl_shim", "The location of the shim binary.")
+	shimExtraFlags     = flag.String("shim-extra-flags", "", "Semicolon-separated extra flags to pass to the shim binary on each invocation.")
 	handshakerPath     = flag.String("handshaker-path", "../../../build/ssl/test/handshaker", "The location of the handshaker binary.")
 	resourceDir        = flag.String("resource-dir", ".", "The directory in which to find certificate and key files.")
 	fuzzer             = flag.Bool("fuzzer", false, "If true, tests against a BoringSSL built in fuzzer mode.")
@@ -1433,6 +1434,9 @@ func runTest(statusChan chan statusMsg, test *testCase, shimPath string, mallocN
 	}()
 
 	var flags []string
+	if len(*shimExtraFlags) > 0 {
+		flags = strings.Split(*shimExtraFlags, ";")
+	}
 	if test.testType == serverTest {
 		flags = append(flags, "-server")
 
@@ -1839,6 +1843,7 @@ var testCipherSuites = []testCipherSuite{
 	{"ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256", TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256},
 	{"ECDHE_RSA_WITH_AES_128_GCM_SHA256", TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256},
 	{"ECDHE_RSA_WITH_AES_128_CBC_SHA", TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA},
+	{"ECDHE_RSA_WITH_AES_128_CBC_SHA256", TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256},
 	{"ECDHE_RSA_WITH_AES_256_GCM_SHA384", TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384},
 	{"ECDHE_RSA_WITH_AES_256_CBC_SHA", TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA},
 	{"ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256},
@@ -1850,7 +1855,6 @@ var testCipherSuites = []testCipherSuite{
 	{"CHACHA20_POLY1305_SHA256", TLS_CHACHA20_POLY1305_SHA256},
 	{"AES_128_GCM_SHA256", TLS_AES_128_GCM_SHA256},
 	{"AES_256_GCM_SHA384", TLS_AES_256_GCM_SHA384},
-	{"RSA_WITH_NULL_SHA", TLS_RSA_WITH_NULL_SHA},
 }
 
 func hasComponent(suiteName, component string) bool {
@@ -1878,7 +1882,12 @@ func bigFromHex(hex string) *big.Int {
 
 func convertToSplitHandshakeTests(tests []testCase) (splitHandshakeTests []testCase, err error) {
 	var stdout bytes.Buffer
-	shim := exec.Command(*shimPath, "-is-handshaker-supported")
+	var flags []string
+	if len(*shimExtraFlags) > 0 {
+		flags = strings.Split(*shimExtraFlags, ";")
+	}
+	flags = append(flags, "-is-handshaker-supported")
+	shim := exec.Command(*shimPath, flags...)
 	shim.Stdout = &stdout
 	if err := shim.Run(); err != nil {
 		return nil, err
@@ -3672,10 +3681,6 @@ func addTestForCipherSuite(suite testCipherSuite, ver tlsVersion, protocol proto
 		flags = append(flags,
 			"-psk", psk,
 			"-psk-identity", pskIdentity)
-	}
-	if hasComponent(suite.name, "NULL") {
-		// NULL ciphers must be explicitly enabled.
-		flags = append(flags, "-cipher", "DEFAULT:NULL-SHA")
 	}
 
 	var shouldFail bool
@@ -9720,26 +9725,29 @@ var testSignatureAlgorithms = []struct {
 	name string
 	id   signatureAlgorithm
 	cert testCert
+	// If non-zero, the curve that must be supported in TLS 1.2 for cert to be
+	// accepted.
+	curve CurveID
 }{
-	{"RSA_PKCS1_SHA1", signatureRSAPKCS1WithSHA1, testCertRSA},
-	{"RSA_PKCS1_SHA256", signatureRSAPKCS1WithSHA256, testCertRSA},
-	{"RSA_PKCS1_SHA384", signatureRSAPKCS1WithSHA384, testCertRSA},
-	{"RSA_PKCS1_SHA512", signatureRSAPKCS1WithSHA512, testCertRSA},
-	{"ECDSA_SHA1", signatureECDSAWithSHA1, testCertECDSAP256},
+	{"RSA_PKCS1_SHA1", signatureRSAPKCS1WithSHA1, testCertRSA, 0},
+	{"RSA_PKCS1_SHA256", signatureRSAPKCS1WithSHA256, testCertRSA, 0},
+	{"RSA_PKCS1_SHA384", signatureRSAPKCS1WithSHA384, testCertRSA, 0},
+	{"RSA_PKCS1_SHA512", signatureRSAPKCS1WithSHA512, testCertRSA, 0},
+	{"ECDSA_SHA1", signatureECDSAWithSHA1, testCertECDSAP256, CurveP256},
 	// The “P256” in the following line is not a mistake. In TLS 1.2 the
 	// hash function doesn't have to match the curve and so the same
 	// signature algorithm works with P-224.
-	{"ECDSA_P224_SHA256", signatureECDSAWithP256AndSHA256, testCertECDSAP224},
-	{"ECDSA_P256_SHA256", signatureECDSAWithP256AndSHA256, testCertECDSAP256},
-	{"ECDSA_P384_SHA384", signatureECDSAWithP384AndSHA384, testCertECDSAP384},
-	{"ECDSA_P521_SHA512", signatureECDSAWithP521AndSHA512, testCertECDSAP521},
-	{"RSA_PSS_SHA256", signatureRSAPSSWithSHA256, testCertRSA},
-	{"RSA_PSS_SHA384", signatureRSAPSSWithSHA384, testCertRSA},
-	{"RSA_PSS_SHA512", signatureRSAPSSWithSHA512, testCertRSA},
-	{"Ed25519", signatureEd25519, testCertEd25519},
+	{"ECDSA_P224_SHA256", signatureECDSAWithP256AndSHA256, testCertECDSAP224, CurveP224},
+	{"ECDSA_P256_SHA256", signatureECDSAWithP256AndSHA256, testCertECDSAP256, CurveP256},
+	{"ECDSA_P384_SHA384", signatureECDSAWithP384AndSHA384, testCertECDSAP384, CurveP384},
+	{"ECDSA_P521_SHA512", signatureECDSAWithP521AndSHA512, testCertECDSAP521, CurveP521},
+	{"RSA_PSS_SHA256", signatureRSAPSSWithSHA256, testCertRSA, 0},
+	{"RSA_PSS_SHA384", signatureRSAPSSWithSHA384, testCertRSA, 0},
+	{"RSA_PSS_SHA512", signatureRSAPSSWithSHA512, testCertRSA, 0},
+	{"Ed25519", signatureEd25519, testCertEd25519, 0},
 	// Tests for key types prior to TLS 1.2.
-	{"RSA", 0, testCertRSA},
-	{"ECDSA", 0, testCertECDSAP256},
+	{"RSA", 0, testCertRSA, 0},
+	{"ECDSA", 0, testCertECDSAP256, CurveP256},
 }
 
 const fakeSigAlg1 signatureAlgorithm = 0x2a01
@@ -9791,6 +9799,14 @@ func addSignatureAlgorithmTests() {
 				rejectByDefault = true
 			}
 
+			var curveFlags []string
+			if alg.curve != 0 && ver.version <= VersionTLS12 {
+				// In TLS 1.2, the ECDH curve list also constrains ECDSA keys. Ensure the
+				// corresponding curve is enabled on the shim. Also include X25519 to
+				// ensure the shim and runner have something in common for ECDH.
+				curveFlags = flagInts("-curves", []int{int(CurveX25519), int(alg.curve)})
+			}
+
 			var signError, signLocalError, verifyError, verifyLocalError, defaultError, defaultLocalError string
 			if shouldFail {
 				signError = ":NO_COMMON_SIGNATURE_ALGORITHMS:"
@@ -9829,7 +9845,7 @@ func addSignatureAlgorithmTests() {
 							"-cert-file", path.Join(*resourceDir, getShimCertificate(alg.cert)),
 							"-key-file", path.Join(*resourceDir, getShimKey(alg.cert)),
 						},
-						flagInts("-curves", shimConfig.AllCurves)...,
+						curveFlags...,
 					),
 					shouldFail:         shouldFail,
 					expectedError:      signError,
@@ -9853,7 +9869,7 @@ func addSignatureAlgorithmTests() {
 							"-cert-file", path.Join(*resourceDir, getShimCertificate(alg.cert)),
 							"-key-file", path.Join(*resourceDir, getShimKey(alg.cert)),
 						},
-						flagInts("-curves", shimConfig.AllCurves)...,
+						curveFlags...,
 					),
 					expectations: connectionExpectations{
 						peerSignatureAlgorithm: alg.id,
@@ -9894,7 +9910,7 @@ func addSignatureAlgorithmTests() {
 							IgnorePeerSignatureAlgorithmPreferences: shouldFail,
 						},
 					},
-					flags: flagInts("-curves", shimConfig.AllCurves),
+					flags: curveFlags,
 					// Resume the session to assert the peer signature
 					// algorithm is reported on both handshakes.
 					resumeSession:      !shouldFail,
@@ -9927,7 +9943,7 @@ func addSignatureAlgorithmTests() {
 					},
 					flags: append(
 						[]string{"-expect-peer-signature-algorithm", strconv.Itoa(int(alg.id))},
-						flagInts("-curves", shimConfig.AllCurves)...,
+						curveFlags...,
 					),
 					// Resume the session to assert the peer signature
 					// algorithm is reported on both handshakes.
@@ -9951,7 +9967,7 @@ func addSignatureAlgorithmTests() {
 							InvalidSignature: true,
 						},
 					},
-					flags:         flagInts("-curves", shimConfig.AllCurves),
+					flags:         curveFlags,
 					shouldFail:    true,
 					expectedError: ":BAD_SIGNATURE:",
 				}
@@ -11371,13 +11387,13 @@ var testCurves = []struct {
 	{"P-384", CurveP384},
 	{"P-521", CurveP521},
 	{"X25519", CurveX25519},
-	{"CECPQ2", CurveCECPQ2},
+	{"Kyber", CurveX25519Kyber768},
 }
 
 const bogusCurve = 0x1234
 
 func isPqGroup(r CurveID) bool {
-	return r == CurveCECPQ2
+	return r == CurveX25519Kyber768
 }
 
 func addCurveTests() {
@@ -11841,124 +11857,125 @@ func addCurveTests() {
 		},
 	})
 
-	// CECPQ2 should not be offered by a TLS < 1.3 client.
+	// Kyber should not be offered by a TLS < 1.3 client.
 	testCases = append(testCases, testCase{
-		name: "CECPQ2NotInTLS12",
+		name: "KyberNotInTLS12",
 		config: Config{
 			Bugs: ProtocolBugs{
-				FailIfCECPQ2Offered: true,
+				FailIfKyberOffered: true,
 			},
 		},
 		flags: []string{
 			"-max-version", strconv.Itoa(VersionTLS12),
-			"-curves", strconv.Itoa(int(CurveCECPQ2)),
+			"-curves", strconv.Itoa(int(CurveX25519Kyber768)),
 			"-curves", strconv.Itoa(int(CurveX25519)),
 		},
 	})
 
-	// CECPQ2 should not crash a TLS < 1.3 client if the server mistakenly
+	// Kyber should not crash a TLS < 1.3 client if the server mistakenly
 	// selects it.
 	testCases = append(testCases, testCase{
-		name: "CECPQ2NotAcceptedByTLS12Client",
+		name: "KyberNotAcceptedByTLS12Client",
 		config: Config{
 			Bugs: ProtocolBugs{
-				SendCurve: CurveCECPQ2,
+				SendCurve: CurveX25519Kyber768,
 			},
 		},
 		flags: []string{
 			"-max-version", strconv.Itoa(VersionTLS12),
-			"-curves", strconv.Itoa(int(CurveCECPQ2)),
+			"-curves", strconv.Itoa(int(CurveX25519Kyber768)),
 			"-curves", strconv.Itoa(int(CurveX25519)),
 		},
 		shouldFail:    true,
 		expectedError: ":WRONG_CURVE:",
 	})
 
-	// CECPQ2 should not be offered by default as a client.
+	// Kyber should not be offered by default as a client.
 	testCases = append(testCases, testCase{
-		name: "CECPQ2NotEnabledByDefaultInClients",
+		name: "KyberNotEnabledByDefaultInClients",
 		config: Config{
 			MinVersion: VersionTLS13,
 			Bugs: ProtocolBugs{
-				FailIfCECPQ2Offered: true,
+				FailIfKyberOffered: true,
 			},
 		},
 	})
 
-	// If CECPQ2 is offered, both X25519 and CECPQ2 should have a key-share.
+	// If Kyber is offered, both X25519 and Kyber should have a key-share.
 	testCases = append(testCases, testCase{
-		name: "NotJustCECPQ2KeyShare",
+		name: "NotJustKyberKeyShare",
 		config: Config{
 			MinVersion: VersionTLS13,
 			Bugs: ProtocolBugs{
-				ExpectedKeyShares: []CurveID{CurveCECPQ2, CurveX25519},
+				ExpectedKeyShares: []CurveID{CurveX25519Kyber768, CurveX25519},
 			},
 		},
 		flags: []string{
-			"-curves", strconv.Itoa(int(CurveCECPQ2)),
+			"-curves", strconv.Itoa(int(CurveX25519Kyber768)),
 			"-curves", strconv.Itoa(int(CurveX25519)),
-			"-expect-curve-id", strconv.Itoa(int(CurveCECPQ2)),
+			// Cannot expect Kyber until we have a Go implementation of it.
+			// "-expect-curve-id", strconv.Itoa(int(CurveX25519Kyber768)),
 		},
 	})
 
 	// ... and the other way around
 	testCases = append(testCases, testCase{
-		name: "CECPQ2KeyShareIncludedSecond",
+		name: "KyberKeyShareIncludedSecond",
 		config: Config{
 			MinVersion: VersionTLS13,
 			Bugs: ProtocolBugs{
-				ExpectedKeyShares: []CurveID{CurveX25519, CurveCECPQ2},
+				ExpectedKeyShares: []CurveID{CurveX25519, CurveX25519Kyber768},
 			},
 		},
 		flags: []string{
 			"-curves", strconv.Itoa(int(CurveX25519)),
-			"-curves", strconv.Itoa(int(CurveCECPQ2)),
+			"-curves", strconv.Itoa(int(CurveX25519Kyber768)),
 			"-expect-curve-id", strconv.Itoa(int(CurveX25519)),
 		},
 	})
 
-        // ... and even if there's another curve in the middle because it's the
-        // first classical and first post-quantum "curves" that get key shares
-        // included.
+	// ... and even if there's another curve in the middle because it's the
+	// first classical and first post-quantum "curves" that get key shares
+	// included.
 	testCases = append(testCases, testCase{
-		name: "CECPQ2KeyShareIncludedThird",
+		name: "KyberKeyShareIncludedThird",
 		config: Config{
 			MinVersion: VersionTLS13,
 			Bugs: ProtocolBugs{
-				ExpectedKeyShares: []CurveID{CurveX25519, CurveCECPQ2},
+				ExpectedKeyShares: []CurveID{CurveX25519, CurveX25519Kyber768},
 			},
 		},
 		flags: []string{
 			"-curves", strconv.Itoa(int(CurveX25519)),
 			"-curves", strconv.Itoa(int(CurveP256)),
-			"-curves", strconv.Itoa(int(CurveCECPQ2)),
+			"-curves", strconv.Itoa(int(CurveX25519Kyber768)),
 			"-expect-curve-id", strconv.Itoa(int(CurveX25519)),
 		},
 	})
 
-	// If CECPQ2 is the only configured curve, the key share is sent.
+	// If Kyber is the only configured curve, the key share is sent.
 	testCases = append(testCases, testCase{
-		name: "JustConfiguringCECPQ2Works",
+		name: "JustConfiguringKyberWorks",
 		config: Config{
 			MinVersion: VersionTLS13,
 			Bugs: ProtocolBugs{
-				ExpectedKeyShares: []CurveID{CurveCECPQ2},
+				ExpectedKeyShares: []CurveID{CurveX25519Kyber768},
 			},
 		},
 		flags: []string{
-			"-curves", strconv.Itoa(int(CurveCECPQ2)),
-			"-expect-curve-id", strconv.Itoa(int(CurveCECPQ2)),
+			"-curves", strconv.Itoa(int(CurveX25519Kyber768)),
+			"-expect-curve-id", strconv.Itoa(int(CurveX25519Kyber768)),
 		},
 	})
 
-	// As a server, CECPQ2 is not yet supported by default.
+	// As a server, Kyber is not yet supported by default.
 	testCases = append(testCases, testCase{
 		testType: serverTest,
-		name:     "CECPQ2NotEnabledByDefaultForAServer",
+		name:     "KyberNotEnabledByDefaultForAServer",
 		config: Config{
 			MinVersion:       VersionTLS13,
-			CurvePreferences: []CurveID{CurveCECPQ2, CurveX25519},
-			DefaultCurves:    []CurveID{CurveCECPQ2},
+			CurvePreferences: []CurveID{CurveX25519Kyber768, CurveX25519},
+			DefaultCurves:    []CurveID{CurveX25519Kyber768},
 		},
 		flags: []string{
 			"-server-preference",
@@ -15603,9 +15620,6 @@ func addRSAKeyUsageTests() {
 			},
 			shouldFail:    true,
 			expectedError: ":KEY_USAGE_BIT_INCORRECT:",
-			flags: []string{
-				"-enforce-rsa-key-usage",
-			},
 		})
 
 		testCases = append(testCases, testCase{
@@ -15616,9 +15630,6 @@ func addRSAKeyUsageTests() {
 				MaxVersion:   ver.version,
 				Certificates: []Certificate{dsCert},
 				CipherSuites: dsSuites,
-			},
-			flags: []string{
-				"-enforce-rsa-key-usage",
 			},
 		})
 
@@ -15633,9 +15644,6 @@ func addRSAKeyUsageTests() {
 					Certificates: []Certificate{encCert},
 					CipherSuites: encSuites,
 				},
-				flags: []string{
-					"-enforce-rsa-key-usage",
-				},
 			})
 
 			testCases = append(testCases, testCase{
@@ -15649,9 +15657,6 @@ func addRSAKeyUsageTests() {
 				},
 				shouldFail:    true,
 				expectedError: ":KEY_USAGE_BIT_INCORRECT:",
-				flags: []string{
-					"-enforce-rsa-key-usage",
-				},
 			})
 
 			// In 1.2 and below, we should not enforce without the enforce-rsa-key-usage flag.
@@ -15664,7 +15669,7 @@ func addRSAKeyUsageTests() {
 					Certificates: []Certificate{dsCert},
 					CipherSuites: encSuites,
 				},
-				flags: []string{"-expect-key-usage-invalid"},
+				flags: []string{"-expect-key-usage-invalid", "-ignore-rsa-key-usage"},
 			})
 
 			testCases = append(testCases, testCase{
@@ -15676,21 +15681,22 @@ func addRSAKeyUsageTests() {
 					Certificates: []Certificate{encCert},
 					CipherSuites: dsSuites,
 				},
-				flags: []string{"-expect-key-usage-invalid"},
+				flags: []string{"-expect-key-usage-invalid", "-ignore-rsa-key-usage"},
 			})
 		}
 
 		if ver.version >= VersionTLS13 {
-			// In 1.3 and above, we enforce keyUsage even without the flag.
+			// In 1.3 and above, we enforce keyUsage even when disabled.
 			testCases = append(testCases, testCase{
 				testType: clientTest,
-				name:     "RSAKeyUsage-Client-WantSignature-GotEncipherment-Enforced-" + ver.name,
+				name:     "RSAKeyUsage-Client-WantSignature-GotEncipherment-AlwaysEnforced-" + ver.name,
 				config: Config{
 					MinVersion:   ver.version,
 					MaxVersion:   ver.version,
 					Certificates: []Certificate{encCert},
 					CipherSuites: dsSuites,
 				},
+				flags:         []string{"-ignore-rsa-key-usage"},
 				shouldFail:    true,
 				expectedError: ":KEY_USAGE_BIT_INCORRECT:",
 			})
@@ -19188,13 +19194,21 @@ func addCompliancePolicyTests() {
 				isFIPSCipherSuite = true
 			}
 
+			var isWPACipherSuite bool
+			switch suite.id {
+			case TLS_AES_256_GCM_SHA384,
+				TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
+				isWPACipherSuite = true
+			}
+
 			var certFile string
 			var keyFile string
 			var certs []Certificate
 			if hasComponent(suite.name, "ECDSA") {
-				certFile = ecdsaP256CertificateFile
-				keyFile = ecdsaP256KeyFile
-				certs = []Certificate{ecdsaP256Certificate}
+				certFile = ecdsaP384CertificateFile
+				keyFile = ecdsaP384KeyFile
+				certs = []Certificate{ecdsaP384Certificate}
 			} else {
 				certFile = rsaCertificateFile
 				keyFile = rsaKeyFile
@@ -19209,38 +19223,48 @@ func addCompliancePolicyTests() {
 				maxVersion = VersionTLS12
 			}
 
-			testCases = append(testCases, testCase{
-				testType: serverTest,
-				protocol: protocol,
-				name:     "Compliance-fips202205-" + protocol.String() + "-Server-" + suite.name,
-				config: Config{
-					MinVersion:   VersionTLS12,
-					MaxVersion:   maxVersion,
-					CipherSuites: []uint16{suite.id},
-				},
-				certFile: certFile,
-				keyFile:  keyFile,
-				flags: []string{
-					"-fips-202205",
-				},
-				shouldFail: !isFIPSCipherSuite,
-			})
+			policies := []struct {
+				flag          string
+				cipherSuiteOk bool
+			}{
+				{"-fips-202205", isFIPSCipherSuite},
+				{"-wpa-202304", isWPACipherSuite},
+			}
 
-			testCases = append(testCases, testCase{
-				testType: clientTest,
-				protocol: protocol,
-				name:     "Compliance-fips202205-" + protocol.String() + "-Client-" + suite.name,
-				config: Config{
-					MinVersion:   VersionTLS12,
-					MaxVersion:   maxVersion,
-					CipherSuites: []uint16{suite.id},
-					Certificates: certs,
-				},
-				flags: []string{
-					"-fips-202205",
-				},
-				shouldFail: !isFIPSCipherSuite,
-			})
+			for _, policy := range policies {
+				testCases = append(testCases, testCase{
+					testType: serverTest,
+					protocol: protocol,
+					name:     "Compliance" + policy.flag + "-" + protocol.String() + "-Server-" + suite.name,
+					config: Config{
+						MinVersion:   VersionTLS12,
+						MaxVersion:   maxVersion,
+						CipherSuites: []uint16{suite.id},
+					},
+					certFile: certFile,
+					keyFile:  keyFile,
+					flags: []string{
+						policy.flag,
+					},
+					shouldFail: !policy.cipherSuiteOk,
+				})
+
+				testCases = append(testCases, testCase{
+					testType: clientTest,
+					protocol: protocol,
+					name:     "Compliance" + policy.flag + "-" + protocol.String() + "-Client-" + suite.name,
+					config: Config{
+						MinVersion:   VersionTLS12,
+						MaxVersion:   maxVersion,
+						CipherSuites: []uint16{suite.id},
+						Certificates: certs,
+					},
+					flags: []string{
+						policy.flag,
+					},
+					shouldFail: !policy.cipherSuiteOk,
+				})
+			}
 		}
 
 		// Check that a TLS 1.3 client won't accept ChaCha20 even if the server
@@ -19270,35 +19294,51 @@ func addCompliancePolicyTests() {
 				isFIPSCurve = true
 			}
 
-			testCases = append(testCases, testCase{
-				testType: serverTest,
-				protocol: protocol,
-				name:     "Compliance-fips202205-" + protocol.String() + "-Server-" + curve.name,
-				config: Config{
-					MinVersion:       VersionTLS12,
-					MaxVersion:       VersionTLS13,
-					CurvePreferences: []CurveID{curve.id},
-				},
-				flags: []string{
-					"-fips-202205",
-				},
-				shouldFail: !isFIPSCurve,
-			})
+			var isWPACurve bool
+			switch curve.id {
+			case CurveP384:
+				isWPACurve = true
+			}
 
-			testCases = append(testCases, testCase{
-				testType: clientTest,
-				protocol: protocol,
-				name:     "Compliance-fips202205-" + protocol.String() + "-Client-" + curve.name,
-				config: Config{
-					MinVersion:       VersionTLS12,
-					MaxVersion:       VersionTLS13,
-					CurvePreferences: []CurveID{curve.id},
-				},
-				flags: []string{
-					"-fips-202205",
-				},
-				shouldFail: !isFIPSCurve,
-			})
+			policies := []struct {
+				flag    string
+				curveOk bool
+			}{
+				{"-fips-202205", isFIPSCurve},
+				{"-wpa-202304", isWPACurve},
+			}
+
+			for _, policy := range policies {
+				testCases = append(testCases, testCase{
+					testType: serverTest,
+					protocol: protocol,
+					name:     "Compliance" + policy.flag + "-" + protocol.String() + "-Server-" + curve.name,
+					config: Config{
+						MinVersion:       VersionTLS12,
+						MaxVersion:       VersionTLS13,
+						CurvePreferences: []CurveID{curve.id},
+					},
+					flags: []string{
+						policy.flag,
+					},
+					shouldFail: !policy.curveOk,
+				})
+
+				testCases = append(testCases, testCase{
+					testType: clientTest,
+					protocol: protocol,
+					name:     "Compliance" + policy.flag + "-" + protocol.String() + "-Client-" + curve.name,
+					config: Config{
+						MinVersion:       VersionTLS12,
+						MaxVersion:       VersionTLS13,
+						CurvePreferences: []CurveID{curve.id},
+					},
+					flags: []string{
+						policy.flag,
+					},
+					shouldFail: !policy.curveOk,
+				})
+			}
 		}
 
 		for _, sigalg := range testSignatureAlgorithms {
@@ -19315,6 +19355,16 @@ func addCompliancePolicyTests() {
 				isFIPSSigAlg = true
 			}
 
+			var isWPASigAlg bool
+			switch sigalg.id {
+			case signatureRSAPKCS1WithSHA384,
+				signatureRSAPKCS1WithSHA512,
+				signatureECDSAWithP384AndSHA384,
+				signatureRSAPSSWithSHA384,
+				signatureRSAPSSWithSHA512:
+				isWPASigAlg = true
+			}
+
 			if sigalg.cert == testCertECDSAP224 {
 				// This can work in TLS 1.2, but not with TLS 1.3.
 				// For consistency it's not permitted in FIPS mode.
@@ -19329,38 +19379,48 @@ func addCompliancePolicyTests() {
 				maxVersion = VersionTLS12
 			}
 
-			testCases = append(testCases, testCase{
-				testType: serverTest,
-				protocol: protocol,
-				name:     "Compliance-fips202205-" + protocol.String() + "-Server-" + sigalg.name,
-				config: Config{
-					MinVersion:                VersionTLS12,
-					MaxVersion:                maxVersion,
-					VerifySignatureAlgorithms: []signatureAlgorithm{sigalg.id},
-				},
-				flags: []string{
-					"-fips-202205",
-					"-cert-file", path.Join(*resourceDir, getShimCertificate(sigalg.cert)),
-					"-key-file", path.Join(*resourceDir, getShimKey(sigalg.cert)),
-				},
-				shouldFail: !isFIPSSigAlg,
-			})
+			policies := []struct {
+				flag     string
+				sigAlgOk bool
+			}{
+				{"-fips-202205", isFIPSSigAlg},
+				{"-wpa-202304", isWPASigAlg},
+			}
 
-			testCases = append(testCases, testCase{
-				testType: clientTest,
-				protocol: protocol,
-				name:     "Compliance-fips202205-" + protocol.String() + "-Client-" + sigalg.name,
-				config: Config{
-					MinVersion:              VersionTLS12,
-					MaxVersion:              maxVersion,
-					SignSignatureAlgorithms: []signatureAlgorithm{sigalg.id},
-					Certificates:            []Certificate{getRunnerCertificate(sigalg.cert)},
-				},
-				flags: []string{
-					"-fips-202205",
-				},
-				shouldFail: !isFIPSSigAlg,
-			})
+			for _, policy := range policies {
+				testCases = append(testCases, testCase{
+					testType: serverTest,
+					protocol: protocol,
+					name:     "Compliance" + policy.flag + "-" + protocol.String() + "-Server-" + sigalg.name,
+					config: Config{
+						MinVersion:                VersionTLS12,
+						MaxVersion:                maxVersion,
+						VerifySignatureAlgorithms: []signatureAlgorithm{sigalg.id},
+					},
+					flags: []string{
+						policy.flag,
+						"-cert-file", path.Join(*resourceDir, getShimCertificate(sigalg.cert)),
+						"-key-file", path.Join(*resourceDir, getShimKey(sigalg.cert)),
+					},
+					shouldFail: !policy.sigAlgOk,
+				})
+
+				testCases = append(testCases, testCase{
+					testType: clientTest,
+					protocol: protocol,
+					name:     "Compliance" + policy.flag + "-" + protocol.String() + "-Client-" + sigalg.name,
+					config: Config{
+						MinVersion:              VersionTLS12,
+						MaxVersion:              maxVersion,
+						SignSignatureAlgorithms: []signatureAlgorithm{sigalg.id},
+						Certificates:            []Certificate{getRunnerCertificate(sigalg.cert)},
+					},
+					flags: []string{
+						policy.flag,
+					},
+					shouldFail: !policy.sigAlgOk,
+				})
+			}
 		}
 	}
 }

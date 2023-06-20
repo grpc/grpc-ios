@@ -30,8 +30,9 @@
 
 #import <Foundation/Foundation.h>
 
+#import "GPBExtensionRegistry.h"
+
 @class GPBMessage;
-@class GPBExtensionRegistry;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -82,6 +83,7 @@ CF_EXTERN_C_END
  *
  * @note Subclassing of @c GPBCodedInputStream is NOT supported.
  **/
+__attribute__((objc_subclassing_restricted))
 @interface GPBCodedInputStream : NSObject
 
 /**
@@ -184,7 +186,7 @@ CF_EXTERN_C_END
  *                          extensions for message.
  **/
 - (void)readMessage:(GPBMessage *)message
-  extensionRegistry:(nullable GPBExtensionRegistry *)extensionRegistry;
+    extensionRegistry:(nullable id<GPBExtensionRegistry>)extensionRegistry;
 
 /**
  * Reads and discards a single field, given its tag value.

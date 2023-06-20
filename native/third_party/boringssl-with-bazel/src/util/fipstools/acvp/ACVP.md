@@ -77,6 +77,8 @@ The other commands are as follows. (Note that you only need to implement the com
 | ECDSA/sigVer         | Curve name, hash name, message, X, Y, R, S | Single-byte validity flag |
 | FFDH                 | p, q, g, peer public key, local private key (or empty),  local public key (or empty) | Local public key, shared key |
 | HKDF/&lt;HASH&gt;    | key, salt, info, num output bytes | Key |
+| HKDFExtract          | secret, salt | Key |
+| HKDFExpandLabel      | Output length, secret, label, transcript hash | Key |
 | HMAC-SHA-1           | Value to hash, key        | Digest  |
 | HMAC-SHA2-224        | Value to hash, key        | Digest  |
 | HMAC-SHA2-256        | Value to hash, key        | Digest  |
@@ -104,11 +106,17 @@ The other commands are as follows. (Note that you only need to implement the com
 | SHA2-384/MCT         | Initial seed¹             | Digest  |
 | SHA2-512/MCT         | Initial seed¹             | Digest  |
 | SHA2-512/256/MCT     | Initial seed¹             | Digest  |
-| TLSKDF/&lt;1.0\|1.2&gt;/&lt;HASH&gt; | Number output bytes, secret, label, seed1, seed2 | Output |
+| TLSKDF/1.2/&lt;HASH&gt; | Number output bytes, secret, label, seed1, seed2 | Output |
 
 ¹ The iterated tests would result in excessive numbers of round trips if the module wrapper handled only basic operations. Thus some ACVP logic is pushed down for these tests so that the inner loop can be handled locally. Either read the NIST documentation ([block-ciphers](https://pages.nist.gov/ACVP/draft-celi-acvp-symmetric.html#name-monte-carlo-tests-for-block) [hashes](https://pages.nist.gov/ACVP/draft-celi-acvp-sha.html#name-monte-carlo-tests-for-sha-1)) to understand the iteration count and return values or, probably more fruitfully, see how these functions are handled in the `modulewrapper` directory.
 
 ² Will always be one because MCT tests are not supported for CS3.
+
+### Batching
+
+Requests are written without waiting for responses. Implementations can run a read-execute-reply loop without worrying about this. However, if batching is useful then implementations may gather up multiple requests before executing them. But this risks deadlock because some requests depend on the result of the previous one. If the `getConfig` result contains a dummy entry for the algorithm `acvptool` it will be filtered out when running with `-regcap`. However, a list of strings called `features` in that block may include the string `batch` to indicate that the implementation would like to receive a `flush` command whenever previous results must be received in order to progress. Implementations that batch can observe this to avoid deadlock.
+
+The `flush` command must not produce a response itself; it only indicates that all previous responses must be received to progress. The `getConfig` command must always be serviced immediately because a flush command will not be sent prior to processing the `getConfig` response.
 
 ## Online operation
 

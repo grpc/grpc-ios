@@ -188,7 +188,7 @@ public abstract class GeneratedMessageLite<
   // any unnecessary intermediary allocations while reducing the generated code size.
 
   /** Lazily initializes unknown fields. */
-  private final void ensureUnknownFieldsInitialized() {
+  private void ensureUnknownFieldsInitialized() {
     if (unknownFields == UnknownFieldSetLite.getDefaultInstance()) {
       unknownFields = UnknownFieldSetLite.newInstance();
     }
@@ -295,11 +295,16 @@ public abstract class GeneratedMessageLite<
    *
    * <p>For use by generated code only.
    */
-  protected abstract Object dynamicMethod(MethodToInvoke method, Object arg0, Object arg1);
+  protected abstract Object dynamicMethod(
+      MethodToInvoke method,
+          Object arg0,
+          Object arg1);
 
   /** Same as {@link #dynamicMethod(MethodToInvoke, Object, Object)} with {@code null} padding. */
   @CanIgnoreReturnValue
-  protected Object dynamicMethod(MethodToInvoke method, Object arg0) {
+  protected Object dynamicMethod(
+      MethodToInvoke method,
+          Object arg0) {
     return dynamicMethod(method, arg0, null);
   }
 
@@ -334,7 +339,8 @@ public abstract class GeneratedMessageLite<
   }
 
   @Override
-  int getSerializedSize(Schema schema) {
+  int getSerializedSize(
+          Schema schema) {
     if (isMutable()) {
       // The serialized size should never be memoized for mutable instances.
       int size = computeSerializedSize(schema);
@@ -362,7 +368,8 @@ public abstract class GeneratedMessageLite<
     return getSerializedSize(null);
   }
 
-  private int computeSerializedSize(Schema<?> nullableSchema) {
+  private int computeSerializedSize(
+          Schema<?> nullableSchema) {
     if (nullableSchema == null) {
       return Protobuf.getInstance().schemaFor(this).getSerializedSize(this);
     } else {
@@ -580,7 +587,6 @@ public abstract class GeneratedMessageLite<
       return (BuilderType) this;
     }
   }
-
 
   // =================================================================
   // Extensions-related stuff
@@ -1245,7 +1251,6 @@ public abstract class GeneratedMessageLite<
       return ((Builder) to).mergeFrom((GeneratedMessageLite) from);
     }
 
-
     @Override
     public int compareTo(ExtensionDescriptor other) {
       return number - other.number;
@@ -1285,7 +1290,6 @@ public abstract class GeneratedMessageLite<
       }
     }
   }
-
 
   /**
    * Lite equivalent to {@link GeneratedMessage.GeneratedExtension}.
@@ -1350,11 +1354,11 @@ public abstract class GeneratedMessageLite<
     }
 
     @SuppressWarnings("unchecked")
-    Object fromFieldSetType(final Object value) {
+    Object fromFieldSetType(Object value) {
       if (descriptor.isRepeated()) {
         if (descriptor.getLiteJavaType() == WireFormat.JavaType.ENUM) {
-          final List result = new ArrayList<>();
-          for (final Object element : (List) value) {
+          List<Object> result = new ArrayList<>();
+          for (Object element : (List) value) {
             result.add(singularFromFieldSetType(element));
           }
           return result;
@@ -1366,7 +1370,7 @@ public abstract class GeneratedMessageLite<
       }
     }
 
-    Object singularFromFieldSetType(final Object value) {
+    Object singularFromFieldSetType(Object value) {
       if (descriptor.getLiteJavaType() == WireFormat.JavaType.ENUM) {
         return descriptor.enumTypeMap.findValueByNumber((Integer) value);
       } else {
@@ -1374,12 +1378,11 @@ public abstract class GeneratedMessageLite<
       }
     }
 
-    @SuppressWarnings("unchecked")
-    Object toFieldSetType(final Object value) {
+    Object toFieldSetType(Object value) {
       if (descriptor.isRepeated()) {
         if (descriptor.getLiteJavaType() == WireFormat.JavaType.ENUM) {
-          final List result = new ArrayList<>();
-          for (final Object element : (List) value) {
+          List<Object> result = new ArrayList<>();
+          for (Object element : (List) value) {
             result.add(singularToFieldSetType(element));
           }
           return result;
@@ -1391,7 +1394,7 @@ public abstract class GeneratedMessageLite<
       }
     }
 
-    Object singularToFieldSetType(final Object value) {
+    Object singularToFieldSetType(Object value) {
       if (descriptor.getLiteJavaType() == WireFormat.JavaType.ENUM) {
         return ((Internal.EnumLite) value).getNumber();
       } else {

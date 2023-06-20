@@ -59,6 +59,7 @@ import java.io.OutputStream;
  *
  * @author kenton@google.com Kenton Varda
  */
+@CheckReturnValue
 public interface MessageLite extends MessageLiteOrBuilder {
 
   /**
@@ -122,7 +123,6 @@ public interface MessageLite extends MessageLiteOrBuilder {
    */
   void writeDelimitedTo(OutputStream output) throws IOException;
 
-
   // =================================================================
   // Builders
 
@@ -138,6 +138,7 @@ public interface MessageLite extends MessageLiteOrBuilder {
   /** Abstract interface implemented by Protocol Message builders. */
   interface Builder extends MessageLiteOrBuilder, Cloneable {
     /** Resets all fields to their default values. */
+    @CanIgnoreReturnValue
     Builder clear();
 
     /**
@@ -181,11 +182,12 @@ public interface MessageLite extends MessageLiteOrBuilder {
      * <p>Note: The caller should call {@link CodedInputStream#checkLastTagWas(int)} after calling
      * this to verify that the last tag seen was the appropriate end-group tag, or zero for EOF.
      *
-     * @throws InvalidProtocolBufferException the bytes read are not syntactically correct
-     *     according to the protobuf wire format specification. The data is corrupt, incomplete,
-     *     or was never a protobuf in the first place.
+     * @throws InvalidProtocolBufferException the bytes read are not syntactically correct according
+     *     to the protobuf wire format specification. The data is corrupt, incomplete, or was never
+     *     a protobuf in the first place.
      * @throws IOException an I/O error reading from the stream
      */
+    @CanIgnoreReturnValue
     Builder mergeFrom(CodedInputStream input) throws IOException;
 
     /**
@@ -193,11 +195,12 @@ public interface MessageLite extends MessageLiteOrBuilder {
      * that you want to be able to parse must be registered in {@code extensionRegistry}. Extensions
      * not in the registry will be treated as unknown fields.
      *
-     * @throws InvalidProtocolBufferException the bytes read are not syntactically correct
-     *     according to the protobuf wire format specification. The data is corrupt, incomplete,
-     *     or was never a protobuf in the first place.
+     * @throws InvalidProtocolBufferException the bytes read are not syntactically correct according
+     *     to the protobuf wire format specification. The data is corrupt, incomplete, or was never
+     *     a protobuf in the first place.
      * @throws IOException an I/O error reading from the stream
      */
+    @CanIgnoreReturnValue
     Builder mergeFrom(CodedInputStream input, ExtensionRegistryLite extensionRegistry)
         throws IOException;
 
@@ -209,10 +212,11 @@ public interface MessageLite extends MessageLiteOrBuilder {
      * is just a small wrapper around {@link #mergeFrom(CodedInputStream)}.
      *
      * @throws InvalidProtocolBufferException the bytes in data are not syntactically correct
-     *     according to the protobuf wire format specification. The data is corrupt, incomplete,
-     *     or was never a protobuf in the first place.
+     *     according to the protobuf wire format specification. The data is corrupt, incomplete, or
+     *     was never a protobuf in the first place.
      * @return this
      */
+    @CanIgnoreReturnValue
     Builder mergeFrom(ByteString data) throws InvalidProtocolBufferException;
 
     /**
@@ -220,10 +224,11 @@ public interface MessageLite extends MessageLiteOrBuilder {
      * is just a small wrapper around {@link #mergeFrom(CodedInputStream,ExtensionRegistryLite)}.
      *
      * @throws InvalidProtocolBufferException the bytes in data are not syntactically correct
-     *     according to the protobuf wire format specification. The data is corrupt, incomplete,
-     *     or was never a protobuf in the first place.
+     *     according to the protobuf wire format specification. The data is corrupt, incomplete, or
+     *     was never a protobuf in the first place.
      * @return this
      */
+    @CanIgnoreReturnValue
     Builder mergeFrom(ByteString data, ExtensionRegistryLite extensionRegistry)
         throws InvalidProtocolBufferException;
 
@@ -232,10 +237,11 @@ public interface MessageLite extends MessageLiteOrBuilder {
      * is just a small wrapper around {@link #mergeFrom(CodedInputStream)}.
      *
      * @throws InvalidProtocolBufferException the bytes in data are not syntactically correct
-     *     according to the protobuf wire format specification. The data is corrupt, incomplete,
-     *     or was never a protobuf in the first place.
+     *     according to the protobuf wire format specification. The data is corrupt, incomplete, or
+     *     was never a protobuf in the first place.
      * @return this
      */
+    @CanIgnoreReturnValue
     Builder mergeFrom(byte[] data) throws InvalidProtocolBufferException;
 
     /**
@@ -243,10 +249,11 @@ public interface MessageLite extends MessageLiteOrBuilder {
      * is just a small wrapper around {@link #mergeFrom(CodedInputStream)}.
      *
      * @throws InvalidProtocolBufferException the bytes in data are not syntactically correct
-     *     according to the protobuf wire format specification. The data is corrupt, incomplete,
-     *     or was never a protobuf in the first place.
+     *     according to the protobuf wire format specification. The data is corrupt, incomplete, or
+     *     was never a protobuf in the first place.
      * @return this
      */
+    @CanIgnoreReturnValue
     Builder mergeFrom(byte[] data, int off, int len) throws InvalidProtocolBufferException;
 
     /**
@@ -254,10 +261,11 @@ public interface MessageLite extends MessageLiteOrBuilder {
      * is just a small wrapper around {@link #mergeFrom(CodedInputStream,ExtensionRegistryLite)}.
      *
      * @throws InvalidProtocolBufferException the bytes in data are not syntactically correct
-     *     according to the protobuf wire format specification. The data is corrupt, incomplete,
-     *     or was never a protobuf in the first place.
+     *     according to the protobuf wire format specification. The data is corrupt, incomplete, or
+     *     was never a protobuf in the first place.
      * @return this
      */
+    @CanIgnoreReturnValue
     Builder mergeFrom(byte[] data, ExtensionRegistryLite extensionRegistry)
         throws InvalidProtocolBufferException;
 
@@ -266,10 +274,11 @@ public interface MessageLite extends MessageLiteOrBuilder {
      * is just a small wrapper around {@link #mergeFrom(CodedInputStream,ExtensionRegistryLite)}.
      *
      * @throws InvalidProtocolBufferException the bytes in data are not syntactically correct
-     *     according to the protobuf wire format specification. The data is corrupt, incomplete,
-     *     or was never a protobuf in the first place.
+     *     according to the protobuf wire format specification. The data is corrupt, incomplete, or
+     *     was never a protobuf in the first place.
      * @return this
      */
+    @CanIgnoreReturnValue
     Builder mergeFrom(byte[] data, int off, int len, ExtensionRegistryLite extensionRegistry)
         throws InvalidProtocolBufferException;
 
@@ -283,12 +292,13 @@ public interface MessageLite extends MessageLiteOrBuilder {
      *
      * <p>Despite usually reading the entire input, this does not close the stream.
      *
-     * @throws InvalidProtocolBufferException the bytes read are not syntactically correct
-     *     according to the protobuf wire format specification. The data is corrupt, incomplete,
-     *     or was never a protobuf in the first place.
+     * @throws InvalidProtocolBufferException the bytes read are not syntactically correct according
+     *     to the protobuf wire format specification. The data is corrupt, incomplete, or was never
+     *     a protobuf in the first place.
      * @throws IOException an I/O error reading from the stream
      * @return this
      */
+    @CanIgnoreReturnValue
     Builder mergeFrom(InputStream input) throws IOException;
 
     /**
@@ -298,6 +308,7 @@ public interface MessageLite extends MessageLiteOrBuilder {
      *
      * @return this
      */
+    @CanIgnoreReturnValue
     Builder mergeFrom(InputStream input, ExtensionRegistryLite extensionRegistry)
         throws IOException;
 
@@ -317,6 +328,7 @@ public interface MessageLite extends MessageLiteOrBuilder {
      *
      * <p>This is equivalent to the {@code Message::MergeFrom} method in C++.
      */
+    @CanIgnoreReturnValue
     Builder mergeFrom(MessageLite other);
 
     /**
@@ -326,9 +338,9 @@ public interface MessageLite extends MessageLiteOrBuilder {
      *
      * @return true if successful, or false if the stream is at EOF when the method starts. Any
      *     other error (including reaching EOF during parsing) causes an exception to be thrown.
-     * @throws InvalidProtocolBufferException the bytes read are not syntactically correct
-     *     according to the protobuf wire format specification. The data is corrupt, incomplete,
-     *     or was never a protobuf in the first place.
+     * @throws InvalidProtocolBufferException the bytes read are not syntactically correct according
+     *     to the protobuf wire format specification. The data is corrupt, incomplete, or was never
+     *     a protobuf in the first place.
      * @throws IOException an I/O error reading from the stream
      */
     boolean mergeDelimitedFrom(InputStream input) throws IOException;
@@ -338,9 +350,9 @@ public interface MessageLite extends MessageLiteOrBuilder {
      *
      * @return true if successful, or false if the stream is at EOF when the method starts. Any
      *     other error (including reaching EOF during parsing) causes an exception to be thrown.
-     * @throws InvalidProtocolBufferException the bytes read are not syntactically correct
-     *     according to the protobuf wire format specification. The data is corrupt, incomplete,
-     *     or was never a protobuf in the first place.
+     * @throws InvalidProtocolBufferException the bytes read are not syntactically correct according
+     *     to the protobuf wire format specification. The data is corrupt, incomplete, or was never
+     *     a protobuf in the first place.
      * @throws IOException an I/O error reading from the stream
      */
     boolean mergeDelimitedFrom(InputStream input, ExtensionRegistryLite extensionRegistry)

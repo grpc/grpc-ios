@@ -32,40 +32,41 @@
 //  Based on original Protocol Buffers design by
 //  Sanjay Ghemawat, Jeff Dean, and others.
 
-#include <google/protobuf/message.h>
+#include "google/protobuf/message.h"
 
 #include <iostream>
 #include <stack>
-#include <unordered_map>
 
-#include <google/protobuf/stubs/casts.h>
-#include <google/protobuf/stubs/logging.h>
-#include <google/protobuf/stubs/common.h>
-#include <google/protobuf/io/coded_stream.h>
-#include <google/protobuf/io/zero_copy_stream_impl.h>
-#include <google/protobuf/stubs/strutil.h>
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/descriptor.pb.h>
-#include <google/protobuf/generated_message_reflection.h>
-#include <google/protobuf/generated_message_util.h>
-#include <google/protobuf/map_field.h>
-#include <google/protobuf/map_field_inl.h>
-#include <google/protobuf/parse_context.h>
-#include <google/protobuf/reflection_internal.h>
-#include <google/protobuf/reflection_ops.h>
-#include <google/protobuf/unknown_field_set.h>
-#include <google/protobuf/wire_format.h>
-#include <google/protobuf/wire_format_lite.h>
-#include <google/protobuf/stubs/map_util.h>
-#include <google/protobuf/stubs/stl_util.h>
-#include <google/protobuf/stubs/hash.h>
+#include "absl/base/casts.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/log/absl_check.h"
+#include "absl/log/absl_log.h"
+#include "absl/strings/str_join.h"
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/descriptor.pb.h"
+#include "google/protobuf/generated_message_reflection.h"
+#include "google/protobuf/generated_message_tctable_impl.h"
+#include "google/protobuf/generated_message_util.h"
+#include "google/protobuf/io/coded_stream.h"
+#include "google/protobuf/io/zero_copy_stream_impl.h"
+#include "google/protobuf/map_field.h"
+#include "google/protobuf/map_field_inl.h"
+#include "google/protobuf/parse_context.h"
+#include "google/protobuf/reflection_internal.h"
+#include "google/protobuf/reflection_ops.h"
+#include "google/protobuf/unknown_field_set.h"
+#include "google/protobuf/wire_format.h"
+#include "google/protobuf/wire_format_lite.h"
+
 
 // Must be included last.
-#include <google/protobuf/port_def.inc>
+#include "google/protobuf/port_def.inc"
 
 namespace google {
 namespace protobuf {
-
 namespace internal {
 
 // TODO(gerbens) make this factorized better. This should not have to hop
@@ -75,6 +76,7 @@ void RegisterFileLevelMetadata(const DescriptorTable* descriptor_table);
 
 }  // namespace internal
 
+using internal::DownCast;
 using internal::ReflectionOps;
 using internal::WireFormat;
 using internal::WireFormatLite;
@@ -92,7 +94,7 @@ void Message::MergeFrom(const Message& from) {
 }
 
 void Message::CheckTypeAndMergeFrom(const MessageLite& other) {
-  MergeFrom(*down_cast<const Message*>(&other));
+  MergeFrom(*DownCast<const Message*>(&other));
 }
 
 void Message::CopyFrom(const Message& from) {
@@ -104,7 +106,7 @@ void Message::CopyFrom(const Message& from) {
 
   if (class_to == nullptr || class_to != class_from) {
     const Descriptor* descriptor = GetDescriptor();
-    GOOGLE_CHECK_EQ(from.GetDescriptor(), descriptor)
+    ABSL_CHECK_EQ(from.GetDescriptor(), descriptor)
         << ": Tried to copy from a message with a different type. "
            "to: "
         << descriptor->full_name()
@@ -119,20 +121,12 @@ void Message::CopyFrom(const Message& from) {
 }
 
 void Message::CopyWithSourceCheck(Message& to, const Message& from) {
-#ifndef NDEBUG
-  FailIfCopyFromDescendant(to, from);
-#endif
+  // Fail if "from" is a descendant of "to" as such copy is not allowed.
+  ABSL_DCHECK(!internal::IsDescendant(to, from))
+      << "Source of CopyFrom cannot be a descendant of the target.";
+
   to.Clear();
   to.GetClassData()->merge_to_from(to, from);
-}
-
-void Message::FailIfCopyFromDescendant(Message& to, const Message& from) {
-  auto* arena = to.GetArenaForAllocation();
-  bool same_message_owned_arena = to.GetOwningArena() == nullptr &&
-                                  arena != nullptr &&
-                                  arena == from.GetOwningArena();
-  GOOGLE_CHECK(!same_message_owned_arena && !internal::IsDescendant(to, from))
-      << "Source of CopyFrom cannot be a descendant of the target.";
 }
 
 std::string Message::GetTypeName() const {
@@ -152,13 +146,13 @@ void Message::FindInitializationErrors(std::vector<std::string>* errors) const {
 std::string Message::InitializationErrorString() const {
   std::vector<std::string> errors;
   FindInitializationErrors(&errors);
-  return Join(errors, ", ");
+  return absl::StrJoin(errors, ", ");
 }
 
 void Message::CheckInitialized() const {
-  GOOGLE_CHECK(IsInitialized()) << "Message of type \"" << GetDescriptor()->full_name()
-                         << "\" is missing required fields: "
-                         << InitializationErrorString();
+  ABSL_CHECK(IsInitialized())
+      << "Message of type \"" << GetDescriptor()->full_name()
+      << "\" is missing required fields: " << InitializationErrorString();
 }
 
 void Message::DiscardUnknownFields() {
@@ -167,7 +161,15 @@ void Message::DiscardUnknownFields() {
 
 const char* Message::_InternalParse(const char* ptr,
                                     internal::ParseContext* ctx) {
+#if defined(PROTOBUF_USE_TABLE_PARSER_ON_REFLECTION)
+  auto meta = GetMetadata();
+  ptr = internal::TcParser::ParseLoop(this, ptr, ctx,
+                                      meta.reflection->GetTcParseTable());
+
+  return ptr;
+#else
   return WireFormat::_InternalParse(this, ptr, ctx);
+#endif
 }
 
 uint8_t* Message::_InternalSerialize(uint8_t* target,
@@ -182,9 +184,9 @@ size_t Message::ByteSizeLong() const {
 }
 
 void Message::SetCachedSize(int /* size */) const {
-  GOOGLE_LOG(FATAL) << "Message class \"" << GetDescriptor()->full_name()
-             << "\" implements neither SetCachedSize() nor ByteSize().  "
-                "Must implement one or the other.";
+  ABSL_LOG(FATAL) << "Message class \"" << GetDescriptor()->full_name()
+                  << "\" implements neither SetCachedSize() nor ByteSize().  "
+                     "Must implement one or the other.";
 }
 
 size_t Message::ComputeUnknownFieldsSize(
@@ -213,17 +215,24 @@ uint64_t Message::GetInvariantPerBuild(uint64_t salt) {
   return salt;
 }
 
+namespace internal {
+void* CreateSplitMessageGeneric(Arena* arena, const void* default_split,
+                                size_t size, const void* message,
+                                const void* default_message) {
+  ABSL_DCHECK_NE(message, default_message);
+  void* split =
+      (arena == nullptr) ? ::operator new(size) : arena->AllocateAligned(size);
+  memcpy(split, default_split, size);
+  return split;
+}
+}  // namespace internal
+
 // =============================================================================
 // MessageFactory
 
 MessageFactory::~MessageFactory() {}
 
 namespace {
-
-
-#define HASH_MAP std::unordered_map
-#define STR_HASH_FXN hash<::google::protobuf::StringPiece>
-
 
 class GeneratedMessageFactory final : public MessageFactory {
  public:
@@ -236,14 +245,58 @@ class GeneratedMessageFactory final : public MessageFactory {
   const Message* GetPrototype(const Descriptor* type) override;
 
  private:
-  // Only written at static init time, so does not require locking.
-  HASH_MAP<StringPiece, const google::protobuf::internal::DescriptorTable*,
-           STR_HASH_FXN>
-      file_map_;
+  const Message* FindInTypeMap(const Descriptor* type)
+      ABSL_SHARED_LOCKS_REQUIRED(mutex_)
+  {
+    auto it = type_map_.find(type);
+    if (it == type_map_.end()) return nullptr;
+    return it->second;
+  }
 
-  internal::WrappedMutex mutex_;
-  // Initialized lazily, so requires locking.
-  std::unordered_map<const Descriptor*, const Message*> type_map_;
+  const google::protobuf::internal::DescriptorTable* FindInFileMap(
+      absl::string_view name) {
+    auto it = files_.find(name);
+    if (it == files_.end()) return nullptr;
+    return *it;
+  }
+
+  struct DescriptorByNameHash {
+    using is_transparent = void;
+    size_t operator()(const google::protobuf::internal::DescriptorTable* t) const {
+      return absl::HashOf(absl::string_view{t->filename});
+    }
+
+    size_t operator()(absl::string_view name) const {
+      return absl::HashOf(name);
+    }
+  };
+  struct DescriptorByNameEq {
+    using is_transparent = void;
+    bool operator()(const google::protobuf::internal::DescriptorTable* lhs,
+                    const google::protobuf::internal::DescriptorTable* rhs) const {
+      return lhs == rhs || (*this)(lhs->filename, rhs->filename);
+    }
+    bool operator()(absl::string_view lhs,
+                    const google::protobuf::internal::DescriptorTable* rhs) const {
+      return (*this)(lhs, rhs->filename);
+    }
+    bool operator()(const google::protobuf::internal::DescriptorTable* lhs,
+                    absl::string_view rhs) const {
+      return (*this)(lhs->filename, rhs);
+    }
+    bool operator()(absl::string_view lhs, absl::string_view rhs) const {
+      return lhs == rhs;
+    }
+  };
+
+  // Only written at static init time, so does not require locking.
+  absl::flat_hash_set<const google::protobuf::internal::DescriptorTable*,
+                      DescriptorByNameHash, DescriptorByNameEq>
+      files_;
+
+  absl::Mutex mutex_;
+  absl::flat_hash_map<const Descriptor*, const Message*> type_map_
+      ABSL_GUARDED_BY(mutex_);
 };
 
 GeneratedMessageFactory* GeneratedMessageFactory::singleton() {
@@ -254,14 +307,14 @@ GeneratedMessageFactory* GeneratedMessageFactory::singleton() {
 
 void GeneratedMessageFactory::RegisterFile(
     const google::protobuf::internal::DescriptorTable* table) {
-  if (!InsertIfNotPresent(&file_map_, table->filename, table)) {
-    GOOGLE_LOG(FATAL) << "File is already registered: " << table->filename;
+  if (!files_.insert(table).second) {
+    ABSL_LOG(FATAL) << "File is already registered: " << table->filename;
   }
 }
 
 void GeneratedMessageFactory::RegisterType(const Descriptor* descriptor,
                                            const Message* prototype) {
-  GOOGLE_DCHECK_EQ(descriptor->file()->pool(), DescriptorPool::generated_pool())
+  ABSL_DCHECK_EQ(descriptor->file()->pool(), DescriptorPool::generated_pool())
       << "Tried to register a non-generated type with the generated "
          "type registry.";
 
@@ -269,16 +322,17 @@ void GeneratedMessageFactory::RegisterType(const Descriptor* descriptor,
   // function during GetPrototype(), in which case we already have locked
   // the mutex.
   mutex_.AssertHeld();
-  if (!InsertIfNotPresent(&type_map_, descriptor, prototype)) {
-    GOOGLE_LOG(DFATAL) << "Type is already registered: " << descriptor->full_name();
+  if (!type_map_.try_emplace(descriptor, prototype).second) {
+    ABSL_DLOG(FATAL) << "Type is already registered: "
+                     << descriptor->full_name();
   }
 }
 
 
 const Message* GeneratedMessageFactory::GetPrototype(const Descriptor* type) {
   {
-    ReaderMutexLock lock(&mutex_);
-    const Message* result = FindPtrOrNull(type_map_, type);
+    absl::ReaderMutexLock lock(&mutex_);
+    const Message* result = FindInTypeMap(type);
     if (result != nullptr) return result;
   }
 
@@ -288,28 +342,28 @@ const Message* GeneratedMessageFactory::GetPrototype(const Descriptor* type) {
 
   // Apparently the file hasn't been registered yet.  Let's do that now.
   const internal::DescriptorTable* registration_data =
-      FindPtrOrNull(file_map_, type->file()->name().c_str());
+      FindInFileMap(type->file()->name());
   if (registration_data == nullptr) {
-    GOOGLE_LOG(DFATAL) << "File appears to be in generated pool but wasn't "
-                   "registered: "
-                << type->file()->name();
+    ABSL_DLOG(FATAL) << "File appears to be in generated pool but wasn't "
+                        "registered: "
+                     << type->file()->name();
     return nullptr;
   }
 
-  WriterMutexLock lock(&mutex_);
+  absl::WriterMutexLock lock(&mutex_);
 
   // Check if another thread preempted us.
-  const Message* result = FindPtrOrNull(type_map_, type);
+  const Message* result = FindInTypeMap(type);
   if (result == nullptr) {
     // Nope.  OK, register everything.
     internal::RegisterFileLevelMetadata(registration_data);
     // Should be here now.
-    result = FindPtrOrNull(type_map_, type);
+    result = FindInTypeMap(type);
   }
 
   if (result == nullptr) {
-    GOOGLE_LOG(DFATAL) << "Type appears to be in generated pool but wasn't "
-                << "registered: " << type->full_name();
+    ABSL_DLOG(FATAL) << "Type appears to be in generated pool but wasn't "
+                     << "registered: " << type->full_name();
   }
 
   return result;
@@ -342,7 +396,7 @@ T* GetSingleton() {
 
 const internal::RepeatedFieldAccessor* Reflection::RepeatedFieldAccessor(
     const FieldDescriptor* field) const {
-  GOOGLE_CHECK(field->is_repeated());
+  ABSL_CHECK(field->is_repeated());
   switch (field->cpp_type()) {
 #define HANDLE_PRIMITIVE_TYPE(TYPE, type) \
   case FieldDescriptor::CPPTYPE_##TYPE:   \
@@ -370,7 +424,7 @@ const internal::RepeatedFieldAccessor* Reflection::RepeatedFieldAccessor(
         return GetSingleton<internal::RepeatedPtrFieldMessageAccessor>();
       }
   }
-  GOOGLE_LOG(FATAL) << "Should not reach here.";
+  ABSL_LOG(FATAL) << "Should not reach here.";
   return nullptr;
 }
 
@@ -396,9 +450,18 @@ PROTOBUF_NOINLINE
     GenericTypeHandler<Message>::GetOwningArena(Message* value) {
   return value->GetOwningArena();
 }
+
+template void InternalMetadata::DoClear<UnknownFieldSet>();
+template void InternalMetadata::DoMergeFrom<UnknownFieldSet>(
+    const UnknownFieldSet& other);
+template void InternalMetadata::DoSwap<UnknownFieldSet>(UnknownFieldSet* other);
+template Arena* InternalMetadata::DeleteOutOfLineHelper<UnknownFieldSet>();
+template UnknownFieldSet*
+InternalMetadata::mutable_unknown_fields_slow<UnknownFieldSet>();
+
 }  // namespace internal
 
 }  // namespace protobuf
 }  // namespace google
 
-#include <google/protobuf/port_undef.inc>
+#include "google/protobuf/port_undef.inc"

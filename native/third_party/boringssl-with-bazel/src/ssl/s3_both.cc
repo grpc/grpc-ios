@@ -663,7 +663,7 @@ void tls_next_message(SSL *ssl) {
 // the client.
 class CipherScorer {
  public:
-  CipherScorer() : aes_is_fine_(EVP_has_aes_hardware()) {}
+  CipherScorer(bool has_aes_hw) : aes_is_fine_(has_aes_hw) {}
 
   typedef std::tuple<bool, bool> Score;
 
@@ -685,31 +685,50 @@ class CipherScorer {
   const bool aes_is_fine_;
 };
 
-bool ssl_tls13_cipher_meets_policy(uint16_t cipher_id, bool only_fips) {
-  if (!only_fips) {
-    return true;
+bool ssl_tls13_cipher_meets_policy(uint16_t cipher_id,
+                                   enum ssl_compliance_policy_t policy) {
+  switch (policy) {
+    case ssl_compliance_policy_none:
+      return true;
+
+    case ssl_compliance_policy_fips_202205:
+      switch (cipher_id) {
+        case TLS1_3_CK_AES_128_GCM_SHA256 & 0xffff:
+        case TLS1_3_CK_AES_256_GCM_SHA384 & 0xffff:
+          return true;
+        case TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff:
+          return false;
+        default:
+          assert(false);
+          return false;
+      }
+
+    case ssl_compliance_policy_wpa3_192_202304:
+      switch (cipher_id) {
+        case TLS1_3_CK_AES_256_GCM_SHA384 & 0xffff:
+          return true;
+        case TLS1_3_CK_AES_128_GCM_SHA256 & 0xffff:
+        case TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff:
+          return false;
+        default:
+          assert(false);
+          return false;
+      }
   }
 
-  switch (cipher_id) {
-    case TLS1_3_CK_AES_128_GCM_SHA256 & 0xffff:
-    case TLS1_3_CK_AES_256_GCM_SHA384 & 0xffff:
-      return true;
-    case TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff:
-      return false;
-    default:
-      assert(false);
-      return false;
-  }
+  assert(false);
+  return false;
 }
 
-const SSL_CIPHER *ssl_choose_tls13_cipher(CBS cipher_suites, uint16_t version,
-                                          uint16_t group_id, bool only_fips) {
+const SSL_CIPHER *ssl_choose_tls13_cipher(CBS cipher_suites, bool has_aes_hw,
+                                          uint16_t version, uint16_t group_id,
+                                          enum ssl_compliance_policy_t policy) {
   if (CBS_len(&cipher_suites) % 2 != 0) {
     return nullptr;
   }
 
   const SSL_CIPHER *best = nullptr;
-  CipherScorer scorer;
+  CipherScorer scorer(has_aes_hw);
   CipherScorer::Score best_score = scorer.MinScore();
 
   while (CBS_len(&cipher_suites) > 0) {
@@ -727,7 +746,7 @@ const SSL_CIPHER *ssl_choose_tls13_cipher(CBS cipher_suites, uint16_t version,
     }
 
     if (!ssl_tls13_cipher_meets_policy(SSL_CIPHER_get_protocol_id(candidate),
-                                       only_fips)) {
+                                       policy)) {
       continue;
     }
 

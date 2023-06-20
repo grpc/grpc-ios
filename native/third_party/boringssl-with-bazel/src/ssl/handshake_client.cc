@@ -215,6 +215,14 @@ static void ssl_get_client_disabled(const SSL_HANDSHAKE *hs,
   }
 }
 
+static bool ssl_add_tls13_cipher(CBB *cbb, uint16_t cipher_id,
+                                 ssl_compliance_policy_t policy) {
+  if (ssl_tls13_cipher_meets_policy(cipher_id, policy)) {
+    return CBB_add_u16(cbb, cipher_id);
+  }
+  return true;
+}
+
 static bool ssl_write_client_cipher_list(const SSL_HANDSHAKE *hs, CBB *out,
                                          ssl_client_hello_type_t type) {
   const SSL *const ssl = hs->ssl;
@@ -235,22 +243,22 @@ static bool ssl_write_client_cipher_list(const SSL_HANDSHAKE *hs, CBB *out,
   // Add TLS 1.3 ciphers. Order ChaCha20-Poly1305 relative to AES-GCM based on
   // hardware support.
   if (hs->max_version >= TLS1_3_VERSION) {
-    const bool include_chacha20 = ssl_tls13_cipher_meets_policy(
-        TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff,
-        ssl->config->only_fips_cipher_suites_in_tls13);
+    const bool has_aes_hw = ssl->config->aes_hw_override
+                                ? ssl->config->aes_hw_override_value
+                                : EVP_has_aes_hardware();
 
-    if (!EVP_has_aes_hardware() &&  //
-        include_chacha20 &&         //
-        !CBB_add_u16(&child, TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff)) {
-      return false;
-    }
-    if (!CBB_add_u16(&child, TLS1_3_CK_AES_128_GCM_SHA256 & 0xffff) ||
-        !CBB_add_u16(&child, TLS1_3_CK_AES_256_GCM_SHA384 & 0xffff)) {
-      return false;
-    }
-    if (EVP_has_aes_hardware() &&  //
-        include_chacha20 &&        //
-        !CBB_add_u16(&child, TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff)) {
+    if ((!has_aes_hw &&  //
+         !ssl_add_tls13_cipher(&child,
+                               TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff,
+                               ssl->config->tls13_cipher_policy)) ||
+        !ssl_add_tls13_cipher(&child, TLS1_3_CK_AES_128_GCM_SHA256 & 0xffff,
+                              ssl->config->tls13_cipher_policy) ||
+        !ssl_add_tls13_cipher(&child, TLS1_3_CK_AES_256_GCM_SHA384 & 0xffff,
+                              ssl->config->tls13_cipher_policy) ||
+        (has_aes_hw &&  //
+         !ssl_add_tls13_cipher(&child,
+                               TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff,
+                               ssl->config->tls13_cipher_policy))) {
       return false;
     }
   }
@@ -833,11 +841,18 @@ static enum ssl_hs_wait_t do_read_server_hello(SSL_HANDSHAKE *hs) {
       ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_INTERNAL_ERROR);
       return ssl_hs_error;
     }
-    // Note: session_id could be empty.
-    hs->new_session->session_id_length = CBS_len(&server_hello.session_id);
+
+    // Save the session ID from the server. This may be empty if the session
+    // isn't resumable, or if we'll receive a session ticket later.
+    assert(CBS_len(&server_hello.session_id) <= SSL3_SESSION_ID_SIZE);
+    static_assert(SSL3_SESSION_ID_SIZE <= UINT8_MAX,
+                  "max session ID is too large");
+    hs->new_session->session_id_length =
+        static_cast<uint8_t>(CBS_len(&server_hello.session_id));
     OPENSSL_memcpy(hs->new_session->session_id,
                    CBS_data(&server_hello.session_id),
                    CBS_len(&server_hello.session_id));
+
     hs->new_session->cipher = hs->new_cipher;
   }
 

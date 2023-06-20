@@ -110,25 +110,30 @@
 #ifndef GOOGLE_PROTOBUF_MESSAGE_H__
 #define GOOGLE_PROTOBUF_MESSAGE_H__
 
-
 #include <iosfwd>
 #include <string>
 #include <type_traits>
 #include <vector>
 
-#include <google/protobuf/stubs/casts.h>
-#include <google/protobuf/stubs/common.h>
-#include <google/protobuf/arena.h>
-#include <google/protobuf/port.h>
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/generated_message_reflection.h>
-#include <google/protobuf/generated_message_util.h>
-#include <google/protobuf/map.h>  // TODO(b/211442718): cleanup
-#include <google/protobuf/message_lite.h>
-
+#include "google/protobuf/stubs/common.h"
+#include "google/protobuf/arena.h"
+#include "google/protobuf/port.h"
+#include "absl/base/attributes.h"
+#include "absl/base/call_once.h"
+#include "absl/base/casts.h"
+#include "absl/functional/function_ref.h"
+#include "absl/strings/cord.h"
+#include "absl/strings/string_view.h"
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/generated_message_reflection.h"
+#include "google/protobuf/generated_message_tctable_decl.h"
+#include "google/protobuf/generated_message_util.h"
+#include "google/protobuf/map.h"  // TODO(b/211442718): cleanup
+#include "google/protobuf/message_lite.h"
+#include "google/protobuf/port.h"
 
 // Must be included last.
-#include <google/protobuf/port_def.inc>
+#include "google/protobuf/port_def.inc"
 
 #ifdef SWIG
 #error "You cannot SWIG proto headers"
@@ -153,10 +158,12 @@ class MapIterator;
 class MapReflectionTester;
 
 namespace internal {
+struct FuzzPeer;
 struct DescriptorTable;
 class MapFieldBase;
 class SwapFieldHelper;
 class CachedSize;
+struct TailCallTableInfo;
 }  // namespace internal
 class UnknownFieldSet;  // unknown_field_set.h
 namespace io {
@@ -175,7 +182,10 @@ class CelMapReflectionFriend;  // field_backed_map_impl.cc
 
 namespace internal {
 class MapFieldPrinterHelper;  // text_format.cc
-}
+PROTOBUF_EXPORT void PerformAbslStringify(
+    const Message& message,
+    absl::FunctionRef<void(absl::string_view)> append);  // text_format.cc
+}  // namespace internal
 namespace util {
 class MessageDifferencer;
 }
@@ -203,12 +213,12 @@ struct Metadata {
 
 namespace internal {
 template <class To>
-inline To* GetPointerAtOffset(Message* message, uint32_t offset) {
+inline To* GetPointerAtOffset(void* message, uint32_t offset) {
   return reinterpret_cast<To*>(reinterpret_cast<char*>(message) + offset);
 }
 
 template <class To>
-const To* GetConstPointerAtOffset(const Message* message, uint32_t offset) {
+const To* GetConstPointerAtOffset(const void* message, uint32_t offset) {
   return reinterpret_cast<const To*>(reinterpret_cast<const char*>(message) +
                                      offset);
 }
@@ -240,6 +250,8 @@ PROTOBUF_EXPORT bool IsDescendant(Message& root, const Message& message);
 class PROTOBUF_EXPORT Message : public MessageLite {
  public:
   constexpr Message() {}
+  Message(const Message&) = delete;
+  Message& operator=(const Message&) = delete;
 
   // Basic Operations ------------------------------------------------
 
@@ -264,8 +276,8 @@ class PROTOBUF_EXPORT Message : public MessageLite {
   // exact same class).
   virtual void MergeFrom(const Message& from);
 
-  // Verifies that IsInitialized() returns true.  GOOGLE_CHECK-fails otherwise, with
-  // a nice error message.
+  // Verifies that IsInitialized() returns true.  ABSL_CHECK-fails otherwise,
+  // with a nice error message.
   void CheckInitialized() const;
 
   // Slowly build a list of all required fields that are not set.
@@ -298,10 +310,15 @@ class PROTOBUF_EXPORT Message : public MessageLite {
   // using reflection (rather than the generated code implementation for
   // ByteSize()). Like ByteSize(), its CPU time is linear in the number of
   // fields defined for the proto.
+  //
+  // Note: The precise value of this method should never be depended on, and can
+  // change substantially due to internal details.  In debug builds, this will
+  // include a random fuzz factor to prevent these dependencies.
   virtual size_t SpaceUsedLong() const;
 
-  PROTOBUF_DEPRECATED_MSG("Please use SpaceUsedLong() instead")
-  int SpaceUsed() const { return internal::ToIntSize(SpaceUsedLong()); }
+  [[deprecated("Please use SpaceUsedLong() instead")]] int SpaceUsed() const {
+    return internal::ToIntSize(SpaceUsedLong());
+  }
 
   // Debugging & Testing----------------------------------------------
 
@@ -317,6 +334,15 @@ class PROTOBUF_EXPORT Message : public MessageLite {
   std::string Utf8DebugString() const;
   // Convenience function useful in GDB.  Prints DebugString() to stdout.
   void PrintDebugString() const;
+
+  // Implementation of the `AbslStringify` interface. This adds something
+  // similar to either `ShortDebugString()` or `DebugString()` to the sink.
+  // Do not rely on exact format.
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const google::protobuf::Message& message) {
+    internal::PerformAbslStringify(
+        message, [&](absl::string_view content) { sink.Append(content); });
+  }
 
   // Reflection-based methods ----------------------------------------
   // These methods are pure-virtual in MessageLite, but Message provides
@@ -387,11 +413,7 @@ class PROTOBUF_EXPORT Message : public MessageLite {
   // type, and thus uses GetClassData().
   static void CopyWithSourceCheck(Message& to, const Message& from);
 
-  // Fail if "from" is a descendant of "to" as such copy is not allowed.
-  static void FailIfCopyFromDescendant(Message& to, const Message& from);
-
-  inline explicit Message(Arena* arena, bool is_message_owned = false)
-      : MessageLite(arena, is_message_owned) {}
+  inline explicit Message(Arena* arena) : MessageLite(arena) {}
   size_t ComputeUnknownFieldsSize(size_t total_size,
                                   internal::CachedSize* cached_size) const;
   size_t MaybeComputeUnknownFieldsSize(size_t total_size,
@@ -400,12 +422,14 @@ class PROTOBUF_EXPORT Message : public MessageLite {
 
  protected:
   static uint64_t GetInvariantPerBuild(uint64_t salt);
-
- private:
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(Message);
 };
 
 namespace internal {
+// Creates and returns an allocation for a split message.
+void* CreateSplitMessageGeneric(Arena* arena, const void* default_split,
+                                size_t size, const void* message,
+                                const void* default_message);
+
 // Forward-declare interfaces used to implement RepeatedFieldRef.
 // These are protobuf internals that users shouldn't care about.
 class RepeatedFieldAccessor;
@@ -459,6 +483,10 @@ class MutableRepeatedFieldRef;
 // memory leaks.  So, instead we ended up with this flat interface.
 class PROTOBUF_EXPORT Reflection final {
  public:
+  Reflection(const Reflection&) = delete;
+  Reflection& operator=(const Reflection&) = delete;
+  ~Reflection();
+
   // Get the UnknownFieldSet for the message.  This contains fields which
   // were seen when the Message was parsed but were not recognized according
   // to the Message's definition.
@@ -471,9 +499,14 @@ class PROTOBUF_EXPORT Reflection final {
   // Estimate the amount of memory used by the message object.
   size_t SpaceUsedLong(const Message& message) const;
 
-  PROTOBUF_DEPRECATED_MSG("Please use SpaceUsedLong() instead")
-  int SpaceUsed(const Message& message) const {
+  [[deprecated("Please use SpaceUsedLong() instead")]] int SpaceUsed(
+      const Message& message) const {
     return internal::ToIntSize(SpaceUsedLong(message));
+  }
+
+  // Returns true if the given message is a default message instance.
+  bool IsDefaultInstance(const Message& message) const {
+    return schema_.IsDefaultInstance(message);
   }
 
   // Check if the given non-repeated field is set.
@@ -598,6 +631,13 @@ class PROTOBUF_EXPORT Reflection final {
                                         const FieldDescriptor* field,
                                         std::string* scratch) const;
 
+  // Returns a Cord containing the value of the string field.  If the
+  // underlying field is stored as a cord (e.g. it has the [ctype=CORD]
+  // option), this involves no copies (just reference counting).  If the
+  // underlying representation is not a Cord, a copy will have to be made.
+  absl::Cord GetCord(const Message& message,
+                     const FieldDescriptor* field) const;
+
 
   // Singular field mutators -----------------------------------------
   // These mutate the value of a non-repeated field.
@@ -618,6 +658,11 @@ class PROTOBUF_EXPORT Reflection final {
                bool value) const;
   void SetString(Message* message, const FieldDescriptor* field,
                  std::string value) const;
+  // Set a string field to a Cord value.  If the underlying field is
+  // represented using a Cord already, this involves no copies  (just
+  // reference counting).  Otherwise, a copy must be made.
+  void SetString(Message* message, const FieldDescriptor* field,
+                 const absl::Cord& value) const;
   void SetEnum(Message* message, const FieldDescriptor* field,
                const EnumValueDescriptor* value) const;
   // Set an enum field's value with an integer rather than EnumValueDescriptor.
@@ -773,6 +818,7 @@ class PROTOBUF_EXPORT Reflection final {
                  std::string value) const;
   void AddEnum(Message* message, const FieldDescriptor* field,
                const EnumValueDescriptor* value) const;
+
   // Add an integer value to a repeated enum field rather than
   // EnumValueDescriptor. For proto3 this is just setting the enum field to the
   // value specified, for proto2 it's more complicated. If value is a known enum
@@ -850,9 +896,9 @@ class PROTOBUF_EXPORT Reflection final {
   //
   // for T = Cord and all protobuf scalar types except enums.
   template <typename T>
-  PROTOBUF_DEPRECATED_MSG("Please use GetRepeatedFieldRef() instead")
-  const RepeatedField<T>& GetRepeatedField(const Message& msg,
-                                           const FieldDescriptor* d) const {
+  [[deprecated(
+      "Please use GetRepeatedFieldRef() instead")]] const RepeatedField<T>&
+  GetRepeatedField(const Message& msg, const FieldDescriptor* d) const {
     return GetRepeatedFieldInternal<T>(msg, d);
   }
 
@@ -860,9 +906,9 @@ class PROTOBUF_EXPORT Reflection final {
   //
   // for T = Cord and all protobuf scalar types except enums.
   template <typename T>
-  PROTOBUF_DEPRECATED_MSG("Please use GetMutableRepeatedFieldRef() instead")
-  RepeatedField<T>* MutableRepeatedField(Message* msg,
-                                         const FieldDescriptor* d) const {
+  [[deprecated(
+      "Please use GetMutableRepeatedFieldRef() instead")]] RepeatedField<T>*
+  MutableRepeatedField(Message* msg, const FieldDescriptor* d) const {
     return MutableRepeatedFieldInternal<T>(msg, d);
   }
 
@@ -871,9 +917,9 @@ class PROTOBUF_EXPORT Reflection final {
   // for T = std::string, google::protobuf::internal::StringPieceField
   //         google::protobuf::Message & descendants.
   template <typename T>
-  PROTOBUF_DEPRECATED_MSG("Please use GetRepeatedFieldRef() instead")
-  const RepeatedPtrField<T>& GetRepeatedPtrField(
-      const Message& msg, const FieldDescriptor* d) const {
+  [[deprecated(
+      "Please use GetRepeatedFieldRef() instead")]] const RepeatedPtrField<T>&
+  GetRepeatedPtrField(const Message& msg, const FieldDescriptor* d) const {
     return GetRepeatedPtrFieldInternal<T>(msg, d);
   }
 
@@ -882,9 +928,9 @@ class PROTOBUF_EXPORT Reflection final {
   // for T = std::string, google::protobuf::internal::StringPieceField
   //         google::protobuf::Message & descendants.
   template <typename T>
-  PROTOBUF_DEPRECATED_MSG("Please use GetMutableRepeatedFieldRef() instead")
-  RepeatedPtrField<T>* MutableRepeatedPtrField(Message* msg,
-                                               const FieldDescriptor* d) const {
+  [[deprecated(
+      "Please use GetMutableRepeatedFieldRef() instead")]] RepeatedPtrField<T>*
+  MutableRepeatedPtrField(Message* msg, const FieldDescriptor* d) const {
     return MutableRepeatedPtrFieldInternal<T>(msg, d);
   }
 
@@ -892,8 +938,7 @@ class PROTOBUF_EXPORT Reflection final {
 
   // Try to find an extension of this message type by fully-qualified field
   // name.  Returns nullptr if no extension is known for this name or number.
-  const FieldDescriptor* FindKnownExtensionByName(
-      const std::string& name) const;
+  const FieldDescriptor* FindKnownExtensionByName(absl::string_view name) const;
 
   // Try to find an extension of this message type by field number.
   // Returns nullptr if no extension is known for this name or number.
@@ -906,7 +951,7 @@ class PROTOBUF_EXPORT Reflection final {
   // take arbitrary integer values, and the legacy GetEnum() getter will
   // dynamically create an EnumValueDescriptor for any integer value without
   // one. If |false|, setting an unknown enum value via the integer-based
-  // setters results in undefined behavior (in practice, GOOGLE_DCHECK-fails).
+  // setters results in undefined behavior (in practice, ABSL_DCHECK-fails).
   //
   // Generic code that uses reflection to handle messages with enum fields
   // should check this flag before using the integer-based setter, and either
@@ -929,6 +974,7 @@ class PROTOBUF_EXPORT Reflection final {
   //       reflection->SetEnumValue(message, field, new_value);
   //     }
   //   }
+  ABSL_DEPRECATED("Use EnumDescriptor::is_closed instead.")
   bool SupportsUnknownEnumValues() const;
 
   // Returns the MessageFactory associated with this message.  This can be
@@ -955,6 +1001,7 @@ class PROTOBUF_EXPORT Reflection final {
   template <typename T>
   RepeatedPtrField<T>* MutableRepeatedPtrFieldInternal(
       Message* message, const FieldDescriptor* field) const;
+
   // Obtain a pointer to a Repeated Field Structure and do some type checking:
   //   on field->cpp_type(),
   //   on field->field_option().ctype() (if ctype >= 0)
@@ -992,22 +1039,6 @@ class PROTOBUF_EXPORT Reflection final {
   const internal::RepeatedFieldAccessor* RepeatedFieldAccessor(
       const FieldDescriptor* field) const;
 
-  // Lists all fields of the message which are currently set, except for unknown
-  // fields and stripped fields. See ListFields for details.
-  void ListFieldsOmitStripped(
-      const Message& message,
-      std::vector<const FieldDescriptor*>* output) const;
-
-  bool IsMessageStripped(const Descriptor* descriptor) const {
-    return schema_.IsMessageStripped(descriptor);
-  }
-
-  friend class TextFormat;
-
-  void ListFieldsMayFailOnStripped(
-      const Message& message, bool should_fail,
-      std::vector<const FieldDescriptor*>* output) const;
-
   // Returns true if the message field is backed by a LazyField.
   //
   // A message field may be backed by a LazyField without the user annotation
@@ -1029,6 +1060,11 @@ class PROTOBUF_EXPORT Reflection final {
   bool IsLazilyVerifiedLazyField(const FieldDescriptor* field) const;
   bool IsEagerlyVerifiedLazyField(const FieldDescriptor* field) const;
 
+  bool IsSplit(const FieldDescriptor* field) const {
+    return schema_.IsSplit(field);
+  }
+
+  friend class FastReflectionBase;
   friend class FastReflectionMessageMutator;
   friend bool internal::IsDescendant(Message& root, const Message& message);
 
@@ -1042,10 +1078,34 @@ class PROTOBUF_EXPORT Reflection final {
   // contain weak fields, then this field equals descriptor_->field_count().
   int last_non_weak_field_index_;
 
+  // The table-driven parser table.
+  // This table is generated on demand for Message types that did not override
+  // _InternalParse. It uses the reflection information to do so.
+  mutable absl::once_flag tcparse_table_once_;
+  using TcParseTableBase = internal::TcParseTableBase;
+  mutable const TcParseTableBase* tcparse_table_ = nullptr;
+
+  const TcParseTableBase* GetTcParseTable() const {
+    absl::call_once(tcparse_table_once_,
+                    [&] { tcparse_table_ = CreateTcParseTable(); });
+    return tcparse_table_;
+  }
+
+  const TcParseTableBase* CreateTcParseTable() const;
+  const TcParseTableBase* CreateTcParseTableReflectionOnly() const;
+  void PopulateTcParseFastEntries(
+      const internal::TailCallTableInfo& table_info,
+      TcParseTableBase::FastFieldEntry* fast_entries) const;
+  void PopulateTcParseEntries(internal::TailCallTableInfo& table_info,
+                              TcParseTableBase::FieldEntry* entries) const;
+  void PopulateTcParseFieldAux(const internal::TailCallTableInfo& table_info,
+                               TcParseTableBase::FieldAux* field_aux) const;
+
   template <typename T, typename Enable>
   friend class RepeatedFieldRef;
   template <typename T, typename Enable>
   friend class MutableRepeatedFieldRef;
+  friend class Message;
   friend class ::PROTOBUF_NAMESPACE_ID::MessageLayoutInspector;
   friend class ::PROTOBUF_NAMESPACE_ID::AssignDescriptorsHelper;
   friend class DynamicMessageFactory;
@@ -1060,6 +1120,7 @@ class PROTOBUF_EXPORT Reflection final {
   friend class internal::WireFormat;
   friend class internal::ReflectionOps;
   friend class internal::SwapFieldHelper;
+  friend struct internal::FuzzPeer;
   // Needed for implementing text format for map.
   friend class internal::MapFieldPrinterHelper;
 
@@ -1142,8 +1203,8 @@ class PROTOBUF_EXPORT Reflection final {
 
   inline const uint32_t* GetHasBits(const Message& message) const;
   inline uint32_t* MutableHasBits(Message* message) const;
-  inline uint32_t GetOneofCase(const Message& message,
-                               const OneofDescriptor* oneof_descriptor) const;
+  uint32_t GetOneofCase(const Message& message,
+                        const OneofDescriptor* oneof_descriptor) const;
   inline uint32_t* MutableOneofCase(
       Message* message, const OneofDescriptor* oneof_descriptor) const;
   inline bool HasExtensionSet(const Message& /* message */) const {
@@ -1174,6 +1235,14 @@ class PROTOBUF_EXPORT Reflection final {
   inline void SwapInlinedStringDonated(Message* lhs, Message* rhs,
                                        const FieldDescriptor* field) const;
 
+  // Returns the `_split_` pointer. Requires: IsSplit() == true.
+  inline const void* GetSplitField(const Message* message) const;
+  // Returns the address of the `_split_` pointer. Requires: IsSplit() == true.
+  inline void** MutableSplitField(Message* message) const;
+
+  // Allocate the split instance if needed.
+  void PrepareSplitMessageForWrite(Message* message) const;
+
   // Shallow-swap fields listed in fields vector of two messages. It is the
   // caller's responsibility to make sure shallow swap is safe.
   void UnsafeShallowSwapFields(
@@ -1196,6 +1265,8 @@ class PROTOBUF_EXPORT Reflection final {
   template <bool unsafe_shallow_swap>
   void SwapOneofField(Message* lhs, Message* rhs,
                       const OneofDescriptor* oneof_descriptor) const;
+
+  void InternalSwap(Message* lhs, Message* rhs) const;
 
   inline bool HasOneofField(const Message& message,
                             const FieldDescriptor* field) const;
@@ -1260,14 +1331,17 @@ class PROTOBUF_EXPORT Reflection final {
                                              const Reflection* reflection,
                                              const char* ptr,
                                              internal::ParseContext* ctx);
-
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(Reflection);
 };
 
 // Abstract interface for a factory for message objects.
+//
+// The thread safety for this class is implementation dependent, see comments
+// around GetPrototype for details
 class PROTOBUF_EXPORT MessageFactory {
  public:
   inline MessageFactory() {}
+  MessageFactory(const MessageFactory&) = delete;
+  MessageFactory& operator=(const MessageFactory&) = delete;
   virtual ~MessageFactory();
 
   // Given a Descriptor, gets or constructs the default (prototype) Message
@@ -1323,9 +1397,6 @@ class PROTOBUF_EXPORT MessageFactory {
   static void InternalRegisterGeneratedMessage(const Descriptor* descriptor,
                                                const Message* prototype);
 
-
- private:
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(MessageFactory);
 };
 
 #define DECLARE_GET_REPEATED_FIELD(TYPE)                           \
@@ -1372,7 +1443,7 @@ const T* DynamicCastToGenerated(const Message* from) {
 #else
   bool ok = from != nullptr &&
             T::default_instance().GetReflection() == from->GetReflection();
-  return ok ? down_cast<const T*>(from) : nullptr;
+  return ok ? internal::DownCast<const T*>(from) : nullptr;
 #endif
 }
 
@@ -1468,30 +1539,38 @@ const Type& Reflection::DefaultRaw(const FieldDescriptor* field) const {
   return *reinterpret_cast<const Type*>(schema_.GetFieldDefault(field));
 }
 
-uint32_t Reflection::GetOneofCase(
-    const Message& message, const OneofDescriptor* oneof_descriptor) const {
-  GOOGLE_DCHECK(!oneof_descriptor->is_synthetic());
-  return internal::GetConstRefAtOffset<uint32_t>(
-      message, schema_.GetOneofCaseOffset(oneof_descriptor));
-}
-
 bool Reflection::HasOneofField(const Message& message,
                                const FieldDescriptor* field) const {
   return (GetOneofCase(message, field->containing_oneof()) ==
           static_cast<uint32_t>(field->number()));
 }
 
+const void* Reflection::GetSplitField(const Message* message) const {
+  ABSL_DCHECK(schema_.IsSplit());
+  return *internal::GetConstPointerAtOffset<void*>(message,
+                                                   schema_.SplitOffset());
+}
+
+void** Reflection::MutableSplitField(Message* message) const {
+  ABSL_DCHECK(schema_.IsSplit());
+  return internal::GetPointerAtOffset<void*>(message, schema_.SplitOffset());
+}
+
 template <typename Type>
 const Type& Reflection::GetRaw(const Message& message,
                                const FieldDescriptor* field) const {
-  GOOGLE_DCHECK(!schema_.InRealOneof(field) || HasOneofField(message, field))
+  ABSL_DCHECK(!schema_.InRealOneof(field) || HasOneofField(message, field))
       << "Field = " << field->full_name();
+  if (schema_.IsSplit(field)) {
+    return *internal::GetConstPointerAtOffset<Type>(
+        GetSplitField(&message), schema_.GetFieldOffset(field));
+  }
   return internal::GetConstRefAtOffset<Type>(message,
                                              schema_.GetFieldOffset(field));
 }
 }  // namespace protobuf
 }  // namespace google
 
-#include <google/protobuf/port_undef.inc>
+#include "google/protobuf/port_undef.inc"
 
 #endif  // GOOGLE_PROTOBUF_MESSAGE_H__

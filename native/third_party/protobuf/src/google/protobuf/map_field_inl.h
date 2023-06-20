@@ -33,10 +33,14 @@
 
 #include <memory>
 
-#include <google/protobuf/stubs/casts.h>
-#include <google/protobuf/map.h>
-#include <google/protobuf/map_field.h>
-#include <google/protobuf/map_type_handler.h>
+#include "absl/base/casts.h"
+#include "google/protobuf/map.h"
+#include "google/protobuf/map_field.h"
+#include "google/protobuf/map_type_handler.h"
+#include "google/protobuf/port.h"
+
+// must be last
+#include "google/protobuf/port_def.inc"
 
 #ifdef SWIG
 #error "You cannot SWIG proto headers"
@@ -138,7 +142,7 @@ template <typename Key, typename T>
 void TypeDefinedMapFieldBase<Key, T>::InitializeIterator(
     MapIterator* map_iter) const {
   map_iter->iter_ = new typename Map<Key, T>::const_iterator;
-  GOOGLE_CHECK(map_iter->iter_ != nullptr);
+  ABSL_CHECK(map_iter->iter_ != nullptr);
 }
 
 template <typename Key, typename T>
@@ -174,11 +178,8 @@ template <typename Derived, typename Key, typename T,
           WireFormatLite::FieldType kKeyFieldType,
           WireFormatLite::FieldType kValueFieldType>
 void MapField<Derived, Key, T, kKeyFieldType, kValueFieldType>::Clear() {
-  if (this->MapFieldBase::repeated_field_ != nullptr) {
-    RepeatedPtrField<EntryType>* repeated_field =
-        reinterpret_cast<RepeatedPtrField<EntryType>*>(
-            this->MapFieldBase::repeated_field_);
-    repeated_field->Clear();
+  if (auto* p = this->maybe_payload()) {
+    reinterpret_cast<RepeatedPtrField<EntryType>&>(p->repeated_field).Clear();
   }
 
   impl_.MutableMap()->clear();
@@ -278,7 +279,7 @@ template <typename Derived, typename Key, typename T,
 void MapField<Derived, Key, T, kKeyFieldType, kValueFieldType>::Swap(
     MapFieldBase* other) {
   MapFieldBase::Swap(other);
-  MapField* other_field = down_cast<MapField*>(other);
+  MapField* other_field = DownCast<MapField*>(other);
   impl_.Swap(&other_field->impl_);
 }
 
@@ -287,7 +288,7 @@ template <typename Derived, typename Key, typename T,
           WireFormatLite::FieldType kValueFieldType>
 void MapField<Derived, Key, T, kKeyFieldType,
               kValueFieldType>::UnsafeShallowSwap(MapFieldBase* other) {
-  InternalSwap(down_cast<MapField*>(other));
+  InternalSwap(DownCast<MapField*>(other));
 }
 
 template <typename Derived, typename Key, typename T,
@@ -304,15 +305,10 @@ template <typename Derived, typename Key, typename T,
           WireFormatLite::FieldType kValueFieldType>
 void MapField<Derived, Key, T, kKeyFieldType,
               kValueFieldType>::SyncRepeatedFieldWithMapNoLock() const {
-  if (this->MapFieldBase::repeated_field_ == nullptr) {
-    this->MapFieldBase::repeated_field_ =
-        Arena::CreateMessage<RepeatedPtrField<Message> >(
-            this->MapFieldBase::arena_);
-  }
   const Map<Key, T>& map = impl_.GetMap();
   RepeatedPtrField<EntryType>* repeated_field =
       reinterpret_cast<RepeatedPtrField<EntryType>*>(
-          this->MapFieldBase::repeated_field_);
+          &this->payload().repeated_field);
 
   repeated_field->Clear();
 
@@ -321,11 +317,11 @@ void MapField<Derived, Key, T, kKeyFieldType,
   // on the encompassing field. So that type must have existed and hence we
   // know that this MapEntry default_type has also already been constructed.
   // So it's safe to just call internal_default_instance().
+  auto* arena = this->arena();
   const Message* default_entry = Derived::internal_default_instance();
   for (typename Map<Key, T>::const_iterator it = map.begin(); it != map.end();
        ++it) {
-    EntryType* new_entry =
-        down_cast<EntryType*>(default_entry->New(this->MapFieldBase::arena_));
+    EntryType* new_entry = DownCast<EntryType*>(default_entry->New(arena));
     repeated_field->AddAllocated(new_entry);
     (*new_entry->mutable_key()) = it->first;
     (*new_entry->mutable_value()) = it->second;
@@ -340,8 +336,7 @@ void MapField<Derived, Key, T, kKeyFieldType,
   Map<Key, T>* map = const_cast<MapField*>(this)->impl_.MutableMap();
   RepeatedPtrField<EntryType>* repeated_field =
       reinterpret_cast<RepeatedPtrField<EntryType>*>(
-          this->MapFieldBase::repeated_field_);
-  GOOGLE_CHECK(this->MapFieldBase::repeated_field_ != nullptr);
+          &this->payload().repeated_field);
   map->clear();
   for (typename RepeatedPtrField<EntryType>::iterator it =
            repeated_field->begin();
@@ -361,8 +356,8 @@ template <typename Derived, typename Key, typename T,
 size_t MapField<Derived, Key, T, kKeyFieldType,
                 kValueFieldType>::SpaceUsedExcludingSelfNoLock() const {
   size_t size = 0;
-  if (this->MapFieldBase::repeated_field_ != nullptr) {
-    size += this->MapFieldBase::repeated_field_->SpaceUsedExcludingSelfLong();
+  if (auto* p = this->maybe_payload()) {
+    size += p->repeated_field.SpaceUsedExcludingSelfLong();
   }
   size += impl_.GetMap().SpaceUsedExcludingSelfLong();
 
@@ -371,5 +366,7 @@ size_t MapField<Derived, Key, T, kKeyFieldType,
 }  // namespace internal
 }  // namespace protobuf
 }  // namespace google
+
+#include "google/protobuf/port_undef.inc"
 
 #endif  // GOOGLE_PROTOBUF_MAP_FIELD_INL_H__

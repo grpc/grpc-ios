@@ -62,31 +62,31 @@
 // Item 8 of "More Effective C++" discusses this in more detail, though
 // I don't have the book on me right now so I'm not sure.
 
-#include <google/protobuf/dynamic_message.h>
+#include "google/protobuf/dynamic_message.h"
 
 #include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <new>
-#include <unordered_map>
 
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/descriptor.pb.h>
-#include <google/protobuf/generated_message_reflection.h>
-#include <google/protobuf/generated_message_util.h>
-#include <google/protobuf/unknown_field_set.h>
-#include <google/protobuf/stubs/hash.h>
-#include <google/protobuf/arenastring.h>
-#include <google/protobuf/extension_set.h>
-#include <google/protobuf/map_field.h>
-#include <google/protobuf/map_field_inl.h>
-#include <google/protobuf/map_type_handler.h>
-#include <google/protobuf/reflection_ops.h>
-#include <google/protobuf/repeated_field.h>
-#include <google/protobuf/wire_format.h>
+#include "google/protobuf/arenastring.h"
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/descriptor.pb.h"
+#include "google/protobuf/descriptor_legacy.h"
+#include "google/protobuf/extension_set.h"
+#include "google/protobuf/generated_message_reflection.h"
+#include "google/protobuf/generated_message_util.h"
+#include "google/protobuf/map_field.h"
+#include "google/protobuf/map_field_inl.h"
+#include "google/protobuf/map_type_handler.h"
+#include "google/protobuf/reflection_ops.h"
+#include "google/protobuf/repeated_field.h"
+#include "google/protobuf/unknown_field_set.h"
+#include "google/protobuf/wire_format.h"
+
 
 // Must be included last.
-#include <google/protobuf/port_def.inc>
+#include "google/protobuf/port_def.inc"
 
 namespace google {
 namespace protobuf {
@@ -105,26 +105,10 @@ namespace {
 
 bool IsMapFieldInApi(const FieldDescriptor* field) { return field->is_map(); }
 
-// Sync with helpers.h.
-inline bool HasHasbit(const FieldDescriptor* field) {
-  // This predicate includes proto3 message fields only if they have "optional".
-  //   Foo submsg1 = 1;           // HasHasbit() == false
-  //   optional Foo submsg2 = 2;  // HasHasbit() == true
-  // This is slightly odd, as adding "optional" to a singular proto3 field does
-  // not change the semantics or API. However whenever any field in a message
-  // has a hasbit, it forces reflection to include hasbit offsets for *all*
-  // fields, even if almost all of them are set to -1 (no hasbit). So to avoid
-  // causing a sudden size regression for ~all proto3 messages, we give proto3
-  // message fields a hasbit only if "optional" is present. If the user is
-  // explicitly writing "optional", it is likely they are writing it on
-  // primitive fields also.
-  return (field->has_optional_keyword() || field->is_required()) &&
-         !field->options().weak();
-}
 
 inline bool InRealOneof(const FieldDescriptor* field) {
   return field->containing_oneof() &&
-         !field->containing_oneof()->is_synthetic();
+         !OneofDescriptorLegacy(field->containing_oneof()).is_synthetic();
 }
 
 // Compute the byte size of the in-memory representation of the field.
@@ -195,7 +179,7 @@ int FieldSpaceUsed(const FieldDescriptor* field) {
     }
   }
 
-  GOOGLE_LOG(DFATAL) << "Can't get here.";
+  ABSL_DLOG(FATAL) << "Can't get here.";
   return 0;
 }
 
@@ -224,6 +208,8 @@ class DynamicMessage : public Message {
 
   // This should only be used by GetPrototypeNoLock() to avoid dead lock.
   DynamicMessage(DynamicMessageFactory::TypeInfo* type_info, bool lock_factory);
+  DynamicMessage(const DynamicMessage&) = delete;
+  DynamicMessage& operator=(const DynamicMessage&) = delete;
 
   ~DynamicMessage() override;
 
@@ -285,7 +271,6 @@ class DynamicMessage : public Message {
 
   const DynamicMessageFactory::TypeInfo* type_info_;
   mutable std::atomic<int> cached_byte_size_;
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(DynamicMessage);
 };
 
 struct DynamicMessageFactory::TypeInfo {
@@ -313,7 +298,21 @@ struct DynamicMessageFactory::TypeInfo {
 
   TypeInfo() : prototype(nullptr) {}
 
-  ~TypeInfo() { delete prototype; }
+  ~TypeInfo() {
+    delete prototype;
+
+    // Scribble the payload to prevent unsanitized opt builds from silently
+    // allowing use-after-free bugs where the factory is destroyed but the
+    // DynamicMessage instances are still used.
+    // This is a common bug with DynamicMessageFactory.
+    // NOTE: This must happen after deleting the prototype.
+    if (offsets != nullptr) {
+      std::fill_n(offsets.get(), type->field_count(), 0xCDCDCDCDu);
+    }
+    if (has_bits_indices != nullptr) {
+      std::fill_n(has_bits_indices.get(), type->field_count(), 0xCDCDCDCDu);
+    }
+  }
 };
 
 DynamicMessage::DynamicMessage(const DynamicMessageFactory::TypeInfo* type_info)
@@ -371,7 +370,8 @@ void DynamicMessage::SharedCtor(bool lock_factory) {
   // Initialize oneof cases.
   int oneof_count = 0;
   for (int i = 0; i < descriptor->oneof_decl_count(); ++i) {
-    if (descriptor->oneof_decl(i)->is_synthetic()) continue;
+    if (OneofDescriptorLegacy(descriptor->oneof_decl(i)).is_synthetic())
+      continue;
     new (MutableOneofCaseRaw(oneof_count++)) uint32_t{0};
   }
 
@@ -439,11 +439,6 @@ void DynamicMessage::SharedCtor(bool lock_factory) {
                 new (field_ptr) DynamicMapField(
                     type_info_->factory->GetPrototype(field->message_type()),
                     GetArenaForAllocation());
-                if (GetOwningArena() != nullptr) {
-                  // Needs to destroy the mutex member.
-                  GetOwningArena()->OwnDestructor(
-                      static_cast<DynamicMapField*>(field_ptr));
-                }
               } else {
                 new (field_ptr) DynamicMapField(
                     type_info_->factory->GetPrototype(field->message_type()));
@@ -454,11 +449,6 @@ void DynamicMessage::SharedCtor(bool lock_factory) {
                     DynamicMapField(type_info_->factory->GetPrototypeNoLock(
                                         field->message_type()),
                                     GetArenaForAllocation());
-                if (GetOwningArena() != nullptr) {
-                  // Needs to destroy the mutex member.
-                  GetOwningArena()->OwnDestructor(
-                      static_cast<DynamicMapField*>(field_ptr));
-                }
               } else {
                 new (field_ptr)
                     DynamicMapField(type_info_->factory->GetPrototypeNoLock(
@@ -589,7 +579,7 @@ DynamicMessage::~DynamicMessage() {
 
 void DynamicMessage::CrossLinkPrototypes() {
   // This should only be called on the prototype message.
-  GOOGLE_CHECK(is_prototype());
+  ABSL_CHECK(is_prototype());
 
   DynamicMessageFactory* factory = type_info_->factory;
   const Descriptor* descriptor = type_info_->type;
@@ -653,7 +643,7 @@ DynamicMessageFactory::~DynamicMessageFactory() {
 }
 
 const Message* DynamicMessageFactory::GetPrototype(const Descriptor* type) {
-  MutexLock lock(&prototypes_mutex_);
+  absl::MutexLock lock(&prototypes_mutex_);
   return GetPrototypeNoLock(type);
 }
 
@@ -686,7 +676,7 @@ const Message* DynamicMessageFactory::GetPrototypeNoLock(
   //   or not that field is set.
   int real_oneof_count = 0;
   for (int i = 0; i < type->oneof_decl_count(); i++) {
-    if (!type->oneof_decl(i)->is_synthetic()) {
+    if (!OneofDescriptorLegacy(type->oneof_decl(i)).is_synthetic()) {
       real_oneof_count++;
     }
   }
@@ -705,7 +695,7 @@ const Message* DynamicMessageFactory::GetPrototypeNoLock(
   type_info->has_bits_offset = -1;
   int max_hasbit = 0;
   for (int i = 0; i < type->field_count(); i++) {
-    if (HasHasbit(type->field(i))) {
+    if (internal::cpp::HasHasbit(type->field(i))) {
       if (type_info->has_bits_offset == -1) {
         // At least one field in the message requires a hasbit, so allocate
         // hasbits.
@@ -760,7 +750,7 @@ const Message* DynamicMessageFactory::GetPrototypeNoLock(
 
   // The oneofs.
   for (int i = 0; i < type->oneof_decl_count(); i++) {
-    if (!type->oneof_decl(i)->is_synthetic()) {
+    if (!OneofDescriptorLegacy(type->oneof_decl(i)).is_synthetic()) {
       size = AlignTo(size, kSafeAlignment);
       offsets[type->field_count() + i] = size;
       size += kMaxOneofUnionSize;
@@ -778,7 +768,7 @@ const Message* DynamicMessageFactory::GetPrototypeNoLock(
   // Compute the size of default oneof instance and offsets of default
   // oneof fields.
   for (int i = 0; i < type->oneof_decl_count(); i++) {
-    if (type->oneof_decl(i)->is_synthetic()) continue;
+    if (OneofDescriptorLegacy(type->oneof_decl(i)).is_synthetic()) continue;
     for (int j = 0; j < type->oneof_decl(i)->field_count(); j++) {
       const FieldDescriptor* field = type->oneof_decl(i)->field(j);
       // oneof fields are not accessed through offsets, but we still have the
@@ -808,8 +798,11 @@ const Message* DynamicMessageFactory::GetPrototypeNoLock(
       type_info->oneof_case_offset,
       type_info->size,
       type_info->weak_field_map_offset,
-      nullptr /* inlined_string_indices_ */,
-      0 /* inlined_string_donated_offset_ */};
+      nullptr,  // inlined_string_indices_
+      0,        // inlined_string_donated_offset_
+      -1,       // split_offset_
+      -1,       // sizeof_split_
+  };
 
   type_info->reflection.reset(
       new Reflection(type_info->type, schema, type_info->pool, this));
@@ -823,4 +816,4 @@ const Message* DynamicMessageFactory::GetPrototypeNoLock(
 }  // namespace protobuf
 }  // namespace google
 
-#include <google/protobuf/port_undef.inc>  // NOLINT
+#include "google/protobuf/port_undef.inc"  // NOLINT

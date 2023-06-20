@@ -83,6 +83,126 @@ OPENSSL_DECLARE_ERROR_REASON(RSA, BLOCK_TYPE_IS_NOT_02)
 
 DEFINE_STATIC_EX_DATA_CLASS(g_rsa_ex_data_class)
 
+static int bn_dup_into(BIGNUM **dst, const BIGNUM *src) {
+  if (src == NULL) {
+    OPENSSL_PUT_ERROR(RSA, ERR_R_PASSED_NULL_PARAMETER);
+    return 0;
+  }
+
+  BN_free(*dst);
+  *dst = BN_dup(src);
+  return *dst != NULL;
+}
+
+RSA *RSA_new_public_key(const BIGNUM *n, const BIGNUM *e) {
+  RSA *rsa = RSA_new();
+  if (rsa == NULL ||               //
+      !bn_dup_into(&rsa->n, n) ||  //
+      !bn_dup_into(&rsa->e, e) ||  //
+      !RSA_check_key(rsa)) {
+    RSA_free(rsa);
+    return NULL;
+  }
+
+  return rsa;
+}
+
+RSA *RSA_new_private_key(const BIGNUM *n, const BIGNUM *e, const BIGNUM *d,
+                         const BIGNUM *p, const BIGNUM *q, const BIGNUM *dmp1,
+                         const BIGNUM *dmq1, const BIGNUM *iqmp) {
+  RSA *rsa = RSA_new();
+  if (rsa == NULL ||                     //
+      !bn_dup_into(&rsa->n, n) ||        //
+      !bn_dup_into(&rsa->e, e) ||        //
+      !bn_dup_into(&rsa->d, d) ||        //
+      !bn_dup_into(&rsa->p, p) ||        //
+      !bn_dup_into(&rsa->q, q) ||        //
+      !bn_dup_into(&rsa->dmp1, dmp1) ||  //
+      !bn_dup_into(&rsa->dmq1, dmq1) ||  //
+      !bn_dup_into(&rsa->iqmp, iqmp) ||  //
+      !RSA_check_key(rsa)) {
+    RSA_free(rsa);
+    return NULL;
+  }
+
+  return rsa;
+}
+
+RSA *RSA_new_private_key_no_crt(const BIGNUM *n, const BIGNUM *e,
+                                const BIGNUM *d) {
+  RSA *rsa = RSA_new();
+  if (rsa == NULL ||               //
+      !bn_dup_into(&rsa->n, n) ||  //
+      !bn_dup_into(&rsa->e, e) ||  //
+      !bn_dup_into(&rsa->d, d) ||  //
+      !RSA_check_key(rsa)) {
+    RSA_free(rsa);
+    return NULL;
+  }
+
+  return rsa;
+}
+
+RSA *RSA_new_private_key_no_e(const BIGNUM *n, const BIGNUM *d) {
+  RSA *rsa = RSA_new();
+  if (rsa == NULL) {
+    return NULL;
+  }
+
+  rsa->flags |= RSA_FLAG_NO_PUBLIC_EXPONENT;
+  if (!bn_dup_into(&rsa->n, n) ||  //
+      !bn_dup_into(&rsa->d, d) ||  //
+      !RSA_check_key(rsa)) {
+    RSA_free(rsa);
+    return NULL;
+  }
+
+  return rsa;
+}
+
+RSA *RSA_new_public_key_large_e(const BIGNUM *n, const BIGNUM *e) {
+  RSA *rsa = RSA_new();
+  if (rsa == NULL) {
+    return NULL;
+  }
+
+  rsa->flags |= RSA_FLAG_LARGE_PUBLIC_EXPONENT;
+  if (!bn_dup_into(&rsa->n, n) ||  //
+      !bn_dup_into(&rsa->e, e) ||  //
+      !RSA_check_key(rsa)) {
+    RSA_free(rsa);
+    return NULL;
+  }
+
+  return rsa;
+}
+
+RSA *RSA_new_private_key_large_e(const BIGNUM *n, const BIGNUM *e,
+                                 const BIGNUM *d, const BIGNUM *p,
+                                 const BIGNUM *q, const BIGNUM *dmp1,
+                                 const BIGNUM *dmq1, const BIGNUM *iqmp) {
+  RSA *rsa = RSA_new();
+  if (rsa == NULL) {
+    return NULL;
+  }
+
+  rsa->flags |= RSA_FLAG_LARGE_PUBLIC_EXPONENT;
+  if (!bn_dup_into(&rsa->n, n) ||        //
+      !bn_dup_into(&rsa->e, e) ||        //
+      !bn_dup_into(&rsa->d, d) ||        //
+      !bn_dup_into(&rsa->p, p) ||        //
+      !bn_dup_into(&rsa->q, q) ||        //
+      !bn_dup_into(&rsa->dmp1, dmp1) ||  //
+      !bn_dup_into(&rsa->dmq1, dmq1) ||  //
+      !bn_dup_into(&rsa->iqmp, iqmp) ||  //
+      !RSA_check_key(rsa)) {
+    RSA_free(rsa);
+    return NULL;
+  }
+
+  return rsa;
+}
+
 RSA *RSA_new(void) { return RSA_new_method(NULL); }
 
 RSA *RSA_new_method(const ENGINE *engine) {
@@ -118,9 +238,18 @@ RSA *RSA_new_method(const ENGINE *engine) {
   return rsa;
 }
 
-void RSA_free(RSA *rsa) {
-  unsigned u;
+RSA *RSA_new_method_no_e(const ENGINE *engine, const BIGNUM *n) {
+  RSA *rsa = RSA_new_method(engine);
+  if (rsa == NULL ||
+      !bn_dup_into(&rsa->n, n)) {
+    RSA_free(rsa);
+    return NULL;
+  }
+  rsa->flags |= RSA_FLAG_NO_PUBLIC_EXPONENT;
+  return rsa;
+}
 
+void RSA_free(RSA *rsa) {
   if (rsa == NULL) {
     return;
   }
@@ -144,18 +273,7 @@ void RSA_free(RSA *rsa) {
   BN_free(rsa->dmp1);
   BN_free(rsa->dmq1);
   BN_free(rsa->iqmp);
-  BN_MONT_CTX_free(rsa->mont_n);
-  BN_MONT_CTX_free(rsa->mont_p);
-  BN_MONT_CTX_free(rsa->mont_q);
-  BN_free(rsa->d_fixed);
-  BN_free(rsa->dmp1_fixed);
-  BN_free(rsa->dmq1_fixed);
-  BN_free(rsa->inv_small_mod_large_mont);
-  for (u = 0; u < rsa->num_blindings; u++) {
-    BN_BLINDING_free(rsa->blindings[u]);
-  }
-  OPENSSL_free(rsa->blindings);
-  OPENSSL_free(rsa->blindings_inuse);
+  rsa_invalidate_key(rsa);
   CRYPTO_MUTEX_cleanup(&rsa->lock);
   OPENSSL_free(rsa);
 }
@@ -244,6 +362,7 @@ int RSA_set0_key(RSA *rsa, BIGNUM *n, BIGNUM *e, BIGNUM *d) {
     rsa->d = d;
   }
 
+  rsa_invalidate_key(rsa);
   return 1;
 }
 
@@ -262,6 +381,7 @@ int RSA_set0_factors(RSA *rsa, BIGNUM *p, BIGNUM *q) {
     rsa->q = q;
   }
 
+  rsa_invalidate_key(rsa);
   return 1;
 }
 
@@ -285,22 +405,8 @@ int RSA_set0_crt_params(RSA *rsa, BIGNUM *dmp1, BIGNUM *dmq1, BIGNUM *iqmp) {
     rsa->iqmp = iqmp;
   }
 
+  rsa_invalidate_key(rsa);
   return 1;
-}
-
-int RSA_public_encrypt(size_t flen, const uint8_t *from, uint8_t *to, RSA *rsa,
-                       int padding) {
-  size_t out_len;
-
-  if (!RSA_encrypt(rsa, &out_len, to, RSA_size(rsa), from, flen, padding)) {
-    return -1;
-  }
-
-  if (out_len > INT_MAX) {
-    OPENSSL_PUT_ERROR(RSA, ERR_R_OVERFLOW);
-    return -1;
-  }
-  return (int)out_len;
 }
 
 static int rsa_sign_raw_no_self_test(RSA *rsa, size_t *out_len, uint8_t *out,
@@ -318,58 +424,6 @@ int RSA_sign_raw(RSA *rsa, size_t *out_len, uint8_t *out, size_t max_out,
   boringssl_ensure_rsa_self_test();
   return rsa_sign_raw_no_self_test(rsa, out_len, out, max_out, in, in_len,
                                    padding);
-}
-
-int RSA_private_encrypt(size_t flen, const uint8_t *from, uint8_t *to, RSA *rsa,
-                        int padding) {
-  size_t out_len;
-
-  if (!RSA_sign_raw(rsa, &out_len, to, RSA_size(rsa), from, flen, padding)) {
-    return -1;
-  }
-
-  if (out_len > INT_MAX) {
-    OPENSSL_PUT_ERROR(RSA, ERR_R_OVERFLOW);
-    return -1;
-  }
-  return (int)out_len;
-}
-
-int RSA_decrypt(RSA *rsa, size_t *out_len, uint8_t *out, size_t max_out,
-                const uint8_t *in, size_t in_len, int padding) {
-  if (rsa->meth->decrypt) {
-    return rsa->meth->decrypt(rsa, out_len, out, max_out, in, in_len, padding);
-  }
-
-  return rsa_default_decrypt(rsa, out_len, out, max_out, in, in_len, padding);
-}
-
-int RSA_private_decrypt(size_t flen, const uint8_t *from, uint8_t *to, RSA *rsa,
-                        int padding) {
-  size_t out_len;
-  if (!RSA_decrypt(rsa, &out_len, to, RSA_size(rsa), from, flen, padding)) {
-    return -1;
-  }
-
-  if (out_len > INT_MAX) {
-    OPENSSL_PUT_ERROR(RSA, ERR_R_OVERFLOW);
-    return -1;
-  }
-  return (int)out_len;
-}
-
-int RSA_public_decrypt(size_t flen, const uint8_t *from, uint8_t *to, RSA *rsa,
-                       int padding) {
-  size_t out_len;
-  if (!RSA_verify_raw(rsa, &out_len, to, RSA_size(rsa), from, flen, padding)) {
-    return -1;
-  }
-
-  if (out_len > INT_MAX) {
-    OPENSSL_PUT_ERROR(RSA, ERR_R_OVERFLOW);
-    return -1;
-  }
-  return (int)out_len;
 }
 
 unsigned RSA_size(const RSA *rsa) {
@@ -962,13 +1016,19 @@ cleanup:
   return ret;
 }
 
-int RSA_private_transform(RSA *rsa, uint8_t *out, const uint8_t *in,
-                          size_t len) {
+int rsa_private_transform_no_self_test(RSA *rsa, uint8_t *out,
+                                       const uint8_t *in, size_t len) {
   if (rsa->meth->private_transform) {
     return rsa->meth->private_transform(rsa, out, in, len);
   }
 
   return rsa_default_private_transform(rsa, out, in, len);
+}
+
+int rsa_private_transform(RSA *rsa, uint8_t *out, const uint8_t *in,
+                          size_t len) {
+  boringssl_ensure_rsa_self_test();
+  return rsa_private_transform_no_self_test(rsa, out, in, len);
 }
 
 int RSA_flags(const RSA *rsa) { return rsa->flags; }
