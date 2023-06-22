@@ -411,8 +411,8 @@ Q = @
 endif
 
 CORE_VERSION = 33.0.0
-CPP_VERSION = 1.56.0
-CSHARP_VERSION = 2.56.0
+CPP_VERSION = 1.57.0-dev
+CSHARP_VERSION = 2.57.0-dev
 
 CPPFLAGS_NO_ARCH += $(addprefix -I, $(INCLUDES)) $(addprefix -D, $(DEFINES))
 CPPFLAGS += $(CPPFLAGS_NO_ARCH) $(ARCH_FLAGS)
@@ -1562,6 +1562,7 @@ LIBGRPC_SRC = \
     src/core/lib/iomgr/timer_manager.cc \
     src/core/lib/iomgr/unix_sockets_posix.cc \
     src/core/lib/iomgr/unix_sockets_posix_noop.cc \
+    src/core/lib/iomgr/vsock.cc \
     src/core/lib/iomgr/wakeup_fd_eventfd.cc \
     src/core/lib/iomgr/wakeup_fd_nospecial.cc \
     src/core/lib/iomgr/wakeup_fd_pipe.cc \
@@ -2117,6 +2118,7 @@ LIBGRPC_UNSECURE_SRC = \
     src/core/lib/iomgr/timer_manager.cc \
     src/core/lib/iomgr/unix_sockets_posix.cc \
     src/core/lib/iomgr/unix_sockets_posix_noop.cc \
+    src/core/lib/iomgr/vsock.cc \
     src/core/lib/iomgr/wakeup_fd_eventfd.cc \
     src/core/lib/iomgr/wakeup_fd_nospecial.cc \
     src/core/lib/iomgr/wakeup_fd_pipe.cc \
