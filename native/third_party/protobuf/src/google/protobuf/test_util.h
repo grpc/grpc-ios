@@ -35,17 +35,17 @@
 #ifndef GOOGLE_PROTOBUF_TEST_UTIL_H__
 #define GOOGLE_PROTOBUF_TEST_UTIL_H__
 
-#include <google/protobuf/unittest.pb.h>
+#include "google/protobuf/unittest.pb.h"
 
 #define UNITTEST ::protobuf_unittest
 #define UNITTEST_IMPORT ::protobuf_unittest_import
 // Must be included when the preprocessor symbols above are defined.
-#include <google/protobuf/test_util.inc>
+#include "google/protobuf/test_util.inc"
 #undef UNITTEST
 #undef UNITTEST_IMPORT
 
 // Must be included last.
-#include <google/protobuf/port_def.inc>
+#include "google/protobuf/port_def.inc"
 
 namespace google {
 namespace protobuf {
@@ -63,6 +63,8 @@ class ReflectionTester {
   // the latter case, ReflectionTester searches for extension fields in
   // its file.
   explicit ReflectionTester(const Descriptor* base_descriptor);
+  ReflectionTester(const ReflectionTester&) = delete;
+  ReflectionTester& operator=(const ReflectionTester&) = delete;
 
   void SetAllFieldsViaReflection(Message* message);
   void ModifyRepeatedFieldsViaReflection(Message* message);
@@ -120,8 +122,6 @@ class ReflectionTester {
   void ExpectAllFieldsSetViaReflection1(const Message& message);
   void ExpectAllFieldsSetViaReflection2(const Message& message);
   void ExpectAllFieldsSetViaReflection3(const Message& message);
-
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(ReflectionTester);
 };
 
 inline TestUtil::ReflectionTester::ReflectionTester(
@@ -129,33 +129,48 @@ inline TestUtil::ReflectionTester::ReflectionTester(
     : base_descriptor_(base_descriptor) {
   const DescriptorPool* pool = base_descriptor->file()->pool();
   std::string package = base_descriptor->file()->package();
-  const FieldDescriptor* import_descriptor =
-      pool->FindFieldByName(package + ".TestAllTypes.optional_import_message");
+  const FieldDescriptor* import_descriptor = pool->FindFieldByName(
+      absl::StrCat(package, ".TestAllTypes.optional_import_message"));
   std::string import_package =
       import_descriptor->message_type()->file()->package();
 
-  nested_b_ = pool->FindFieldByName(package + ".TestAllTypes.NestedMessage.bb");
-  foreign_c_ = pool->FindFieldByName(package + ".ForeignMessage.c");
-  import_d_ = pool->FindFieldByName(import_package + ".ImportMessage.d");
-  import_e_ = pool->FindFieldByName(import_package + ".PublicImportMessage.e");
-  nested_foo_ = pool->FindEnumValueByName(package + ".TestAllTypes.FOO");
-  nested_bar_ = pool->FindEnumValueByName(package + ".TestAllTypes.BAR");
-  nested_baz_ = pool->FindEnumValueByName(package + ".TestAllTypes.BAZ");
-  foreign_foo_ = pool->FindEnumValueByName(package + ".FOREIGN_FOO");
-  foreign_bar_ = pool->FindEnumValueByName(package + ".FOREIGN_BAR");
-  foreign_baz_ = pool->FindEnumValueByName(package + ".FOREIGN_BAZ");
-  import_foo_ = pool->FindEnumValueByName(import_package + ".IMPORT_FOO");
-  import_bar_ = pool->FindEnumValueByName(import_package + ".IMPORT_BAR");
-  import_baz_ = pool->FindEnumValueByName(import_package + ".IMPORT_BAZ");
+  nested_b_ = pool->FindFieldByName(
+      absl::StrCat(package, ".TestAllTypes.NestedMessage.bb"));
+  foreign_c_ =
+      pool->FindFieldByName(absl::StrCat(package, ".ForeignMessage.c"));
+  import_d_ =
+      pool->FindFieldByName(absl::StrCat(import_package, ".ImportMessage.d"));
+  import_e_ = pool->FindFieldByName(
+      absl::StrCat(import_package, ".PublicImportMessage.e"));
+  nested_foo_ =
+      pool->FindEnumValueByName(absl::StrCat(package, ".TestAllTypes.FOO"));
+  nested_bar_ =
+      pool->FindEnumValueByName(absl::StrCat(package, ".TestAllTypes.BAR"));
+  nested_baz_ =
+      pool->FindEnumValueByName(absl::StrCat(package, ".TestAllTypes.BAZ"));
+  foreign_foo_ =
+      pool->FindEnumValueByName(absl::StrCat(package, ".FOREIGN_FOO"));
+  foreign_bar_ =
+      pool->FindEnumValueByName(absl::StrCat(package, ".FOREIGN_BAR"));
+  foreign_baz_ =
+      pool->FindEnumValueByName(absl::StrCat(package, ".FOREIGN_BAZ"));
+  import_foo_ =
+      pool->FindEnumValueByName(absl::StrCat(import_package, ".IMPORT_FOO"));
+  import_bar_ =
+      pool->FindEnumValueByName(absl::StrCat(import_package, ".IMPORT_BAR"));
+  import_baz_ =
+      pool->FindEnumValueByName(absl::StrCat(import_package, ".IMPORT_BAZ"));
 
   if (base_descriptor_->name() == "TestAllExtensions") {
-    group_a_ = pool->FindFieldByName(package + ".OptionalGroup_extension.a");
-    repeated_group_a_ =
-        pool->FindFieldByName(package + ".RepeatedGroup_extension.a");
+    group_a_ = pool->FindFieldByName(
+        absl::StrCat(package, ".OptionalGroup_extension.a"));
+    repeated_group_a_ = pool->FindFieldByName(
+        absl::StrCat(package, ".RepeatedGroup_extension.a"));
   } else {
-    group_a_ = pool->FindFieldByName(package + ".TestAllTypes.OptionalGroup.a");
-    repeated_group_a_ =
-        pool->FindFieldByName(package + ".TestAllTypes.RepeatedGroup.a");
+    group_a_ = pool->FindFieldByName(
+        absl::StrCat(package, ".TestAllTypes.OptionalGroup.a"));
+    repeated_group_a_ = pool->FindFieldByName(
+        absl::StrCat(package, ".TestAllTypes.RepeatedGroup.a"));
   }
 
   EXPECT_TRUE(group_a_ != nullptr);
@@ -181,11 +196,12 @@ inline const FieldDescriptor* TestUtil::ReflectionTester::F(
   const FieldDescriptor* result = nullptr;
   if (base_descriptor_->name() == "TestAllExtensions" ||
       base_descriptor_->name() == "TestPackedExtensions") {
-    result = base_descriptor_->file()->FindExtensionByName(name + "_extension");
+    result = base_descriptor_->file()->FindExtensionByName(
+        absl::StrCat(name, "_extension"));
   } else {
     result = base_descriptor_->FindFieldByName(name);
   }
-  GOOGLE_CHECK(result != nullptr);
+  ABSL_CHECK(result != nullptr);
   return result;
 }
 
@@ -1223,7 +1239,7 @@ inline void TestUtil::ReflectionTester::ExpectMessagesReleasedViaReflection(
       "optional_foreign_message",
       "optional_import_message",
   };
-  for (int i = 0; i < GOOGLE_ARRAYSIZE(fields); i++) {
+  for (int i = 0; i < ABSL_ARRAYSIZE(fields); i++) {
     Message* released = reflection->ReleaseMessage(message, F(fields[i]));
     switch (expected_release_state) {
       case IS_NULL:
@@ -1272,6 +1288,6 @@ inline void ExpectAllFieldsAndExtensionsInOrder(const std::string& serialized) {
 }  // namespace protobuf
 }  // namespace google
 
-#include <google/protobuf/port_undef.inc>
+#include "google/protobuf/port_undef.inc"
 
 #endif  // GOOGLE_PROTOBUF_TEST_UTIL_H__

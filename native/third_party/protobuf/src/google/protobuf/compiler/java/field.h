@@ -36,13 +36,13 @@
 #define GOOGLE_PROTOBUF_COMPILER_JAVA_FIELD_H__
 
 #include <cstdint>
-#include <map>
 #include <memory>
 #include <string>
 
-#include <google/protobuf/stubs/logging.h>
-#include <google/protobuf/stubs/common.h>
-#include <google/protobuf/descriptor.h>
+#include "absl/container/flat_hash_map.h"
+#include "absl/log/absl_check.h"
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/port.h"
 
 namespace google {
 namespace protobuf {
@@ -66,6 +66,8 @@ namespace java {
 class ImmutableFieldGenerator {
  public:
   ImmutableFieldGenerator() {}
+  ImmutableFieldGenerator(const ImmutableFieldGenerator&) = delete;
+  ImmutableFieldGenerator& operator=(const ImmutableFieldGenerator&) = delete;
   virtual ~ImmutableFieldGenerator();
 
   virtual int GetMessageBitIndex() const = 0;
@@ -91,14 +93,14 @@ class ImmutableFieldGenerator {
   virtual void GenerateHashCode(io::Printer* printer) const = 0;
 
   virtual std::string GetBoxedType() const = 0;
-
- private:
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(ImmutableFieldGenerator);
 };
 
 class ImmutableFieldLiteGenerator {
  public:
   ImmutableFieldLiteGenerator() {}
+  ImmutableFieldLiteGenerator(const ImmutableFieldLiteGenerator&) = delete;
+  ImmutableFieldLiteGenerator& operator=(const ImmutableFieldLiteGenerator&) =
+      delete;
   virtual ~ImmutableFieldLiteGenerator();
 
   virtual int GetNumBitsForMessage() const = 0;
@@ -111,9 +113,6 @@ class ImmutableFieldLiteGenerator {
   virtual void GenerateKotlinDslMembers(io::Printer* printer) const = 0;
 
   virtual std::string GetBoxedType() const = 0;
-
- private:
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(ImmutableFieldLiteGenerator);
 };
 
 
@@ -122,6 +121,8 @@ template <typename FieldGeneratorType>
 class FieldGeneratorMap {
  public:
   explicit FieldGeneratorMap(const Descriptor* descriptor, Context* context);
+  FieldGeneratorMap(const FieldGeneratorMap&) = delete;
+  FieldGeneratorMap& operator=(const FieldGeneratorMap&) = delete;
   ~FieldGeneratorMap();
 
   const FieldGeneratorType& get(const FieldDescriptor* field) const;
@@ -129,14 +130,12 @@ class FieldGeneratorMap {
  private:
   const Descriptor* descriptor_;
   std::vector<std::unique_ptr<FieldGeneratorType>> field_generators_;
-
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(FieldGeneratorMap);
 };
 
 template <typename FieldGeneratorType>
 inline const FieldGeneratorType& FieldGeneratorMap<FieldGeneratorType>::get(
     const FieldDescriptor* field) const {
-  GOOGLE_CHECK_EQ(field->containing_type(), descriptor_);
+  ABSL_CHECK_EQ(field->containing_type(), descriptor_);
   return *field_generators_[field->index()];
 }
 
@@ -171,18 +170,19 @@ struct OneofGeneratorInfo {
 };
 
 // Set some common variables used in variable FieldGenerators.
-void SetCommonFieldVariables(const FieldDescriptor* descriptor,
-                             const FieldGeneratorInfo* info,
-                             std::map<std::string, std::string>* variables);
+void SetCommonFieldVariables(
+    const FieldDescriptor* descriptor, const FieldGeneratorInfo* info,
+    absl::flat_hash_map<absl::string_view, std::string>* variables);
 
 // Set some common oneof variables used in OneofFieldGenerators.
-void SetCommonOneofVariables(const FieldDescriptor* descriptor,
-                             const OneofGeneratorInfo* info,
-                             std::map<std::string, std::string>* variables);
+void SetCommonOneofVariables(
+    const FieldDescriptor* descriptor, const OneofGeneratorInfo* info,
+    absl::flat_hash_map<absl::string_view, std::string>* variables);
 
 // Print useful comments before a field's accessors.
-void PrintExtraFieldInfo(const std::map<std::string, std::string>& variables,
-                         io::Printer* printer);
+void PrintExtraFieldInfo(
+    const absl::flat_hash_map<absl::string_view, std::string>& variables,
+    io::Printer* printer);
 
 }  // namespace java
 }  // namespace compiler

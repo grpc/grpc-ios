@@ -32,18 +32,18 @@
 #include <string>
 #include <vector>
 
-#include <google/protobuf/unittest.pb.h>
-#include <google/protobuf/unittest_proto3_arena.pb.h>
-#include <google/protobuf/unittest_proto3_optional.pb.h>
-#include <google/protobuf/arena.h>
-#include <google/protobuf/text_format.h>
-#include <google/protobuf/testing/googletest.h>
+#include "google/protobuf/arena.h"
+#include "google/protobuf/text_format.h"
 #include <gtest/gtest.h>
-#include <google/protobuf/stubs/strutil.h>
-#include <google/protobuf/test_util.h>
+#include "absl/strings/match.h"
+#include "google/protobuf/descriptor_legacy.h"
+#include "google/protobuf/test_util.h"
+#include "google/protobuf/unittest.pb.h"
+#include "google/protobuf/unittest_proto3_arena.pb.h"
+#include "google/protobuf/unittest_proto3_optional.pb.h"
 
 // Must be included last.
-#include <google/protobuf/port_def.inc>
+#include "google/protobuf/port_def.inc"
 
 using proto3_arena_unittest::ForeignMessage;
 using proto3_arena_unittest::TestAllTypes;
@@ -297,12 +297,14 @@ TEST(Proto3OptionalTest, OptionalFieldDescriptor) {
 
   for (int i = 0; i < d->field_count(); i++) {
     const FieldDescriptor* f = d->field(i);
-    if (HasPrefixString(f->name(), "singular")) {
-      EXPECT_FALSE(f->has_optional_keyword()) << f->full_name();
+    if (absl::StartsWith(f->name(), "singular")) {
+      EXPECT_FALSE(FieldDescriptorLegacy(f).has_optional_keyword())
+          << f->full_name();
       EXPECT_FALSE(f->has_presence()) << f->full_name();
       EXPECT_FALSE(f->containing_oneof()) << f->full_name();
     } else {
-      EXPECT_TRUE(f->has_optional_keyword()) << f->full_name();
+      EXPECT_TRUE(FieldDescriptorLegacy(f).has_optional_keyword())
+          << f->full_name();
       EXPECT_TRUE(f->has_presence()) << f->full_name();
       EXPECT_TRUE(f->containing_oneof()) << f->full_name();
     }
@@ -315,10 +317,10 @@ TEST(Proto3OptionalTest, Extensions) {
       "protobuf_unittest.Proto3OptionalExtensions.ext_no_optional");
   const FieldDescriptor* with_optional = p->FindExtensionByName(
       "protobuf_unittest.Proto3OptionalExtensions.ext_with_optional");
-  GOOGLE_CHECK(no_optional);
-  GOOGLE_CHECK(with_optional);
-  EXPECT_FALSE(no_optional->has_optional_keyword());
-  EXPECT_TRUE(with_optional->has_optional_keyword());
+  ABSL_CHECK(no_optional);
+  ABSL_CHECK(with_optional);
+  EXPECT_FALSE(FieldDescriptorLegacy(no_optional).has_optional_keyword());
+  EXPECT_TRUE(FieldDescriptorLegacy(with_optional).has_optional_keyword());
 
   const Descriptor* d = protobuf_unittest::Proto3OptionalExtensions::descriptor();
   EXPECT_TRUE(d->options().HasExtension(
@@ -364,9 +366,9 @@ TEST(Proto3OptionalTest, OptionalFieldReflection) {
   const google::protobuf::Reflection* r = msg.GetReflection();
   const google::protobuf::FieldDescriptor* f = d->FindFieldByName("optional_int32");
   const google::protobuf::OneofDescriptor* o = d->FindOneofByName("_optional_int32");
-  GOOGLE_CHECK(f);
-  GOOGLE_CHECK(o);
-  EXPECT_TRUE(o->is_synthetic());
+  ABSL_CHECK(f);
+  ABSL_CHECK(o);
+  EXPECT_TRUE(OneofDescriptorLegacy(o).is_synthetic());
 
   EXPECT_FALSE(r->HasField(msg, f));
   EXPECT_FALSE(r->HasOneof(msg, o));

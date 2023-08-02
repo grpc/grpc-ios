@@ -32,17 +32,14 @@
 //  Based on original Protocol Buffers design by
 //  Sanjay Ghemawat, Jeff Dean, and others.
 
-#include <google/protobuf/reflection_ops.h>
+#include "google/protobuf/reflection_ops.h"
 
-#include <google/protobuf/stubs/logging.h>
-#include <google/protobuf/stubs/common.h>
-#include <google/protobuf/unittest.pb.h>
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/testing/googletest.h>
+#include "google/protobuf/descriptor.h"
 #include <gtest/gtest.h>
-#include <google/protobuf/test_util.h>
+#include "absl/strings/str_join.h"
+#include "google/protobuf/test_util.h"
+#include "google/protobuf/unittest.pb.h"
 
-#include <google/protobuf/stubs/strutil.h>
 
 namespace google {
 namespace protobuf {
@@ -187,7 +184,7 @@ TEST(ReflectionOpsTest, MergeOneof) {
   TestUtil::ExpectOneofSet2(message2);
 }
 
-#ifdef PROTOBUF_HAS_DEATH_TEST
+#if GTEST_HAS_DEATH_TEST
 
 TEST(ReflectionOpsTest, MergeFromSelf) {
   // Note:  Copy is implemented in terms of Merge() so technically the Copy
@@ -198,7 +195,7 @@ TEST(ReflectionOpsTest, MergeFromSelf) {
   EXPECT_DEATH(ReflectionOps::Merge(message, &message), "&from");
 }
 
-#endif  // PROTOBUF_HAS_DEATH_TEST
+#endif  // GTEST_HAS_DEATH_TEST
 
 TEST(ReflectionOpsTest, Clear) {
   unittest::TestAllTypes message;
@@ -460,7 +457,7 @@ TEST(ReflectionOpsTest, OneofIsInitialized) {
 static std::string FindInitializationErrors(const Message& message) {
   std::vector<std::string> errors;
   ReflectionOps::FindInitializationErrors(message, "", &errors);
-  return Join(errors, ",");
+  return absl::StrJoin(errors, ",");
 }
 
 TEST(ReflectionOpsTest, FindInitializationErrors) {

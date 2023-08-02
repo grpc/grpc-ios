@@ -76,6 +76,7 @@ UPB_GRPC_GENERATED_INCLUDE = (os.path.join('src', 'core', 'ext',
                                            'upb-generated'),)
 UPBDEFS_GRPC_GENERATED_INCLUDE = (os.path.join('src', 'core', 'ext',
                                                'upbdefs-generated'),)
+UTF8_RANGE_INCLUDE = (os.path.join('third_party', 'utf8_range'),)
 XXHASH_INCLUDE = (os.path.join('third_party', 'xxhash'),)
 ZLIB_INCLUDE = (os.path.join('third_party', 'zlib'),)
 README = os.path.join(PYTHON_STEM, 'README.rst')
@@ -313,7 +314,8 @@ EXTENSION_INCLUDE_DIRECTORIES = ((PYTHON_STEM,) + CORE_INCLUDE + ABSL_INCLUDE +
                                  RE2_INCLUDE + SSL_INCLUDE + UPB_INCLUDE +
                                  UPB_GRPC_GENERATED_INCLUDE +
                                  UPBDEFS_GRPC_GENERATED_INCLUDE +
-                                 XXHASH_INCLUDE + ZLIB_INCLUDE)
+                                 UTF8_RANGE_INCLUDE + XXHASH_INCLUDE +
+                                 ZLIB_INCLUDE)
 
 EXTENSION_LIBRARIES = ()
 if "linux" in sys.platform:
@@ -411,6 +413,10 @@ else:
         ('GRPC_ENABLE_FORK_SUPPORT', 1),
     )
 
+# Fix for multiprocessing support on Apple devices.
+# TODO(vigneshbabu): Remove this once the poll poller gets fork support.
+DEFINE_MACROS += (('GRPC_DO_NOT_INSTANTIATE_POSIX_POLLER', 1),)
+
 LDFLAGS = tuple(EXTRA_LINK_ARGS)
 CFLAGS = tuple(EXTRA_COMPILE_ARGS)
 if "linux" in sys.platform or "darwin" in sys.platform:
@@ -502,8 +508,8 @@ except ImportError:
             "other commands, but the extension files will fail to build.\n")
     elif need_cython:
         sys.stderr.write(
-            'We could not find Cython. Setup may take 10-20 minutes.\n')
-        SETUP_REQUIRES += ('cython>=0.23',)
+            "We could not find Cython. Setup may take 10-20 minutes.\n")
+        SETUP_REQUIRES += ("cython>=0.23,<3.0.0rc1",)
 
 COMMAND_CLASS = {
     'doc': commands.SphinxDocumentation,

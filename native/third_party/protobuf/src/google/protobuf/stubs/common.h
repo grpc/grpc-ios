@@ -37,30 +37,14 @@
 
 #include <algorithm>
 #include <iostream>
-#include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <vector>
 
-#include <google/protobuf/stubs/macros.h>
-#include <google/protobuf/stubs/platform_macros.h>
-#include <google/protobuf/stubs/port.h>
-#include <google/protobuf/stubs/stringpiece.h>
+#include "absl/strings/string_view.h"
+#include "google/protobuf/stubs/platform_macros.h"
+#include "google/protobuf/stubs/port.h"
 
-#ifndef PROTOBUF_USE_EXCEPTIONS
-#if defined(_MSC_VER) && defined(_CPPUNWIND)
-  #define PROTOBUF_USE_EXCEPTIONS 1
-#elif defined(__EXCEPTIONS)
-  #define PROTOBUF_USE_EXCEPTIONS 1
-#else
-  #define PROTOBUF_USE_EXCEPTIONS 0
-#endif
-#endif
-
-#if PROTOBUF_USE_EXCEPTIONS
-#include <exception>
-#endif
 #if defined(__APPLE__)
 #include <TargetConditionals.h>  // for TARGET_OS_IPHONE
 #endif
@@ -69,7 +53,7 @@
 #include <pthread.h>
 #endif
 
-#include <google/protobuf/port_def.inc>
+#include "google/protobuf/port_def.inc"
 
 namespace std {}
 
@@ -82,7 +66,7 @@ namespace internal {
 
 // The current version, represented as a single integer to make comparison
 // easier:  major * 10^6 + minor * 10^3 + micro
-#define GOOGLE_PROTOBUF_VERSION 3021012
+#define GOOGLE_PROTOBUF_VERSION 4023001
 
 // A suffix string for alpha, beta or rc releases. Empty for stable releases.
 #define GOOGLE_PROTOBUF_VERSION_SUFFIX ""
@@ -90,15 +74,15 @@ namespace internal {
 // The minimum header version which works with the current version of
 // the library.  This constant should only be used by protoc's C++ code
 // generator.
-static const int kMinHeaderVersionForLibrary = 3021000;
+static const int kMinHeaderVersionForLibrary = 4023000;
 
 // The minimum protoc version which works with the current version of the
 // headers.
-#define GOOGLE_PROTOBUF_MIN_PROTOC_VERSION 3021000
+#define GOOGLE_PROTOBUF_MIN_PROTOC_VERSION 4023000
 
 // The minimum header version which works with the current version of
 // protoc.  This constant should only be used in VerifyVersion().
-static const int kMinHeaderVersionForProtoc = 3021000;
+static const int kMinHeaderVersionForProtoc = 4023000;
 
 // Verifies that the headers and libraries are compatible.  Use the macro
 // below to call this.
@@ -106,7 +90,12 @@ void PROTOBUF_EXPORT VerifyVersion(int headerVersion, int minLibraryVersion,
                                    const char* filename);
 
 // Converts a numeric version number to a string.
-std::string PROTOBUF_EXPORT VersionString(int version);
+std::string PROTOBUF_EXPORT
+VersionString(int version);  // NOLINT(runtime/string)
+
+// Prints the protoc compiler version (no major version)
+std::string PROTOBUF_EXPORT
+ProtocVersionString(int version);  // NOLINT(runtime/string)
 
 }  // namespace internal
 
@@ -119,39 +108,6 @@ std::string PROTOBUF_EXPORT VersionString(int version);
     GOOGLE_PROTOBUF_VERSION, GOOGLE_PROTOBUF_MIN_LIBRARY_VERSION,         \
     __FILE__)
 
-
-// ===================================================================
-// from google3/util/utf8/public/unilib.h
-
-namespace internal {
-
-// Checks if the buffer contains structurally-valid UTF-8.  Implemented in
-// structurally_valid.cc.
-PROTOBUF_EXPORT bool IsStructurallyValidUTF8(const char* buf, int len);
-
-inline bool IsStructurallyValidUTF8(StringPiece str) {
-  return IsStructurallyValidUTF8(str.data(), static_cast<int>(str.length()));
-}
-
-// Returns initial number of bytes of structurally valid UTF-8.
-PROTOBUF_EXPORT int UTF8SpnStructurallyValid(StringPiece str);
-
-// Coerce UTF-8 byte string in src_str to be
-// a structurally-valid equal-length string by selectively
-// overwriting illegal bytes with replace_char (typically ' ' or '?').
-// replace_char must be legal printable 7-bit Ascii 0x20..0x7e.
-// src_str is read-only.
-//
-// Returns pointer to output buffer, src_str.data() if no changes were made,
-//  or idst if some bytes were changed. idst is allocated by the caller
-//  and must be at least as big as src_str
-//
-// Optimized for: all structurally valid and no byte copying is done.
-//
-PROTOBUF_EXPORT char* UTF8CoerceToStructurallyValid(StringPiece str, char* dst,
-                                                    char replace_char);
-
-}  // namespace internal
 
 // This lives in message_lite.h now, but we leave this here for any users that
 // #include common.h and not message_lite.h.
@@ -168,30 +124,9 @@ void StrongReference(const T& var) {
 }
 
 }  // namespace internal
-
-#if PROTOBUF_USE_EXCEPTIONS
-class FatalException : public std::exception {
- public:
-  FatalException(const char* filename, int line, const std::string& message)
-      : filename_(filename), line_(line), message_(message) {}
-  virtual ~FatalException() throw();
-
-  const char* what() const throw() override;
-
-  const char* filename() const { return filename_; }
-  int line() const { return line_; }
-  const std::string& message() const { return message_; }
-
- private:
-  const char* filename_;
-  const int line_;
-  const std::string message_;
-};
-#endif
-
 }  // namespace protobuf
 }  // namespace google
 
-#include <google/protobuf/port_undef.inc>
+#include "google/protobuf/port_undef.inc"
 
 #endif  // GOOGLE_PROTOBUF_COMMON_H__

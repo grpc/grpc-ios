@@ -2565,7 +2565,7 @@ OPENSSL_EXPORT void X509_STORE_CTX_set_depth(X509_STORE_CTX *ctx, int depth);
 #define X509_V_FLAG_X509_STRICT 0x00
 // This flag does nothing as proxy certificate support has been removed.
 #define X509_V_FLAG_ALLOW_PROXY_CERTS 0x40
-// Enable policy checking
+// Does nothing as its functionality has been enabled by default.
 #define X509_V_FLAG_POLICY_CHECK 0x80
 // Policy variable require-explicit-policy
 #define X509_V_FLAG_EXPLICIT_POLICY 0x100
@@ -2601,11 +2601,6 @@ OPENSSL_EXPORT void X509_STORE_CTX_set_depth(X509_STORE_CTX *ctx, int depth);
 #define X509_VP_FLAG_RESET_FLAGS 0x4
 #define X509_VP_FLAG_LOCKED 0x8
 #define X509_VP_FLAG_ONCE 0x10
-
-// Internal use: mask of policy related options
-#define X509_V_FLAG_POLICY_MASK                             \
-  (X509_V_FLAG_POLICY_CHECK | X509_V_FLAG_EXPLICIT_POLICY | \
-   X509_V_FLAG_INHIBIT_ANY | X509_V_FLAG_INHIBIT_MAP)
 
 OPENSSL_EXPORT int X509_OBJECT_idx_by_subject(STACK_OF(X509_OBJECT) *h,
                                               int type, X509_NAME *name);
@@ -2843,12 +2838,8 @@ OPENSSL_EXPORT int X509_VERIFY_PARAM_get_depth(const X509_VERIFY_PARAM *param);
 OPENSSL_EXPORT const char *X509_VERIFY_PARAM_get0_name(
     const X509_VERIFY_PARAM *param);
 
-OPENSSL_EXPORT int X509_VERIFY_PARAM_add0_table(X509_VERIFY_PARAM *param);
-OPENSSL_EXPORT int X509_VERIFY_PARAM_get_count(void);
-OPENSSL_EXPORT const X509_VERIFY_PARAM *X509_VERIFY_PARAM_get0(int id);
 OPENSSL_EXPORT const X509_VERIFY_PARAM *X509_VERIFY_PARAM_lookup(
     const char *name);
-OPENSSL_EXPORT void X509_VERIFY_PARAM_table_cleanup(void);
 
 
 #if defined(__cplusplus)

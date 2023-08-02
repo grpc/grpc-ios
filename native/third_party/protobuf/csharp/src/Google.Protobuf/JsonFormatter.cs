@@ -62,9 +62,13 @@ namespace Google.Protobuf
         internal const string AnyTypeUrlField = "@type";
         internal const string AnyDiagnosticValueField = "@value";
         internal const string AnyWellKnownTypeValueField = "value";
-        private const string TypeUrlPrefix = "type.googleapis.com";
         private const string NameValueSeparator = ": ";
-        private const string PropertySeparator = ", ";
+        private const string ValueSeparator = ", ";
+        private const string MultilineValueSeparator = ",";
+        private const char ObjectOpenBracket = '{';
+        private const char ObjectCloseBracket = '}';
+        private const char ListBracketOpen = '[';
+        private const char ListBracketClose = ']';
 
         /// <summary>
         /// Returns a formatter using the default settings.
@@ -141,11 +145,26 @@ namespace Google.Protobuf
         /// Formats the specified message as JSON.
         /// </summary>
         /// <param name="message">The message to format.</param>
+        /// <remarks>This method delegates to <c>Format(IMessage, int)</c> with <c>indentationLevel = 0</c>.</remarks>
         /// <returns>The formatted message.</returns>
-        public string Format(IMessage message)
+        public string Format(IMessage message) => Format(message, indentationLevel: 0);
+
+        /// <summary>
+        /// Formats the specified message as JSON.
+        /// </summary>
+        /// <param name="message">The message to format.</param>
+        /// <param name="indentationLevel">Indentation level to start at.</param>
+        /// <remarks>To keep consistent indentation when embedding a message inside another JSON string, set <paramref name="indentationLevel"/>. E.g:
+        /// <code>
+        /// var response = $@"{{
+        ///   ""data"": { Format(message, indentationLevel: 1) }
+        /// }}"</code>
+        /// </remarks>
+        /// <returns>The formatted message.</returns>
+        public string Format(IMessage message, int indentationLevel)
         {
             var writer = new StringWriter();
-            Format(message, writer);
+            Format(message, writer, indentationLevel);
             return writer.ToString();
         }
 
@@ -154,19 +173,29 @@ namespace Google.Protobuf
         /// </summary>
         /// <param name="message">The message to format.</param>
         /// <param name="writer">The TextWriter to write the formatted message to.</param>
+        /// <remarks>This method delegates to <c>Format(IMessage, TextWriter, int)</c> with <c>indentationLevel = 0</c>.</remarks>
         /// <returns>The formatted message.</returns>
-        public void Format(IMessage message, TextWriter writer)
+        public void Format(IMessage message, TextWriter writer) => Format(message, writer, indentationLevel: 0);
+
+        /// <summary>
+        /// Formats the specified message as JSON. When <see cref="Settings.Indentation"/> is not null, start indenting at the specified <paramref name="indentationLevel"/>.
+        /// </summary>
+        /// <param name="message">The message to format.</param>
+        /// <param name="writer">The TextWriter to write the formatted message to.</param>
+        /// <param name="indentationLevel">Indentation level to start at.</param>
+        /// <remarks>To keep consistent indentation when embedding a message inside another JSON string, set <paramref name="indentationLevel"/>.</remarks>
+        public void Format(IMessage message, TextWriter writer, int indentationLevel)
         {
             ProtoPreconditions.CheckNotNull(message, nameof(message));
             ProtoPreconditions.CheckNotNull(writer, nameof(writer));
 
             if (message.Descriptor.IsWellKnownType)
             {
-                WriteWellKnownTypeValue(writer, message.Descriptor, message);
+                WriteWellKnownTypeValue(writer, message.Descriptor, message, indentationLevel);
             }
             else
             {
-                WriteMessage(writer, message);
+                WriteMessage(writer, message, indentationLevel);
             }
         }
 
@@ -193,7 +222,7 @@ namespace Google.Protobuf
             return diagnosticFormatter.Format(message);
         }
 
-        private void WriteMessage(TextWriter writer, IMessage message)
+        private void WriteMessage(TextWriter writer, IMessage message, int indentationLevel)
         {
             if (message == null)
             {
@@ -202,19 +231,19 @@ namespace Google.Protobuf
             }
             if (DiagnosticOnly)
             {
-                ICustomDiagnosticMessage customDiagnosticMessage = message as ICustomDiagnosticMessage;
-                if (customDiagnosticMessage != null)
+                if (message is ICustomDiagnosticMessage customDiagnosticMessage)
                 {
                     writer.Write(customDiagnosticMessage.ToDiagnosticString());
                     return;
                 }
             }
-            writer.Write("{ ");
-            bool writtenFields = WriteMessageFields(writer, message, false);
-            writer.Write(writtenFields ? " }" : "}");
+
+            WriteBracketOpen(writer, ObjectOpenBracket);
+            bool writtenFields = WriteMessageFields(writer, message, false, indentationLevel + 1);
+            WriteBracketClose(writer, ObjectCloseBracket, writtenFields, indentationLevel);
         }
 
-        private bool WriteMessageFields(TextWriter writer, IMessage message, bool assumeFirstFieldWritten)
+        private bool WriteMessageFields(TextWriter writer, IMessage message, bool assumeFirstFieldWritten, int indentationLevel)
         {
             var fields = message.Descriptor.Fields;
             bool first = !assumeFirstFieldWritten;
@@ -228,10 +257,8 @@ namespace Google.Protobuf
                     continue;
                 }
 
-                if (!first)
-                {
-                    writer.Write(PropertySeparator);
-                }
+                MaybeWriteValueSeparator(writer, first);
+                MaybeWriteValueWhitespace(writer, indentationLevel);
 
                 if (settings.PreserveProtoFieldNames)
                 {
@@ -242,11 +269,21 @@ namespace Google.Protobuf
                     WriteString(writer, accessor.Descriptor.JsonName);
                 }
                 writer.Write(NameValueSeparator);
-                WriteValue(writer, value);
+                WriteValue(writer, value, indentationLevel);
 
                 first = false;
             }
             return !first;
+        }
+
+        private void MaybeWriteValueSeparator(TextWriter writer, bool first)
+        {
+            if (first)
+            {
+                return;
+            }
+
+            writer.Write(settings.Indentation == null ? ValueSeparator : MultilineValueSeparator);
         }
 
         /// <summary>
@@ -320,39 +357,20 @@ namespace Google.Protobuf
                 IList list = (IList) value;
                 return list.Count == 0;
             }
-            switch (descriptor.FieldType)
+            return descriptor.FieldType switch
             {
-                case FieldType.Bool:
-                    return (bool) value == false;
-                case FieldType.Bytes:
-                    return (ByteString) value == ByteString.Empty;
-                case FieldType.String:
-                    return (string) value == "";
-                case FieldType.Double:
-                    return (double) value == 0.0;
-                case FieldType.SInt32:
-                case FieldType.Int32:
-                case FieldType.SFixed32:
-                case FieldType.Enum:
-                    return (int) value == 0;
-                case FieldType.Fixed32:
-                case FieldType.UInt32:
-                    return (uint) value == 0;
-                case FieldType.Fixed64:
-                case FieldType.UInt64:
-                    return (ulong) value == 0;
-                case FieldType.SFixed64:
-                case FieldType.Int64:
-                case FieldType.SInt64:
-                    return (long) value == 0;
-                case FieldType.Float:
-                    return (float) value == 0f;
-                case FieldType.Message:
-                case FieldType.Group: // Never expect to get this, but...
-                    return value == null;
-                default:
-                    throw new ArgumentException("Invalid field type");
-            }
+                FieldType.Bool => (bool) value == false,
+                FieldType.Bytes => (ByteString) value == ByteString.Empty,
+                FieldType.String => (string) value == "",
+                FieldType.Double => (double) value == 0.0,
+                FieldType.SInt32 or FieldType.Int32 or FieldType.SFixed32 or FieldType.Enum => (int) value == 0,
+                FieldType.Fixed32 or FieldType.UInt32 => (uint) value == 0,
+                FieldType.Fixed64 or FieldType.UInt64 => (ulong) value == 0,
+                FieldType.SFixed64 or FieldType.Int64 or FieldType.SInt64 => (long) value == 0,
+                FieldType.Float => (float) value == 0f,
+                FieldType.Message or FieldType.Group => value == null,
+                _ => throw new ArgumentException("Invalid field type"),
+            };
         }
 
         /// <summary>
@@ -363,34 +381,46 @@ namespace Google.Protobuf
         /// </summary>
         /// <param name="writer">The writer to write the value to. Must not be null.</param>
         /// <param name="value">The value to write. May be null.</param>
-        public void WriteValue(TextWriter writer, object value)
+        /// <remarks>Delegates to <c>WriteValue(TextWriter, object, int)</c> with <c>indentationLevel = 0</c>.</remarks>
+        public void WriteValue(TextWriter writer, object value) => WriteValue(writer, value, 0);
+
+        /// <summary>
+        /// Writes a single value to the given writer as JSON. Only types understood by
+        /// Protocol Buffers can be written in this way. This method is only exposed for
+        /// advanced use cases; most users should be using <see cref="Format(IMessage)"/>
+        /// or <see cref="Format(IMessage, TextWriter)"/>.
+        /// </summary>
+        /// <param name="writer">The writer to write the value to. Must not be null.</param>
+        /// <param name="value">The value to write. May be null.</param>
+        /// <param name="indentationLevel">The current indentationLevel. Not used when <see cref="Settings.Indentation"/> is null.</param>
+        public void WriteValue(TextWriter writer, object value, int indentationLevel)
         {
             if (value == null || value is NullValue)
             {
                 WriteNull(writer);
             }
-            else if (value is bool)
+            else if (value is bool b)
             {
-                writer.Write((bool)value ? "true" : "false");
+                writer.Write(b ? "true" : "false");
             }
-            else if (value is ByteString)
+            else if (value is ByteString byteString)
             {
                 // Nothing in Base64 needs escaping
                 writer.Write('"');
-                writer.Write(((ByteString)value).ToBase64());
+                writer.Write(byteString.ToBase64());
                 writer.Write('"');
             }
-            else if (value is string)
+            else if (value is string str)
             {
-                WriteString(writer, (string)value);
+                WriteString(writer, str);
             }
-            else if (value is IDictionary)
+            else if (value is IDictionary dictionary)
             {
-                WriteDictionary(writer, (IDictionary)value);
+                WriteDictionary(writer, dictionary, indentationLevel);
             }
-            else if (value is IList)
+            else if (value is IList list)
             {
-                WriteList(writer, (IList)value);
+                WriteList(writer, list, indentationLevel);
             }
             else if (value is int || value is uint)
             {
@@ -437,9 +467,9 @@ namespace Google.Protobuf
                     writer.Write(text);
                 }
             }
-            else if (value is IMessage)
+            else if (value is IMessage message)
             {
-                Format((IMessage)value, writer);
+                Format(message, writer, indentationLevel);
             }
             else
             {
@@ -453,7 +483,7 @@ namespace Google.Protobuf
         /// values are using the embedded well-known types, in order to allow for dynamic messages
         /// in the future.
         /// </summary>
-        private void WriteWellKnownTypeValue(TextWriter writer, MessageDescriptor descriptor, object value)
+        private void WriteWellKnownTypeValue(TextWriter writer, MessageDescriptor descriptor, object value, int indentationLevel)
         {
             // Currently, we can never actually get here, because null values are always handled by the caller. But if we *could*,
             // this would do the right thing.
@@ -469,9 +499,8 @@ namespace Google.Protobuf
             // WriteValue will do the right thing.)
             if (descriptor.IsWrapperType)
             {
-                if (value is IMessage)
+                if (value is IMessage message)
                 {
-                    var message = (IMessage) value;
                     value = message.Descriptor.Fields[WrappersReflection.WrapperValueFieldNumber].Accessor.GetValue(message);
                 }
                 WriteValue(writer, value);
@@ -494,26 +523,26 @@ namespace Google.Protobuf
             }
             if (descriptor.FullName == Struct.Descriptor.FullName)
             {
-                WriteStruct(writer, (IMessage)value);
+                WriteStruct(writer, (IMessage)value, indentationLevel);
                 return;
             }
             if (descriptor.FullName == ListValue.Descriptor.FullName)
             {
                 var fieldAccessor = descriptor.Fields[ListValue.ValuesFieldNumber].Accessor;
-                WriteList(writer, (IList)fieldAccessor.GetValue((IMessage)value));
+                WriteList(writer, (IList)fieldAccessor.GetValue((IMessage)value), indentationLevel);
                 return;
             }
             if (descriptor.FullName == Value.Descriptor.FullName)
             {
-                WriteStructFieldValue(writer, (IMessage)value);
+                WriteStructFieldValue(writer, (IMessage)value, indentationLevel);
                 return;
             }
             if (descriptor.FullName == Any.Descriptor.FullName)
             {
-                WriteAny(writer, (IMessage)value);
+                WriteAny(writer, (IMessage)value, indentationLevel);
                 return;
             }
-            WriteMessage(writer, (IMessage)value);
+            WriteMessage(writer, (IMessage)value, indentationLevel);
         }
 
         private void WriteTimestamp(TextWriter writer, IMessage value)
@@ -541,7 +570,7 @@ namespace Google.Protobuf
             writer.Write(FieldMask.ToJson(paths, DiagnosticOnly));
         }
 
-        private void WriteAny(TextWriter writer, IMessage value)
+        private void WriteAny(TextWriter writer, IMessage value, int indentationLevel)
         {
             if (DiagnosticOnly)
             {
@@ -558,23 +587,23 @@ namespace Google.Protobuf
                 throw new InvalidOperationException($"Type registry has no descriptor for type name '{typeName}'");
             }
             IMessage message = descriptor.Parser.ParseFrom(data);
-            writer.Write("{ ");
+            WriteBracketOpen(writer, ObjectOpenBracket);
             WriteString(writer, AnyTypeUrlField);
             writer.Write(NameValueSeparator);
             WriteString(writer, typeUrl);
 
             if (descriptor.IsWellKnownType)
             {
-                writer.Write(PropertySeparator);
+                writer.Write(ValueSeparator);
                 WriteString(writer, AnyWellKnownTypeValueField);
                 writer.Write(NameValueSeparator);
-                WriteWellKnownTypeValue(writer, descriptor, message);
+                WriteWellKnownTypeValue(writer, descriptor, message, indentationLevel);
             }
             else
             {
-                WriteMessageFields(writer, message, true);
+                WriteMessageFields(writer, message, true, indentationLevel);
             }
-            writer.Write(" }");
+            WriteBracketClose(writer, ObjectCloseBracket, true, indentationLevel);
         }
 
         private void WriteDiagnosticOnlyAny(TextWriter writer, IMessage value)
@@ -585,7 +614,7 @@ namespace Google.Protobuf
             WriteString(writer, AnyTypeUrlField);
             writer.Write(NameValueSeparator);
             WriteString(writer, typeUrl);
-            writer.Write(PropertySeparator);
+            writer.Write(ValueSeparator);
             WriteString(writer, AnyDiagnosticValueField);
             writer.Write(NameValueSeparator);
             writer.Write('"');
@@ -594,9 +623,9 @@ namespace Google.Protobuf
             writer.Write(" }");
         }
 
-        private void WriteStruct(TextWriter writer, IMessage message)
+        private void WriteStruct(TextWriter writer, IMessage message, int indentationLevel)
         {
-            writer.Write("{ ");
+            WriteBracketOpen(writer, ObjectOpenBracket);
             IDictionary fields = (IDictionary) message.Descriptor.Fields[Struct.FieldsFieldNumber].Accessor.GetValue(message);
             bool first = true;
             foreach (DictionaryEntry entry in fields)
@@ -608,19 +637,17 @@ namespace Google.Protobuf
                     throw new InvalidOperationException("Struct fields cannot have an empty key or a null value.");
                 }
 
-                if (!first)
-                {
-                    writer.Write(PropertySeparator);
-                }
+                MaybeWriteValueSeparator(writer, first);
+                MaybeWriteValueWhitespace(writer, indentationLevel + 1);
                 WriteString(writer, key);
                 writer.Write(NameValueSeparator);
-                WriteStructFieldValue(writer, value);
+                WriteStructFieldValue(writer, value, indentationLevel + 1);
                 first = false;
             }
-            writer.Write(first ? "}" : " }");
+            WriteBracketClose(writer, ObjectCloseBracket, !first, indentationLevel);
         }
 
-        private void WriteStructFieldValue(TextWriter writer, IMessage message)
+        private void WriteStructFieldValue(TextWriter writer, IMessage message, int indentationLevel)
         {
             var specifiedField = message.Descriptor.Oneofs[0].Accessor.GetCaseFieldDescriptor(message);
             if (specifiedField == null)
@@ -641,7 +668,7 @@ namespace Google.Protobuf
                 case Value.ListValueFieldNumber:
                     // Structs and ListValues are nested messages, and already well-known types.
                     var nestedMessage = (IMessage) specifiedField.Accessor.GetValue(message);
-                    WriteWellKnownTypeValue(writer, nestedMessage.Descriptor, nestedMessage);
+                    WriteWellKnownTypeValue(writer, nestedMessage.Descriptor, nestedMessage, indentationLevel);
                     return;
                 case Value.NullValueFieldNumber:
                     WriteNull(writer);
@@ -651,43 +678,40 @@ namespace Google.Protobuf
             }
         }
 
-        internal void WriteList(TextWriter writer, IList list)
+        internal void WriteList(TextWriter writer, IList list, int indentationLevel = 0)
         {
-            writer.Write("[ ");
+            WriteBracketOpen(writer, ListBracketOpen);
+
             bool first = true;
             foreach (var value in list)
             {
-                if (!first)
-                {
-                    writer.Write(PropertySeparator);
-                }
-                WriteValue(writer, value);
+                MaybeWriteValueSeparator(writer, first);
+                MaybeWriteValueWhitespace(writer, indentationLevel + 1);
+                WriteValue(writer, value, indentationLevel + 1);
                 first = false;
             }
-            writer.Write(first ? "]" : " ]");
+
+            WriteBracketClose(writer, ListBracketClose, !first, indentationLevel);
         }
 
-        internal void WriteDictionary(TextWriter writer, IDictionary dictionary)
+        internal void WriteDictionary(TextWriter writer, IDictionary dictionary, int indentationLevel = 0)
         {
-            writer.Write("{ ");
+            WriteBracketOpen(writer, ObjectOpenBracket);
+
             bool first = true;
             // This will box each pair. Could use IDictionaryEnumerator, but that's ugly in terms of disposal.
             foreach (DictionaryEntry pair in dictionary)
             {
-                if (!first)
-                {
-                    writer.Write(PropertySeparator);
-                }
                 string keyText;
-                if (pair.Key is string)
+                if (pair.Key is string s)
                 {
-                    keyText = (string) pair.Key;
+                    keyText = s;
                 }
-                else if (pair.Key is bool)
+                else if (pair.Key is bool b)
                 {
-                    keyText = (bool) pair.Key ? "true" : "false";
+                    keyText = b ? "true" : "false";
                 }
-                else if (pair.Key is int || pair.Key is uint | pair.Key is long || pair.Key is ulong)
+                else if (pair.Key is int || pair.Key is uint || pair.Key is long || pair.Key is ulong)
                 {
                     keyText = ((IFormattable) pair.Key).ToString("d", CultureInfo.InvariantCulture);
                 }
@@ -699,12 +723,16 @@ namespace Google.Protobuf
                     }
                     throw new ArgumentException("Unhandled dictionary key type: " + pair.Key.GetType());
                 }
+
+                MaybeWriteValueSeparator(writer, first);
+                MaybeWriteValueWhitespace(writer, indentationLevel + 1);
                 WriteString(writer, keyText);
                 writer.Write(NameValueSeparator);
                 WriteValue(writer, pair.Value);
                 first = false;
             }
-            writer.Write(first ? "}" : " }");
+
+            WriteBracketClose(writer, ObjectCloseBracket, !first, indentationLevel);
         }
 
         /// <summary>
@@ -788,6 +816,49 @@ namespace Google.Protobuf
             writer.Write(Hex[(c >> 0) & 0xf]);
         }
 
+        private void WriteBracketOpen(TextWriter writer, char openChar)
+        {
+            writer.Write(openChar);
+            if (settings.Indentation == null)
+            {
+                writer.Write(' ');
+            }
+        }
+
+        private void WriteBracketClose(TextWriter writer, char closeChar, bool hasFields, int indentationLevel)
+        {
+            if (hasFields)
+            {
+                if (settings.Indentation != null)
+                {
+                    writer.WriteLine();
+                    WriteIndentation(writer, indentationLevel);
+                }
+                else
+                {
+                    writer.Write(" ");
+                }
+            }
+
+            writer.Write(closeChar);
+        }
+
+        private void MaybeWriteValueWhitespace(TextWriter writer, int indentationLevel)
+        {
+            if (settings.Indentation != null) {
+                writer.WriteLine();
+                WriteIndentation(writer, indentationLevel);
+            }
+        }
+
+        private void WriteIndentation(TextWriter writer, int indentationLevel)
+        {
+            for (int i = 0; i < indentationLevel; i++)
+            {
+                writer.Write(settings.Indentation);
+            }
+        }
+
         /// <summary>
         /// Settings controlling JSON formatting.
         /// </summary>
@@ -828,6 +899,10 @@ namespace Google.Protobuf
             /// </summary>
             public bool PreserveProtoFieldNames { get; }
 
+            /// <summary>
+            /// Indentation string, used for formatting. Setting null disables indentation.
+            /// </summary>
+            public string Indentation { get; }
 
             /// <summary>
             /// Creates a new <see cref="Settings"/> object with the specified formatting of default values
@@ -855,40 +930,54 @@ namespace Google.Protobuf
             /// <param name="typeRegistry">The <see cref="TypeRegistry"/> to use when formatting <see cref="Any"/> messages. TypeRegistry.Empty will be used if it is null.</param>
             /// <param name="formatEnumsAsIntegers"><c>true</c> to format the enums as integers; <c>false</c> to format enums as enum names.</param>
             /// <param name="preserveProtoFieldNames"><c>true</c> to preserve proto field names; <c>false</c> to convert them to lowerCamelCase.</param>
+            /// <param name="indentation">The indentation string to use for multi-line formatting. <c>null</c> to disable multi-line format.</param>
             private Settings(bool formatDefaultValues,
                             TypeRegistry typeRegistry,
                             bool formatEnumsAsIntegers,
-                            bool preserveProtoFieldNames)
+                            bool preserveProtoFieldNames,
+                            string indentation = null)
             {
                 FormatDefaultValues = formatDefaultValues;
                 TypeRegistry = typeRegistry ?? TypeRegistry.Empty;
                 FormatEnumsAsIntegers = formatEnumsAsIntegers;
                 PreserveProtoFieldNames = preserveProtoFieldNames;
+                Indentation = indentation;
             }
 
             /// <summary>
             /// Creates a new <see cref="Settings"/> object with the specified formatting of default values and the current settings.
             /// </summary>
             /// <param name="formatDefaultValues"><c>true</c> if default values (0, empty strings etc) should be formatted; <c>false</c> otherwise.</param>
-            public Settings WithFormatDefaultValues(bool formatDefaultValues) => new Settings(formatDefaultValues, TypeRegistry, FormatEnumsAsIntegers, PreserveProtoFieldNames);
+            public Settings WithFormatDefaultValues(bool formatDefaultValues) => new Settings(formatDefaultValues, TypeRegistry, FormatEnumsAsIntegers, PreserveProtoFieldNames, Indentation);
 
             /// <summary>
             /// Creates a new <see cref="Settings"/> object with the specified type registry and the current settings.
             /// </summary>
             /// <param name="typeRegistry">The <see cref="TypeRegistry"/> to use when formatting <see cref="Any"/> messages.</param>
-            public Settings WithTypeRegistry(TypeRegistry typeRegistry) => new Settings(FormatDefaultValues, typeRegistry, FormatEnumsAsIntegers, PreserveProtoFieldNames);
+            public Settings WithTypeRegistry(TypeRegistry typeRegistry) => new Settings(FormatDefaultValues, typeRegistry, FormatEnumsAsIntegers, PreserveProtoFieldNames, Indentation);
 
             /// <summary>
             /// Creates a new <see cref="Settings"/> object with the specified enums formatting option and the current settings.
             /// </summary>
             /// <param name="formatEnumsAsIntegers"><c>true</c> to format the enums as integers; <c>false</c> to format enums as enum names.</param>
-            public Settings WithFormatEnumsAsIntegers(bool formatEnumsAsIntegers) => new Settings(FormatDefaultValues, TypeRegistry, formatEnumsAsIntegers, PreserveProtoFieldNames);
+            public Settings WithFormatEnumsAsIntegers(bool formatEnumsAsIntegers) => new Settings(FormatDefaultValues, TypeRegistry, formatEnumsAsIntegers, PreserveProtoFieldNames, Indentation);
 
             /// <summary>
             /// Creates a new <see cref="Settings"/> object with the specified field name formatting option and the current settings.
             /// </summary>
             /// <param name="preserveProtoFieldNames"><c>true</c> to preserve proto field names; <c>false</c> to convert them to lowerCamelCase.</param>
-            public Settings WithPreserveProtoFieldNames(bool preserveProtoFieldNames) => new Settings(FormatDefaultValues, TypeRegistry, FormatEnumsAsIntegers, preserveProtoFieldNames);
+            public Settings WithPreserveProtoFieldNames(bool preserveProtoFieldNames) => new Settings(FormatDefaultValues, TypeRegistry, FormatEnumsAsIntegers, preserveProtoFieldNames, Indentation);
+
+            /// <summary>
+            /// Creates a new <see cref="Settings"/> object with the specified indentation and the current settings.
+            /// </summary>
+            /// <param name="indentation">The string to output for each level of indentation (nesting). The default is two spaces per level. Use null to disable indentation entirely.</param>
+            /// <remarks>A non-null value for <see cref="Indentation"/> will insert additional line-breaks to the JSON output.
+            /// Each line will contain either a single value, or braces. The default line-break is determined by <see cref="Environment.NewLine"/>,
+            /// which is <c>"\n"</c> on Unix platforms, and <c>"\r\n"</c> on Windows. If <see cref="JsonFormatter"/> seems to produce empty lines,
+            /// you need to pass a <see cref="TextWriter"/> that uses a <c>"\n"</c> newline. See <see cref="JsonFormatter.Format(Google.Protobuf.IMessage, TextWriter)"/>.
+            /// </remarks>
+            public Settings WithIndentation(string indentation = "  ") => new Settings(FormatDefaultValues, TypeRegistry, FormatEnumsAsIntegers, PreserveProtoFieldNames, indentation);
         }
 
         // Effectively a cache of mapping from enum values to the original name as specified in the proto file,
@@ -916,9 +1005,8 @@ namespace Google.Protobuf
                     }
                 }
 
-                string originalName;
                 // If this returns false, originalName will be null, which is what we want.
-                nameMapping.TryGetValue(value, out originalName);
+                nameMapping.TryGetValue(value, out string originalName);
                 return originalName;
             }
 

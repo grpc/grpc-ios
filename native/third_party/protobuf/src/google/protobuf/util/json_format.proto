@@ -92,7 +92,6 @@ message TestNumbers {
   optional uint32 f = 6;
 }
 
-
 message TestCamelCase {
   optional string normal_field = 1;
   optional int32 CAPITAL_FIELD = 2;
