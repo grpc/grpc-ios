@@ -28,10 +28,16 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <google/protobuf/map_proto2_unittest.pb.h>
-#include <google/protobuf/map_unittest.pb.h>
-#include <google/protobuf/reflection_tester.h>
-#include <google/protobuf/test_util2.h>
+#include <type_traits>
+#include <utility>
+
+#include "absl/container/flat_hash_set.h"
+#include "google/protobuf/arena_test_util.h"
+#include "google/protobuf/map_proto2_unittest.pb.h"
+#include "google/protobuf/map_unittest.pb.h"
+#include "google/protobuf/reflection_tester.h"
+#include "google/protobuf/unittest.pb.h"
+#include "google/protobuf/unittest_import.pb.h"
 
 
 #define BRIDGE_UNITTEST ::google::protobuf::bridge_unittest
@@ -41,19 +47,17 @@
 
 // Must include after defining UNITTEST, etc.
 // clang-format off
-#include <google/protobuf/test_util.inc>
-#include <google/protobuf/map_test_util.inc>
-#include <google/protobuf/map_test.inc>
+#include "google/protobuf/test_util.inc"
+#include "google/protobuf/map_test_util.inc"
+#include "google/protobuf/map_test.inc"
 // clang-format on
 
 // Must be included last.
-#include <google/protobuf/port_def.inc>
+#include "google/protobuf/port_def.inc"
 
 namespace google {
 namespace protobuf {
 namespace internal {
-namespace {
-
 
 struct AlignedAsDefault {
   int x;
@@ -61,6 +65,17 @@ struct AlignedAsDefault {
 struct alignas(8) AlignedAs8 {
   int x;
 };
+
+template <>
+struct is_internal_map_value_type<AlignedAsDefault> : std::true_type {};
+template <>
+struct is_internal_map_value_type<AlignedAs8> : std::true_type {};
+
+namespace {
+
+using ::testing::FieldsAre;
+using ::testing::UnorderedElementsAre;
+
 
 template <typename Aligned, bool on_arena = false>
 void MapTest_Aligned() {
@@ -80,7 +95,10 @@ TEST(MapTest, Aligned8) { MapTest_Aligned<AlignedAs8>(); }
 TEST(MapTest, Aligned8OnArena) { MapTest_Aligned<AlignedAs8, true>(); }
 
 
+
 }  // namespace
 }  // namespace internal
 }  // namespace protobuf
 }  // namespace google
+
+#include "google/protobuf/port_undef.inc"

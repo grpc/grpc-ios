@@ -72,7 +72,7 @@ class ImmutableMapFieldGenerator : public ImmutableFieldGenerator {
   const FieldDescriptor* descriptor_;
   int message_bit_index_;
   int builder_bit_index_;
-  std::map<std::string, std::string> variables_;
+  absl::flat_hash_map<absl::string_view, std::string> variables_;
   ClassNameResolver* name_resolver_;
   Context* context_;
   void GenerateMapGetters(io::Printer* printer) const;

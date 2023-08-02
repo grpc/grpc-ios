@@ -35,9 +35,9 @@
 #ifndef GOOGLE_PROTOBUF_COMPILER_JAVA_ENUM_FIELD_H__
 #define GOOGLE_PROTOBUF_COMPILER_JAVA_ENUM_FIELD_H__
 
-#include <map>
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
 #include "google/protobuf/compiler/java/field.h"
 
 namespace google {
@@ -94,7 +94,7 @@ class ImmutableEnumFieldGenerator : public ImmutableFieldGenerator {
   const FieldDescriptor* descriptor_;
   int message_bit_index_;
   int builder_bit_index_;
-  std::map<std::string, std::string> variables_;
+  absl::flat_hash_map<absl::string_view, std::string> variables_;
   ClassNameResolver* name_resolver_;
 };
 

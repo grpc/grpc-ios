@@ -36,18 +36,17 @@
 #include "google/protobuf/compiler/java/string_field.h"
 
 #include <cstdint>
-#include <map>
 #include <string>
 
-#include "google/protobuf/stubs/logging.h"
-#include "google/protobuf/stubs/common.h"
-#include "google/protobuf/io/printer.h"
-#include "google/protobuf/wire_format.h"
-#include "google/protobuf/stubs/strutil.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/log/absl_check.h"
+#include "absl/strings/str_cat.h"
 #include "google/protobuf/compiler/java/context.h"
 #include "google/protobuf/compiler/java/doc_comment.h"
 #include "google/protobuf/compiler/java/helpers.h"
 #include "google/protobuf/compiler/java/name_resolver.h"
+#include "google/protobuf/io/printer.h"
+#include "google/protobuf/wire_format.h"
 
 namespace google {
 namespace protobuf {
@@ -62,30 +61,34 @@ namespace {
 void SetPrimitiveVariables(
     const FieldDescriptor* descriptor, int messageBitIndex, int builderBitIndex,
     const FieldGeneratorInfo* info, ClassNameResolver* name_resolver,
-    std::map<std::string, std::string>* variables,
+    absl::flat_hash_map<absl::string_view, std::string>* variables,
     Context* context) {
   SetCommonFieldVariables(descriptor, info, variables);
 
-  (*variables)["empty_list"] = "com.google.protobuf.LazyStringArrayList.EMPTY";
+  (*variables)["empty_list"] =
+      "com.google.protobuf.LazyStringArrayList.emptyList()";
 
-  (*variables)["default"] = ImmutableDefaultValue(descriptor, name_resolver);
-  (*variables)["default_init"] =
-      "= " + ImmutableDefaultValue(descriptor, name_resolver);
+  (*variables)["default"] =
+      ImmutableDefaultValue(descriptor, name_resolver, context->options());
+  (*variables)["default_init"] = absl::StrCat(
+      "= ",
+      ImmutableDefaultValue(descriptor, name_resolver, context->options()));
   (*variables)["capitalized_type"] = "String";
   (*variables)["tag"] =
-      StrCat(static_cast<int32_t>(WireFormat::MakeTag(descriptor)));
-  (*variables)["tag_size"] = StrCat(
+      absl::StrCat(static_cast<int32_t>(WireFormat::MakeTag(descriptor)));
+  (*variables)["tag_size"] = absl::StrCat(
       WireFormat::TagSize(descriptor->number(), GetType(descriptor)));
   (*variables)["null_check"] =
       "if (value == null) { throw new NullPointerException(); }";
-  (*variables)["isStringEmpty"] = "com.google.protobuf.GeneratedMessage" +
-                                  GeneratedCodeVersionSuffix() +
-                                  ".isStringEmpty";
-  (*variables)["writeString"] = "com.google.protobuf.GeneratedMessage" +
-                                GeneratedCodeVersionSuffix() + ".writeString";
-  (*variables)["computeStringSize"] = "com.google.protobuf.GeneratedMessage" +
-                                      GeneratedCodeVersionSuffix() +
-                                      ".computeStringSize";
+  (*variables)["isStringEmpty"] =
+      absl::StrCat("com.google.protobuf.GeneratedMessage",
+                   GeneratedCodeVersionSuffix(), ".isStringEmpty");
+  (*variables)["writeString"] =
+      absl::StrCat("com.google.protobuf.GeneratedMessage",
+                   GeneratedCodeVersionSuffix(), ".writeString");
+  (*variables)["computeStringSize"] =
+      absl::StrCat("com.google.protobuf.GeneratedMessage",
+                   GeneratedCodeVersionSuffix(), ".computeStringSize");
 
   // TODO(birdo): Add @deprecated javadoc when generating javadoc is supported
   // by the proto compiler
@@ -94,7 +97,7 @@ void SetPrimitiveVariables(
   variables->insert(
       {"kt_deprecation",
        descriptor->options().deprecated()
-           ? StrCat("@kotlin.Deprecated(message = \"Field ",
+           ? absl::StrCat("@kotlin.Deprecated(message = \"Field ",
                           (*variables)["name"], " is deprecated\") ")
            : ""});
   (*variables)["on_changed"] = "onChanged();";
@@ -107,7 +110,7 @@ void SetPrimitiveVariables(
 
     // Note that these have a trailing ";".
     (*variables)["set_has_field_bit_message"] =
-        GenerateSetBit(messageBitIndex) + ";";
+        absl::StrCat(GenerateSetBit(messageBitIndex), ";");
 
     (*variables)["is_field_present_message"] = GenerateGetBit(messageBitIndex);
   } else {
@@ -116,22 +119,17 @@ void SetPrimitiveVariables(
     (*variables)["set_has_field_bit_message"] = "";
 
     variables->insert({"is_field_present_message",
-                       StrCat("!", (*variables)["isStringEmpty"], "(",
+                       absl::StrCat("!", (*variables)["isStringEmpty"], "(",
                                     (*variables)["name"], "_)")});
   }
-
-  // For repeated builders, one bit is used for whether the array is immutable.
-  (*variables)["get_mutable_bit_builder"] = GenerateGetBit(builderBitIndex);
-  (*variables)["set_mutable_bit_builder"] = GenerateSetBit(builderBitIndex);
-  (*variables)["clear_mutable_bit_builder"] = GenerateClearBit(builderBitIndex);
 
   (*variables)["get_has_field_bit_builder"] = GenerateGetBit(builderBitIndex);
   (*variables)["get_has_field_bit_from_local"] =
       GenerateGetBitFromLocal(builderBitIndex);
   (*variables)["set_has_field_bit_builder"] =
-      GenerateSetBit(builderBitIndex) + ";";
+      absl::StrCat(GenerateSetBit(builderBitIndex), ";");
   (*variables)["clear_has_field_bit_builder"] =
-      GenerateClearBit(builderBitIndex) + ";";
+      absl::StrCat(GenerateClearBit(builderBitIndex), ";");
 }
 
 }  // namespace
@@ -196,11 +194,10 @@ int ImmutableStringFieldGenerator::GetNumBitsForBuilder() const { return 1; }
 // separate fields but rather use dynamic type checking.
 //
 // For single fields, the logic for this is done inside the generated code. For
-// repeated fields, the logic is done in LazyStringArrayList and
-// UnmodifiableLazyStringList.
+// repeated fields, the logic is done in LazyStringArrayList.
 void ImmutableStringFieldGenerator::GenerateInterfaceMembers(
     io::Printer* printer) const {
-  if (HasHazzer(descriptor_)) {
+  if (descriptor_->has_presence()) {
     WriteFieldAccessorDocComment(printer, descriptor_, HAZZER);
     printer->Print(variables_,
                    "$deprecation$boolean has$capitalized_name$();\n");
@@ -221,7 +218,7 @@ void ImmutableStringFieldGenerator::GenerateMembers(
                  "private volatile java.lang.Object $name$_ = $default$;\n");
   PrintExtraFieldInfo(variables_, printer);
 
-  if (HasHazzer(descriptor_)) {
+  if (descriptor_->has_presence()) {
     WriteFieldAccessorDocComment(printer, descriptor_, HAZZER);
     printer->Print(
         variables_,
@@ -280,7 +277,7 @@ void ImmutableStringFieldGenerator::GenerateBuilderMembers(
     io::Printer* printer) const {
   printer->Print(variables_,
                  "private java.lang.Object $name$_ $default_init$;\n");
-  if (HasHazzer(descriptor_)) {
+  if (descriptor_->has_presence()) {
     WriteFieldAccessorDocComment(printer, descriptor_, HAZZER);
     printer->Print(
         variables_,
@@ -381,7 +378,7 @@ void ImmutableStringFieldGenerator::GenerateBuilderMembers(
 
 void ImmutableStringFieldGenerator::GenerateKotlinDslMembers(
     io::Printer* printer) const {
-  WriteFieldDocComment(printer, descriptor_);
+  WriteFieldDocComment(printer, descriptor_, /* kdoc */ true);
   printer->Print(variables_,
                  "$kt_deprecation$public var $kt_name$: kotlin.String\n"
                  "  @JvmName(\"${$get$kt_capitalized_name$$}$\")\n"
@@ -392,14 +389,15 @@ void ImmutableStringFieldGenerator::GenerateKotlinDslMembers(
                  "  }\n");
 
   WriteFieldAccessorDocComment(printer, descriptor_, CLEARER,
-                               /* builder */ false);
+                               /* builder */ false, /* kdoc */ true);
   printer->Print(variables_,
                  "public fun ${$clear$kt_capitalized_name$$}$() {\n"
                  "  $kt_dsl_builder$.${$clear$capitalized_name$$}$()\n"
                  "}\n");
 
-  if (HasHazzer(descriptor_)) {
-    WriteFieldAccessorDocComment(printer, descriptor_, HAZZER);
+  if (descriptor_->has_presence()) {
+    WriteFieldAccessorDocComment(printer, descriptor_, HAZZER,
+                                 /* builder */ false, /* kdoc */ true);
     printer->Print(
         variables_,
         "public fun ${$has$kt_capitalized_name$$}$(): kotlin.Boolean {\n"
@@ -425,7 +423,7 @@ void ImmutableStringFieldGenerator::GenerateBuilderClearCode(
 
 void ImmutableStringFieldGenerator::GenerateMergingCode(
     io::Printer* printer) const {
-  if (HasHazzer(descriptor_)) {
+  if (descriptor_->has_presence()) {
     // Allow a slight breach of abstraction here in order to avoid forcing
     // all string fields to Strings when copying fields from a Message.
     printer->Print(variables_,
@@ -519,7 +517,7 @@ ImmutableStringOneofFieldGenerator::~ImmutableStringOneofFieldGenerator() {}
 void ImmutableStringOneofFieldGenerator::GenerateMembers(
     io::Printer* printer) const {
   PrintExtraFieldInfo(variables_, printer);
-  GOOGLE_DCHECK(HasHazzer(descriptor_));
+  ABSL_DCHECK(descriptor_->has_presence());
   WriteFieldAccessorDocComment(printer, descriptor_, HAZZER);
   printer->Print(variables_,
                  "$deprecation$public boolean ${$has$capitalized_name$$}$() {\n"
@@ -583,7 +581,7 @@ void ImmutableStringOneofFieldGenerator::GenerateMembers(
 
 void ImmutableStringOneofFieldGenerator::GenerateBuilderMembers(
     io::Printer* printer) const {
-  GOOGLE_DCHECK(HasHazzer(descriptor_));
+  ABSL_DCHECK(descriptor_->has_presence());
   WriteFieldAccessorDocComment(printer, descriptor_, HAZZER);
   printer->Print(variables_,
                  "@java.lang.Override\n"
@@ -792,7 +790,8 @@ void RepeatedImmutableStringFieldGenerator::GenerateMembers(
     io::Printer* printer) const {
   printer->Print(variables_,
                  "@SuppressWarnings(\"serial\")\n"
-                 "private com.google.protobuf.LazyStringList $name$_;\n");
+                 "private com.google.protobuf.LazyStringArrayList $name$_ =\n"
+                 "    $empty_list$;\n");
   PrintExtraFieldInfo(variables_, printer);
   WriteFieldAccessorDocComment(printer, descriptor_, LIST_GETTER);
   printer->Print(variables_,
@@ -836,17 +835,17 @@ void RepeatedImmutableStringFieldGenerator::GenerateBuilderMembers(
   // memory allocations. Note, immutable is a strong guarantee here -- not
   // just that the list cannot be modified via the reference but that the
   // list can never be modified.
-  printer->Print(
-      variables_,
-      "private com.google.protobuf.LazyStringList $name$_ = $empty_list$;\n");
+  printer->Print(variables_,
+                 "private com.google.protobuf.LazyStringArrayList $name$_ =\n"
+                 "    $empty_list$;\n");
 
   printer->Print(
       variables_,
       "private void ensure$capitalized_name$IsMutable() {\n"
-      "  if (!$get_mutable_bit_builder$) {\n"
+      "  if (!$name$_.isModifiable()) {\n"
       "    $name$_ = new com.google.protobuf.LazyStringArrayList($name$_);\n"
-      "    $set_mutable_bit_builder$;\n"
-      "   }\n"
+      "  }\n"
+      "  $set_has_field_bit_builder$\n"
       "}\n");
 
   // Note:  We return an unmodifiable list because otherwise the caller
@@ -857,7 +856,8 @@ void RepeatedImmutableStringFieldGenerator::GenerateBuilderMembers(
   printer->Print(variables_,
                  "$deprecation$public com.google.protobuf.ProtocolStringList\n"
                  "    ${$get$capitalized_name$List$}$() {\n"
-                 "  return $name$_.getUnmodifiableView();\n"
+                 "  $name$_.makeImmutable();\n"
+                 "  return $name$_;\n"
                  "}\n");
   printer->Annotate("{", "}", descriptor_);
   WriteFieldAccessorDocComment(printer, descriptor_, LIST_COUNT);
@@ -890,6 +890,7 @@ void RepeatedImmutableStringFieldGenerator::GenerateBuilderMembers(
                  "  $null_check$\n"
                  "  ensure$capitalized_name$IsMutable();\n"
                  "  $name$_.set(index, value);\n"
+                 "  $set_has_field_bit_builder$\n"
                  "  $on_changed$\n"
                  "  return this;\n"
                  "}\n");
@@ -902,6 +903,7 @@ void RepeatedImmutableStringFieldGenerator::GenerateBuilderMembers(
                  "  $null_check$\n"
                  "  ensure$capitalized_name$IsMutable();\n"
                  "  $name$_.add(value);\n"
+                 "  $set_has_field_bit_builder$\n"
                  "  $on_changed$\n"
                  "  return this;\n"
                  "}\n");
@@ -914,6 +916,7 @@ void RepeatedImmutableStringFieldGenerator::GenerateBuilderMembers(
                  "  ensure$capitalized_name$IsMutable();\n"
                  "  com.google.protobuf.AbstractMessageLite.Builder.addAll(\n"
                  "      values, $name$_);\n"
+                 "  $set_has_field_bit_builder$\n"
                  "  $on_changed$\n"
                  "  return this;\n"
                  "}\n");
@@ -923,8 +926,9 @@ void RepeatedImmutableStringFieldGenerator::GenerateBuilderMembers(
   printer->Print(
       variables_,
       "$deprecation$public Builder ${$clear$capitalized_name$$}$() {\n"
-      "  $name$_ = $empty_list$;\n"
-      "  $clear_mutable_bit_builder$;\n"
+      "  $name$_ =\n"
+      "    $empty_list$;\n"
+      "  $clear_has_field_bit_builder$;\n"
       "  $on_changed$\n"
       "  return this;\n"
       "}\n");
@@ -944,6 +948,7 @@ void RepeatedImmutableStringFieldGenerator::GenerateBuilderMembers(
   printer->Print(variables_,
                  "  ensure$capitalized_name$IsMutable();\n"
                  "  $name$_.add(value);\n"
+                 "  $set_has_field_bit_builder$\n"
                  "  $on_changed$\n"
                  "  return this;\n"
                  "}\n");
@@ -963,7 +968,8 @@ void RepeatedImmutableStringFieldGenerator::GenerateKotlinDslMembers(
       " : com.google.protobuf.kotlin.DslProxy()\n");
 
   // property for List<String>
-  WriteFieldAccessorDocComment(printer, descriptor_, LIST_GETTER);
+  WriteFieldAccessorDocComment(printer, descriptor_, LIST_GETTER,
+                               /* builder */ false, /* kdoc */ true);
   printer->Print(variables_,
                  "$kt_deprecation$public val $kt_name$: "
                  "com.google.protobuf.kotlin.DslList"
@@ -975,7 +981,7 @@ void RepeatedImmutableStringFieldGenerator::GenerateKotlinDslMembers(
 
   // List<String>.add(String)
   WriteFieldAccessorDocComment(printer, descriptor_, LIST_ADDER,
-                               /* builder */ false);
+                               /* builder */ false, /* kdoc */ true);
   printer->Print(variables_,
                  "@kotlin.jvm.JvmSynthetic\n"
                  "@kotlin.jvm.JvmName(\"add$kt_capitalized_name$\")\n"
@@ -987,7 +993,7 @@ void RepeatedImmutableStringFieldGenerator::GenerateKotlinDslMembers(
 
   // List<String> += String
   WriteFieldAccessorDocComment(printer, descriptor_, LIST_ADDER,
-                               /* builder */ false);
+                               /* builder */ false, /* kdoc */ true);
   printer->Print(variables_,
                  "@kotlin.jvm.JvmSynthetic\n"
                  "@kotlin.jvm.JvmName(\"plusAssign$kt_capitalized_name$\")\n"
@@ -1000,7 +1006,7 @@ void RepeatedImmutableStringFieldGenerator::GenerateKotlinDslMembers(
 
   // List<String>.addAll(Iterable<String>)
   WriteFieldAccessorDocComment(printer, descriptor_, LIST_MULTI_ADDER,
-                               /* builder */ false);
+                               /* builder */ false, /* kdoc */ true);
   printer->Print(
       variables_,
       "@kotlin.jvm.JvmSynthetic\n"
@@ -1013,7 +1019,7 @@ void RepeatedImmutableStringFieldGenerator::GenerateKotlinDslMembers(
 
   // List<String> += Iterable<String>
   WriteFieldAccessorDocComment(printer, descriptor_, LIST_MULTI_ADDER,
-                               /* builder */ false);
+                               /* builder */ false, /* kdoc */ true);
   printer->Print(
       variables_,
       "@kotlin.jvm.JvmSynthetic\n"
@@ -1027,7 +1033,7 @@ void RepeatedImmutableStringFieldGenerator::GenerateKotlinDslMembers(
 
   // List<String>[Int] = String
   WriteFieldAccessorDocComment(printer, descriptor_, LIST_INDEXED_SETTER,
-                               /* builder */ false);
+                               /* builder */ false, /* kdoc */ true);
   printer->Print(
       variables_,
       "@kotlin.jvm.JvmSynthetic\n"
@@ -1039,7 +1045,7 @@ void RepeatedImmutableStringFieldGenerator::GenerateKotlinDslMembers(
       "}");
 
   WriteFieldAccessorDocComment(printer, descriptor_, CLEARER,
-                               /* builder */ false);
+                               /* builder */ false, /* kdoc */ true);
   printer->Print(variables_,
                  "@kotlin.jvm.JvmSynthetic\n"
                  "@kotlin.jvm.JvmName(\"clear$kt_capitalized_name$\")\n"
@@ -1057,14 +1063,16 @@ void RepeatedImmutableStringFieldGenerator::
 
 void RepeatedImmutableStringFieldGenerator::GenerateInitializationCode(
     io::Printer* printer) const {
-  printer->Print(variables_, "$name$_ = $empty_list$;\n");
+  printer->Print(variables_,
+                 "$name$_ =\n"
+                 "    $empty_list$;\n");
 }
 
 void RepeatedImmutableStringFieldGenerator::GenerateBuilderClearCode(
     io::Printer* printer) const {
   printer->Print(variables_,
-                 "$name$_ = $empty_list$;\n"
-                 "$clear_mutable_bit_builder$;\n");
+                 "$name$_ =\n"
+                 "    $empty_list$;\n");
 }
 
 void RepeatedImmutableStringFieldGenerator::GenerateMergingCode(
@@ -1078,7 +1086,7 @@ void RepeatedImmutableStringFieldGenerator::GenerateMergingCode(
                  "if (!other.$name$_.isEmpty()) {\n"
                  "  if ($name$_.isEmpty()) {\n"
                  "    $name$_ = other.$name$_;\n"
-                 "    $clear_mutable_bit_builder$;\n"
+                 "    $set_has_field_bit_builder$\n"
                  "  } else {\n"
                  "    ensure$capitalized_name$IsMutable();\n"
                  "    $name$_.addAll(other.$name$_);\n"
@@ -1091,13 +1099,11 @@ void RepeatedImmutableStringFieldGenerator::GenerateBuildingCode(
     io::Printer* printer) const {
   // The code below ensures that the result has an immutable list. If our
   // list is immutable, we can just reuse it. If not, we make it immutable.
-
   printer->Print(variables_,
-                 "if ($get_mutable_bit_builder$) {\n"
-                 "  $name$_ = $name$_.getUnmodifiableView();\n"
-                 "  $clear_mutable_bit_builder$;\n"
-                 "}\n"
-                 "result.$name$_ = $name$_;\n");
+                 "if ($get_has_field_bit_from_local$) {\n"
+                 "  $name$_.makeImmutable();\n"
+                 "  result.$name$_ = $name$_;\n"
+                 "}\n");
 }
 
 void RepeatedImmutableStringFieldGenerator::GenerateBuilderParsingCode(

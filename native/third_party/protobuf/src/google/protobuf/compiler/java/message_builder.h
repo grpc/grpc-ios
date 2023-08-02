@@ -35,10 +35,10 @@
 #ifndef GOOGLE_PROTOBUF_COMPILER_JAVA_MESSAGE_BUILDER_H__
 #define GOOGLE_PROTOBUF_COMPILER_JAVA_MESSAGE_BUILDER_H__
 
-#include <map>
 #include <string>
 
-#include <google/protobuf/compiler/java/field.h>
+#include "absl/container/btree_map.h"
+#include "google/protobuf/compiler/java/field.h"
 
 namespace google {
 namespace protobuf {
@@ -63,6 +63,8 @@ class MessageBuilderGenerator {
  public:
   explicit MessageBuilderGenerator(const Descriptor* descriptor,
                                    Context* context);
+  MessageBuilderGenerator(const MessageBuilderGenerator&) = delete;
+  MessageBuilderGenerator& operator=(const MessageBuilderGenerator&) = delete;
   virtual ~MessageBuilderGenerator();
 
   virtual void Generate(io::Printer* printer);
@@ -87,9 +89,7 @@ class MessageBuilderGenerator {
   Context* context_;
   ClassNameResolver* name_resolver_;
   FieldGeneratorMap<ImmutableFieldGenerator> field_generators_;
-  std::set<const OneofDescriptor*> oneofs_;
-
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(MessageBuilderGenerator);
+  absl::btree_map<int, const OneofDescriptor*> oneofs_;
 };
 
 }  // namespace java

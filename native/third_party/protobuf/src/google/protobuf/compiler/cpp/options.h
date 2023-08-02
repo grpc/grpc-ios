@@ -33,13 +33,15 @@
 #ifndef GOOGLE_PROTOBUF_COMPILER_CPP_OPTIONS_H__
 #define GOOGLE_PROTOBUF_COMPILER_CPP_OPTIONS_H__
 
-#include <set>
 #include <string>
+
+#include "absl/container/flat_hash_set.h"
 
 namespace google {
 namespace protobuf {
 namespace compiler {
 class AccessInfoMap;
+class SplitMap;
 
 namespace cpp {
 
@@ -52,23 +54,20 @@ enum class EnforceOptimizeMode {
 
 struct FieldListenerOptions {
   bool inject_field_listener_events = false;
-  std::set<std::string> forbidden_field_listener_events;
+  absl::flat_hash_set<std::string> forbidden_field_listener_events;
 };
 
 // Generator options (see generator.cc for a description of each):
 struct Options {
   const AccessInfoMap* access_info_map = nullptr;
+  const SplitMap* split_map = nullptr;
   std::string dllexport_decl;
   std::string runtime_include_base;
   std::string annotation_pragma_name;
   std::string annotation_guard_name;
   FieldListenerOptions field_listener_options;
   EnforceOptimizeMode enforce_mode = EnforceOptimizeMode::kNoEnforcement;
-  enum {
-    kTCTableNever,
-    kTCTableGuarded,
-    kTCTableAlways
-  } tctable_mode = kTCTableNever;
+  enum { kTCTableNever, kTCTableAlways } tctable_mode = kTCTableNever;
   int num_cc_files = 0;
   bool safe_boundary_check = false;
   bool proto_h = false;
@@ -78,12 +77,10 @@ struct Options {
   bool bootstrap = false;
   bool opensource_runtime = false;
   bool annotate_accessor = false;
-  bool unused_field_stripping = false;
   bool unverified_lazy_message_sets = false;
-  bool unverified_lazy = false;
   bool profile_driven_inline_string = true;
-  bool message_owned_arena_trial = false;
   bool force_split = false;
+  bool profile_driven_split = true;
 #ifdef PROTOBUF_STABLE_EXPERIMENTS
   bool force_eagerly_verified_lazy = true;
   bool force_inline_string = true;

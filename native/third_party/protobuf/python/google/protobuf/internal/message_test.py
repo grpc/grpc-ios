@@ -34,10 +34,6 @@
 Note that the golden messages exercise every known field type, thus this
 test ends up exercising and verifying nearly all of the parsing and
 serialization code in the whole library.
-
-TODO(kenton):  Merge with wire_format_test?  It doesn't make a whole lot of
-sense to call this a test of the "message" module, which only declares an
-abstract interface.
 """
 
 __author__ = 'gps@google.com (Gregory P. Smith)'
@@ -54,20 +50,21 @@ import warnings
 
 cmp = lambda x, y: (x > y) - (x < y)
 
+from google.protobuf.internal import api_implementation # pylint: disable=g-import-not-at-top
+from google.protobuf.internal import encoder
+from google.protobuf.internal import more_extensions_pb2
+from google.protobuf.internal import more_messages_pb2
+from google.protobuf.internal import packed_field_test_pb2
+from google.protobuf.internal import test_proto3_optional_pb2
+from google.protobuf.internal import test_util
+from google.protobuf.internal import testing_refleaks
+from google.protobuf import descriptor
+from google.protobuf import message
+from google.protobuf.internal import _parameterized
 from google.protobuf import map_proto2_unittest_pb2
 from google.protobuf import map_unittest_pb2
 from google.protobuf import unittest_pb2
 from google.protobuf import unittest_proto3_arena_pb2
-from google.protobuf import descriptor
-from google.protobuf.internal import api_implementation
-from google.protobuf.internal import encoder
-from google.protobuf.internal import more_extensions_pb2
-from google.protobuf.internal import packed_field_test_pb2
-from google.protobuf.internal import test_util
-from google.protobuf.internal import test_proto3_optional_pb2
-from google.protobuf.internal import testing_refleaks
-from google.protobuf import message
-from google.protobuf.internal import _parameterized
 
 UCS2_MAXUNICODE = 65535
 
@@ -476,6 +473,12 @@ class MessageTest(unittest.TestCase):
         '}\n')
     self.assertEqual(sub_msg.bb, 1)
 
+  def testAssignRepeatedField(self, message_module):
+    msg = message_module.NestedTestAllTypes()
+    msg.payload.repeated_int32[:] = [1, 2, 3, 4]
+    self.assertEqual(4, len(msg.payload.repeated_int32))
+    self.assertEqual([1, 2, 3, 4], msg.payload.repeated_int32)
+
   def testMergeFromRepeatedField(self, message_module):
     msg = message_module.TestAllTypes()
     msg.repeated_int32.append(1)
@@ -493,6 +496,10 @@ class MessageTest(unittest.TestCase):
 
     msg.repeated_nested_message.MergeFrom(other_msg.repeated_nested_message)
     self.assertEqual([1, 2, 3, 4], [m.bb for m in msg.repeated_nested_message])
+
+  def testInternalMergeWithMissingRequiredField(self, message_module):
+    req = more_messages_pb2.RequiredField()
+    more_messages_pb2.RequiredWrapper(request=req)
 
   def testAddWrongRepeatedNestedField(self, message_module):
     msg = message_module.TestAllTypes()
@@ -887,6 +894,7 @@ class MessageTest(unittest.TestCase):
 
   def testOneofClearField(self, message_module):
     m = message_module.TestAllTypes()
+    m.ClearField('oneof_field')
     m.oneof_uint32 = 11
     m.ClearField('oneof_field')
     if message_module is unittest_pb2:
@@ -1527,7 +1535,6 @@ class Proto2Test(unittest.TestCase):
     self.assertEqual(100, msg.optional_int32)
     self.assertEqual(200, msg.optional_fixed32)
 
-
   def test_documentation(self):
     # Also used by the interactive help() function.
     doc = pydoc.html.document(unittest_pb2.TestAllTypes, 'message')
@@ -1765,6 +1772,19 @@ class Proto3Test(unittest.TestCase):
 
     with self.assertRaises(TypeError):
       123 in msg.map_string_string
+
+  def testScalarMapComparison(self):
+    msg1 = map_unittest_pb2.TestMap()
+    msg2 = map_unittest_pb2.TestMap()
+
+    self.assertEqual(msg1.map_int32_int32, msg2.map_int32_int32)
+
+  def testMessageMapComparison(self):
+    msg1 = map_unittest_pb2.TestMap()
+    msg2 = map_unittest_pb2.TestMap()
+
+    self.assertEqual(msg1.map_int32_foreign_message,
+                     msg2.map_int32_foreign_message)
 
   def testMapGet(self):
     # Need to test that get() properly returns the default, even though the dict
@@ -2453,7 +2473,25 @@ class Proto3Test(unittest.TestCase):
     with self.assertRaises(ValueError):
       unittest_proto3_arena_pb2.TestAllTypes(optional_string=u'\ud801\ud801')
 
+  def testCrashNullAA(self):
+    self.assertEqual(
+        unittest_proto3_arena_pb2.TestAllTypes.NestedMessage(),
+        unittest_proto3_arena_pb2.TestAllTypes.NestedMessage())
 
+  def testCrashNullAB(self):
+    self.assertEqual(
+        unittest_proto3_arena_pb2.TestAllTypes.NestedMessage(),
+        unittest_proto3_arena_pb2.TestAllTypes().optional_nested_message)
+
+  def testCrashNullBA(self):
+    self.assertEqual(
+        unittest_proto3_arena_pb2.TestAllTypes().optional_nested_message,
+        unittest_proto3_arena_pb2.TestAllTypes.NestedMessage())
+
+  def testCrashNullBB(self):
+    self.assertEqual(
+        unittest_proto3_arena_pb2.TestAllTypes().optional_nested_message,
+        unittest_proto3_arena_pb2.TestAllTypes().optional_nested_message)
 
 
 @testing_refleaks.TestCase
