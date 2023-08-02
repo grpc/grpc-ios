@@ -40,7 +40,7 @@ PROJECT_NAME           = "GRPC C++"
 # could be handy for archiving the generated documentation or if some version
 # control system is used.
 
-PROJECT_NUMBER         = 1.56.0
+PROJECT_NUMBER         = 1.56.2
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewer a
@@ -1296,6 +1296,8 @@ src/core/ext/transport/chttp2/transport/hpack_encoder.cc \
 src/core/ext/transport/chttp2/transport/hpack_encoder.h \
 src/core/ext/transport/chttp2/transport/hpack_encoder_table.cc \
 src/core/ext/transport/chttp2/transport/hpack_encoder_table.h \
+src/core/ext/transport/chttp2/transport/hpack_parse_result.cc \
+src/core/ext/transport/chttp2/transport/hpack_parse_result.h \
 src/core/ext/transport/chttp2/transport/hpack_parser.cc \
 src/core/ext/transport/chttp2/transport/hpack_parser.h \
 src/core/ext/transport/chttp2/transport/hpack_parser_table.cc \

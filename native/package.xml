@@ -13,8 +13,8 @@
  <date>2019-09-24</date>
  <time>16:06:07</time>
  <version>
-  <release>1.56.0</release>
-  <api>1.56.0</api>
+  <release>1.56.2</release>
+  <api>1.56.2</api>
  </version>
  <stability>
   <release>stable</release>
@@ -22,7 +22,7 @@
  </stability>
  <license>Apache 2.0</license>
  <notes>
-- gRPC Core 1.56.0 update
+- gRPC Core 1.56.2 update
  </notes>
  <contents>
   <dir baseinstalldir="/" name="/">
@@ -282,6 +282,8 @@
     <file baseinstalldir="/" name="src/core/ext/transport/chttp2/transport/hpack_encoder.h" role="src" />
     <file baseinstalldir="/" name="src/core/ext/transport/chttp2/transport/hpack_encoder_table.cc" role="src" />
     <file baseinstalldir="/" name="src/core/ext/transport/chttp2/transport/hpack_encoder_table.h" role="src" />
+    <file baseinstalldir="/" name="src/core/ext/transport/chttp2/transport/hpack_parse_result.cc" role="src" />
+    <file baseinstalldir="/" name="src/core/ext/transport/chttp2/transport/hpack_parse_result.h" role="src" />
     <file baseinstalldir="/" name="src/core/ext/transport/chttp2/transport/hpack_parser.cc" role="src" />
     <file baseinstalldir="/" name="src/core/ext/transport/chttp2/transport/hpack_parser.h" role="src" />
     <file baseinstalldir="/" name="src/core/ext/transport/chttp2/transport/hpack_parser_table.cc" role="src" />
