@@ -58,14 +58,6 @@ let package = Package(
         "third_party/upb/upb/msg_test.cc",
       ],
       sources: [
-<<<<<<< HEAD
-        "src/core/ext/filters/",
-        "src/core/ext/transport/",
-        "src/core/ext/upb-generated/",
-        "src/core/ext/upbdefs-generated/",
-        "src/core/ext/xds/",
-        "src/core/lib/",
-=======
         "include/grpc/byte_buffer.h",
         "include/grpc/byte_buffer_reader.h",
         "include/grpc/census.h",
