@@ -21,7 +21,7 @@
 
 Pod::Spec.new do |s|
   s.name     = 'gRPC-Core'
-  version = '1.56.0'
+  version = '1.56.2'
   s.version  = version
   s.summary  = 'Core cross-platform gRPC library, written in C'
   s.homepage = 'https://grpc.io'
@@ -394,6 +394,8 @@ Pod::Spec.new do |s|
                       'src/core/ext/transport/chttp2/transport/hpack_encoder.h',
                       'src/core/ext/transport/chttp2/transport/hpack_encoder_table.cc',
                       'src/core/ext/transport/chttp2/transport/hpack_encoder_table.h',
+                      'src/core/ext/transport/chttp2/transport/hpack_parse_result.cc',
+                      'src/core/ext/transport/chttp2/transport/hpack_parse_result.h',
                       'src/core/ext/transport/chttp2/transport/hpack_parser.cc',
                       'src/core/ext/transport/chttp2/transport/hpack_parser.h',
                       'src/core/ext/transport/chttp2/transport/hpack_parser_table.cc',
@@ -2133,6 +2135,7 @@ Pod::Spec.new do |s|
                               'src/core/ext/transport/chttp2/transport/hpack_constants.h',
                               'src/core/ext/transport/chttp2/transport/hpack_encoder.h',
                               'src/core/ext/transport/chttp2/transport/hpack_encoder_table.h',
+                              'src/core/ext/transport/chttp2/transport/hpack_parse_result.h',
                               'src/core/ext/transport/chttp2/transport/hpack_parser.h',
                               'src/core/ext/transport/chttp2/transport/hpack_parser_table.h',
                               'src/core/ext/transport/chttp2/transport/http2_settings.h',
