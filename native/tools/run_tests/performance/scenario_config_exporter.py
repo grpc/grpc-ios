@@ -188,15 +188,7 @@ def main() -> None:
     argp.add_argument(
         "--category",
         default="all",
-        choices=[
-            "all",
-            "inproc",
-            "scalable",
-            "smoketest",
-            "sweep",
-            "psm",
-            "dashboard",
-        ],
+        choices=["all", "inproc", "scalable", "smoketest", "sweep"],
         help="Select scenarios for a category of tests.",
     )
     argp.add_argument(

@@ -36,7 +36,6 @@
 #include "google/logging/v2/logging.pb.h"
 #include "google/protobuf/text_format.h"
 
-#include <grpc/impl/channel_arg_names.h>
 #include <grpc/support/log.h>
 #include <grpc/support/time.h>
 #include <grpcpp/grpcpp.h>

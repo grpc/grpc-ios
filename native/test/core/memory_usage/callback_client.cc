@@ -29,7 +29,6 @@
 #include "absl/flags/parse.h"
 #include "absl/strings/string_view.h"
 
-#include <grpc/impl/channel_arg_names.h>
 #include <grpc/support/log.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/security/credentials.h>

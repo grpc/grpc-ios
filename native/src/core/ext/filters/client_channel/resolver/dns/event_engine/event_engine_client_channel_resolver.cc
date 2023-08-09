@@ -22,6 +22,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -35,7 +36,7 @@
 #include "absl/types/optional.h"
 
 #include <grpc/event_engine/event_engine.h>
-#include <grpc/impl/channel_arg_names.h>
+#include <grpc/grpc.h>
 #include <grpc/support/log.h>
 
 #include "src/core/ext/filters/client_channel/lb_policy/grpclb/grpclb_balancer_addresses.h"
@@ -50,7 +51,6 @@
 #include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/gprpp/validation_errors.h"
-#include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/iomgr/resolve_address.h"
 #include "src/core/lib/resolver/resolver.h"
 #include "src/core/lib/resolver/resolver_factory.h"
@@ -231,12 +231,8 @@ EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
   is_hostname_inflight_ = true;
   event_engine_resolver_->LookupHostname(
       [self = Ref(DEBUG_LOCATION, "OnHostnameResolved")](
-          absl::StatusOr<std::vector<EventEngine::ResolvedAddress>>
-              addresses) mutable {
-        ApplicationCallbackExecCtx callback_exec_ctx;
-        ExecCtx exec_ctx;
+          absl::StatusOr<std::vector<EventEngine::ResolvedAddress>> addresses) {
         self->OnHostnameResolved(std::move(addresses));
-        self.reset();
       },
       resolver_->name_to_resolve(), kDefaultSecurePort);
   if (resolver_->enable_srv_queries_) {
@@ -247,13 +243,8 @@ EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
     event_engine_resolver_->LookupSRV(
         [self = Ref(DEBUG_LOCATION, "OnSRVResolved")](
             absl::StatusOr<std::vector<EventEngine::DNSResolver::SRVRecord>>
-                srv_records) mutable {
-          ApplicationCallbackExecCtx callback_exec_ctx;
-          ExecCtx exec_ctx;
-          self->OnSRVResolved(std::move(srv_records));
-          self.reset();
-        },
-        absl::StrCat("_grpclb._tcp.", resolver_->name_to_resolve()));
+                srv_records) { self->OnSRVResolved(std::move(srv_records)); },
+        resolver_->name_to_resolve());
   }
   if (resolver_->request_service_config_) {
     GRPC_EVENT_ENGINE_RESOLVER_TRACE(
@@ -262,11 +253,8 @@ EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
     is_txt_inflight_ = true;
     event_engine_resolver_->LookupTXT(
         [self = Ref(DEBUG_LOCATION, "OnTXTResolved")](
-            absl::StatusOr<std::vector<std::string>> service_config) mutable {
-          ApplicationCallbackExecCtx callback_exec_ctx;
-          ExecCtx exec_ctx;
+            absl::StatusOr<std::vector<std::string>> service_config) {
           self->OnTXTResolved(std::move(service_config));
-          self.reset();
         },
         absl::StrCat("_grpc_config.", resolver_->name_to_resolve()));
   }
@@ -275,12 +263,8 @@ EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
                      ? EventEngine::Duration::max()
                      : resolver_->query_timeout_ms_;
   timeout_handle_ = resolver_->event_engine_->RunAfter(
-      timeout, [self = Ref(DEBUG_LOCATION, "OnTimeout")]() mutable {
-        ApplicationCallbackExecCtx callback_exec_ctx;
-        ExecCtx exec_ctx;
-        self->OnTimeout();
-        self.reset();
-      });
+      timeout,
+      [self = Ref(DEBUG_LOCATION, "OnTimeout")]() { self->OnTimeout(); });
 }
 
 EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
@@ -316,11 +300,10 @@ void EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
 void EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
     OnHostnameResolved(absl::StatusOr<std::vector<EventEngine::ResolvedAddress>>
                            new_addresses) {
+  ValidationErrors::ScopedField field(&errors_, "hostname lookup");
   absl::optional<Resolver::Result> result;
   {
     MutexLock lock(&on_resolved_mu_);
-    // Make sure field destroys before cleanup.
-    ValidationErrors::ScopedField field(&errors_, "hostname lookup");
     if (orphaned_) return;
     is_hostname_inflight_ = false;
     if (!new_addresses.ok()) {
@@ -342,6 +325,7 @@ void EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
     OnSRVResolved(
         absl::StatusOr<std::vector<EventEngine::DNSResolver::SRVRecord>>
             srv_records) {
+  ValidationErrors::ScopedField field(&errors_, "srv lookup");
   absl::optional<Resolver::Result> result;
   auto cleanup = absl::MakeCleanup([&]() {
     if (result.has_value()) {
@@ -349,8 +333,6 @@ void EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
     }
   });
   MutexLock lock(&on_resolved_mu_);
-  // Make sure field destroys before cleanup.
-  ValidationErrors::ScopedField field(&errors_, "srv lookup");
   if (orphaned_) return;
   is_srv_inflight_ = false;
   if (!srv_records.ok()) {
@@ -377,15 +359,12 @@ void EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
         resolver_.get(), srv_record.host.c_str(), srv_record.port);
     ++number_of_balancer_hostnames_initiated_;
     event_engine_resolver_->LookupHostname(
-        [host = srv_record.host,
+        [host = std::move(srv_record.host),
          self = Ref(DEBUG_LOCATION, "OnBalancerHostnamesResolved")](
             absl::StatusOr<std::vector<EventEngine::ResolvedAddress>>
                 new_balancer_addresses) mutable {
-          ApplicationCallbackExecCtx callback_exec_ctx;
-          ExecCtx exec_ctx;
           self->OnBalancerHostnamesResolved(std::move(host),
                                             std::move(new_balancer_addresses));
-          self.reset();
         },
         srv_record.host, std::to_string(srv_record.port));
   }
@@ -396,6 +375,8 @@ void EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
         std::string authority,
         absl::StatusOr<std::vector<EventEngine::ResolvedAddress>>
             new_balancer_addresses) {
+  ValidationErrors::ScopedField field(
+      &errors_, absl::StrCat("balancer lookup for ", authority));
   absl::optional<Resolver::Result> result;
   auto cleanup = absl::MakeCleanup([&]() {
     if (result.has_value()) {
@@ -403,9 +384,6 @@ void EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
     }
   });
   MutexLock lock(&on_resolved_mu_);
-  // Make sure field destroys before cleanup.
-  ValidationErrors::ScopedField field(
-      &errors_, absl::StrCat("balancer lookup for ", authority));
   if (orphaned_) return;
   ++number_of_balancer_hostnames_resolved_;
   if (!new_balancer_addresses.ok()) {
@@ -427,11 +405,10 @@ void EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
 
 void EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
     OnTXTResolved(absl::StatusOr<std::vector<std::string>> service_config) {
+  ValidationErrors::ScopedField field(&errors_, "txt lookup");
   absl::optional<Resolver::Result> result;
   {
     MutexLock lock(&on_resolved_mu_);
-    // Make sure field destroys before cleanup.
-    ValidationErrors::ScopedField field(&errors_, "txt lookup");
     if (orphaned_) return;
     GPR_ASSERT(is_txt_inflight_);
     is_txt_inflight_ = false;
@@ -447,12 +424,8 @@ void EventEngineClientChannelDNSResolver::EventEngineDNSRequestWrapper::
                                        s, kServiceConfigAttributePrefix);
                                  });
       if (result != service_config->end()) {
-        // Found a service config record.
         service_config_json_ =
             result->substr(kServiceConfigAttributePrefix.size());
-        GRPC_EVENT_ENGINE_RESOLVER_TRACE(
-            "DNSResolver::%p found service config: %s",
-            event_engine_resolver_.get(), service_config_json_->c_str());
       } else {
         service_config_json_ = absl::UnavailableError(absl::StrCat(
             "failed to find attribute prefix: ", kServiceConfigAttributePrefix,

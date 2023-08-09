@@ -127,9 +127,8 @@ absl::StatusOr<Arena::PoolPtr<Metadata>> ReadMetadata(
                                      : HPackParser::LogInfo::Type::kTrailers,
                            is_client});
   for (size_t i = 0; i < slices.Count(); i++) {
-    GRPC_RETURN_IF_ERROR(parser->Parse(slices.c_slice_at(i),
-                                       i == slices.Count() - 1,
-                                       /*call_tracer=*/nullptr));
+    GRPC_RETURN_IF_ERROR(
+        parser->Parse(slices.c_slice_at(i), i == slices.Count() - 1));
   }
   parser->FinishFrame();
   return std::move(metadata);

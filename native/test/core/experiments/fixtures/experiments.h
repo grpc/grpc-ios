@@ -76,7 +76,8 @@ inline bool IsTestExperiment3Enabled() {
 inline bool IsTestExperiment4Enabled() { return true; }
 
 #elif defined(GPR_WINDOWS)
-inline bool IsTestExperiment1Enabled() { return false; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_TEST_EXPERIMENT_1
+inline bool IsTestExperiment1Enabled() { return true; }
 inline bool IsTestExperiment2Enabled() { return false; }
 #ifndef NDEBUG
 #define GRPC_EXPERIMENT_IS_INCLUDED_TEST_EXPERIMENT_3
@@ -92,16 +93,8 @@ inline bool IsTestExperiment3Enabled() {
 inline bool IsTestExperiment4Enabled() { return true; }
 
 #else
-#ifndef NDEBUG
 #define GRPC_EXPERIMENT_IS_INCLUDED_TEST_EXPERIMENT_1
-#endif
-inline bool IsTestExperiment1Enabled() {
-#ifdef NDEBUG
-  return false;
-#else
-  return true;
-#endif
-}
+inline bool IsTestExperiment1Enabled() { return true; }
 #ifndef NDEBUG
 #define GRPC_EXPERIMENT_IS_INCLUDED_TEST_EXPERIMENT_2
 #endif

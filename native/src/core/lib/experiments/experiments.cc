@@ -97,15 +97,6 @@ const char* const description_keepalive_fix =
     "Allows overriding keepalive_permit_without_calls. Refer "
     "https://github.com/grpc/grpc/pull/33428 for more information.";
 const char* const additional_constraints_keepalive_fix = "{}";
-const char* const description_keepalive_server_fix =
-    "Allows overriding keepalive_permit_without_calls for servers. Refer "
-    "https://github.com/grpc/grpc/pull/33917 for more information.";
-const char* const additional_constraints_keepalive_server_fix = "{}";
-#ifdef NDEBUG
-const bool kDefaultForDebugOnly = false;
-#else
-const bool kDefaultForDebugOnly = true;
-#endif
 }  // namespace
 
 namespace grpc_core {
@@ -145,7 +136,7 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"event_engine_dns", description_event_engine_dns,
      additional_constraints_event_engine_dns, false, false},
     {"work_stealing", description_work_stealing,
-     additional_constraints_work_stealing, kDefaultForDebugOnly, false},
+     additional_constraints_work_stealing, false, false},
     {"client_privacy", description_client_privacy,
      additional_constraints_client_privacy, false, false},
     {"canary_client_privacy", description_canary_client_privacy,
@@ -156,8 +147,6 @@ const ExperimentMetadata g_experiment_metadata[] = {
      additional_constraints_unique_metadata_strings, false, true},
     {"keepalive_fix", description_keepalive_fix,
      additional_constraints_keepalive_fix, false, false},
-    {"keepalive_server_fix", description_keepalive_server_fix,
-     additional_constraints_keepalive_server_fix, false, false},
 };
 
 }  // namespace grpc_core
@@ -239,15 +228,6 @@ const char* const description_keepalive_fix =
     "Allows overriding keepalive_permit_without_calls. Refer "
     "https://github.com/grpc/grpc/pull/33428 for more information.";
 const char* const additional_constraints_keepalive_fix = "{}";
-const char* const description_keepalive_server_fix =
-    "Allows overriding keepalive_permit_without_calls for servers. Refer "
-    "https://github.com/grpc/grpc/pull/33917 for more information.";
-const char* const additional_constraints_keepalive_server_fix = "{}";
-#ifdef NDEBUG
-const bool kDefaultForDebugOnly = false;
-#else
-const bool kDefaultForDebugOnly = true;
-#endif
 }  // namespace
 
 namespace grpc_core {
@@ -287,7 +267,7 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"event_engine_dns", description_event_engine_dns,
      additional_constraints_event_engine_dns, false, false},
     {"work_stealing", description_work_stealing,
-     additional_constraints_work_stealing, kDefaultForDebugOnly, false},
+     additional_constraints_work_stealing, false, false},
     {"client_privacy", description_client_privacy,
      additional_constraints_client_privacy, false, false},
     {"canary_client_privacy", description_canary_client_privacy,
@@ -298,8 +278,6 @@ const ExperimentMetadata g_experiment_metadata[] = {
      additional_constraints_unique_metadata_strings, false, true},
     {"keepalive_fix", description_keepalive_fix,
      additional_constraints_keepalive_fix, false, false},
-    {"keepalive_server_fix", description_keepalive_server_fix,
-     additional_constraints_keepalive_server_fix, false, false},
 };
 
 }  // namespace grpc_core
@@ -381,15 +359,6 @@ const char* const description_keepalive_fix =
     "Allows overriding keepalive_permit_without_calls. Refer "
     "https://github.com/grpc/grpc/pull/33428 for more information.";
 const char* const additional_constraints_keepalive_fix = "{}";
-const char* const description_keepalive_server_fix =
-    "Allows overriding keepalive_permit_without_calls for servers. Refer "
-    "https://github.com/grpc/grpc/pull/33917 for more information.";
-const char* const additional_constraints_keepalive_server_fix = "{}";
-#ifdef NDEBUG
-const bool kDefaultForDebugOnly = false;
-#else
-const bool kDefaultForDebugOnly = true;
-#endif
 }  // namespace
 
 namespace grpc_core {
@@ -429,7 +398,7 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"event_engine_dns", description_event_engine_dns,
      additional_constraints_event_engine_dns, false, false},
     {"work_stealing", description_work_stealing,
-     additional_constraints_work_stealing, kDefaultForDebugOnly, false},
+     additional_constraints_work_stealing, false, false},
     {"client_privacy", description_client_privacy,
      additional_constraints_client_privacy, false, false},
     {"canary_client_privacy", description_canary_client_privacy,
@@ -440,8 +409,6 @@ const ExperimentMetadata g_experiment_metadata[] = {
      additional_constraints_unique_metadata_strings, false, true},
     {"keepalive_fix", description_keepalive_fix,
      additional_constraints_keepalive_fix, false, false},
-    {"keepalive_server_fix", description_keepalive_server_fix,
-     additional_constraints_keepalive_server_fix, false, false},
 };
 
 }  // namespace grpc_core

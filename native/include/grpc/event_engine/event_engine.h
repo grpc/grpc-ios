@@ -365,6 +365,7 @@ class EventEngine : public std::enable_shared_from_this<EventEngine> {
     /// lookup. Implementations should pass the appropriate statuses to the
     /// callback. For example, callbacks might expect to receive CANCELLED or
     /// NOT_FOUND.
+    ///
     virtual void LookupHostname(LookupHostnameCallback on_resolve,
                                 absl::string_view name,
                                 absl::string_view default_port) = 0;

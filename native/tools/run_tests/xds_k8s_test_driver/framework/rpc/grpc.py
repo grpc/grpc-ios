@@ -19,8 +19,6 @@ from google.protobuf import json_format
 import google.protobuf.message
 import grpc
 
-import framework.errors
-
 logger = logging.getLogger(__name__)
 
 # Type aliases
@@ -86,8 +84,12 @@ class GrpcClientHelper:
 class GrpcApp:
     channels: Dict[int, grpc.Channel]
 
-    class NotFound(framework.errors.FrameworkError):
+    class NotFound(Exception):
         """Requested resource not found"""
+
+        def __init__(self, message):
+            self.message = message
+            super().__init__(message)
 
     def __init__(self, rpc_host):
         self.rpc_host = rpc_host

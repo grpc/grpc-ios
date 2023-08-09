@@ -501,7 +501,6 @@ grpc_cc_test(
     deps = [
         "test_wakeup_schedulers",
         "//:exec_ctx",
-        "//:gpr",
         "//:grpc",
         "//src/core:default_event_engine",
         "//src/core:exec_ctx_wakeup_scheduler",

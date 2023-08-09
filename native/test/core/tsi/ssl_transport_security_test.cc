@@ -509,7 +509,7 @@ static bool is_slow_build() {
 #if defined(GPR_ARCH_32) || defined(__APPLE__)
   return true;
 #else
-  return BuiltUnderMsan() || BuiltUnderTsan() || BuiltUnderUbsan();
+  return BuiltUnderMsan() || BuiltUnderTsan();
 #endif
 }
 

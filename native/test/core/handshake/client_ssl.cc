@@ -26,7 +26,6 @@
 #include "absl/base/thread_annotations.h"
 #include "gtest/gtest.h"
 
-#include <grpc/impl/channel_arg_names.h>
 #include <grpc/slice.h>
 #include <grpc/support/time.h>
 

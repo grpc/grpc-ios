@@ -107,14 +107,16 @@ class PromiseEndpoint {
       lock.Release();
       // Set read args with hinted bytes.
       grpc_event_engine::experimental::EventEngine::Endpoint::ReadArgs
-          read_args = {static_cast<int64_t>(num_bytes)};
+          read_args;
+      read_args.read_hint_bytes = num_bytes;
       // If `Read()` returns true immediately, the callback will not be
       // called. We still need to call our callback to pick up the result and
       // maybe do further reads.
       if (endpoint_->Read(std::bind(&PromiseEndpoint::ReadCallback, this,
-                                    std::placeholders::_1, num_bytes),
+                                    std::placeholders::_1, num_bytes,
+                                    absl::nullopt /* uses default arguments */),
                           &pending_read_buffer_, &read_args)) {
-        ReadCallback(absl::OkStatus(), num_bytes);
+        ReadCallback(absl::OkStatus(), num_bytes, read_args);
       }
     } else {
       read_result_ = absl::OkStatus();
@@ -156,15 +158,16 @@ class PromiseEndpoint {
     if (read_buffer_.Length() < num_bytes) {
       lock.Release();
       // Set read args with num_bytes as hint.
-      grpc_event_engine::experimental::EventEngine::Endpoint::ReadArgs
-          read_args = {static_cast<int64_t>(num_bytes)};
+      const struct grpc_event_engine::experimental::EventEngine::Endpoint::
+          ReadArgs read_args = {static_cast<int64_t>(num_bytes)};
       // If `Read()` returns true immediately, the callback will not be
       // called. We still need to call our callback to pick up the result
       // and maybe do further reads.
-      if (endpoint_->Read(std::bind(&PromiseEndpoint::ReadCallback, this,
-                                    std::placeholders::_1, num_bytes),
-                          &pending_read_buffer_, &read_args)) {
-        ReadCallback(absl::OkStatus(), num_bytes);
+      if (endpoint_->Read(
+              std::bind(&PromiseEndpoint::ReadCallback, this,
+                        std::placeholders::_1, num_bytes, read_args),
+              &pending_read_buffer_, &read_args)) {
+        ReadCallback(absl::OkStatus(), num_bytes, read_args);
       }
     } else {
       read_result_ = absl::OkStatus();
@@ -281,7 +284,10 @@ class PromiseEndpoint {
 
   // Callback function used for `EventEngine::Endpoint::Read()` shared between
   // `Read()` and `ReadSlice()`.
-  void ReadCallback(absl::Status status, size_t num_bytes_requested);
+  void ReadCallback(absl::Status status, size_t num_bytes_requested,
+                    absl::optional<struct grpc_event_engine::experimental::
+                                       EventEngine::Endpoint::ReadArgs>
+                        requested_read_arg = absl::nullopt);
   // Callback function used for `EventEngine::Endpoint::Read()` in `ReadByte()`.
   void ReadByteCallback(absl::Status status);
 };

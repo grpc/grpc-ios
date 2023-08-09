@@ -36,7 +36,6 @@
 
 #include <grpc/grpc_security.h>
 #include <grpc/grpc_security_constants.h>
-#include <grpc/impl/channel_arg_names.h>
 #include <grpc/slice.h>
 #include <grpc/slice_buffer.h>
 #include <grpc/support/alloc.h>

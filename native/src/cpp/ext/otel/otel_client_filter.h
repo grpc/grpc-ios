@@ -21,9 +21,6 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <string>
-#include <utility>
-
 #include "absl/status/statusor.h"
 
 #include "src/core/lib/channel/channel_args.h"
@@ -47,13 +44,8 @@ class OpenTelemetryClientFilter : public grpc_core::ChannelFilter {
       grpc_core::CallArgs call_args,
       grpc_core::NextPromiseFactory next_promise_factory) override;
 
-  const std::string& target() const { return target_; }
-
  private:
-  explicit OpenTelemetryClientFilter(std::string target)
-      : target_(std::move(target)) {}
-
-  std::string target_;
+  explicit OpenTelemetryClientFilter() {}
 };
 
 }  // namespace internal

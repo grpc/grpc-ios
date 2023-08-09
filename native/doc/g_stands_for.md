@@ -57,4 +57,3 @@
 - 1.55 'g' stands for ['grandslam'](https://github.com/grpc/grpc/tree/v1.55.x)
 - 1.56 'g' stands for ['galvanized'](https://github.com/grpc/grpc/tree/v1.56.x)
 - 1.57 'g' stands for ['grounded'](https://github.com/grpc/grpc/tree/v1.57.x)
-- 1.58 'g' stands for ['goku'](https://github.com/grpc/grpc/tree/master)
