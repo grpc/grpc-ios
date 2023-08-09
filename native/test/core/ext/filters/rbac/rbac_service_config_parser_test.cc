@@ -99,7 +99,29 @@ class RbacServiceConfigParsingTest : public ::testing::Test {
   std::map<absl::string_view, std::string> logger_configs_;
 };
 
-// Test parsing of an empty RBAC policy
+// Filter name is required in RBAC policy.
+TEST_F(RbacServiceConfigParsingTest, EmptyRbacPolicy) {
+  const char* test_json =
+      "{\n"
+      "  \"methodConfig\": [ {\n"
+      "    \"name\": [\n"
+      "      {}\n"
+      "    ],\n"
+      "    \"rbacPolicy\": [ {\n"
+      "    } ]"
+      "  } ]\n"
+      "}";
+  ChannelArgs args = ChannelArgs().Set(GRPC_ARG_PARSE_RBAC_METHOD_CONFIG, 1);
+  auto service_config = ServiceConfigImpl::Create(args, test_json);
+  EXPECT_EQ(service_config.status().code(), absl::StatusCode::kInvalidArgument);
+  EXPECT_EQ(service_config.status().message(),
+            "errors validating service config: ["
+            "field:methodConfig[0].rbacPolicy[0].filter_name error:field not "
+            "present]")
+      << service_config.status();
+}
+
+// Test basic parsing of RBAC policy
 TEST_F(RbacServiceConfigParsingTest, RbacPolicyWithoutRules) {
   const char* test_json =
       "{\n"
@@ -107,7 +129,7 @@ TEST_F(RbacServiceConfigParsingTest, RbacPolicyWithoutRules) {
       "    \"name\": [\n"
       "      {}\n"
       "    ],\n"
-      "    \"rbacPolicy\": [ {} ]\n"
+      "    \"rbacPolicy\": [ {\"filter_name\": \"rbac\"} ]\n"
       "  } ]\n"
       "}";
   ChannelArgs args = ChannelArgs().Set(GRPC_ARG_PARSE_RBAC_METHOD_CONFIG, 1);
@@ -179,9 +201,9 @@ TEST_F(RbacServiceConfigParsingTest, MultipleRbacPolicies) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [\n"
-      "      {},\n"
-      "      {},\n"
-      "      {}\n"
+      "      { \"filter_name\": \"rbac-1\" },\n"
+      "      { \"filter_name\": \"rbac-2\" },\n"
+      "      { \"filter_name\": \"rbac-3\" }\n"
       "    ]"
       "  } ]\n"
       "}";
@@ -228,7 +250,7 @@ TEST_F(RbacServiceConfigParsingTest, BadRulesType) {
       "    \"name\": [\n"
       "      {}\n"
       "    ],\n"
-      "    \"rbacPolicy\": [{\"rules\":1}]\n"
+      "    \"rbacPolicy\": [{\"filter_name\": \"rbac\", \"rules\":1}]\n"
       "  } ]\n"
       "}";
   ChannelArgs args = ChannelArgs().Set(GRPC_ARG_PARSE_RBAC_METHOD_CONFIG, 1);
@@ -248,6 +270,7 @@ TEST_F(RbacServiceConfigParsingTest, BadActionAndPolicyType) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [{\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":{},\n"
       "        \"policies\":123\n"
@@ -275,6 +298,7 @@ TEST_F(RbacServiceConfigParsingTest, MissingPermissionAndPrincipals) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [{\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"policies\":{\n"
@@ -305,6 +329,7 @@ TEST_F(RbacServiceConfigParsingTest, EmptyPrincipalAndPermission) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [{\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"policies\":{\n"
@@ -337,6 +362,7 @@ TEST_F(RbacServiceConfigParsingTest, VariousPermissionsAndPrincipalsTypes) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [{\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"policies\":{\n"
@@ -394,6 +420,7 @@ TEST_F(RbacServiceConfigParsingTest, VariousPermissionsAndPrincipalsBadTypes) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [{\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"policies\":{\n"
@@ -488,6 +515,7 @@ TEST_F(RbacServiceConfigParsingTest, HeaderMatcherVariousTypes) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [{\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"policies\":{\n"
@@ -532,6 +560,7 @@ TEST_F(RbacServiceConfigParsingTest, HeaderMatcherBadTypes) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [{\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"policies\":{\n"
@@ -588,6 +617,7 @@ TEST_F(RbacServiceConfigParsingTest, StringMatcherVariousTypes) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [{\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"policies\":{\n"
@@ -629,6 +659,7 @@ TEST_F(RbacServiceConfigParsingTest, StringMatcherBadTypes) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [{\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"policies\":{\n"
@@ -684,6 +715,7 @@ TEST_F(RbacServiceConfigParsingTest, AuditConditionOnDenyWithMultipleLoggers) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [ {\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"audit_condition\":1,\n"
@@ -728,6 +760,7 @@ TEST_F(RbacServiceConfigParsingTest, BadAuditLoggerConfig) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [ {\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"audit_condition\":1,\n"
@@ -758,6 +791,7 @@ TEST_F(RbacServiceConfigParsingTest, UnknownAuditLoggerConfig) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [ {\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"audit_condition\":1,\n"
@@ -788,6 +822,7 @@ TEST_F(RbacServiceConfigParsingTest, BadAuditConditionAndLoggersTypes) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [ {\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"audit_condition\":{},\n"
@@ -816,6 +851,7 @@ TEST_F(RbacServiceConfigParsingTest, BadAuditConditionEnum) {
       "      {}\n"
       "    ],\n"
       "    \"rbacPolicy\": [ {\n"
+      "      \"filter_name\": \"rbac\",\n"
       "      \"rules\":{\n"
       "        \"action\":1,\n"
       "        \"audit_condition\":100\n"

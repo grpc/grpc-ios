@@ -34,13 +34,11 @@
 #include <grpc/event_engine/event_engine.h>
 #include <grpc/event_engine/memory_allocator.h>
 
-#include "src/core/lib/event_engine/ares_resolver.h"
 #include "src/core/lib/event_engine/handle_containers.h"
 #include "src/core/lib/event_engine/posix.h"
 #include "src/core/lib/event_engine/posix_engine/event_poller.h"
 #include "src/core/lib/event_engine/posix_engine/timer_manager.h"
 #include "src/core/lib/event_engine/thread_pool/thread_pool.h"
-#include "src/core/lib/gprpp/orphanable.h"
 #include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/iomgr/port.h"
 #include "src/core/lib/surface/init_internally.h"
@@ -140,11 +138,7 @@ class PosixEventEngine final : public PosixEventEngineWithFdSupport,
  public:
   class PosixDNSResolver : public EventEngine::DNSResolver {
    public:
-    PosixDNSResolver() = delete;
-#if GRPC_ARES == 1 && defined(GRPC_POSIX_SOCKET_TCP)
-    explicit PosixDNSResolver(
-        grpc_core::OrphanablePtr<AresResolver> ares_resolver);
-#endif  // GRPC_ARES == 1 && defined(GRPC_POSIX_SOCKET_TCP)
+    ~PosixDNSResolver() override;
     void LookupHostname(LookupHostnameCallback on_resolve,
                         absl::string_view name,
                         absl::string_view default_port) override;
@@ -152,11 +146,6 @@ class PosixEventEngine final : public PosixEventEngineWithFdSupport,
                    absl::string_view name) override;
     void LookupTXT(LookupTXTCallback on_resolve,
                    absl::string_view name) override;
-
-#if GRPC_ARES == 1 && defined(GRPC_POSIX_SOCKET_TCP)
-   private:
-    grpc_core::OrphanablePtr<AresResolver> ares_resolver_;
-#endif  // GRPC_ARES == 1 && defined(GRPC_POSIX_SOCKET_TCP)
   };
 
 #ifdef GRPC_POSIX_SOCKET_TCP

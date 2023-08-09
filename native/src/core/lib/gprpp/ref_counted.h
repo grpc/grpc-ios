@@ -45,14 +45,12 @@ class RefCount {
  public:
   using Value = intptr_t;
 
-  RefCount() : RefCount(1) {}
-
   // `init` is the initial refcount stored in this object.
   //
   // `trace` is a string to be logged with trace events; if null, no
   // trace logging will be done.  Tracing is a no-op in non-debug builds.
   explicit RefCount(
-      Value init,
+      Value init = 1,
       const char*
 #ifndef NDEBUG
           // Leave unnamed if NDEBUG to avoid unused parameter warning

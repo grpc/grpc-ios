@@ -140,8 +140,7 @@ class ParseTest : public ::testing::TestWithParam<Test> {
     bool saw_error = false;
     for (i = 0; i < nslices; i++) {
       ExecCtx exec_ctx;
-      auto err =
-          parser_->Parse(slices[i], i == nslices - 1, /*call_tracer=*/nullptr);
+      auto err = parser_->Parse(slices[i], i == nslices - 1);
       if (!err.ok() && (flags & kFailureIsConnectionError) == 0) {
         EXPECT_TRUE(IsStreamError(err)) << err;
       }

@@ -305,7 +305,8 @@ TEST_F(XdsFaultInjectionFilterTest, ModifyChannelArgs) {
 TEST_F(XdsFaultInjectionFilterTest, GenerateServiceConfigTopLevelConfig) {
   XdsHttpFilterImpl::FilterConfig config;
   config.config = Json::FromObject({{"foo", Json::FromString("bar")}});
-  auto service_config = filter_->GenerateServiceConfig(config, nullptr);
+  auto service_config =
+      filter_->GenerateServiceConfig(config, nullptr, /*filter_name=*/"");
   ASSERT_TRUE(service_config.ok()) << service_config.status();
   EXPECT_EQ(service_config->service_config_field_name, "faultInjectionPolicy");
   EXPECT_EQ(service_config->element, "{\"foo\":\"bar\"}");
@@ -317,8 +318,8 @@ TEST_F(XdsFaultInjectionFilterTest, GenerateServiceConfigOverrideConfig) {
   XdsHttpFilterImpl::FilterConfig override_config;
   override_config.config =
       Json::FromObject({{"baz", Json::FromString("quux")}});
-  auto service_config =
-      filter_->GenerateServiceConfig(top_config, &override_config);
+  auto service_config = filter_->GenerateServiceConfig(
+      top_config, &override_config, /*filter_name=*/"");
   ASSERT_TRUE(service_config.ok()) << service_config.status();
   EXPECT_EQ(service_config->service_config_field_name, "faultInjectionPolicy");
   EXPECT_EQ(service_config->element, "{\"baz\":\"quux\"}");
@@ -598,11 +599,13 @@ TEST_F(XdsRbacFilterTest, GenerateServiceConfig) {
   XdsHttpFilterImpl::FilterConfig hcm_config = {
       filter_->ConfigProtoName(),
       Json::FromObject({{"name", Json::FromString("foo")}})};
-  auto config = filter_->GenerateServiceConfig(hcm_config, nullptr);
+  auto config = filter_->GenerateServiceConfig(hcm_config, nullptr, "rbac");
   ASSERT_TRUE(config.ok()) << config.status();
   EXPECT_EQ(config->service_config_field_name, "rbacPolicy");
-  EXPECT_EQ(config->element,
-            JsonDump(Json::FromObject({{"name", Json::FromString("foo")}})));
+  EXPECT_EQ(
+      config->element,
+      JsonDump(Json::FromObject({{"name", Json::FromString("foo")},
+                                 {"filter_name", Json::FromString("rbac")}})));
 }
 
 // For the RBAC filter, the override config is a superset of the
@@ -1166,7 +1169,8 @@ TEST_F(XdsStatefulSessionFilterTest, GenerateServiceConfigNoOverride) {
   XdsHttpFilterImpl::FilterConfig hcm_config = {
       filter_->ConfigProtoName(),
       Json::FromObject({{"name", Json::FromString("foo")}})};
-  auto config = filter_->GenerateServiceConfig(hcm_config, nullptr);
+  auto config =
+      filter_->GenerateServiceConfig(hcm_config, nullptr, /*filter_name=*/"");
   ASSERT_TRUE(config.ok()) << config.status();
   EXPECT_EQ(config->service_config_field_name, "stateful_session");
   EXPECT_EQ(config->element,
@@ -1180,7 +1184,8 @@ TEST_F(XdsStatefulSessionFilterTest, GenerateServiceConfigWithOverride) {
   XdsHttpFilterImpl::FilterConfig override_config = {
       filter_->OverrideConfigProtoName(),
       Json::FromObject({{"name", Json::FromString("bar")}})};
-  auto config = filter_->GenerateServiceConfig(hcm_config, &override_config);
+  auto config = filter_->GenerateServiceConfig(hcm_config, &override_config,
+                                               /*filter_name=*/"");
   ASSERT_TRUE(config.ok()) << config.status();
   EXPECT_EQ(config->service_config_field_name, "stateful_session");
   EXPECT_EQ(config->element,

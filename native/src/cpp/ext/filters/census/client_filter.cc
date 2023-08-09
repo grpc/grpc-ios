@@ -284,29 +284,8 @@ void OpenCensusCallTracer::OpenCensusCallAttemptTracer::RecordEnd(
 
 void OpenCensusCallTracer::OpenCensusCallAttemptTracer::RecordAnnotation(
     absl::string_view annotation) {
-  if (!context_.Span().IsRecording()) {
-    return;
-  }
+  // If tracing is disabled, the following will be a no-op.
   context_.AddSpanAnnotation(annotation, {});
-}
-
-void OpenCensusCallTracer::OpenCensusCallAttemptTracer::RecordAnnotation(
-    const Annotation& annotation) {
-  if (!context_.Span().IsRecording()) {
-    return;
-  }
-
-  switch (annotation.type()) {
-    case AnnotationType::kMetadataSizes:
-      // This annotation is expensive to create. We should only create it if the
-      // call is being sampled, not just recorded.
-      if (IsSampled()) {
-        context_.AddSpanAnnotation(annotation.ToString(), {});
-      }
-      break;
-    default:
-      context_.AddSpanAnnotation(annotation.ToString(), {});
-  }
 }
 
 //
@@ -376,28 +355,8 @@ OpenCensusCallTracer::StartNewAttempt(bool is_transparent_retry) {
 }
 
 void OpenCensusCallTracer::RecordAnnotation(absl::string_view annotation) {
-  if (!context_.Span().IsRecording()) {
-    return;
-  }
+  // If tracing is disabled, the following will be a no-op.
   context_.AddSpanAnnotation(annotation, {});
-}
-
-void OpenCensusCallTracer::RecordAnnotation(const Annotation& annotation) {
-  if (!context_.Span().IsRecording()) {
-    return;
-  }
-
-  switch (annotation.type()) {
-    case AnnotationType::kMetadataSizes:
-      // This annotation is expensive to create. We should only create it if the
-      // call is being sampled, not just recorded.
-      if (IsSampled()) {
-        context_.AddSpanAnnotation(annotation.ToString(), {});
-      }
-      break;
-    default:
-      context_.AddSpanAnnotation(annotation.ToString(), {});
-  }
 }
 
 void OpenCensusCallTracer::RecordApiLatency(absl::Duration api_latency,

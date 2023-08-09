@@ -15,8 +15,8 @@
 - name: test_experiment_1
   default: 
     ios: broken
-    windows: false
-    posix: debug
+    windows: true
+    posix: true
 - name: test_experiment_2
   default:
     ios: true

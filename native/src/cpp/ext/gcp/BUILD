@@ -126,7 +126,6 @@ grpc_cc_library(
     deps = [
         "environment_autodetect",
         "observability_config",
-        "//:channel_arg_names",
         "//:event_engine_base_hdrs",
         "//:gpr",
         "//:gpr_platform",

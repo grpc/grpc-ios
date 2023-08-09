@@ -330,13 +330,12 @@ class RunInterop(test.test):
             from tests_aio.interop import server
 
             sys.argv[1:] = self.args.split()
-            args = server.parse_interop_server_arguments(sys.argv)
-            asyncio.get_event_loop().run_until_complete(server.serve(args))
+            asyncio.get_event_loop().run_until_complete(server.serve())
         else:
             from tests.interop import server
 
             sys.argv[1:] = self.args.split()
-            server.serve(server.parse_interop_server_arguments(sys.argv))
+            server.serve()
 
     def run_client(self):
         # We import here to ensure that our setuptools parent has had a chance to

@@ -215,11 +215,12 @@ struct RbacConfig {
       Rules(Rules&&) = default;
       Rules& operator=(Rules&&) = default;
 
-      Rbac TakeAsRbac();
+      Rbac TakeAsRbac(std::string name);
       static const JsonLoaderInterface* JsonLoader(const JsonArgs&);
       void JsonPostLoad(const Json&, const JsonArgs&, ValidationErrors* errors);
     };
 
+    std::string name;
     absl::optional<Rules> rules;
 
     Rbac TakeAsRbac();
@@ -772,8 +773,9 @@ void RbacConfig::RbacPolicy::Rules::AuditLogger::JsonPostLoad(
 // RbacConfig::RbacPolicy::Rules
 //
 
-Rbac RbacConfig::RbacPolicy::Rules::TakeAsRbac() {
+Rbac RbacConfig::RbacPolicy::Rules::TakeAsRbac(std::string name) {
   Rbac rbac;
+  rbac.name = std::move(name);
   rbac.action = static_cast<Rbac::Action>(action);
   rbac.audit_condition = audit_condition;
   for (auto& p : policies) {
@@ -847,14 +849,15 @@ Rbac RbacConfig::RbacPolicy::TakeAsRbac() {
   if (!rules.has_value()) {
     // No enforcing to be applied. An empty deny policy with an empty map
     // is equivalent to no enforcing.
-    return Rbac("", Rbac::Action::kDeny, {});
+    return Rbac(std::move(name), Rbac::Action::kDeny, {});
   }
-  return rules->TakeAsRbac();
+  return rules->TakeAsRbac(std::move(name));
 }
 
 const JsonLoaderInterface* RbacConfig::RbacPolicy::JsonLoader(const JsonArgs&) {
   static const auto* loader = JsonObjectLoader<RbacPolicy>()
                                   .OptionalField("rules", &RbacPolicy::rules)
+                                  .Field("filter_name", &RbacPolicy::name)
                                   .Finish();
   return loader;
 }

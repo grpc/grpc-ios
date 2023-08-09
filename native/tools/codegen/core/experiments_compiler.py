@@ -20,7 +20,6 @@ A module to assist in generating experiment related code and artifacts.
 from __future__ import print_function
 
 import collections
-from copy import deepcopy
 import ctypes
 import datetime
 import json
@@ -553,33 +552,37 @@ class ExperimentsCompiler(object):
                 test_body += _EXPERIMENT_CHECK_TEXT(SnakeToPascal(exp.name))
             print(_EXPERIMENTS_TEST_SKELETON(defs, test_body), file=C)
 
-    def GenExperimentsBzl(self, mode, output_file):
+    def GenExperimentsBzl(self, output_file):
         if self._bzl_list_for_defaults is None:
             return
 
-        defaults = dict(
+        bzl_to_tags_to_experiments = dict(
             (key, collections.defaultdict(list))
             for key in self._bzl_list_for_defaults.keys()
             if key is not None
         )
 
-        bzl_to_tags_to_experiments = dict(
-            (platform, deepcopy(defaults))
-            for platform in self._platforms_define.keys()
-        )
-
-        for platform in self._platforms_define.keys():
-            for _, exp in self._experiment_definitions.items():
-                for tag in exp.test_tags:
-                    # Search through default values for all platforms.
-                    default = exp.default(platform)
-                    # Interpret the debug default value as True to switch the
-                    # experiment to the "on" mode.
-                    if default == "debug":
+        for _, exp in self._experiment_definitions.items():
+            for tag in exp.test_tags:
+                default = False
+                # Search through default values for all platforms.
+                for platform in self._platforms_define.keys():
+                    platform_default = exp.default(platform)
+                    # if the experiment is disabled on any platform, only
+                    # add it to the "off" list.
+                    if not platform_default or platform_default == "broken":
+                        default = platform_default
+                        break
+                    elif platform_default == "debug":
+                        # Only add the experiment to the "dbg" list if it is
+                        # debug in atleast one platform and true in every other
+                        # platform.
+                        default = "debug"
+                    elif platform_default and default != "debug":
+                        # Only add the experiment to the "on" list if it is
+                        # enabled in every platform.
                         default = True
-                    bzl_to_tags_to_experiments[platform][default][tag].append(
-                        exp.name
-                    )
+                bzl_to_tags_to_experiments[default][tag].append(exp.name)
 
         with open(output_file, "w") as B:
             PutCopyright(B, "#")
@@ -597,31 +600,20 @@ class ExperimentsCompiler(object):
                 file=B,
             )
 
-            print(file=B)
-            if mode == "test":
-                print("TEST_EXPERIMENTS = {", file=B)
-            else:
-                print("EXPERIMENTS = {", file=B)
+            bzl_to_tags_to_experiments = sorted(
+                (self._bzl_list_for_defaults[default], tags_to_experiments)
+                for default, tags_to_experiments in bzl_to_tags_to_experiments.items()
+                if self._bzl_list_for_defaults[default] is not None
+            )
 
-            for platform in self._platforms_define.keys():
-                bzl_to_tags_to_experiments_platform = sorted(
-                    (self._bzl_list_for_defaults[default], tags_to_experiments)
-                    for default, tags_to_experiments in bzl_to_tags_to_experiments[
-                        platform
-                    ].items()
-                    if self._bzl_list_for_defaults[default] is not None
-                )
-                print('    "%s": {' % platform, file=B)
-                for (
-                    key,
-                    tags_to_experiments,
-                ) in bzl_to_tags_to_experiments_platform:
-                    print('        "%s": {' % key, file=B)
-                    for tag, experiments in sorted(tags_to_experiments.items()):
-                        print('            "%s": [' % tag, file=B)
-                        for experiment in sorted(experiments):
-                            print('                "%s",' % experiment, file=B)
-                        print("            ],", file=B)
-                    print("        },", file=B)
+            print(file=B)
+            print("EXPERIMENTS = {", file=B)
+            for key, tags_to_experiments in bzl_to_tags_to_experiments:
+                print('    "%s": {' % key, file=B)
+                for tag, experiments in sorted(tags_to_experiments.items()):
+                    print('        "%s": [' % tag, file=B)
+                    for experiment in sorted(experiments):
+                        print('            "%s",' % experiment, file=B)
+                    print("        ],", file=B)
                 print("    },", file=B)
             print("}", file=B)
