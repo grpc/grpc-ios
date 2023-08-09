@@ -41,6 +41,7 @@
 #include "absl/types/variant.h"
 
 #include <grpc/event_engine/event_engine.h>
+#include <grpc/impl/channel_arg_names.h>
 #include <grpc/slice.h>
 #include <grpc/status.h>
 #include <grpc/support/json.h>
@@ -1163,7 +1164,9 @@ ChannelArgs ClientChannel::MakeSubchannelArgs(
       // uniqueness.
       .Remove(GRPC_ARG_HEALTH_CHECK_SERVICE_NAME)
       .Remove(GRPC_ARG_INHIBIT_HEALTH_CHECKING)
-      .Remove(GRPC_ARG_CHANNELZ_CHANNEL_NODE);
+      .Remove(GRPC_ARG_CHANNELZ_CHANNEL_NODE)
+      // Remove all keys with the no-subchannel prefix.
+      .RemoveAllKeysWithPrefix(GRPC_ARG_NO_SUBCHANNEL_PREFIX);
 }
 
 void ClientChannel::ReprocessQueuedResolverCalls() {
@@ -1497,7 +1500,7 @@ void ClientChannel::UpdateServiceConfigInDataPlaneLocked() {
   std::vector<const grpc_channel_filter*> filters =
       config_selector->GetFilters();
   if (enable_retries) {
-    filters.push_back(&kRetryFilterVtable);
+    filters.push_back(&RetryFilter::kVtable);
   } else {
     filters.push_back(&DynamicTerminationFilter::kFilterVtable);
   }

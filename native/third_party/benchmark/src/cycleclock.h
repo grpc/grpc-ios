@@ -36,7 +36,8 @@
 // declarations of some other intrinsics, breaking compilation.
 // Therefore, we simply declare __rdtsc ourselves. See also
 // http://connect.microsoft.com/VisualStudio/feedback/details/262047
-#if defined(COMPILER_MSVC) && !defined(_M_IX86) && !defined(_M_ARM64)
+#if defined(COMPILER_MSVC) && !defined(_M_IX86) && !defined(_M_ARM64) && \
+    !defined(_M_ARM64EC)
 extern "C" uint64_t __rdtsc();
 #pragma intrinsic(__rdtsc)
 #endif
@@ -114,7 +115,7 @@ inline BENCHMARK_ALWAYS_INLINE int64_t Now() {
   // when I know it will work.  Otherwise, I'll use __rdtsc and hope
   // the code is being compiled with a non-ancient compiler.
   _asm rdtsc
-#elif defined(COMPILER_MSVC) && defined(_M_ARM64)
+#elif defined(COMPILER_MSVC) && (defined(_M_ARM64) || defined(_M_ARM64EC))
   // See // https://docs.microsoft.com/en-us/cpp/intrinsics/arm64-intrinsics
   // and https://reviews.llvm.org/D53115
   int64_t virtual_timer_value;
@@ -212,6 +213,10 @@ inline BENCHMARK_ALWAYS_INLINE int64_t Now() {
   struct timeval tv;
   gettimeofday(&tv, nullptr);
   return static_cast<int64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
+#elif defined(__hexagon__)
+  uint64_t pcycle;
+  asm volatile("%0 = C15:14" : "=r"(pcycle));
+  return static_cast<double>(pcycle);
 #else
 // The soft failover to a generic implementation is automatic only for ARM.
 // For other platforms the developer is expected to make an attempt to create

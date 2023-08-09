@@ -23,6 +23,7 @@ namespace _pbi = ::PROTOBUF_NAMESPACE_ID::internal;
 #pragma clang diagnostic ignored "-Wuninitialized"
 #endif  // __llvm__
 PROTOBUF_NAMESPACE_OPEN
+template <typename>
 PROTOBUF_CONSTEXPR Any::Any(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.type_url_)*/ {
@@ -43,7 +44,7 @@ struct AnyDefaultTypeInternal {
   };
 };
 
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AnyDefaultTypeInternal _Any_default_instance_;
 PROTOBUF_NAMESPACE_CLOSE
 static ::_pb::Metadata file_level_metadata_google_2fprotobuf_2fany_2eproto[1];

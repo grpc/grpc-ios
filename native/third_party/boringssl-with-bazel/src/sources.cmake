@@ -4,6 +4,80 @@
 # TODO(davidben): Move the other source lists into this file.
 
 set(
+  CRYPTO_TEST_SOURCES
+
+  crypto/abi_self_test.cc
+  crypto/asn1/asn1_test.cc
+  crypto/base64/base64_test.cc
+  crypto/bio/bio_test.cc
+  crypto/blake2/blake2_test.cc
+  crypto/buf/buf_test.cc
+  crypto/bytestring/bytestring_test.cc
+  crypto/chacha/chacha_test.cc
+  crypto/cipher_extra/aead_test.cc
+  crypto/cipher_extra/cipher_test.cc
+  crypto/compiler_test.cc
+  crypto/conf/conf_test.cc
+  crypto/constant_time_test.cc
+  crypto/cpu_arm_linux_test.cc
+  crypto/crypto_test.cc
+  crypto/curve25519/ed25519_test.cc
+  crypto/curve25519/spake25519_test.cc
+  crypto/curve25519/x25519_test.cc
+  crypto/ecdh_extra/ecdh_test.cc
+  crypto/dh_extra/dh_test.cc
+  crypto/digest_extra/digest_test.cc
+  crypto/dsa/dsa_test.cc
+  crypto/err/err_test.cc
+  crypto/evp/evp_extra_test.cc
+  crypto/evp/evp_test.cc
+  crypto/evp/pbkdf_test.cc
+  crypto/evp/scrypt_test.cc
+  crypto/fipsmodule/aes/aes_test.cc
+  crypto/fipsmodule/bn/bn_test.cc
+  crypto/fipsmodule/cmac/cmac_test.cc
+  crypto/fipsmodule/ec/ec_test.cc
+  crypto/fipsmodule/ec/p256-nistz_test.cc
+  crypto/fipsmodule/ecdsa/ecdsa_test.cc
+  crypto/fipsmodule/hkdf/hkdf_test.cc
+  crypto/fipsmodule/md5/md5_test.cc
+  crypto/fipsmodule/modes/gcm_test.cc
+  crypto/fipsmodule/rand/ctrdrbg_test.cc
+  crypto/fipsmodule/rand/fork_detect_test.cc
+  crypto/fipsmodule/service_indicator/service_indicator_test.cc
+  crypto/fipsmodule/sha/sha_test.cc
+  crypto/hpke/hpke_test.cc
+  crypto/hmac_extra/hmac_test.cc
+  crypto/hrss/hrss_test.cc
+  crypto/impl_dispatch_test.cc
+  crypto/kyber/kyber_test.cc
+  crypto/lhash/lhash_test.cc
+  crypto/obj/obj_test.cc
+  crypto/pem/pem_test.cc
+  crypto/pkcs7/pkcs7_test.cc
+  crypto/pkcs8/pkcs8_test.cc
+  crypto/pkcs8/pkcs12_test.cc
+  crypto/poly1305/poly1305_test.cc
+  crypto/pool/pool_test.cc
+  crypto/rand_extra/rand_test.cc
+  crypto/refcount_test.cc
+  crypto/rsa_extra/rsa_test.cc
+  crypto/self_test.cc
+  crypto/stack/stack_test.cc
+  crypto/siphash/siphash_test.cc
+  crypto/thread_test.cc
+  # TODO(crbug.com/boringssl/542): This should be in TEST_SUPPORT_SOURCES, so
+  # that all tests can use it. But it depends on GetTestData, which is not
+  # currently usable outside of crypto_test.
+  crypto/test/file_test_gtest.cc
+  crypto/test/gtest_main.cc
+  crypto/trust_token/trust_token_test.cc
+  crypto/x509/x509_test.cc
+  crypto/x509/x509_time_test.cc
+  crypto/x509v3/tab_test.cc
+)
+
+set(
   CRYPTO_TEST_DATA
 
   crypto/blake2/blake2b256_tests.txt
@@ -237,4 +311,142 @@ set(
   third_party/wycheproof_testvectors/rsa_signature_test.txt
   third_party/wycheproof_testvectors/x25519_test.txt
   third_party/wycheproof_testvectors/xchacha20_poly1305_test.txt
+)
+
+set(
+  URANDOM_TEST_SOURCES
+
+  crypto/fipsmodule/rand/urandom_test.cc
+)
+
+set(
+  SSL_TEST_SOURCES
+
+  crypto/test/gtest_main.cc
+  ssl/span_test.cc
+  ssl/ssl_c_test.c
+  ssl/ssl_test.cc
+)
+
+set(
+  DECREPIT_TEST_SOURCES
+
+  crypto/test/gtest_main.cc
+  decrepit/blowfish/blowfish_test.cc
+  decrepit/cast/cast_test.cc
+  decrepit/cfb/cfb_test.cc
+  decrepit/evp/evp_test.cc
+  decrepit/ripemd/ripemd_test.cc
+  decrepit/xts/xts_test.cc
+)
+
+set(
+  PKI_SOURCES
+
+  pki/cert_error_id.cc
+  pki/cert_error_params.cc
+  pki/cert_errors.cc
+  pki/cert_errors.cc
+  pki/cert_issuer_source_static.cc
+  pki/certificate_policies.cc
+  pki/common_cert_errors.cc
+  pki/crl.cc
+  pki/encode_values.cc
+  pki/extended_key_usage.cc
+  pki/fillins/base64.cc
+  pki/fillins/ip_address.cc
+  pki/fillins/openssl_util.cc
+  pki/fillins/string_util.cc
+  pki/fillins/utf_string_conversions.cc
+  pki/general_names.cc
+  pki/input.cc
+  pki/name_constraints.cc
+  pki/parse_certificate.cc
+  pki/parse_certificate.cc
+  pki/parse_name.cc
+  pki/parse_values.cc
+  pki/parsed_certificate.cc
+  pki/parsed_certificate.cc
+  pki/parsed_certificate.cc
+  pki/parser.cc
+  pki/path_builder.cc
+  pki/pem.cc
+  pki/revocation_util.cc
+  pki/signature_algorithm.cc
+  pki/simple_path_builder_delegate.cc
+  pki/string_util.cc
+  pki/tag.cc
+  pki/trust_store_collection.cc
+  pki/trust_store_collection.cc
+  pki/trust_store_in_memory.cc
+  pki/trust_store.cc
+  pki/trust_store.cc
+  pki/verify_certificate_chain.cc
+  pki/verify_name_match.cc
+  pki/verify_signed_data.cc
+)
+
+set(
+  PKI_TEST_SOURCES
+
+  crypto/test/gtest_main.cc
+  pki/cert_issuer_source_static_unittest.cc
+  pki/certificate_policies_unittest.cc
+  pki/encode_values_unittest.cc
+  pki/extended_key_usage_unittest.cc
+  pki/fillins/file_util.cc
+  pki/fillins/path_service.cc
+  pki/input_unittest.cc
+  pki/mock_signature_verify_cache.cc
+  pki/name_constraints_unittest.cc
+  pki/nist_pkits_unittest.cc
+  #  pki/ocsp_unittest.cc           # Not sure we will keep this here..
+  pki/parse_certificate_unittest.cc
+  pki/parse_name_unittest.cc
+  pki/parse_values_unittest.cc
+  pki/parsed_certificate_unittest.cc
+  pki/parser_unittest.cc
+  pki/path_builder_pkits_unittest.cc
+  pki/path_builder_unittest.cc
+  pki/path_builder_verify_certificate_chain_unittest.cc
+  pki/signature_algorithm_unittest.cc
+  pki/simple_path_builder_delegate_unittest.cc
+  pki/string_util_unittest.cc
+  pki/test_helpers.cc
+  pki/trust_store_collection_unittest.cc
+  pki/verify_certificate_chain_pkits_unittest.cc
+  pki/verify_certificate_chain_unittest.cc
+  pki/verify_name_match_unittest.cc
+  pki/verify_signed_data_unittest.cc
+)
+
+set(
+  TEST_SUPPORT_SOURCES
+
+  crypto/test/abi_test.cc
+  crypto/test/file_test.cc
+  crypto/test/test_util.cc
+  crypto/test/wycheproof_util.cc
+)
+
+set(
+  BSSL_SOURCES
+
+  tool/args.cc
+  tool/ciphers.cc
+  tool/client.cc
+  tool/const.cc
+  tool/digest.cc
+  tool/fd.cc
+  tool/file.cc
+  tool/generate_ech.cc
+  tool/generate_ed25519.cc
+  tool/genrsa.cc
+  tool/pkcs12.cc
+  tool/rand.cc
+  tool/server.cc
+  tool/sign.cc
+  tool/speed.cc
+  tool/tool.cc
+  tool/transport_common.cc
 )

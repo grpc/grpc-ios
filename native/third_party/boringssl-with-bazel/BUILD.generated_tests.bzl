@@ -24,6 +24,7 @@ test_support_sources = [
     "src/crypto/fipsmodule/dh/internal.h",
     "src/crypto/fipsmodule/digest/internal.h",
     "src/crypto/fipsmodule/digest/md32_common.h",
+    "src/crypto/fipsmodule/ec/builtin_curves.h",
     "src/crypto/fipsmodule/ec/internal.h",
     "src/crypto/fipsmodule/ec/p256-nistz-table.h",
     "src/crypto/fipsmodule/ec/p256-nistz.h",
@@ -48,6 +49,7 @@ test_support_sources = [
     "src/crypto/poly1305/internal.h",
     "src/crypto/pool/internal.h",
     "src/crypto/rsa_extra/internal.h",
+    "src/crypto/test/abi_test.cc",
     "src/crypto/test/abi_test.h",
     "src/crypto/test/file_test.cc",
     "src/crypto/test/file_test.h",
@@ -72,6 +74,7 @@ test_support_sources = [
     "src/ssl/test/test_state.h",
     "src/third_party/fiat/curve25519_32.h",
     "src/third_party/fiat/curve25519_64.h",
+    "src/third_party/fiat/curve25519_64_adx.h",
     "src/third_party/fiat/curve25519_64_msvc.h",
     "src/third_party/fiat/p256_32.h",
     "src/third_party/fiat/p256_64.h",
@@ -139,7 +142,6 @@ crypto_test_sources = [
     "src/crypto/self_test.cc",
     "src/crypto/siphash/siphash_test.cc",
     "src/crypto/stack/stack_test.cc",
-    "src/crypto/test/abi_test.cc",
     "src/crypto/test/file_test_gtest.cc",
     "src/crypto/test/gtest_main.cc",
     "src/crypto/thread_test.cc",
@@ -150,7 +152,6 @@ crypto_test_sources = [
 ]
 
 ssl_test_sources = [
-    "src/crypto/test/abi_test.cc",
     "src/crypto/test/gtest_main.cc",
     "src/ssl/span_test.cc",
     "src/ssl/ssl_c_test.c",

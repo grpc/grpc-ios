@@ -540,12 +540,16 @@ static const CIPHER_ALIAS kCipherAliases[] = {
     {"PSK", SSL_kPSK, SSL_aPSK, ~0u, ~0u, 0},
 
     // symmetric encryption aliases
-    {"3DES", ~0u, ~0u, SSL_3DES, ~0u, 0},
-    {"AES128", ~0u, ~0u, SSL_AES128 | SSL_AES128GCM, ~0u, 0},
-    {"AES256", ~0u, ~0u, SSL_AES256 | SSL_AES256GCM, ~0u, 0},
+    {"3DES", ~0u, ~0u, SSL_3DES, ~0u, 0, /*include_deprecated=*/true},
+    {"AES128", ~0u, ~0u, SSL_AES128 | SSL_AES128GCM, ~0u, 0,
+     /*include_deprecated=*/false},
+    {"AES256", ~0u, ~0u, SSL_AES256 | SSL_AES256GCM, ~0u, 0,
+     /*include_deprecated=*/false},
     {"AES", ~0u, ~0u, SSL_AES, ~0u, 0},
-    {"AESGCM", ~0u, ~0u, SSL_AES128GCM | SSL_AES256GCM, ~0u, 0},
-    {"CHACHA20", ~0u, ~0u, SSL_CHACHA20POLY1305, ~0u, 0},
+    {"AESGCM", ~0u, ~0u, SSL_AES128GCM | SSL_AES256GCM, ~0u, 0,
+     /*include_deprecated=*/false},
+    {"CHACHA20", ~0u, ~0u, SSL_CHACHA20POLY1305, ~0u, 0,
+     /*include_deprecated=*/false},
 
     // MAC aliases
     {"SHA1", ~0u, ~0u, ~0u, SSL_SHA1, 0},
@@ -769,8 +773,8 @@ void SSLCipherPreferenceList::Remove(const SSL_CIPHER *cipher) {
 }
 
 bool ssl_cipher_is_deprecated(const SSL_CIPHER *cipher) {
-  // TODO(crbug.com/boringssl/599): Deprecate 3DES.
-  return cipher->id == TLS1_CK_ECDHE_RSA_WITH_AES_128_CBC_SHA256;
+  return cipher->id == TLS1_CK_ECDHE_RSA_WITH_AES_128_CBC_SHA256 ||
+         cipher->algorithm_enc == SSL_3DES;
 }
 
 // ssl_cipher_apply_rule applies the rule type |rule| to ciphers matching its
@@ -1070,8 +1074,6 @@ static bool ssl_cipher_process_rulestr(const char *rule_str,
             // can increase the set of matched ciphers. This is so that an alias
             // like "RSA" will only specifiy AES-based RSA ciphers, but
             // "RSA+3DES" will still specify 3DES.
-            //
-            // TODO(crbug.com/boringssl/599): Deprecate 3DES.
             alias.include_deprecated |= kCipherAliases[j].include_deprecated;
 
             if (alias.min_version != 0 &&
@@ -1368,10 +1370,6 @@ uint16_t SSL_CIPHER_get_protocol_id(const SSL_CIPHER *cipher) {
   return static_cast<uint16_t>(cipher->id);
 }
 
-uint16_t SSL_CIPHER_get_value(const SSL_CIPHER *cipher) {
-  return SSL_CIPHER_get_protocol_id(cipher);
-}
-
 int SSL_CIPHER_is_aead(const SSL_CIPHER *cipher) {
   return (cipher->algorithm_mac & SSL_AEAD) != 0;
 }
@@ -1438,17 +1436,25 @@ int SSL_CIPHER_get_auth_nid(const SSL_CIPHER *cipher) {
   return NID_undef;
 }
 
-int SSL_CIPHER_get_prf_nid(const SSL_CIPHER *cipher) {
+const EVP_MD *SSL_CIPHER_get_handshake_digest(const SSL_CIPHER *cipher) {
   switch (cipher->algorithm_prf) {
     case SSL_HANDSHAKE_MAC_DEFAULT:
-      return NID_md5_sha1;
+      return EVP_md5_sha1();
     case SSL_HANDSHAKE_MAC_SHA256:
-      return NID_sha256;
+      return EVP_sha256();
     case SSL_HANDSHAKE_MAC_SHA384:
-      return NID_sha384;
+      return EVP_sha384();
   }
   assert(0);
-  return NID_undef;
+  return NULL;
+}
+
+int SSL_CIPHER_get_prf_nid(const SSL_CIPHER *cipher) {
+  const EVP_MD *md = SSL_CIPHER_get_handshake_digest(cipher);
+  if (md == NULL) {
+    return NID_undef;
+  }
+  return EVP_MD_nid(md);
 }
 
 int SSL_CIPHER_is_block_cipher(const SSL_CIPHER *cipher) {

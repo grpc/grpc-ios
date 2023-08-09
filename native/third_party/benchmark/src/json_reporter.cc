@@ -28,10 +28,6 @@
 #include "timers.h"
 
 namespace benchmark {
-namespace internal {
-extern std::map<std::string, std::string>* global_context;
-}
-
 namespace {
 
 std::string StrEscape(const std::string& s) {
@@ -178,8 +174,11 @@ bool JSONReporter::ReportContext(const Context& context) {
 #endif
   out << indent << FormatKV("library_build_type", build_type);
 
-  if (internal::global_context != nullptr) {
-    for (const auto& kv : *internal::global_context) {
+  std::map<std::string, std::string>* global_context =
+      internal::GetGlobalContext();
+
+  if (global_context != nullptr) {
+    for (const auto& kv : *global_context) {
       out << ",\n";
       out << indent << FormatKV(kv.first, kv.second);
     }
@@ -255,9 +254,12 @@ void JSONReporter::PrintRunData(Run const& run) {
       BENCHMARK_UNREACHABLE();
     }()) << ",\n";
   }
-  if (run.error_occurred) {
-    out << indent << FormatKV("error_occurred", run.error_occurred) << ",\n";
-    out << indent << FormatKV("error_message", run.error_message) << ",\n";
+  if (internal::SkippedWithError == run.skipped) {
+    out << indent << FormatKV("error_occurred", true) << ",\n";
+    out << indent << FormatKV("error_message", run.skip_message) << ",\n";
+  } else if (internal::SkippedWithMessage == run.skipped) {
+    out << indent << FormatKV("skipped", true) << ",\n";
+    out << indent << FormatKV("skip_message", run.skip_message) << ",\n";
   }
   if (!run.report_big_o && !run.report_rms) {
     out << indent << FormatKV("iterations", run.iterations) << ",\n";
@@ -295,7 +297,8 @@ void JSONReporter::PrintRunData(Run const& run) {
     out << ",\n"
         << indent << FormatKV("max_bytes_used", memory_result.max_bytes_used);
 
-    auto report_if_present = [&out, &indent](const char* label, int64_t val) {
+    auto report_if_present = [&out, &indent](const std::string& label,
+                                             int64_t val) {
       if (val != MemoryManager::TombstoneValue)
         out << ",\n" << indent << FormatKV(label, val);
     };

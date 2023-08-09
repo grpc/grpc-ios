@@ -246,7 +246,7 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 #ifdef PROTOBUF_VERSION
 #error PROTOBUF_VERSION was previously defined
 #endif
-#define PROTOBUF_VERSION 4023001
+#define PROTOBUF_VERSION 4023004
 
 #ifdef PROTOBUF_MIN_HEADER_VERSION_FOR_PROTOC
 #error PROTOBUF_MIN_HEADER_VERSION_FOR_PROTOC was previously defined
@@ -888,11 +888,18 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 #undef PACKAGE
 #endif
 
-// autoheader defines this in some circumstances
-#ifdef PACKAGE
-#define PROTOBUF_DID_UNDEF_PACKAGE
-#pragma push_macro("PACKAGE")
-#undef PACKAGE
+// a few common headers define this
+#ifdef PACKED
+#define PROTOBUF_DID_UNDEF_PACKED
+#pragma push_macro("PACKED")
+#undef PACKED
+#endif
+
+// This is a macro on Windows, macOS, and some variants of GCC.
+#ifdef DOMAIN
+#define PROTOBUF_DID_UNDEF_DOMAIN
+#pragma push_macro("DOMAIN")
+#undef DOMAIN
 #endif
 
 // linux is a legacy MACRO defined in most popular C++ standards.
@@ -909,8 +916,6 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 #undef CREATE_NEW
 #pragma push_macro("DELETE")
 #undef DELETE
-#pragma push_macro("DOMAIN")
-#undef DOMAIN
 #pragma push_macro("DOUBLE_CLICK")
 #undef DOUBLE_CLICK
 #pragma push_macro("ERROR")
@@ -968,9 +973,6 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 #endif  // _WIN32
 
 #ifdef __APPLE__
-// Inconvenient macro names from usr/include/math.h in some macOS SDKs.
-#pragma push_macro("DOMAIN")
-#undef DOMAIN
 // Inconvenient macro names from /usr/include/mach/boolean.h in some macOS SDKs.
 #pragma push_macro("TRUE")
 #undef TRUE
@@ -1008,6 +1010,10 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 // This error has been generally flaky, but we need to disable it specifically
 // to fix https://github.com/protocolbuffers/protobuf/issues/12313
 #pragma clang diagnostic ignored "-Wunused-parameter"
+// -Wshadow means that declaration shadows a variable.
+// for (int i = 0; i < file_->public_dependency_count(); ++i) 
+//   for (int i = 0; i < public_dep->message_type_count(); ++i)
+#pragma clang diagnostic ignored "-Wshadow"
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -1031,6 +1037,10 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 // This error has been generally flaky, but we need to disable it specifically
 // to fix https://github.com/protocolbuffers/protobuf/issues/12313
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+// -Wshadow means that declaration shadows a variable.
+// for (int i = 0; i < file_->public_dependency_count(); ++i) 
+//   for (int i = 0; i < public_dep->message_type_count(); ++i)
+#pragma GCC diagnostic ignored "-Wshadow"
 #ifndef __clang__
 // This causes spurious warnings in GCC 13.
 #pragma GCC diagnostic ignored "-Wstringop-overflow"

@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include <chrono>
+#include <complex>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -74,7 +75,8 @@ BENCHMARK_RANGE(BM_CalculatePiRange, 1, 1024 * 1024);
 static void BM_CalculatePi(benchmark::State& state) {
   static const int depth = 1024;
   for (auto _ : state) {
-    benchmark::DoNotOptimize(CalculatePi(static_cast<int>(depth)));
+    double pi = CalculatePi(static_cast<int>(depth));
+    benchmark::DoNotOptimize(pi);
   }
 }
 BENCHMARK(BM_CalculatePi)->Threads(8);
@@ -123,7 +125,10 @@ static void BM_StringCompare(benchmark::State& state) {
   size_t len = static_cast<size_t>(state.range(0));
   std::string s1(len, '-');
   std::string s2(len, '-');
-  for (auto _ : state) benchmark::DoNotOptimize(s1.compare(s2));
+  for (auto _ : state) {
+    auto comp = s1.compare(s2);
+    benchmark::DoNotOptimize(comp);
+  }
 }
 BENCHMARK(BM_StringCompare)->Range(1, 1 << 20);
 
@@ -244,5 +249,26 @@ static void BM_DenseThreadRanges(benchmark::State& st) {
 BENCHMARK(BM_DenseThreadRanges)->Arg(1)->DenseThreadRange(1, 3);
 BENCHMARK(BM_DenseThreadRanges)->Arg(2)->DenseThreadRange(1, 4, 2);
 BENCHMARK(BM_DenseThreadRanges)->Arg(3)->DenseThreadRange(5, 14, 3);
+
+static void BM_BenchmarkName(benchmark::State& state) {
+  for (auto _ : state) {
+  }
+
+  // Check that the benchmark name is passed correctly to `state`.
+  assert("BM_BenchmarkName" == state.name());
+}
+BENCHMARK(BM_BenchmarkName);
+
+// regression test for #1446
+template <typename type>
+static void BM_templated_test(benchmark::State& state) {
+  for (auto _ : state) {
+    type created_string;
+    benchmark::DoNotOptimize(created_string);
+  }
+}
+
+static auto BM_templated_test_double = BM_templated_test<std::complex<double>>;
+BENCHMARK(BM_templated_test_double);
 
 BENCHMARK_MAIN();

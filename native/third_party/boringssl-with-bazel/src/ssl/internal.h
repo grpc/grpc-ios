@@ -1148,6 +1148,10 @@ bool ssl_nid_to_group_id(uint16_t *out_group_id, int nid);
 // true. Otherwise, it returns false.
 bool ssl_name_to_group_id(uint16_t *out_group_id, const char *name, size_t len);
 
+// ssl_group_id_to_nid returns the NID corresponding to |group_id| or
+// |NID_undef| if unknown.
+int ssl_group_id_to_nid(uint16_t group_id);
+
 
 // Handshake messages.
 
@@ -3352,17 +3356,6 @@ bool tls1_check_group_id(const SSL_HANDSHAKE *ssl, uint16_t group_id);
 // group between client and server preferences and returns true. If none may be
 // found, it returns false.
 bool tls1_get_shared_group(SSL_HANDSHAKE *hs, uint16_t *out_group_id);
-
-// tls1_set_curves converts the array of NIDs in |curves| into a newly allocated
-// array of TLS group IDs. On success, the function returns true and writes the
-// array to |*out_group_ids|. Otherwise, it returns false.
-bool tls1_set_curves(Array<uint16_t> *out_group_ids, Span<const int> curves);
-
-// tls1_set_curves_list converts the string of curves pointed to by |curves|
-// into a newly allocated array of TLS group IDs. On success, the function
-// returns true and writes the array to |*out_group_ids|. Otherwise, it returns
-// false.
-bool tls1_set_curves_list(Array<uint16_t> *out_group_ids, const char *curves);
 
 // ssl_add_clienthello_tlsext writes ClientHello extensions to |out| for |type|.
 // It returns true on success and false on failure. The |header_len| argument is

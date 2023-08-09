@@ -150,7 +150,28 @@ class PythonOpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
   void RecordEnd(const grpc_call_final_info* final_info) override;
 
   void RecordAnnotation(absl::string_view annotation) override {
+    if (!context_.SpanContext().IsSampled()) {
+      return;
+    }
     context_.AddSpanAnnotation(annotation);
+  }
+
+  void RecordAnnotation(const Annotation& annotation) override {
+    if (!context_.SpanContext().IsSampled()) {
+      return;
+    }
+
+    switch (annotation.type()) {
+      case AnnotationType::kMetadataSizes:
+        // This annotation is expensive to create. We should only create it if
+        // the call is being sampled, not just recorded.
+        if (IsSampled()) {
+          context_.AddSpanAnnotation(annotation.ToString());
+        }
+        break;
+      default:
+        context_.AddSpanAnnotation(annotation.ToString());
+    }
   }
 
  private:
@@ -215,6 +236,7 @@ void PythonOpenCensusServerCallTracer::RecordEnd(
                        static_cast<double>(request_size), context_.Labels());
     RecordDoubleMetric(kRpcServerServerLatencyMeasureName, elapsed_time_ms,
                        context_.Labels());
+    RecordIntMetric(kRpcServerCompletedRpcMeasureName, 1, context_.Labels());
     RecordIntMetric(kRpcServerSentMessagesPerRpcMeasureName,
                     sent_message_count_, context_.Labels());
     RecordIntMetric(kRpcServerReceivedMessagesPerRpcMeasureName,

@@ -56,10 +56,13 @@
 
 [Exiting with an Error](#exiting-with-an-error)
 
-[A Faster KeepRunning Loop](#a-faster-keep-running-loop)
+[A Faster `KeepRunning` Loop](#a-faster-keep-running-loop)
+
+## Benchmarking Tips
 
 [Disabling CPU Frequency Scaling](#disabling-cpu-frequency-scaling)
 
+[Reducing Variance in Benchmarks](reducing_variance.md)
 
 <a name="output-formats" />
 
@@ -268,10 +271,12 @@ information about the machine on which the benchmarks are run.
 Global setup/teardown specific to each benchmark can be done by
 passing a callback to Setup/Teardown:
 
-The setup/teardown callbacks will be invoked once for each benchmark.
-If the benchmark is multi-threaded (will run in k threads), they will be invoked exactly once before
-each run with k threads.
-If the benchmark uses different size groups of threads, the above will be true for each size group.
+The setup/teardown callbacks will be invoked once for each benchmark. If the
+benchmark is multi-threaded (will run in k threads), they will be invoked
+exactly once before each run with k threads.
+
+If the benchmark uses different size groups of threads, the above will be true
+for each size group.
 
 Eg.,
 
@@ -343,7 +348,8 @@ the performance of `std::vector` initialization for uniformly increasing sizes.
 static void BM_DenseRange(benchmark::State& state) {
   for(auto _ : state) {
     std::vector<int> v(state.range(0), state.range(0));
-    benchmark::DoNotOptimize(v.data());
+    auto data = v.data();
+    benchmark::DoNotOptimize(data);
     benchmark::ClobberMemory();
   }
 }
@@ -383,14 +389,17 @@ short-hand. The following macro will pick a few appropriate arguments in the
 product of the two specified ranges and will generate a benchmark for each such
 pair.
 
+<!-- {% raw %} -->
 ```c++
 BENCHMARK(BM_SetInsert)->Ranges({{1<<10, 8<<10}, {128, 512}});
 ```
+<!-- {% endraw %} -->
 
 Some benchmarks may require specific argument values that cannot be expressed
 with `Ranges`. In this case, `ArgsProduct` offers the ability to generate a
 benchmark input for each combination in the product of the supplied vectors.
 
+<!-- {% raw %} -->
 ```c++
 BENCHMARK(BM_SetInsert)
     ->ArgsProduct({{1<<10, 3<<10, 8<<10}, {20, 40, 60, 80}})
@@ -409,6 +418,7 @@ BENCHMARK(BM_SetInsert)
     ->Args({3<<10, 80})
     ->Args({8<<10, 80});
 ```
+<!-- {% endraw %} -->
 
 For the most common scenarios, helper methods for creating a list of
 integers for a given sparse or dense range are provided.
@@ -485,7 +495,8 @@ static void BM_StringCompare(benchmark::State& state) {
   std::string s1(state.range(0), '-');
   std::string s2(state.range(0), '-');
   for (auto _ : state) {
-    benchmark::DoNotOptimize(s1.compare(s2));
+    auto comparison_result = s1.compare(s2);
+    benchmark::DoNotOptimize(comparison_result);
   }
   state.SetComplexityN(state.range(0));
 }
@@ -694,6 +705,7 @@ is 1k a 1000 (default, `benchmark::Counter::OneK::kIs1000`), or 1024
 When you're compiling in C++11 mode or later you can use `insert()` with
 `std::initializer_list`:
 
+<!-- {% raw %} -->
 ```c++
   // With C++11, this can be done:
   state.counters.insert({{"Foo", numFoos}, {"Bar", numBars}, {"Baz", numBazs}});
@@ -702,6 +714,7 @@ When you're compiling in C++11 mode or later you can use `insert()` with
   state.counters["Bar"] = numBars;
   state.counters["Baz"] = numBazs;
 ```
+<!-- {% endraw %} -->
 
 ### Counter Reporting
 
@@ -848,7 +861,7 @@ BENCHMARK(BM_OpenMP)->Range(8, 8<<10);
 
 // Measure the user-visible time, the wall clock (literally, the time that
 // has passed on the clock on the wall), use it to decide for how long to
-// run the benchmark loop. This will always be meaningful, an will match the
+// run the benchmark loop. This will always be meaningful, and will match the
 // time spent by the main thread in single-threaded case, in general decreasing
 // with the number of internal threads doing the work.
 BENCHMARK(BM_OpenMP)->Range(8, 8<<10)->UseRealTime();
@@ -870,6 +883,7 @@ is measured. But sometimes, it is necessary to do some work inside of
 that loop, every iteration, but without counting that time to the benchmark time.
 That is possible, although it is not recommended, since it has high overhead.
 
+<!-- {% raw %} -->
 ```c++
 static void BM_SetInsert_With_Timer_Control(benchmark::State& state) {
   std::set<int> data;
@@ -884,6 +898,7 @@ static void BM_SetInsert_With_Timer_Control(benchmark::State& state) {
 }
 BENCHMARK(BM_SetInsert_With_Timer_Control)->Ranges({{1<<10, 8<<10}, {128, 512}});
 ```
+<!-- {% endraw %} -->
 
 <a name="manual-timing" />
 
@@ -994,7 +1009,8 @@ static void BM_vector_push_back(benchmark::State& state) {
   for (auto _ : state) {
     std::vector<int> v;
     v.reserve(1);
-    benchmark::DoNotOptimize(v.data()); // Allow v.data() to be clobbered.
+    auto data = v.data();           // Allow v.data() to be clobbered. Pass as non-const
+    benchmark::DoNotOptimize(data); // lvalue to avoid undesired compiler optimizations
     v.push_back(42);
     benchmark::ClobberMemory(); // Force 42 to be written to memory.
   }
@@ -1128,7 +1144,7 @@ int main(int argc, char** argv) {
 
 When errors caused by external influences, such as file I/O and network
 communication, occur within a benchmark the
-`State::SkipWithError(const char* msg)` function can be used to skip that run
+`State::SkipWithError(const std::string& msg)` function can be used to skip that run
 of benchmark and report the error. Note that only future iterations of the
 `KeepRunning()` are skipped. For the ranged-for version of the benchmark loop
 Users must explicitly exit the loop, otherwise all iterations will be performed.
@@ -1239,39 +1255,12 @@ the benchmark loop should be preferred.
 If you see this error:
 
 ```
-***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and will incur extra overhead.
+***WARNING*** CPU scaling is enabled, the benchmark real time measurements may
+be noisy and will incur extra overhead.
 ```
 
 you might want to disable the CPU frequency scaling while running the
-benchmark.  Exactly how to do this depends on the Linux distribution,
-desktop environment, and installed programs.  Specific details are a moving
-target, so we will not attempt to exhaustively document them here.
+benchmark, as well as consider other ways to stabilize the performance of
+your system while benchmarking.
 
-One simple option is to use the `cpupower` program to change the
-performance governor to "performance".  This tool is maintained along with
-the Linux kernel and provided by your distribution.
-
-It must be run as root, like this:
-
-```bash
-sudo cpupower frequency-set --governor performance
-```
-
-After this you can verify that all CPUs are using the performance governor
-by running this command:
-
-```bash
-cpupower frequency-info -o proc
-```
-
-The benchmarks you subsequently run will have less variance.
-
-Note that changing the governor in this way will not persist across
-reboots.  To set the governor back, run the first command again with the
-governor your system usually runs with, which varies.
-
-If you find yourself doing this often, there are probably better options
-than running the commands above.  Some approaches allow you to do this
-without root access, or by using a GUI, etc.  The Arch Wiki [Cpu frequency
-scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling) page is a
-good place to start looking for options.
+See [Reducing Variance](reducing_variance.md) for more information.

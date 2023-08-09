@@ -143,7 +143,6 @@ class PythonArtifact:
         if self.platform == "macos":
             environ["ARCHFLAGS"] = "-arch arm64 -arch x86_64"
             environ["GRPC_UNIVERSAL2_REPAIR"] = "true"
-            environ["GRPC_BUILD_WITH_BORING_SSL_ASM"] = "false"
 
         if self.platform == "linux_extra":
             # Crosscompilation build for armv7 (e.g. Raspberry Pi)
@@ -471,6 +470,7 @@ def targets():
             RubyArtifact("linux", "x64-mingw-ucrt", presubmit=True),
             RubyArtifact("linux", "x86_64-linux", presubmit=True),
             RubyArtifact("linux", "x86-linux", presubmit=True),
+            RubyArtifact("linux", "aarch64-linux", presubmit=True),
             RubyArtifact("linux", "x86_64-darwin", presubmit=True),
             RubyArtifact("linux", "arm64-darwin", presubmit=True),
             PHPArtifact("linux", "x64", presubmit=True),
