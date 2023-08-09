@@ -16,15 +16,14 @@
 //
 //
 
-#include "absl/strings/str_cat.h"
 #include "gtest/gtest.h"
 
 #include <grpc/grpc.h>
+#include <grpc/impl/channel_arg_names.h>
 #include <grpc/status.h>
 #include <grpc/support/log.h>
 
 #include "src/core/lib/channel/channel_args.h"
-#include "src/core/lib/gprpp/crash.h"
 #include "src/core/lib/gprpp/time.h"
 #include "test/core/end2end/end2end_tests.h"
 
@@ -50,12 +49,6 @@ CORE_END2END_TEST(Http2SingleHopTest, SimpleDelayedRequestShort) {
   InitServer(ChannelArgs());
   auto s = RequestCall(101);
   Expect(101, true);
-  Expect(1, CoreEnd2endTest::MaybePerformAction{[&](bool success) {
-           Crash(absl::StrCat(
-               "Unexpected completion of client side call: success=",
-               success ? "true" : "false", " status=", server_status.ToString(),
-               " initial_md=", server_initial_metadata.ToString()));
-         }});
   Step();
   IncomingCloseOnServer client_close;
   s.NewBatch(102)

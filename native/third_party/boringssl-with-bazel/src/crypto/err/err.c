@@ -146,13 +146,13 @@ struct err_error_st {
 
 // ERR_STATE contains the per-thread, error queue.
 typedef struct err_state_st {
-  // errors contains the ERR_NUM_ERRORS most recent errors, organised as a ring
-  // buffer.
+  // errors contains up to ERR_NUM_ERRORS - 1 most recent errors, organised as a
+  // ring buffer.
   struct err_error_st errors[ERR_NUM_ERRORS];
-  // top contains the index one past the most recent error. If |top| equals
-  // |bottom| then the queue is empty.
+  // top contains the index of the most recent error. If |top| equals |bottom|
+  // then the queue is empty.
   unsigned top;
-  // bottom contains the index of the last error in the queue.
+  // bottom contains the index before the least recent error in the queue.
   unsigned bottom;
 
   // to_free, if not NULL, contains a pointer owned by this structure that was
@@ -192,8 +192,7 @@ static int global_next_library = ERR_NUM_LIBS;
 
 // global_next_library_mutex protects |global_next_library| from concurrent
 // updates.
-static struct CRYPTO_STATIC_MUTEX global_next_library_mutex =
-    CRYPTO_STATIC_MUTEX_INIT;
+static CRYPTO_MUTEX global_next_library_mutex = CRYPTO_MUTEX_INIT;
 
 static void err_state_free(void *statep) {
   ERR_STATE *state = statep;
@@ -367,9 +366,9 @@ void ERR_remove_thread_state(const CRYPTO_THREADID *tid) {
 int ERR_get_next_error_library(void) {
   int ret;
 
-  CRYPTO_STATIC_MUTEX_lock_write(&global_next_library_mutex);
+  CRYPTO_MUTEX_lock_write(&global_next_library_mutex);
   ret = global_next_library++;
-  CRYPTO_STATIC_MUTEX_unlock_write(&global_next_library_mutex);
+  CRYPTO_MUTEX_unlock_write(&global_next_library_mutex);
 
   return ret;
 }
@@ -867,6 +866,10 @@ void ERR_restore_state(const ERR_SAVE_STATE *state) {
     return;
   }
 
+  if (state->num_errors >= ERR_NUM_ERRORS) {
+    abort();
+  }
+
   ERR_STATE *const dst = err_get_state();
   if (dst == NULL) {
     return;
@@ -875,6 +878,6 @@ void ERR_restore_state(const ERR_SAVE_STATE *state) {
   for (size_t i = 0; i < state->num_errors; i++) {
     err_copy(&dst->errors[i], &state->errors[i]);
   }
-  dst->top = state->num_errors - 1;
+  dst->top = (unsigned)(state->num_errors - 1);
   dst->bottom = ERR_NUM_ERRORS - 1;
 }

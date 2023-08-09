@@ -27,6 +27,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
+#include "absl/strings/strip.h"
 
 #include <grpc/support/log.h>
 
@@ -53,6 +54,44 @@ std::atomic<bool> g_loaded(false);
 
 absl::AnyInvocable<bool(struct ExperimentMetadata)>* g_check_constraints_cb =
     nullptr;
+
+class TestExperiments {
+ public:
+  TestExperiments(const ExperimentMetadata* experiment_metadata,
+                  size_t num_experiments) {
+    enabled_ = new bool[num_experiments];
+    for (size_t i = 0; i < num_experiments; i++) {
+      if (g_check_constraints_cb != nullptr) {
+        enabled_[i] = (*g_check_constraints_cb)(experiment_metadata[i]);
+      } else {
+        enabled_[i] = experiment_metadata[i].default_value;
+      }
+    }
+    // For each comma-separated experiment in the global config:
+    for (auto experiment : absl::StrSplit(ConfigVars::Get().Experiments(), ',',
+                                          absl::SkipWhitespace())) {
+      // Enable unless prefixed with '-' (=> disable).
+      bool enable = !absl::ConsumePrefix(&experiment, "-");
+      // See if we can find the experiment in the list in this binary.
+      for (size_t i = 0; i < num_experiments; i++) {
+        if (experiment == experiment_metadata[i].name) {
+          enabled_[i] = enable;
+          break;
+        }
+      }
+    }
+  }
+
+  // Overloading [] operator to access elements in array style
+  bool operator[](int index) { return enabled_[index]; }
+
+  ~TestExperiments() { delete enabled_; }
+
+ private:
+  bool* enabled_;
+};
+
+TestExperiments* g_test_experiments = nullptr;
 
 GPR_ATTRIBUTE_NOINLINE Experiments LoadExperimentsFromConfigVariable() {
   g_loaded.store(true, std::memory_order_relaxed);
@@ -111,9 +150,18 @@ void TestOnlyReloadExperimentsFromConfigVariables() {
   PrintExperimentsList();
 }
 
+void LoadTestOnlyExperimentsFromMetadata(
+    const ExperimentMetadata* experiment_metadata, size_t num_experiments) {
+  g_test_experiments =
+      new TestExperiments(experiment_metadata, num_experiments);
+}
+
 bool IsExperimentEnabled(size_t experiment_id) {
-  // Normal path: just return the value;
   return ExperimentsSingleton().enabled[experiment_id];
+}
+
+bool IsTestExperimentEnabled(size_t experiment_id) {
+  return (*g_test_experiments)[experiment_id];
 }
 
 void PrintExperimentsList() {

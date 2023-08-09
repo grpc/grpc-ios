@@ -7,9 +7,9 @@ PROTOBUF_MAVEN_ARTIFACTS = [
     "com.google.code.findbugs:jsr305:3.0.2",
     "com.google.code.gson:gson:2.8.9",
     "com.google.errorprone:error_prone_annotations:2.5.1",
-    "com.google.j2objc:j2objc-annotations:1.3",
-    "com.google.guava:guava:31.1-jre",
-    "com.google.guava:guava-testlib:31.1-jre",
+    "com.google.j2objc:j2objc-annotations:2.8",
+    "com.google.guava:guava:32.0.1-jre",
+    "com.google.guava:guava-testlib:32.0.1-jre",
     "com.google.truth:truth:1.1.2",
     "junit:junit:4.13.2",
     "org.mockito:mockito-core:4.3.1",
@@ -151,7 +151,7 @@ def protobuf_deps():
         _github_archive(
             name = "upb",
             repo = "https://github.com/protocolbuffers/upb",
-            commit = "61a97efa24a5ce01fb8cc73c9d1e6e7060f8ea98",
-            sha256 = "0c57aac04d62eeabe097513593c800a99aa3f5d8ac1e7871c7afadbe1d39851a",
+            commit = "455cfdb8ae60a1763e6d924e36851c6897a781bb",
+            sha256 = "2c8b4e961c38fcc7c58e8aca807cc3cc5190f42afdf39551ce49812b130493de",
             patches = ["@com_google_protobuf//build_defs:upb.patch"],
         )

@@ -33,6 +33,7 @@
 
 namespace benchmark {
 
+BENCHMARK_EXPORT
 bool ConsoleReporter::ReportContext(const Context& context) {
   name_field_width_ = context.name_field_width;
   printed_header_ = false;
@@ -52,6 +53,7 @@ bool ConsoleReporter::ReportContext(const Context& context) {
   return true;
 }
 
+BENCHMARK_EXPORT
 void ConsoleReporter::PrintHeader(const Run& run) {
   std::string str =
       FormatString("%-*s %13s %15s %12s", static_cast<int>(name_field_width_),
@@ -69,6 +71,7 @@ void ConsoleReporter::PrintHeader(const Run& run) {
   GetOutputStream() << line << "\n" << str << "\n" << line << "\n";
 }
 
+BENCHMARK_EXPORT
 void ConsoleReporter::ReportRuns(const std::vector<Run>& reports) {
   for (const auto& run : reports) {
     // print the header:
@@ -112,7 +115,7 @@ static std::string FormatTime(double time) {
   if (time < 100.0) {
     return FormatString("%10.1f", time);
   }
-  // Assuming the time ist at max 9.9999e+99 and we have 10 digits for the
+  // Assuming the time is at max 9.9999e+99 and we have 10 digits for the
   // number, we get 10-1(.)-1(e)-1(sign)-2(exponent) = 5 digits to print.
   if (time > 9999999999 /*max 10 digit number*/) {
     return FormatString("%1.4e", time);
@@ -120,6 +123,7 @@ static std::string FormatTime(double time) {
   return FormatString("%10.0f", time);
 }
 
+BENCHMARK_EXPORT
 void ConsoleReporter::PrintRunData(const Run& result) {
   typedef void(PrinterFn)(std::ostream&, LogColor, const char*, ...);
   auto& Out = GetOutputStream();
@@ -131,9 +135,13 @@ void ConsoleReporter::PrintRunData(const Run& result) {
   printer(Out, name_color, "%-*s ", name_field_width_,
           result.benchmark_name().c_str());
 
-  if (result.error_occurred) {
+  if (internal::SkippedWithError == result.skipped) {
     printer(Out, COLOR_RED, "ERROR OCCURRED: \'%s\'",
-            result.error_message.c_str());
+            result.skip_message.c_str());
+    printer(Out, COLOR_DEFAULT, "\n");
+    return;
+  } else if (internal::SkippedWithMessage == result.skipped) {
+    printer(Out, COLOR_WHITE, "SKIPPED: \'%s\'", result.skip_message.c_str());
     printer(Out, COLOR_DEFAULT, "\n");
     return;
   }

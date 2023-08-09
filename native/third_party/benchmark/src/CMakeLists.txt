@@ -26,13 +26,17 @@ set_target_properties(benchmark PROPERTIES
 )
 target_include_directories(benchmark PUBLIC
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-  $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
 )
 
 # libpfm, if available
 if (HAVE_LIBPFM)
   target_link_libraries(benchmark PRIVATE pfm)
   target_compile_definitions(benchmark PRIVATE -DHAVE_LIBPFM)
+endif()
+
+# pthread affinity, if available
+if(HAVE_PTHREAD_AFFINITY)
+  target_compile_definitions(benchmark PRIVATE -DBENCHMARK_HAS_PTHREAD_AFFINITY)
 endif()
 
 # Link threads.
@@ -56,7 +60,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 endif()
 
 if (NOT BUILD_SHARED_LIBS)
-  target_compile_definitions(benchmark PRIVATE -DBENCHMARK_STATIC_DEFINE)
+  target_compile_definitions(benchmark PUBLIC -DBENCHMARK_STATIC_DEFINE)
 endif()
 
 # Benchmark main library
@@ -69,7 +73,6 @@ set_target_properties(benchmark_main PROPERTIES
   DEFINE_SYMBOL benchmark_EXPORTS
 )
 target_link_libraries(benchmark_main PUBLIC benchmark::benchmark)
-
 
 set(generated_dir "${PROJECT_BINARY_DIR}")
 

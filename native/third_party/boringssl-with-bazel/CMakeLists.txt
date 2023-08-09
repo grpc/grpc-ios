@@ -202,6 +202,8 @@ set(
   src/crypto/curve25519/asm/x25519-asm-arm.S
   src/crypto/hrss/asm/poly_rq_mul.S
   src/crypto/poly1305/poly1305_arm_asm.S
+  src/third_party/fiat/asm/fiat_curve25519_adx_mul.S
+  src/third_party/fiat/asm/fiat_curve25519_adx_square.S
   win-aarch64/crypto/chacha/chacha-armv8-win.S
   win-aarch64/crypto/cipher_extra/chacha20_poly1305_armv8-win.S
   win-aarch64/crypto/fipsmodule/aesv8-armv8-win.S
@@ -341,6 +343,7 @@ add_library(
   src/crypto/cpu_intel.c
   src/crypto/crypto.c
   src/crypto/curve25519/curve25519.c
+  src/crypto/curve25519/curve25519_64_adx.c
   src/crypto/curve25519/spake25519.c
   src/crypto/des/des.c
   src/crypto/dh_extra/dh_asn1.c
@@ -402,14 +405,14 @@ add_library(
   src/crypto/pool/pool.c
   src/crypto/rand_extra/deterministic.c
   src/crypto/rand_extra/forkunsafe.c
-  src/crypto/rand_extra/fuchsia.c
+  src/crypto/rand_extra/getentropy.c
+  src/crypto/rand_extra/ios.c
   src/crypto/rand_extra/passive.c
   src/crypto/rand_extra/rand_extra.c
+  src/crypto/rand_extra/trusty.c
   src/crypto/rand_extra/windows.c
   src/crypto/rc4/rc4.c
-  src/crypto/refcount_c11.c
-  src/crypto/refcount_no_threads.c
-  src/crypto/refcount_win.c
+  src/crypto/refcount.c
   src/crypto/rsa_extra/rsa_asn1.c
   src/crypto/rsa_extra/rsa_crypt.c
   src/crypto/rsa_extra/rsa_print.c

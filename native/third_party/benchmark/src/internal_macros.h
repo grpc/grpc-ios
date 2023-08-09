@@ -1,8 +1,6 @@
 #ifndef BENCHMARK_INTERNAL_MACROS_H_
 #define BENCHMARK_INTERNAL_MACROS_H_
 
-#include "benchmark/benchmark.h"
-
 /* Needed to detect STL */
 #include <cstdlib>
 
@@ -44,6 +42,12 @@
   #define BENCHMARK_OS_CYGWIN 1
 #elif defined(_WIN32)
   #define BENCHMARK_OS_WINDOWS 1
+  // WINAPI_FAMILY_PARTITION is defined in winapifamily.h.
+  // We include windows.h which implicitly includes winapifamily.h for compatibility.
+  #ifndef NOMINMAX
+    #define NOMINMAX
+  #endif
+  #include <windows.h>
   #if defined(WINAPI_FAMILY_PARTITION)
     #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
       #define BENCHMARK_OS_WINDOWS_WIN32 1
@@ -87,6 +91,8 @@
 #define BENCHMARK_OS_QNX 1
 #elif defined(__MVS__)
 #define BENCHMARK_OS_ZOS 1
+#elif defined(__hexagon__)
+#define BENCHMARK_OS_QURT 1
 #endif
 
 #if defined(__ANDROID__) && defined(__GLIBCXX__)

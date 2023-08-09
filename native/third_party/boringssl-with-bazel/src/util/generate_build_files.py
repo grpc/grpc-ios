@@ -45,12 +45,18 @@ OS_ARCH_COMBOS = [
 # NON_PERL_FILES enumerates assembly files that are not processed by the
 # perlasm system.
 NON_PERL_FILES = {
+    ('apple', 'x86_64'): [
+        'src/third_party/fiat/asm/fiat_curve25519_adx_mul.S',
+        'src/third_party/fiat/asm/fiat_curve25519_adx_square.S',
+    ],
     ('linux', 'arm'): [
         'src/crypto/curve25519/asm/x25519-asm-arm.S',
         'src/crypto/poly1305/poly1305_arm_asm.S',
     ],
     ('linux', 'x86_64'): [
         'src/crypto/hrss/asm/poly_rq_mul.S',
+        'src/third_party/fiat/asm/fiat_curve25519_adx_mul.S',
+        'src/third_party/fiat/asm/fiat_curve25519_adx_square.S',
     ],
 }
 
@@ -251,29 +257,16 @@ class Bazel(object):
       self.PrintVariableSection(
           out, 'crypto_internal_headers', files['crypto_internal_headers'])
       self.PrintVariableSection(out, 'crypto_sources', files['crypto'])
+      self.PrintVariableSection(out, 'crypto_sources_asm', files['crypto_asm'])
+      self.PrintVariableSection(out, 'crypto_sources_nasm', files['crypto_nasm'])
       self.PrintVariableSection(out, 'tool_sources', files['tool'])
       self.PrintVariableSection(out, 'tool_headers', files['tool_headers'])
 
+      # TODO(crbug.com/boringssl/542): Migrate everyone to the combined asm
+      # source lists, so we don't need to generate both sets.
       for ((osname, arch), asm_files) in asm_outputs:
         self.PrintVariableSection(
             out, 'crypto_sources_%s_%s' % (osname, arch), asm_files)
-
-      # Generate combined source lists for gas and nasm. Consumers have a choice
-      # of using the per-platform ones or the combined ones. In the combined
-      # mode, Windows x86 and Windows x86_64 must still be special-cased, but
-      # otherwise all assembly files can be linked together.
-      out.write('\n')
-      out.write('crypto_sources_asm = []\n')
-      for (osname, arch, _, _, asm_ext) in OS_ARCH_COMBOS:
-        if asm_ext == 'S':
-          out.write('crypto_sources_asm.extend(crypto_sources_%s_%s)\n' %
-                    (osname, arch))
-      out.write('\n')
-      out.write('crypto_sources_nasm = []\n')
-      for (osname, arch, _, _, asm_ext) in OS_ARCH_COMBOS:
-        if asm_ext == 'asm':
-          out.write('crypto_sources_nasm.extend(crypto_sources_%s_%s)\n' %
-                    (osname, arch))
 
     with open('BUILD.generated_tests.bzl', 'w+') as out:
       out.write(self.header)
@@ -283,8 +276,6 @@ class Bazel(object):
                              files['test_support_headers'] +
                              files['crypto_internal_headers'] +
                              files['ssl_internal_headers']):
-        if os.path.basename(filename) == 'malloc.cc':
-          continue
         out.write('    "%s",\n' % PathOf(filename))
 
       out.write(']\n')
@@ -354,6 +345,9 @@ class GN(object):
       self.PrintVariableSection(out, 'crypto_sources',
                                 files['crypto'] +
                                 files['crypto_internal_headers'])
+      self.PrintVariableSection(out, 'crypto_sources_asm', files['crypto_asm'])
+      self.PrintVariableSection(out, 'crypto_sources_nasm',
+                                files['crypto_nasm'])
       self.PrintVariableSection(out, 'crypto_headers',
                                 files['crypto_headers'])
       self.PrintVariableSection(out, 'ssl_sources',
@@ -521,15 +515,8 @@ endif()
     with open('CMakeLists.txt', 'w+') as cmake:
       cmake.write(self.header)
 
-      asm_sources = []
-      nasm_sources = []
-      for ((osname, arch), asm_files) in asm_outputs:
-        if (osname, arch) in (('win', 'x86'), ('win', 'x86_64')):
-          nasm_sources.extend(asm_files)
-        else:
-          asm_sources.extend(asm_files)
-      self.PrintVariable(cmake, 'CRYPTO_SOURCES_ASM', sorted(asm_sources))
-      self.PrintVariable(cmake, 'CRYPTO_SOURCES_NASM', sorted(nasm_sources))
+      self.PrintVariable(cmake, 'CRYPTO_SOURCES_ASM', files['crypto_asm'])
+      self.PrintVariable(cmake, 'CRYPTO_SOURCES_NASM', files['crypto_nasm'])
 
       cmake.write(
 R'''if(OPENSSL_ASM)
@@ -595,14 +582,6 @@ def NoTests(path, dent, is_dir):
   return 'test.' not in dent
 
 
-def OnlyTests(path, dent, is_dir):
-  """Filter function that can be passed to FindCFiles in order to remove
-  non-test sources."""
-  if is_dir:
-    return dent != 'test'
-  return '_test.' in dent
-
-
 def AllFiles(path, dent, is_dir):
   """Filter function that can be passed to FindCFiles in order to include all
   sources."""
@@ -615,10 +594,6 @@ def NoTestRunnerFiles(path, dent, is_dir):
   # NOTE(martinkr): This prevents .h/.cc files in src/ssl/test/runner, which
   # are in their own subpackage, from being included in boringssl/BUILD files.
   return not is_dir or dent != 'runner'
-
-
-def NotGTestSupport(path, dent, is_dir):
-  return 'gtest' not in dent and 'abi_test' not in dent
 
 
 def SSLHeaderFiles(path, dent, is_dir):
@@ -772,13 +747,16 @@ def ExtractVariablesFromCMakeFile(cmakefile):
   return variables
 
 
+def PrefixWithSrc(files):
+  return ['src/' + x for x in files]
+
+
 def main(platforms):
   cmake = ExtractVariablesFromCMakeFile(os.path.join('src', 'sources.cmake'))
   crypto_c_files = (FindCFiles(os.path.join('src', 'crypto'), NoTestsNorFIPSFragments) +
                     FindCFiles(os.path.join('src', 'third_party', 'fiat'), NoTestsNorFIPSFragments))
   fips_fragments = FindCFiles(os.path.join('src', 'crypto', 'fipsmodule'), OnlyFIPSFragments)
   ssl_source_files = FindCFiles(os.path.join('src', 'ssl'), NoTests)
-  tool_c_files = FindCFiles(os.path.join('src', 'tool'), NoTests)
   tool_h_files = FindHeaderFiles(os.path.join('src', 'tool'), AllFiles)
 
   # BCM shared library C files
@@ -794,8 +772,6 @@ def main(platforms):
   crypto_c_files.append('err_data.c')
   crypto_c_files.sort()
 
-  test_support_c_files = FindCFiles(os.path.join('src', 'crypto', 'test'),
-                                    NotGTestSupport)
   test_support_h_files = (
       FindHeaderFiles(os.path.join('src', 'crypto', 'test'), AllFiles) +
       FindHeaderFiles(os.path.join('src', 'ssl', 'test'), NoTestRunnerFiles))
@@ -808,32 +784,10 @@ def main(platforms):
           ['go', 'run', 'util/embed_test_data.go'] + cmake['CRYPTO_TEST_DATA'],
           cwd='src',
           stdout=out)
-    crypto_test_files += ['crypto_test_data.cc']
+    crypto_test_files.append('crypto_test_data.cc')
 
-  crypto_test_files += FindCFiles(os.path.join('src', 'crypto'), OnlyTests)
-  crypto_test_files += [
-      'src/crypto/test/abi_test.cc',
-      'src/crypto/test/file_test_gtest.cc',
-      'src/crypto/test/gtest_main.cc',
-  ]
-  # urandom_test.cc is in a separate binary so that it can be test PRNG
-  # initialisation.
-  crypto_test_files = [
-      file for file in crypto_test_files
-      if not file.endswith('/urandom_test.cc')
-  ]
+  crypto_test_files += PrefixWithSrc(cmake['CRYPTO_TEST_SOURCES'])
   crypto_test_files.sort()
-
-  ssl_test_files = FindCFiles(os.path.join('src', 'ssl'), OnlyTests)
-  ssl_test_files += [
-      'src/crypto/test/abi_test.cc',
-      'src/crypto/test/gtest_main.cc',
-  ]
-  ssl_test_files.sort()
-
-  urandom_test_files = [
-      'src/crypto/fipsmodule/rand/urandom_test.cc',
-  ]
 
   fuzz_c_files = FindCFiles(os.path.join('src', 'fuzz'), NoTests)
 
@@ -850,27 +804,42 @@ def main(platforms):
       FindHeaderFiles(os.path.join('src', 'crypto'), NoTests) +
       FindHeaderFiles(os.path.join('src', 'third_party', 'fiat'), NoTests))
 
+  asm_outputs = sorted(WriteAsmFiles(ReadPerlAsmOperations()).items())
+
+  # Generate combined source lists for gas and nasm. Build files have a choice
+  # of using the per-platform ones or the combined ones. In the combined mode,
+  # Windows x86 and Windows x86_64 must still be special-cased, but otherwise
+  # all assembly files can be linked together. Some files appear in multiple
+  # per-platform lists, so we duplicate.
+  asm_sources = set()
+  nasm_sources = set()
+  for ((osname, arch), asm_files) in asm_outputs:
+    if (osname, arch) in (('win', 'x86'), ('win', 'x86_64')):
+      nasm_sources.update(asm_files)
+    else:
+      asm_sources.update(asm_files)
+
   files = {
       'bcm_crypto': bcm_crypto_c_files,
       'crypto': crypto_c_files,
+      'crypto_asm': sorted(list(asm_sources)),
+      'crypto_nasm': sorted(list(nasm_sources)),
       'crypto_headers': crypto_h_files,
       'crypto_internal_headers': crypto_internal_h_files,
       'crypto_test': crypto_test_files,
-      'crypto_test_data': sorted('src/' + x for x in cmake['CRYPTO_TEST_DATA']),
+      'crypto_test_data': sorted(PrefixWithSrc(cmake['CRYPTO_TEST_DATA'])),
       'fips_fragments': fips_fragments,
       'fuzz': fuzz_c_files,
       'ssl': ssl_source_files,
       'ssl_headers': ssl_h_files,
       'ssl_internal_headers': ssl_internal_h_files,
-      'ssl_test': ssl_test_files,
-      'tool': tool_c_files,
+      'ssl_test': PrefixWithSrc(cmake['SSL_TEST_SOURCES']),
+      'tool': PrefixWithSrc(cmake['BSSL_SOURCES']),
       'tool_headers': tool_h_files,
-      'test_support': test_support_c_files,
+      'test_support': PrefixWithSrc(cmake['TEST_SUPPORT_SOURCES']),
       'test_support_headers': test_support_h_files,
-      'urandom_test': urandom_test_files,
+      'urandom_test': PrefixWithSrc(cmake['URANDOM_TEST_SOURCES']),
   }
-
-  asm_outputs = sorted(WriteAsmFiles(ReadPerlAsmOperations()).items())
 
   for platform in platforms:
     platform.WriteFiles(files, asm_outputs)
