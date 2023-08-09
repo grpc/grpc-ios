@@ -67,7 +67,7 @@ jobs:
 
   release-cocoapod-gRPC:
     runs-on: macos-latest
-    needs: [release-cocoapod-gRPC-RxLibrary, release-cocoapod-gRPC-Core]
+    # needs: [release-cocoapod-gRPC-RxLibrary, release-cocoapod-gRPC-Core]
     steps:
       - name: Repo checkout
         uses: actions/checkout@v3
@@ -87,7 +87,7 @@ jobs:
 
   release-cocoapod-gRPC-ProtoRPC:
     runs-on: macos-latest
-    needs: [release-cocoapod-gRPC-RxLibrary, release-cocoapod-gRPC]
+    # needs: [release-cocoapod-gRPC-RxLibrary, release-cocoapod-gRPC]
     steps:
       - name: Repo checkout
         uses: actions/checkout@v3
