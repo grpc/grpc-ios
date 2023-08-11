@@ -7,6 +7,7 @@ concurrency:
   cancel-in-progress: false
 env:
   COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+  TAG: ${{ github.event.release.tag_name }}
 jobs:
   release-cocoapod-gRPC-Core:
     runs-on: macos-latest
@@ -24,7 +25,7 @@ jobs:
 
       - name: Wait for pod avaialble
         run: |
-          version=$(cat VERSION)
+          version=${TAG#v}
           timeout 1h scripts/wait_for_pod_release.sh gRPC-Core $version
   release-cocoapod-gRPC-Cpp:
     runs-on: macos-latest
@@ -43,7 +44,7 @@ jobs:
 
       - name: Wait for pod avaialble
         run: |
-          version=$(cat VERSION)
+          version=${TAG#v}
           timeout 1h scripts/wait_for_pod_release.sh gRPC-C++ $version
   release-cocoapod-gRPC-RxLibrary:
     runs-on: macos-latest
@@ -61,7 +62,7 @@ jobs:
 
       - name: Wait for pod avaialble
         run: |
-          version=$(cat VERSION)
+          version=${TAG#v}
           timeout 1h scripts/wait_for_pod_release.sh gRPC-RxLibrary $version
 
   release-cocoapod-gRPC:
@@ -81,7 +82,7 @@ jobs:
 
       - name: Wait for pod avaialble
         run: |
-          version=$(cat VERSION)
+          version=${TAG#v}
           timeout 1h scripts/wait_for_pod_release.sh gRPC $version
 
   release-cocoapod-gRPC-ProtoRPC:
@@ -101,5 +102,5 @@ jobs:
 
       - name: Wait for pod avaialble
         run: |
-          version=$(cat VERSION)
+          version=${TAG#v}
           timeout 1h scripts/wait_for_pod_release.sh gRPC-ProtoRPC $version
