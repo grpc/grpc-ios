@@ -14,6 +14,7 @@ tar -C $CHROMIUM_SRC/net/data -cf -  cert_issuer_source_static_unittest \
     certificate_policies_unittest \
     name_constraints_unittest \
     ocsp_unittest \
+    crl_unittest \
     parse_certificate_unittest \
     path_builder_unittest \
     verify_certificate_chain_unittest \
@@ -21,3 +22,9 @@ tar -C $CHROMIUM_SRC/net/data -cf -  cert_issuer_source_static_unittest \
     verify_signed_data_unittest | tar -C ./testdata -xf -
 
 go run ./import_tool.go -spec import_spec.json --source-base $CHROMIUM_SRC -dest-base .
+
+sed -i "s/#include \"/#include \"..\/pki\//g" *fuzzer.cc
+mv *fuzzer.cc ../fuzz
+
+
+
