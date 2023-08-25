@@ -301,6 +301,7 @@ add_library(
   src/crypto/bio/bio.c
   src/crypto/bio/bio_mem.c
   src/crypto/bio/connect.c
+  src/crypto/bio/errno.c
   src/crypto/bio/fd.c
   src/crypto/bio/file.c
   src/crypto/bio/hexdump.c
@@ -331,15 +332,13 @@ add_library(
   src/crypto/cipher_extra/tls_cbc.c
   src/crypto/conf/conf.c
   src/crypto/cpu_aarch64_apple.c
-  src/crypto/cpu_aarch64_freebsd.c
   src/crypto/cpu_aarch64_fuchsia.c
   src/crypto/cpu_aarch64_linux.c
   src/crypto/cpu_aarch64_openbsd.c
+  src/crypto/cpu_aarch64_sysreg.c
   src/crypto/cpu_aarch64_win.c
-  src/crypto/cpu_arm.c
   src/crypto/cpu_arm_freebsd.c
   src/crypto/cpu_arm_linux.c
-  src/crypto/cpu_arm_openbsd.c
   src/crypto/cpu_intel.c
   src/crypto/crypto.c
   src/crypto/curve25519/curve25519.c

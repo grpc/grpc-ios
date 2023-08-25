@@ -49,6 +49,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/base/internal/strerror.h"
+#include "absl/base/log_severity.h"
 #include "absl/flags/internal/program_name.h"
 #include "absl/log/check.h"
 #include "absl/log/internal/test_helpers.h"
@@ -56,6 +57,10 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+
+// Set a flag that controls whether we actually execute fatal statements, but
+// prevent the compiler from optimizing it out.
+static volatile bool kReallyDie = false;
 
 namespace {
 using ::testing::_;
@@ -304,7 +309,10 @@ TEST_F(StrippingTest, Fatal) {
   // as would happen if we used a literal.  We might (or might not) leave it
   // lying around later; that's what the tests are for!
   const std::string needle = absl::Base64Escape("StrippingTest.Fatal");
-  EXPECT_DEATH_IF_SUPPORTED(LOG(FATAL) << "U3RyaXBwaW5nVGVzdC5GYXRhbA==", "");
+  // We don't care if the LOG statement is actually executed, we're just
+  // checking that it's stripped.
+  if (kReallyDie) LOG(FATAL) << "U3RyaXBwaW5nVGVzdC5GYXRhbA==";
+
   std::unique_ptr<FILE, std::function<void(FILE*)>> exe = OpenTestExecutable();
   ASSERT_THAT(exe, NotNull());
   if (absl::LogSeverity::kFatal >= kAbslMinLogLevel) {
@@ -334,6 +342,32 @@ TEST_F(StrippingTest, Level) {
     // winds up being.
     EXPECT_THAT(exe.get(), Not(FileHasSubstr(needle)));
 #endif
+  }
+}
+
+TEST_F(StrippingTest, Check) {
+  // Here we also need a variable name with enough entropy that it's unlikely to
+  // appear in the binary by chance.  `volatile` keeps the tautological
+  // comparison (and the rest of the `CHECK`) from being optimized away.
+  const std::string var_needle = absl::Base64Escape("StrippingTestCheckVar");
+  const std::string msg_needle = absl::Base64Escape("StrippingTest.Check");
+  volatile int U3RyaXBwaW5nVGVzdENoZWNrVmFy = 0xCAFE;
+  // We don't care if the CHECK is actually executed, just that stripping works.
+  // Hiding it behind `kReallyDie` works around some overly aggressive
+  // optimizations in older versions of MSVC.
+  if (kReallyDie) {
+    CHECK(U3RyaXBwaW5nVGVzdENoZWNrVmFy != U3RyaXBwaW5nVGVzdENoZWNrVmFy)
+        << "U3RyaXBwaW5nVGVzdC5DaGVjaw==";
+  }
+
+  std::unique_ptr<FILE, std::function<void(FILE*)>> exe = OpenTestExecutable();
+  ASSERT_THAT(exe, NotNull());
+  if (absl::LogSeverity::kFatal >= kAbslMinLogLevel) {
+    EXPECT_THAT(exe.get(), FileHasSubstr(var_needle));
+    EXPECT_THAT(exe.get(), FileHasSubstr(msg_needle));
+  } else {
+    EXPECT_THAT(exe.get(), Not(FileHasSubstr(var_needle)));
+    EXPECT_THAT(exe.get(), Not(FileHasSubstr(msg_needle)));
   }
 }
 

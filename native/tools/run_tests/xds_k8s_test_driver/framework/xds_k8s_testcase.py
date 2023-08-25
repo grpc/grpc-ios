@@ -46,6 +46,7 @@ from framework.test_app import client_app
 from framework.test_app import server_app
 from framework.test_app.runners.k8s import k8s_xds_client_runner
 from framework.test_app.runners.k8s import k8s_xds_server_runner
+from framework.test_cases import base_testcase
 
 logger = logging.getLogger(__name__)
 # TODO(yashkt): We will no longer need this flag once Core exposes local certs
@@ -80,11 +81,35 @@ _SignalHandler = Callable[[_SignalNum, Optional[FrameType]], Any]
 _TD_CONFIG_MAX_WAIT_SEC = 600
 
 
+def evaluate_test_config(
+    check: Callable[[skips.TestConfig], bool]
+) -> skips.TestConfig:
+    """Evaluates the test config check against Abseil flags.
+
+    TODO(sergiitk): split into parse_lang_spec and check_is_supported.
+    """
+    # NOTE(lidiz) a manual skip mechanism is needed because absl/flags
+    # cannot be used in the built-in test-skipping decorators. See the
+    # official FAQs:
+    # https://abseil.io/docs/python/guides/flags#faqs
+    test_config = skips.TestConfig(
+        client_lang=skips.get_lang(xds_k8s_flags.CLIENT_IMAGE.value),
+        server_lang=skips.get_lang(xds_k8s_flags.SERVER_IMAGE.value),
+        version=xds_flags.TESTING_VERSION.value,
+    )
+    if not check(test_config):
+        logger.info("Skipping %s", test_config)
+        raise absltest.SkipTest(f"Unsupported test config: {test_config}")
+
+    logger.info("Detected language and version: %s", test_config)
+    return test_config
+
+
 class TdPropagationRetryableError(Exception):
     """Indicates that TD config hasn't propagated yet, and it's safe to retry"""
 
 
-class XdsKubernetesBaseTestCase(absltest.TestCase):
+class XdsKubernetesBaseTestCase(base_testcase.BaseTestCase):
     lang_spec: skips.TestConfig
     client_namespace: str
     client_runner: KubernetesClientRunner
@@ -93,7 +118,7 @@ class XdsKubernetesBaseTestCase(absltest.TestCase):
     gcp_api_manager: gcp.api.GcpApiManager
     gcp_service_account: Optional[str]
     k8s_api_manager: k8s.KubernetesApiManager
-    secondary_k8s_api_manager: k8s.KubernetesApiManager
+    secondary_k8s_api_manager: Optional[k8s.KubernetesApiManager] = None
     network: str
     project: str
     resource_prefix: str
@@ -132,7 +157,7 @@ class XdsKubernetesBaseTestCase(absltest.TestCase):
 
         # Raises unittest.SkipTest if given client/server/version does not
         # support current test case.
-        cls.lang_spec = skips.evaluate_test_config(cls.is_supported)
+        cls.lang_spec = evaluate_test_config(cls.is_supported)
 
         # Must be called before KubernetesApiManager or GcpApiManager init.
         xds_flags.set_socket_default_timeout_from_flag()
@@ -180,9 +205,10 @@ class XdsKubernetesBaseTestCase(absltest.TestCase):
         cls.k8s_api_manager = k8s.KubernetesApiManager(
             xds_k8s_flags.KUBE_CONTEXT.value
         )
-        cls.secondary_k8s_api_manager = k8s.KubernetesApiManager(
-            xds_k8s_flags.SECONDARY_KUBE_CONTEXT.value
-        )
+        if xds_k8s_flags.SECONDARY_KUBE_CONTEXT.value is not None:
+            cls.secondary_k8s_api_manager = k8s.KubernetesApiManager(
+                xds_k8s_flags.SECONDARY_KUBE_CONTEXT.value
+            )
         cls.gcp_api_manager = gcp.api.GcpApiManager()
 
         # Other
@@ -211,7 +237,8 @@ class XdsKubernetesBaseTestCase(absltest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.k8s_api_manager.close()
-        cls.secondary_k8s_api_manager.close()
+        if cls.secondary_k8s_api_manager is not None:
+            cls.secondary_k8s_api_manager.close()
         cls.gcp_api_manager.close()
 
     def setUp(self):
@@ -670,7 +697,7 @@ class IsolatedXdsKubernetesTestCase(
                 client_restarts,
                 0,
                 msg=(
-                    "Client pods unexpectedly restarted"
+                    "Client container unexpectedly restarted"
                     f" {client_restarts} times during test. In most cases, this"
                     " is caused by the test client app crash."
                 ),
@@ -679,7 +706,7 @@ class IsolatedXdsKubernetesTestCase(
                 server_restarts,
                 0,
                 msg=(
-                    "Server pods unexpectedly restarted"
+                    "Server container unexpectedly restarted"
                     f" {server_restarts} times during test. In most cases, this"
                     " is caused by the test client app crash."
                 ),

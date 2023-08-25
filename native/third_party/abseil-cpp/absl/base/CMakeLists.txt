@@ -54,6 +54,33 @@ absl_cc_library(
     ${ABSL_DEFAULT_COPTS}
 )
 
+absl_cc_library(
+  NAME
+    nullability
+  HDRS
+    "nullability.h"
+  SRCS
+    "internal/nullability_impl.h"
+  DEPS
+    absl::core_headers
+    absl::type_traits
+  COPTS
+    ${ABSL_DEFAULT_COPTS}
+)
+
+absl_cc_test(
+  NAME
+    nullability_test
+  SRCS
+    "nullability_test.cc"
+  COPTS
+    ${ABSL_TEST_COPTS}
+  DEPS
+    absl::core_headers
+    absl::nullability
+    GTest::gtest_main
+)
+
 # Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
@@ -645,11 +672,11 @@ absl_cc_test(
     GTest::gtest_main
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     prefetch
   HDRS
+    "prefetch.h"
     "internal/prefetch.h"
   COPTS
     ${ABSL_DEFAULT_COPTS}
@@ -657,12 +684,14 @@ absl_cc_library(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::config
+    absl::core_headers  # TODO(b/265984188): remove
 )
 
 absl_cc_test(
   NAME
     prefetch_test
   SRCS
+    "prefetch_test.cc"
     "internal/prefetch_test.cc"
   COPTS
     ${ABSL_TEST_COPTS}

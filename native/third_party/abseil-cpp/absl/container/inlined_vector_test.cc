@@ -15,6 +15,7 @@
 #include "absl/container/inlined_vector.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <forward_list>
 #include <iterator>
 #include <list>
@@ -30,12 +31,12 @@
 #include "gtest/gtest.h"
 #include "absl/base/attributes.h"
 #include "absl/base/internal/exception_testing.h"
-#include "absl/base/internal/raw_logging.h"
 #include "absl/base/macros.h"
 #include "absl/base/options.h"
 #include "absl/container/internal/counting_allocator.h"
 #include "absl/container/internal/test_instance_tracker.h"
 #include "absl/hash/hash_testing.h"
+#include "absl/log/check.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 
@@ -51,14 +52,12 @@ using testing::ElementsAre;
 using testing::ElementsAreArray;
 using testing::Eq;
 using testing::Gt;
+using testing::Pointee;
 using testing::Pointwise;
 using testing::PrintToString;
+using testing::SizeIs;
 
 using IntVec = absl::InlinedVector<int, 8>;
-
-MATCHER_P(SizeIs, n, "") {
-  return testing::ExplainMatchResult(n, arg.size(), result_listener);
-}
 
 MATCHER_P(CapacityIs, n, "") {
   return testing::ExplainMatchResult(n, arg.capacity(), result_listener);
@@ -104,13 +103,13 @@ class RefCounted {
   }
 
   void Ref() const {
-    ABSL_RAW_CHECK(count_ != nullptr, "");
+    CHECK_NE(count_, nullptr);
     ++(*count_);
   }
 
   void Unref() const {
     --(*count_);
-    ABSL_RAW_CHECK(*count_ >= 0, "");
+    CHECK_GE(*count_, 0);
   }
 
   int value_;
@@ -260,6 +259,49 @@ TEST(IntVec, Hardened) {
   EXPECT_DEATH_IF_SUPPORTED(v[static_cast<size_t>(-1)], "");
   EXPECT_DEATH_IF_SUPPORTED(v.resize(v.max_size() + 1), "");
 #endif
+}
+
+// Move construction of a container of unique pointers should work fine, with no
+// leaks, despite the fact that unique pointers are trivially relocatable but
+// not trivially destructible.
+TEST(UniquePtr, MoveConstruct) {
+  for (size_t size = 0; size < 16; ++size) {
+    SCOPED_TRACE(size);
+
+    absl::InlinedVector<std::unique_ptr<size_t>, 2> a;
+    for (size_t i = 0; i < size; ++i) {
+      a.push_back(std::make_unique<size_t>(i));
+    }
+
+    absl::InlinedVector<std::unique_ptr<size_t>, 2> b(std::move(a));
+
+    ASSERT_THAT(b, SizeIs(size));
+    for (size_t i = 0; i < size; ++i) {
+      ASSERT_THAT(b[i], Pointee(i));
+    }
+  }
+}
+
+// Move assignment of a container of unique pointers should work fine, with no
+// leaks, despite the fact that unique pointers are trivially relocatable but
+// not trivially destructible.
+TEST(UniquePtr, MoveAssign) {
+  for (size_t size = 0; size < 16; ++size) {
+    SCOPED_TRACE(size);
+
+    absl::InlinedVector<std::unique_ptr<size_t>, 2> a;
+    for (size_t i = 0; i < size; ++i) {
+      a.push_back(std::make_unique<size_t>(i));
+    }
+
+    absl::InlinedVector<std::unique_ptr<size_t>, 2> b;
+    b = std::move(a);
+
+    ASSERT_THAT(b, SizeIs(size));
+    for (size_t i = 0; i < size; ++i) {
+      ASSERT_THAT(b[i], Pointee(i));
+    }
+  }
 }
 
 // At the end of this test loop, the elements between [erase_begin, erase_end)
@@ -1577,6 +1619,30 @@ INSTANTIATE_TYPED_TEST_SUITE_P(InstanceTestOnTypes, InstanceTest,
 TEST(DynamicVec, DynamicVecCompiles) {
   DynamicVec v;
   (void)v;
+}
+
+TEST(DynamicVec, CreateNonEmptyDynamicVec) {
+  DynamicVec v(1);
+  EXPECT_EQ(v.size(), 1u);
+}
+
+TEST(DynamicVec, EmplaceBack) {
+  DynamicVec v;
+  v.emplace_back(Dynamic{});
+  EXPECT_EQ(v.size(), 1u);
+}
+
+TEST(DynamicVec, EmplaceBackAfterHeapAllocation) {
+  DynamicVec v;
+  v.reserve(10);
+  v.emplace_back(Dynamic{});
+  EXPECT_EQ(v.size(), 1u);
+}
+
+TEST(DynamicVec, EmptyIteratorComparison) {
+  DynamicVec v;
+  EXPECT_EQ(v.begin(), v.end());
+  EXPECT_EQ(v.cbegin(), v.cend());
 }
 
 TEST(AllocatorSupportTest, Constructors) {
