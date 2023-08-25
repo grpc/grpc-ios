@@ -18,8 +18,6 @@
 
 #ifdef GPR_WINDOWS
 
-#include <Windows.h>
-
 #include <fstream>
 #include <string>
 #include <vector>
@@ -42,8 +40,7 @@ std::string NormalizeFilePath(const std::string& filepath) {
 ManifestFile::ManifestFile(const std::string& filepath)
     : filestream_(filepath, std::ios::in | std::ios::binary) {
   if (!filestream_.is_open()) {
-    grpc_core::Crash(absl::StrFormat("Failed to open: %s, error code: %d",
-                                     filepath, GetLastError()));
+    grpc_core::Crash(absl::StrFormat("Failed to open %s", filepath));
   }
 }
 
