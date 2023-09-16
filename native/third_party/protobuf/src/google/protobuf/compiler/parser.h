@@ -304,7 +304,8 @@ class PROTOBUF_EXPORT Parser {
   // Parses the "syntax = \"proto2\";" line at the top of the file.  Returns
   // false if it failed to parse or if the syntax identifier was not
   // recognized.
-  bool ParseSyntaxIdentifier(const LocationRecorder& parent);
+  bool ParseSyntaxIdentifier(const FileDescriptorProto* file,
+                             const LocationRecorder& parent);
 
   // These methods parse various individual bits of code.  They return
   // false if they completely fail to parse the construct.  In this case,
@@ -529,6 +530,9 @@ class PROTOBUF_EXPORT Parser {
 
   // Whether fields without label default to optional fields.
   bool DefaultToOptionalFields() const {
+#ifdef PROTOBUF_FUTURE_EDITIONS
+    if (syntax_identifier_ == "editions") return true;
+#endif  // PROTOBUF_FUTURE_EDITIONS
     return syntax_identifier_ == "proto3";
   }
 
@@ -544,6 +548,9 @@ class PROTOBUF_EXPORT Parser {
   bool require_syntax_identifier_;
   bool stop_after_syntax_identifier_;
   std::string syntax_identifier_;
+#ifdef PROTOBUF_FUTURE_EDITIONS
+  std::string edition_;
+#endif  // PROTOBUF_FUTURE_EDITIONS
 
   // Leading doc comments for the next declaration.  These are not complete
   // yet; use ConsumeEndOfDeclaration() to get the complete comments.

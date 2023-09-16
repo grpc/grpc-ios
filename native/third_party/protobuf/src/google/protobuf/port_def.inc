@@ -49,6 +49,11 @@
 // detect/prohibit anytime it is #included twice without a corresponding
 // #undef.
 
+#ifdef PROTOBUF_PORT_
+#error "port_def.inc included multiple times"
+#endif
+#define PROTOBUF_PORT_
+
 // The definitions in this file are intended to be portable across Clang,
 // GCC, and MSVC. Function-like macros are usable without an #ifdef guard.
 // Syntax macros (for example, attributes) are always defined, although
@@ -219,6 +224,10 @@ static_assert(PROTOBUF_CPLUSPLUS_MIN(201402L), "Protobuf only supports C++14 and
 static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
               "Protobuf only supports Abseil version 20230125.3 and newer.");
 
+// Enable editions infrastructure by default.  This should be a no-op without
+// the --experimental_editions protoc flag.
+#define PROTOBUF_FUTURE_EDITIONS 1
+
 // Future versions of protobuf will include breaking changes to some APIs.
 // This macro can be set to enable these API changes ahead of time, so that
 // user code can be updated before upgrading versions of protobuf.
@@ -237,43 +246,31 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 // Owner: ezb@
 #define PROTOBUF_FUTURE_REMOVE_CONST_REPEATEDFIELD_GETARENA_API 1
 
-// Used to remove Protobuf editions feature.
+// Used to make ExtensionRange into a fully-fledged descriptor class.
 // Owner: mkruskal@
-#define PROTOBUF_FUTURE_EDITIONS 1
+#define PROTOBUF_FUTURE_EXTENSION_RANGE_CLASS 1
 
 #endif
 
 #ifdef PROTOBUF_VERSION
 #error PROTOBUF_VERSION was previously defined
 #endif
-#define PROTOBUF_VERSION 4023004
+#define PROTOBUF_VERSION 4024003
 
 #ifdef PROTOBUF_MIN_HEADER_VERSION_FOR_PROTOC
 #error PROTOBUF_MIN_HEADER_VERSION_FOR_PROTOC was previously defined
 #endif
-#define PROTOBUF_MIN_HEADER_VERSION_FOR_PROTOC 4023000
+#define PROTOBUF_MIN_HEADER_VERSION_FOR_PROTOC 4024000
 
 #ifdef PROTOBUF_MIN_PROTOC_VERSION
 #error PROTOBUF_MIN_PROTOC_VERSION was previously defined
 #endif
-#define PROTOBUF_MIN_PROTOC_VERSION 4023000
+#define PROTOBUF_MIN_PROTOC_VERSION 4024000
 
 #ifdef PROTOBUF_VERSION_SUFFIX
 #error PROTOBUF_VERSION_SUFFIX was previously defined
 #endif
 #define PROTOBUF_VERSION_SUFFIX ""
-
-#if defined(PROTOBUF_NAMESPACE) || defined(PROTOBUF_NAMESPACE_ID)
-#error PROTOBUF_NAMESPACE or PROTOBUF_NAMESPACE_ID was previously defined
-#endif
-#define PROTOBUF_NAMESPACE "google::protobuf"
-#define PROTOBUF_NAMESPACE_ID google::protobuf
-#define PROTOBUF_NAMESPACE_OPEN \
-  namespace google {            \
-  namespace protobuf {
-#define PROTOBUF_NAMESPACE_CLOSE \
-  } /* namespace protobuf */     \
-  } /* namespace google */
 
 #ifdef PROTOBUF_ALWAYS_INLINE
 #error PROTOBUF_ALWAYS_INLINE was previously defined
@@ -449,7 +446,7 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 
 // The minimum library version which works with the current version of the
 // headers.
-#define GOOGLE_PROTOBUF_MIN_LIBRARY_VERSION 4023000
+#define GOOGLE_PROTOBUF_MIN_LIBRARY_VERSION 4024000
 
 #ifdef PROTOBUF_RTTI
 #error PROTOBUF_RTTI was previously defined
@@ -704,16 +701,18 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 # if defined(__cpp_constinit) && !defined(__CYGWIN__)
 #  define PROTOBUF_CONSTINIT constinit
 #  define PROTOBUF_CONSTEXPR constexpr
+#  define PROTOBUF_CONSTINIT_DEFAULT_INSTANCES
 // Some older Clang versions incorrectly raise an error about
 // constant-initializing weak default instance pointers. Versions 12.0 and
 // higher seem to work, except that XCode 12.5.1 shows the error even though it
 // uses Clang 12.0.5.
-# elif !defined(__CYGWIN__) && \
+# elif !defined(__CYGWIN__) && !defined(__MINGW32__) && \
     __has_cpp_attribute(clang::require_constant_initialization) && \
         ((defined(__APPLE__) && PROTOBUF_CLANG_MIN(13, 0)) ||             \
      (!defined(__APPLE__) && PROTOBUF_CLANG_MIN(12, 0)))
 #  define PROTOBUF_CONSTINIT [[clang::require_constant_initialization]]
 #  define PROTOBUF_CONSTEXPR constexpr
+#  define PROTOBUF_CONSTINIT_DEFAULT_INSTANCES
 # endif
 #endif
 
@@ -830,6 +829,37 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 #  endif
 #endif
 
+#ifdef PROTOBUF_TSAN_READ
+#error PROTOBUF_TSAN_READ was previously defined
+#endif
+#ifdef PROTOBUF_TSAN_WRITE
+#error PROTOBUF_TSAN_WRITE was previously defined
+#endif
+#ifdef PROTOBUF_TSAN
+// TODO(b/285620714): it would be preferable to use __tsan_external_read/
+// __tsan_external_write, but they can cause dlopen issues.
+#define PROTOBUF_TSAN_READ(addr)                                               \
+  do {                                                                         \
+    volatile char protobuf_tsan_dummy = *reinterpret_cast<const char *>(addr); \
+    (void)protobuf_tsan_dummy;                                                 \
+  } while (0)
+#define PROTOBUF_TSAN_WRITE(addr)                          \
+  do {                                                     \
+    char protobuf_tsan_zero = 0;                           \
+    asm volatile("" : "+m"(protobuf_tsan_zero));           \
+    *reinterpret_cast<char *>(addr) += protobuf_tsan_zero; \
+  } while (0)
+#else  // PROTOBUF_TSAN
+#define PROTOBUF_TSAN_READ(addr) (void)0
+#define PROTOBUF_TSAN_WRITE(addr) (void)0
+#endif  // PROTOBUF_TSAN
+
+#ifdef PROTOBUF_TSAN
+#define PROTOBUF_TSAN_DECLARE_MEMBER ::uint32_t _tsan_detect_race = 0;
+#else
+#define PROTOBUF_TSAN_DECLARE_MEMBER
+#endif
+
 #ifdef PROTOBUF_USE_TABLE_PARSER_ON_REFLECTION
 #error PROTOBUF_USE_TABLE_PARSER_ON_REFLECTION was previously defined
 #endif
@@ -912,6 +942,8 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 // Windows declares several inconvenient macro names.  We #undef them and then
 // restore them in port_undef.inc.
 #ifdef _WIN32
+#pragma push_macro("CompareString")
+#undef CompareString
 #pragma push_macro("CREATE_NEW")
 #undef CREATE_NEW
 #pragma push_macro("DELETE")
@@ -1011,7 +1043,7 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 // to fix https://github.com/protocolbuffers/protobuf/issues/12313
 #pragma clang diagnostic ignored "-Wunused-parameter"
 // -Wshadow means that declaration shadows a variable.
-// for (int i = 0; i < file_->public_dependency_count(); ++i) 
+// for (int i = 0; i < file_->public_dependency_count(); ++i)
 //   for (int i = 0; i < public_dep->message_type_count(); ++i)
 #pragma clang diagnostic ignored "-Wshadow"
 #endif
@@ -1038,7 +1070,7 @@ static_assert(PROTOBUF_ABSL_MIN(20230125, 3),
 // to fix https://github.com/protocolbuffers/protobuf/issues/12313
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 // -Wshadow means that declaration shadows a variable.
-// for (int i = 0; i < file_->public_dependency_count(); ++i) 
+// for (int i = 0; i < file_->public_dependency_count(); ++i)
 //   for (int i = 0; i < public_dep->message_type_count(); ++i)
 #pragma GCC diagnostic ignored "-Wshadow"
 #ifndef __clang__

@@ -1,5 +1,5 @@
 // Protocol Buffers - Google's data interchange format
-// Copyright 2023 Google Inc.  All rights reserved.
+// Copyright 2023 Google LLC.  All rights reserved.
 // https://developers.google.com/protocol-buffers/
 //
 // Redistribution and use in source and binary forms, with or without
@@ -12,7 +12,7 @@
 // copyright notice, this list of conditions and the following disclaimer
 // in the documentation and/or other materials provided with the
 // distribution.
-//     * Neither the name of Google Inc. nor the names of its
+//     * Neither the name of Google LLC. nor the names of its
 // contributors may be used to endorse or promote products derived from
 // this software without specific prior written permission.
 //
@@ -97,7 +97,8 @@ bool RustGenerator::Generate(const FileDescriptor* file_desc,
   auto v = file.printer().WithVars({
       {"std", "::__std"},
       {"pb", "::__pb"},
-      {"pbi", "::__pb::__runtime"},
+      {"pbi", "::__pb::__internal"},
+      {"pbr", "::__pb::__runtime"},
       {"NonNull", "::__std::ptr::NonNull"},
   });
 
@@ -116,7 +117,6 @@ bool RustGenerator::Generate(const FileDescriptor* file_desc,
     std::string crate_name = GetCrateName(dep);
     for (int j = 0; j < dep.desc().message_type_count(); ++j) {
       auto msg = file.WithDesc(dep.desc().message_type(j));
-      // TODO(b/272728844): Implement real logic
       file.Emit(
           {
               {"crate", crate_name},

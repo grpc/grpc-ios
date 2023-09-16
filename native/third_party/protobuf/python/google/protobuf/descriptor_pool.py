@@ -63,7 +63,7 @@ import warnings
 from google.protobuf import descriptor
 from google.protobuf import descriptor_database
 from google.protobuf import text_encoding
-
+from google.protobuf.internal import python_message
 
 _USE_C_DESCRIPTORS = descriptor._USE_C_DESCRIPTORS  # pylint: disable=protected-access
 
@@ -74,8 +74,8 @@ def _Deprecated(func):
   def NewFunc(*args, **kwargs):
     warnings.warn(
         'Call to deprecated function %s(). Note: Do add unlinked descriptors '
-        'to descriptor_pool is wrong. Use Add() or AddSerializedFile() '
-        'instead.' % func.__name__,
+        'to descriptor_pool is wrong. Please use Add() or AddSerializedFile() '
+        'instead. This function will be removed soon.' % func.__name__,
         category=DeprecationWarning)
     return func(*args, **kwargs)
   NewFunc.__name__ = func.__name__
@@ -246,12 +246,6 @@ class DescriptorPool(object):
     self._descriptors[desc.full_name] = desc
     self._AddFileDescriptor(desc.file)
 
-  # Add EnumDescriptor to descriptor pool is deprecated. Please use Add()
-  # or AddSerializedFile() to add a FileDescriptorProto instead.
-  @_Deprecated
-  def AddEnumDescriptor(self, enum_desc):
-    self._AddEnumDescriptor(enum_desc)
-
   # Never call this method. It is for internal usage only.
   def _AddEnumDescriptor(self, enum_desc):
     """Adds an EnumDescriptor to the pool.
@@ -358,6 +352,10 @@ class DescriptorPool(object):
     if _IsMessageSetExtension(extension):
       self._extensions_by_name[extension.containing_type][
           extension.message_type.full_name] = extension
+
+    if hasattr(extension.containing_type, '_concrete_class'):
+      python_message._AttachFieldHelpers(
+          extension.containing_type._concrete_class, extension)
 
   @_Deprecated
   def AddFileDescriptor(self, file_desc):
@@ -811,12 +809,17 @@ class DescriptorPool(object):
       self._file_descriptors[file_proto.name] = file_descriptor
 
     # Add extensions to the pool
+    def AddExtensionForNested(message_type):
+      for nested in message_type.nested_types:
+        AddExtensionForNested(nested)
+      for extension in message_type.extensions:
+        self._AddExtensionDescriptor(extension)
+
     file_desc = self._file_descriptors[file_proto.name]
     for extension in file_desc.extensions_by_name.values():
       self._AddExtensionDescriptor(extension)
     for message_type in file_desc.message_types_by_name.values():
-      for extension in message_type.extensions:
-        self._AddExtensionDescriptor(extension)
+      AddExtensionForNested(message_type)
 
     return file_desc
 

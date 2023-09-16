@@ -40,6 +40,7 @@
 #include <vector>
 
 #include "absl/base/attributes.h"
+#include "absl/container/internal/layout.h"
 #include "absl/synchronization/mutex.h"
 #include "google/protobuf/arena_allocation_policy.h"
 #include "google/protobuf/arenaz_sampler.h"
@@ -519,7 +520,7 @@ ThreadSafeArena::ThreadCache& ThreadSafeArena::thread_cache() {
       new internal::ThreadLocalStorage<ThreadCache>();
   return *thread_cache_->Get();
 }
-#elif defined(PROTOBUF_USE_DLLS) && defined(_MSC_VER)
+#elif defined(PROTOBUF_USE_DLLS) && defined(_WIN32)
 ThreadSafeArena::ThreadCache& ThreadSafeArena::thread_cache() {
   static PROTOBUF_THREAD_LOCAL ThreadCache thread_cache;
   return thread_cache;

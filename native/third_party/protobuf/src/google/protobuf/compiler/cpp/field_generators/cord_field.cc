@@ -38,12 +38,16 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/absl_check.h"
+#include "absl/memory/memory.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "google/protobuf/compiler/cpp/field.h"
 #include "google/protobuf/compiler/cpp/field_generators/generators.h"
 #include "google/protobuf/compiler/cpp/helpers.h"
+#include "google/protobuf/compiler/cpp/options.h"
+#include "google/protobuf/descriptor.h"
 
 namespace google {
 namespace protobuf {
@@ -64,8 +68,8 @@ void SetCordVariables(
   (*variables)["default_variable_field"] = MakeDefaultFieldName(descriptor);
   (*variables)["default_variable"] =
       descriptor->default_value_string().empty()
-          ? ProtobufNamespace(options) +
-                "::internal::GetEmptyCordAlreadyInited()"
+          ? absl::StrCat(ProtobufNamespace(options),
+                         "::internal::GetEmptyCordAlreadyInited()")
           : absl::StrCat(
                 QualifiedClassName(descriptor->containing_type(), options),
                 "::", MakeDefaultFieldName(descriptor));
@@ -259,34 +263,38 @@ void CordFieldGenerator::GenerateByteSize(io::Printer* printer) const {
 }
 
 void CordFieldGenerator::GenerateConstexprAggregateInitializer(
-    io::Printer* printer) const {
-  Formatter format(printer, variables_);
+    io::Printer* p) const {
   if (descriptor_->default_value_string().empty()) {
-    format("/*decltype($field$)*/{}");
+    p->Emit(R"cc(
+      /*decltype($field$)*/ {},
+    )cc");
   } else {
-    format(
-        "/*decltype($field$)*/{::absl::strings_internal::MakeStringConstant(\n"
-        "    $classname$::Impl_::$1$_default_$name$_func_{})}",
-        ShouldSplit(descriptor_, options_) ? "Split::" : "");
+    p->Emit(
+        {{"Split", ShouldSplit(descriptor_, options_) ? "Split::" : ""}},
+        R"cc(
+          /*decltype($field$)*/ {::absl::strings_internal::MakeStringConstant(
+              $classname$::Impl_::$Split$_default_$name$_func_{})},
+        )cc");
   }
 }
 
-void CordFieldGenerator::GenerateAggregateInitializer(
-    io::Printer* printer) const {
-  Formatter format(printer, variables_);
+void CordFieldGenerator::GenerateAggregateInitializer(io::Printer* p) const {
   if (ShouldSplit(descriptor_, options_)) {
-    format("decltype(Impl_::Split::$name$_){}");
-    return;
+    p->Emit(R"cc(
+      decltype(Impl_::Split::$name$_){},
+    )cc");
+  } else {
+    p->Emit(R"cc(
+      decltype($field$){},
+    )cc");
   }
-  format("decltype($field$){}");
 }
 
 // ===================================================================
 
 CordOneofFieldGenerator::CordOneofFieldGenerator(
     const FieldDescriptor* descriptor, const Options& options)
-    : CordFieldGenerator(descriptor, options) {
-}
+    : CordFieldGenerator(descriptor, options) {}
 
 void CordOneofFieldGenerator::GeneratePrivateMembers(
     io::Printer* printer) const {

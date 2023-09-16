@@ -19,8 +19,7 @@ PROTOBUF_MAVEN_ARTIFACTS = [
 
 def _github_archive(repo, commit, **kwargs):
     repo_name = repo.split("/")[-1]
-    http_archive(
-        urls = [repo + "/archive/" + commit + ".zip"],
+    http_archive( urls = [repo + "/archive/" + commit + ".zip"],
         strip_prefix = repo_name + "-" + commit,
         **kwargs
     )
@@ -84,11 +83,10 @@ def protobuf_deps():
         )
 
     if not native.existing_rule("rules_java"):
-        _github_archive(
+        http_archive(
             name = "rules_java",
-            repo = "https://github.com/bazelbuild/rules_java",
-            commit = "981f06c3d2bd10225e85209904090eb7b5fb26bd",
-            sha256 = "7979ece89e82546b0dcd1dff7538c34b5a6ebc9148971106f0e3705444f00665",
+            url = "https://github.com/bazelbuild/rules_java/releases/download/6.0.0/rules_java-6.0.0.tar.gz",
+            sha256 = "469b7f3b580b4fcf8112f4d6d0d5a4ce8e1ad5e21fee67d8e8335d5f8b3debab",
         )
 
     if not native.existing_rule("rules_proto"):
@@ -103,16 +101,16 @@ def protobuf_deps():
         _github_archive(
             name = "rules_python",
             repo = "https://github.com/bazelbuild/rules_python",
-            commit = "912a5051f51581784fd64094f6bdabf93f6d698f",  # 0.14.0
-            sha256 = "a3e4b4ade7c4a52e757b16a16e94d0b2640333062180cba577d81fac087a501d",
+            commit = "02b521fce3c7b36b05813aa986d72777cc3ee328",  # 0.24.0
+            sha256 = "f9e4f6acf82449324d56669bda4bdb28b48688ad2990d8b39fa5b93ed39c9ad1",
         )
 
     if not native.existing_rule("rules_ruby"):
         _github_archive(
             name = "rules_ruby",
             repo = "https://github.com/protocolbuffers/rules_ruby",
-            commit = "5cf6ff74161d7f985b9bf86bb3c5fb16cef6337b",
-            sha256 = "c88dd69eb50fcfd7fbc5d7db79adc6631ef0e1d80b3c94efe33ac5ee3ccc37f7",
+            commit = "8fca842a3006c3d637114aba4f6bf9695bb3a432",
+            sha256 = "2619f9a23cee6f6a198d9ef284b6f6cbc901545ee9a9aac9ffa6b83dbf17cf0c",
         )
 
     if not native.existing_rule("rules_jvm_external"):
@@ -151,7 +149,7 @@ def protobuf_deps():
         _github_archive(
             name = "upb",
             repo = "https://github.com/protocolbuffers/upb",
-            commit = "455cfdb8ae60a1763e6d924e36851c6897a781bb",
-            sha256 = "2c8b4e961c38fcc7c58e8aca807cc3cc5190f42afdf39551ce49812b130493de",
+            commit = "42cd08932e364a4cde35033b73f15c30250d7c2e",
+            sha256 = "c67dd28e641e26c1c2ac295f1a693b864e8b074c683e7b9ef89f7aa8cf5db77a",
             patches = ["@com_google_protobuf//build_defs:upb.patch"],
         )

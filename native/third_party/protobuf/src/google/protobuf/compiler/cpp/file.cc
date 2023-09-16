@@ -34,6 +34,7 @@
 
 #include "google/protobuf/compiler/cpp/file.h"
 
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -71,6 +72,7 @@ namespace compiler {
 namespace cpp {
 namespace {
 using Sub = ::google::protobuf::io::Printer::Sub;
+using ::google::protobuf::internal::cpp::IsLazilyInitializedFile;
 
 absl::flat_hash_map<absl::string_view, std::string> FileVars(
     const FileDescriptor* file, const Options& options) {
@@ -106,7 +108,25 @@ void UnmuteWuninitialized(io::Printer* p) {
     #endif  // __llvm__
   )");
 }
+
 }  // namespace
+
+bool FileGenerator::ShouldSkipDependencyImports(
+    const FileDescriptor* dep) const {
+  // Do not import weak deps.
+  if (!options_.opensource_runtime && IsDepWeak(dep)) {
+    return true;
+  }
+
+  // Skip feature imports, which are a visible (but non-functional) deviation
+  // between editions and legacy syntax.
+  if (options_.strip_nonfunctional_codegen &&
+      dep->name() == "third_party/protobuf/cpp_features.proto") {
+    return true;
+  }
+
+  return false;
+}
 
 FileGenerator::FileGenerator(const FileDescriptor* file, const Options& options)
     : file_(file), options_(options), scc_analyzer_(options) {
@@ -169,7 +189,7 @@ void FileGenerator::GenerateMacroUndefs(io::Printer* p) {
   // Only do this for protobuf's own types. There are some google3 protos using
   // macros as field names and the generated code compiles after the macro
   // expansion. Undefing these macros actually breaks such code.
-  if (file_->name() != "net/proto2/compiler/proto/plugin.proto" &&
+  if (file_->name() != "third_party/protobuf/compiler/plugin.proto" &&
       file_->name() != "google/protobuf/compiler/plugin.proto") {
     return;
   }
@@ -207,6 +227,15 @@ void FileGenerator::GenerateSharedHeaderCode(io::Printer* p) {
           {"undefs", [&] { GenerateMacroUndefs(p); }},
           {"global_state_decls",
            [&] { GenerateGlobalStateFunctionDeclarations(p); }},
+          {"any_metadata",
+           [&] {
+             NamespaceOpener ns(ProtobufNamespace(options_), p);
+             p->Emit(R"cc(
+               namespace internal {
+               class AnyMetadata;
+               }  // namespace internal
+             )cc");
+           }},
           {"fwd_decls", [&] { GenerateForwardDeclarations(p); }},
           {"proto2_ns_enums",
            [&] { GenerateProto2NamespaceEnumSpecializations(p); }},
@@ -250,11 +279,7 @@ void FileGenerator::GenerateSharedHeaderCode(io::Printer* p) {
           #define $dllexport_macro$$ dllexport_decl$
           $undefs$
 
-          PROTOBUF_NAMESPACE_OPEN
-          namespace internal {
-          class AnyMetadata;
-          }  // namespace internal
-          PROTOBUF_NAMESPACE_CLOSE
+          $any_metadata$;
 
           $global_state_decls$;
           $fwd_decls$
@@ -475,10 +500,7 @@ void FileGenerator::GenerateSourceIncludes(io::Printer* p) {
     for (int i = 0; i < file_->dependency_count(); ++i) {
       const FileDescriptor* dep = file_->dependency(i);
 
-      if (!options_.opensource_runtime &&
-          IsDepWeak(dep)) {  // Do not import weak deps.
-        continue;
-      }
+      if (ShouldSkipDependencyImports(dep)) continue;
 
       std::string basename = StripProto(dep->name());
       if (IsBootstrapProto(options_, file_)) {
@@ -563,25 +585,50 @@ void FileGenerator::GenerateSourceDefaultInstance(int idx, io::Printer* p) {
 
   generator->GenerateConstexprConstructor(p);
 
-  p->Emit(
-      {
-          {"type", DefaultInstanceType(generator->descriptor(), options_)},
-          {"name", DefaultInstanceName(generator->descriptor(), options_)},
-          {"default", [&] { generator->GenerateInitDefaultSplitInstance(p); }},
-          {"class", ClassName(generator->descriptor())},
-      },
-      R"cc(
-        struct $type$ {
-          PROTOBUF_CONSTEXPR $type$() : _instance(::_pbi::ConstantInitialized{}) {}
-          ~$type$() {}
-          union {
-            $class$ _instance;
+  if (IsFileDescriptorProto(file_, options_)) {
+    p->Emit(
+        {
+            {"type", DefaultInstanceType(generator->descriptor(), options_)},
+            {"name", DefaultInstanceName(generator->descriptor(), options_)},
+            {"class", ClassName(generator->descriptor())},
+        },
+        R"cc(
+          struct $type$ {
+#if defined(PROTOBUF_CONSTINIT_DEFAULT_INSTANCES)
+            constexpr $type$() : _instance(::_pbi::ConstantInitialized{}) {}
+#else   // defined(PROTOBUF_CONSTINIT_DEFAULT_INSTANCES)
+            $type$() {}
+            void Init() { ::new (&_instance) $class$(); };
+#endif  // defined(PROTOBUF_CONSTINIT_DEFAULT_INSTANCES)
+            ~$type$() {}
+            union {
+              $class$ _instance;
+            };
           };
-        };
 
-        PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT$ dllexport_decl$
-            PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 $type$ $name$;
-      )cc");
+          PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT$ dllexport_decl$
+              PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 $type$ $name$;
+        )cc");
+  } else {
+    p->Emit(
+        {
+            {"type", DefaultInstanceType(generator->descriptor(), options_)},
+            {"name", DefaultInstanceName(generator->descriptor(), options_)},
+            {"class", ClassName(generator->descriptor())},
+        },
+        R"cc(
+          struct $type$ {
+            PROTOBUF_CONSTEXPR $type$() : _instance(::_pbi::ConstantInitialized{}) {}
+            ~$type$() {}
+            union {
+              $class$ _instance;
+            };
+          };
+
+          PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT$ dllexport_decl$
+              PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 $type$ $name$;
+        )cc");
+  }
 
   for (int i = 0; i < generator->descriptor()->field_count(); ++i) {
     const FieldDescriptor* field = generator->descriptor()->field(i);
@@ -667,10 +714,10 @@ void FileGenerator::GetCrossFileReferencesForFile(const FileDescriptor* file,
   for (int i = 0; i < file->dependency_count(); ++i) {
     const FileDescriptor* dep = file->dependency(i);
 
-    if (IsDepWeak(dep)) {
-      refs->weak_reflection_files.insert(dep);
-    } else {
+    if (!ShouldSkipDependencyImports(file->dependency(i))) {
       refs->strong_reflection_files.insert(dep);
+    } else if (IsDepWeak(dep)) {
+      refs->weak_reflection_files.insert(dep);
     }
   }
 }
@@ -972,6 +1019,11 @@ void FileGenerator::GenerateReflectionInitializationCode(io::Printer* p) {
       {{"desc_name", desc_name},
        {"encoded_file_proto",
         [&] {
+          if (options_.strip_nonfunctional_codegen) {
+            p->Emit(R"cc("")cc");
+            return;
+          }
+
           absl::string_view data = file_data;
           if (data.size() <= 65535) {
             static constexpr size_t kBytesPerLine = 40;
@@ -1053,7 +1105,8 @@ void FileGenerator::GenerateReflectionInitializationCode(io::Printer* p) {
   p->Emit(
       {
           {"eager", eager ? "true" : "false"},
-          {"file_proto_len", file_data.size()},
+          {"file_proto_len",
+           options_.strip_nonfunctional_codegen ? 0 : file_data.size()},
           {"proto_name", desc_name},
           {"deps_ptr", num_deps == 0
                            ? "nullptr"
@@ -1100,19 +1153,47 @@ void FileGenerator::GenerateReflectionInitializationCode(io::Printer* p) {
         }
       )cc");
 
-  // For descriptor.proto we want to avoid doing any dynamic initialization,
-  // because in some situations that would otherwise pull in a lot of
-  // unnecessary code that can't be stripped by --gc-sections. Descriptor
-  // initialization will still be performed lazily when it's needed.
-  if (file_->name() == "net/proto2/proto/descriptor.proto") {
-    return;
+  // For descriptor.proto and cpp_features.proto we want to avoid doing any
+  // dynamic initialization, because in some situations that would otherwise
+  // pull in a lot of unnecessary code that can't be stripped by --gc-sections.
+  // Descriptor initialization will still be performed lazily when it's needed.
+  if (!IsLazilyInitializedFile(file_->name())) {
+    p->Emit({{"dummy", UniqueName("dynamic_init_dummy", file_, options_)}},
+            R"cc(
+              // Force running AddDescriptors() at dynamic initialization time.
+              PROTOBUF_ATTRIBUTE_INIT_PRIORITY2
+              static ::_pbi::AddDescriptorsRunner $dummy$(&$desc_table$);
+            )cc");
   }
 
-  p->Emit({{"dummy", UniqueName("dynamic_init_dummy", file_, options_)}}, R"cc(
-    // Force running AddDescriptors() at dynamic initialization time.
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY2
-    static ::_pbi::AddDescriptorsRunner $dummy$(&$desc_table$);
-  )cc");
+  // However, we must provide a way to force initialize the default instances
+  // of FileDescriptorProto which will be used during registration of other
+  // files.
+  if (IsFileDescriptorProto(file_, options_)) {
+    NamespaceOpener ns(p);
+    ns.ChangeTo(absl::StrCat(ProtobufNamespace(options_), "::internal"));
+    p->Emit(
+        {{"dummy", UniqueName("dynamic_init_dummy", file_, options_)},
+         {"initializers", absl::StrJoin(message_generators_, "\n",
+                                        [&](std::string* out, const auto& gen) {
+                                          absl::StrAppend(
+                                              out,
+                                              DefaultInstanceName(
+                                                  gen->descriptor(), options_),
+                                              ".Init();");
+                                        })}},
+        R"cc(
+          //~ Emit wants an indented line, so give it a comment to strip.
+#if !defined(PROTOBUF_CONSTINIT_DEFAULT_INSTANCES)
+          PROTOBUF_EXPORT void InitializeFileDescriptorDefaultInstancesSlow() {
+            $initializers$;
+          }
+          PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+          static std::true_type $dummy${
+              (InitializeFileDescriptorDefaultInstances(), std::true_type{})};
+#endif  // !defined(PROTOBUF_CONSTINIT_DEFAULT_INSTANCES)
+        )cc");
+  }
 }
 
 class FileGenerator::ForwardDeclarations {
@@ -1161,11 +1242,18 @@ class FileGenerator::ForwardDeclarations {
   }
 
   void PrintTopLevelDecl(io::Printer* p, const Options& options) const {
-    for (const auto& c : classes_) {
-      p->Emit({{"class", QualifiedClassName(c.second, options)}}, R"cc(
-        template <>
-        $dllexport_decl $$class$* Arena::CreateMaybeMessage<$class$>(Arena*);
-      )cc");
+    if (ShouldGenerateExternSpecializations(options)) {
+      for (const auto& c : classes_) {
+        // To reduce total linker input size in large binaries we make these
+        // functions extern and define then in the pb.cc file. This avoids bloat
+        // in callers by having duplicate definitions of the template.
+        // However, it increases the size of the pb.cc translation units so it
+        // is a tradeoff.
+        p->Emit({{"class", QualifiedClassName(c.second, options)}}, R"cc(
+          template <>
+          $dllexport_decl $$class$* Arena::CreateMaybeMessage<$class$>(Arena*);
+        )cc");
+      }
     }
   }
 
@@ -1231,9 +1319,19 @@ void FileGenerator::GenerateForwardDeclarations(io::Printer* p) {
     decl.second.Print(p, options_);
   }
 
-  ns.ChangeTo("PROTOBUF_NAMESPACE_ID");
+  ns.ChangeTo(ProtobufNamespace(options_));
   for (const auto& decl : decls) {
     decl.second.PrintTopLevelDecl(p, options_);
+  }
+
+  if (IsFileDescriptorProto(file_, options_)) {
+    ns.ChangeTo(absl::StrCat(ProtobufNamespace(options_), "::internal"));
+    p->Emit(R"cc(
+      //~ Emit wants an indented line, so give it a comment to strip.
+#if !defined(PROTOBUF_CONSTINIT_DEFAULT_INSTANCES)
+      PROTOBUF_EXPORT void InitializeFileDescriptorDefaultInstancesSlow();
+#endif  // !defined(PROTOBUF_CONSTINIT_DEFAULT_INSTANCES)
+    )cc");
   }
 }
 
@@ -1380,8 +1478,7 @@ void FileGenerator::GenerateDependencyIncludes(io::Printer* p) {
   for (int i = 0; i < file_->dependency_count(); ++i) {
     const FileDescriptor* dep = file_->dependency(i);
 
-    // Do not import weak deps.
-    if (IsDepWeak(dep)) {
+    if (ShouldSkipDependencyImports(dep)) {
       continue;
     }
 

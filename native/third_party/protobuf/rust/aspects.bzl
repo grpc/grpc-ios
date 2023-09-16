@@ -112,7 +112,6 @@ def _compile_cc(
         feature_configuration = feature_configuration,
         cc_toolchain = cc_toolchain,
         srcs = [src],
-        grep_includes = ctx.file._grep_includes,
         user_compile_flags = attr.copts if hasattr(attr, "copts") else [],
         compilation_contexts = [cc_info.compilation_context],
     )
@@ -169,6 +168,7 @@ def _compile_rust(ctx, attr, src, extra_srcs, deps):
     lib = ctx.actions.declare_file(lib_name)
     rmeta = ctx.actions.declare_file(rmeta_name)
 
+    # TODO(b/270125787): Use higher level rules_rust API once available.
     providers = rustc_compile_action(
         ctx = ctx,
         attr = attr,

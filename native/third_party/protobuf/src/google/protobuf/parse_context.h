@@ -35,6 +35,7 @@
 #include <cstring>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 #include "absl/base/config.h"
 #include "absl/log/absl_check.h"
@@ -133,50 +134,41 @@ class PROTOBUF_EXPORT EpsCopyInputStream {
     if (count > 0) StreamBackUp(count);
   }
 
-#if defined(ABSL_HAVE_ADDRESS_SANITIZER) || defined(ABSL_HAVE_MEMORY_SANITIZER)
-  // In sanitizer mode we use an optional<int> to guarantee that:
+  // In sanitizer mode we use memory poisoning to guarantee that:
   //  - We do not read an uninitialized token.
-  //  - Every non-empty token is moved from and consumed.
+  //  - We would like to verify that this token was consumed, but unforuntately
+  //    __asan_address_is_poisoned is allowed to have false negatives.
   class LimitToken {
    public:
-    LimitToken() = default;
-    explicit LimitToken(int token) : token_(token) {}
+    LimitToken() { PROTOBUF_POISON_MEMORY_REGION(&token_, sizeof(token_)); }
+
+    explicit LimitToken(int token) : token_(token) {
+      PROTOBUF_UNPOISON_MEMORY_REGION(&token_, sizeof(token_));
+    }
+
+    LimitToken(const LimitToken&) = delete;
+    LimitToken& operator=(const LimitToken&) = delete;
+
     LimitToken(LimitToken&& other) { *this = std::move(other); }
+
     LimitToken& operator=(LimitToken&& other) {
-      token_ = std::exchange(other.token_, absl::nullopt);
+      PROTOBUF_UNPOISON_MEMORY_REGION(&token_, sizeof(token_));
+      token_ = other.token_;
+      PROTOBUF_POISON_MEMORY_REGION(&other.token_, sizeof(token_));
       return *this;
     }
 
-    ~LimitToken() { ABSL_CHECK(!token_.has_value()); }
-
-    LimitToken(const LimitToken&) = delete;
-    LimitToken& operator=(const LimitToken&) = delete;
+    ~LimitToken() = default;
 
     int token() && {
-      ABSL_CHECK(token_.has_value());
-      return *std::exchange(token_, absl::nullopt);
+      int t = token_;
+      PROTOBUF_POISON_MEMORY_REGION(&token_, sizeof(token_));
+      return t;
     }
-
-   private:
-    absl::optional<int> token_;
-  };
-#else
-  class LimitToken {
-   public:
-    LimitToken() = default;
-    explicit LimitToken(int token) : token_(token) {}
-    LimitToken(LimitToken&&) = default;
-    LimitToken& operator=(LimitToken&&) = default;
-
-    LimitToken(const LimitToken&) = delete;
-    LimitToken& operator=(const LimitToken&) = delete;
-
-    int token() const { return token_; }
 
    private:
     int token_;
   };
-#endif
 
   // If return value is negative it's an error
   PROTOBUF_NODISCARD LimitToken PushLimit(const char* ptr, int limit) {
@@ -254,7 +246,12 @@ class PROTOBUF_EXPORT EpsCopyInputStream {
   PROTOBUF_NODISCARD const char* ReadPackedFixed(const char* ptr, int size,
                                                  RepeatedField<T>* out);
   template <typename Add>
-  PROTOBUF_NODISCARD const char* ReadPackedVarint(const char* ptr, Add add);
+  PROTOBUF_NODISCARD const char* ReadPackedVarint(const char* ptr, Add add) {
+    return ReadPackedVarint(ptr, add, [](int) {});
+  }
+  template <typename Add, typename SizeCb>
+  PROTOBUF_NODISCARD const char* ReadPackedVarint(const char* ptr, Add add,
+                                                  SizeCb size_callback);
 
   uint32_t LastTag() const { return last_tag_minus_1_ + 1; }
   bool ConsumeEndGroup(uint32_t start_tag) {
@@ -997,8 +994,8 @@ RotRight7AndReplaceLowByte(uint64_t res, const char& byte) {
   return res;
 };
 
-inline PROTOBUF_ALWAYS_INLINE
-const char* ReadTagInlined(const char* ptr, uint32_t* out) {
+inline PROTOBUF_ALWAYS_INLINE const char* ReadTagInlined(const char* ptr,
+                                                         uint32_t* out) {
   uint64_t res = 0xFF & ptr[0];
   if (PROTOBUF_PREDICT_FALSE(res >= 128)) {
     res = RotRight7AndReplaceLowByte(res, ptr[1]);
@@ -1244,9 +1241,12 @@ const char* ReadPackedVarintArray(const char* ptr, const char* end, Add add) {
   return ptr;
 }
 
-template <typename Add>
-const char* EpsCopyInputStream::ReadPackedVarint(const char* ptr, Add add) {
+template <typename Add, typename SizeCb>
+const char* EpsCopyInputStream::ReadPackedVarint(const char* ptr, Add add,
+                                                 SizeCb size_callback) {
   int size = ReadSize(&ptr);
+  size_callback(size);
+
   GOOGLE_PROTOBUF_PARSER_ASSERT(ptr);
   int chunk_size = static_cast<int>(buffer_end_ - ptr);
   while (size > chunk_size) {

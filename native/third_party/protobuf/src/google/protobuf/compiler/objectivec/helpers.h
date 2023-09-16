@@ -38,6 +38,7 @@
 
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/descriptor.pb.h"
+#include "google/protobuf/io/printer.h"
 
 namespace google {
 namespace protobuf {
@@ -108,13 +109,31 @@ std::string BuildFlagsString(FlagType type,
 std::string ObjCClass(absl::string_view class_name);
 
 // Declares an Objective-C class without initializing the class so that it can
-// be refrerred to by ObjCClass.
+// be referred to by ObjCClass.
 std::string ObjCClassDeclaration(absl::string_view class_name);
 
-// Builds HeaderDoc/appledoc style comments out of the comments in the .proto
+// Flag to control the behavior of `EmitCommentsString`.
+enum CommentStringFlags : unsigned int {
+  kNone = 0,
+  kAddLeadingNewline = 1 << 1,  // Add a newline before the comment.
+  kForceMultiline = 1 << 2,  // Force a multiline comment even if only 1 line.
+};
+
+// Emits HeaderDoc/appledoc style comments out of the comments in the .proto
 // file.
-std::string BuildCommentsString(const SourceLocation& location,
-                                bool prefer_single_line);
+void EmitCommentsString(io::Printer* printer, const SourceLocation& location,
+                        CommentStringFlags flags = kNone);
+
+// Emits HeaderDoc/appledoc style comments out of the comments in the .proto
+// file.
+template <class TDescriptor>
+void EmitCommentsString(io::Printer* printer, const TDescriptor* descriptor,
+                        CommentStringFlags flags = kNone) {
+  SourceLocation location;
+  if (descriptor->GetSourceLocation(&location)) {
+    EmitCommentsString(printer, location, flags);
+  }
+}
 
 template <class TDescriptor>
 std::string GetOptionalDeprecatedAttribute(const TDescriptor* descriptor,

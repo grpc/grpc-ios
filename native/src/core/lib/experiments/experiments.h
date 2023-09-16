@@ -51,6 +51,7 @@
 #include <grpc/support/port_platform.h>
 
 #include <stddef.h>
+
 #include "src/core/lib/experiments/config.h"
 
 namespace grpc_core {
@@ -69,12 +70,12 @@ inline bool IsMonitoringExperimentEnabled() { return true; }
 inline bool IsPromiseBasedClientCallEnabled() { return false; }
 inline bool IsFreeLargeAllocatorEnabled() { return false; }
 inline bool IsPromiseBasedServerCallEnabled() { return false; }
-inline bool IsTransportSuppliesClientLatencyEnabled() { return false; }
 inline bool IsEventEngineListenerEnabled() { return false; }
 inline bool IsScheduleCancellationOverWriteEnabled() { return false; }
 inline bool IsTraceRecordCallopsEnabled() { return false; }
 inline bool IsEventEngineDnsEnabled() { return false; }
-inline bool IsWorkStealingEnabled() { return false; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_WORK_STEALING
+inline bool IsWorkStealingEnabled() { return true; }
 inline bool IsClientPrivacyEnabled() { return false; }
 inline bool IsCanaryClientPrivacyEnabled() { return false; }
 inline bool IsServerPrivacyEnabled() { return false; }
@@ -82,6 +83,17 @@ inline bool IsServerPrivacyEnabled() { return false; }
 inline bool IsUniqueMetadataStringsEnabled() { return true; }
 inline bool IsKeepaliveFixEnabled() { return false; }
 inline bool IsKeepaliveServerFixEnabled() { return false; }
+inline bool IsWorkSerializerDispatchEnabled() { return false; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_LAZIER_STREAM_UPDATES
+inline bool IsLazierStreamUpdatesEnabled() { return true; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_JITTER_MAX_IDLE
+inline bool IsJitterMaxIdleEnabled() { return true; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_ROUND_ROBIN_DELEGATE_TO_PICK_FIRST
+inline bool IsRoundRobinDelegateToPickFirstEnabled() { return true; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_CLIENT_CHANNEL_SUBCHANNEL_WRAPPER_WORK_SERIALIZER_ORPHAN
+inline bool IsClientChannelSubchannelWrapperWorkSerializerOrphanEnabled() {
+  return true;
+}
 
 #elif defined(GPR_WINDOWS)
 inline bool IsTcpFrameSizeTuningEnabled() { return false; }
@@ -95,12 +107,12 @@ inline bool IsMonitoringExperimentEnabled() { return true; }
 inline bool IsPromiseBasedClientCallEnabled() { return false; }
 inline bool IsFreeLargeAllocatorEnabled() { return false; }
 inline bool IsPromiseBasedServerCallEnabled() { return false; }
-inline bool IsTransportSuppliesClientLatencyEnabled() { return false; }
 inline bool IsEventEngineListenerEnabled() { return false; }
 inline bool IsScheduleCancellationOverWriteEnabled() { return false; }
 inline bool IsTraceRecordCallopsEnabled() { return false; }
 inline bool IsEventEngineDnsEnabled() { return false; }
-inline bool IsWorkStealingEnabled() { return false; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_WORK_STEALING
+inline bool IsWorkStealingEnabled() { return true; }
 inline bool IsClientPrivacyEnabled() { return false; }
 inline bool IsCanaryClientPrivacyEnabled() { return false; }
 inline bool IsServerPrivacyEnabled() { return false; }
@@ -108,6 +120,17 @@ inline bool IsServerPrivacyEnabled() { return false; }
 inline bool IsUniqueMetadataStringsEnabled() { return true; }
 inline bool IsKeepaliveFixEnabled() { return false; }
 inline bool IsKeepaliveServerFixEnabled() { return false; }
+inline bool IsWorkSerializerDispatchEnabled() { return false; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_LAZIER_STREAM_UPDATES
+inline bool IsLazierStreamUpdatesEnabled() { return true; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_JITTER_MAX_IDLE
+inline bool IsJitterMaxIdleEnabled() { return true; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_ROUND_ROBIN_DELEGATE_TO_PICK_FIRST
+inline bool IsRoundRobinDelegateToPickFirstEnabled() { return true; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_CLIENT_CHANNEL_SUBCHANNEL_WRAPPER_WORK_SERIALIZER_ORPHAN
+inline bool IsClientChannelSubchannelWrapperWorkSerializerOrphanEnabled() {
+  return true;
+}
 
 #else
 inline bool IsTcpFrameSizeTuningEnabled() { return false; }
@@ -121,12 +144,12 @@ inline bool IsMonitoringExperimentEnabled() { return true; }
 inline bool IsPromiseBasedClientCallEnabled() { return false; }
 inline bool IsFreeLargeAllocatorEnabled() { return false; }
 inline bool IsPromiseBasedServerCallEnabled() { return false; }
-inline bool IsTransportSuppliesClientLatencyEnabled() { return false; }
 inline bool IsEventEngineListenerEnabled() { return false; }
 inline bool IsScheduleCancellationOverWriteEnabled() { return false; }
 inline bool IsTraceRecordCallopsEnabled() { return false; }
 inline bool IsEventEngineDnsEnabled() { return false; }
-inline bool IsWorkStealingEnabled() { return false; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_WORK_STEALING
+inline bool IsWorkStealingEnabled() { return true; }
 inline bool IsClientPrivacyEnabled() { return false; }
 inline bool IsCanaryClientPrivacyEnabled() { return false; }
 inline bool IsServerPrivacyEnabled() { return false; }
@@ -134,6 +157,17 @@ inline bool IsServerPrivacyEnabled() { return false; }
 inline bool IsUniqueMetadataStringsEnabled() { return true; }
 inline bool IsKeepaliveFixEnabled() { return false; }
 inline bool IsKeepaliveServerFixEnabled() { return false; }
+inline bool IsWorkSerializerDispatchEnabled() { return false; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_LAZIER_STREAM_UPDATES
+inline bool IsLazierStreamUpdatesEnabled() { return true; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_JITTER_MAX_IDLE
+inline bool IsJitterMaxIdleEnabled() { return true; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_ROUND_ROBIN_DELEGATE_TO_PICK_FIRST
+inline bool IsRoundRobinDelegateToPickFirstEnabled() { return true; }
+#define GRPC_EXPERIMENT_IS_INCLUDED_CLIENT_CHANNEL_SUBCHANNEL_WRAPPER_WORK_SERIALIZER_ORPHAN
+inline bool IsClientChannelSubchannelWrapperWorkSerializerOrphanEnabled() {
+  return true;
+}
 #endif
 
 #else
@@ -144,9 +178,13 @@ inline bool IsTcpRcvLowatEnabled() { return IsExperimentEnabled(1); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_PEER_STATE_BASED_FRAMING
 inline bool IsPeerStateBasedFramingEnabled() { return IsExperimentEnabled(2); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_MEMORY_PRESSURE_CONTROLLER
-inline bool IsMemoryPressureControllerEnabled() { return IsExperimentEnabled(3); }
+inline bool IsMemoryPressureControllerEnabled() {
+  return IsExperimentEnabled(3);
+}
 #define GRPC_EXPERIMENT_IS_INCLUDED_UNCONSTRAINED_MAX_QUOTA_BUFFER_SIZE
-inline bool IsUnconstrainedMaxQuotaBufferSizeEnabled() { return IsExperimentEnabled(4); }
+inline bool IsUnconstrainedMaxQuotaBufferSizeEnabled() {
+  return IsExperimentEnabled(4);
+}
 #define GRPC_EXPERIMENT_IS_INCLUDED_EVENT_ENGINE_CLIENT
 inline bool IsEventEngineClientEnabled() { return IsExperimentEnabled(5); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_MONITORING_EXPERIMENT
@@ -157,32 +195,48 @@ inline bool IsPromiseBasedClientCallEnabled() { return IsExperimentEnabled(7); }
 inline bool IsFreeLargeAllocatorEnabled() { return IsExperimentEnabled(8); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_PROMISE_BASED_SERVER_CALL
 inline bool IsPromiseBasedServerCallEnabled() { return IsExperimentEnabled(9); }
-#define GRPC_EXPERIMENT_IS_INCLUDED_TRANSPORT_SUPPLIES_CLIENT_LATENCY
-inline bool IsTransportSuppliesClientLatencyEnabled() { return IsExperimentEnabled(10); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_EVENT_ENGINE_LISTENER
-inline bool IsEventEngineListenerEnabled() { return IsExperimentEnabled(11); }
+inline bool IsEventEngineListenerEnabled() { return IsExperimentEnabled(10); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_SCHEDULE_CANCELLATION_OVER_WRITE
-inline bool IsScheduleCancellationOverWriteEnabled() { return IsExperimentEnabled(12); }
+inline bool IsScheduleCancellationOverWriteEnabled() {
+  return IsExperimentEnabled(11);
+}
 #define GRPC_EXPERIMENT_IS_INCLUDED_TRACE_RECORD_CALLOPS
-inline bool IsTraceRecordCallopsEnabled() { return IsExperimentEnabled(13); }
+inline bool IsTraceRecordCallopsEnabled() { return IsExperimentEnabled(12); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_EVENT_ENGINE_DNS
-inline bool IsEventEngineDnsEnabled() { return IsExperimentEnabled(14); }
+inline bool IsEventEngineDnsEnabled() { return IsExperimentEnabled(13); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_WORK_STEALING
-inline bool IsWorkStealingEnabled() { return IsExperimentEnabled(15); }
+inline bool IsWorkStealingEnabled() { return IsExperimentEnabled(14); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_CLIENT_PRIVACY
-inline bool IsClientPrivacyEnabled() { return IsExperimentEnabled(16); }
+inline bool IsClientPrivacyEnabled() { return IsExperimentEnabled(15); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_CANARY_CLIENT_PRIVACY
-inline bool IsCanaryClientPrivacyEnabled() { return IsExperimentEnabled(17); }
+inline bool IsCanaryClientPrivacyEnabled() { return IsExperimentEnabled(16); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_SERVER_PRIVACY
-inline bool IsServerPrivacyEnabled() { return IsExperimentEnabled(18); }
+inline bool IsServerPrivacyEnabled() { return IsExperimentEnabled(17); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_UNIQUE_METADATA_STRINGS
-inline bool IsUniqueMetadataStringsEnabled() { return IsExperimentEnabled(19); }
+inline bool IsUniqueMetadataStringsEnabled() { return IsExperimentEnabled(18); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_KEEPALIVE_FIX
-inline bool IsKeepaliveFixEnabled() { return IsExperimentEnabled(20); }
+inline bool IsKeepaliveFixEnabled() { return IsExperimentEnabled(19); }
 #define GRPC_EXPERIMENT_IS_INCLUDED_KEEPALIVE_SERVER_FIX
-inline bool IsKeepaliveServerFixEnabled() { return IsExperimentEnabled(21); }
+inline bool IsKeepaliveServerFixEnabled() { return IsExperimentEnabled(20); }
+#define GRPC_EXPERIMENT_IS_INCLUDED_WORK_SERIALIZER_DISPATCH
+inline bool IsWorkSerializerDispatchEnabled() {
+  return IsExperimentEnabled(21);
+}
+#define GRPC_EXPERIMENT_IS_INCLUDED_LAZIER_STREAM_UPDATES
+inline bool IsLazierStreamUpdatesEnabled() { return IsExperimentEnabled(22); }
+#define GRPC_EXPERIMENT_IS_INCLUDED_JITTER_MAX_IDLE
+inline bool IsJitterMaxIdleEnabled() { return IsExperimentEnabled(23); }
+#define GRPC_EXPERIMENT_IS_INCLUDED_ROUND_ROBIN_DELEGATE_TO_PICK_FIRST
+inline bool IsRoundRobinDelegateToPickFirstEnabled() {
+  return IsExperimentEnabled(24);
+}
+#define GRPC_EXPERIMENT_IS_INCLUDED_CLIENT_CHANNEL_SUBCHANNEL_WRAPPER_WORK_SERIALIZER_ORPHAN
+inline bool IsClientChannelSubchannelWrapperWorkSerializerOrphanEnabled() {
+  return IsExperimentEnabled(25);
+}
 
-constexpr const size_t kNumExperiments = 22;
+constexpr const size_t kNumExperiments = 26;
 extern const ExperimentMetadata g_experiment_metadata[kNumExperiments];
 
 #endif
