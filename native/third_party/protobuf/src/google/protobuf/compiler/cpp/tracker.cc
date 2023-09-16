@@ -180,6 +180,8 @@ std::vector<Sub> MakeTrackerCalls(const Descriptor* message,
           Call("reflection", "OnGetMetadata").This(absl::nullopt),
           Call("bytesize", "OnByteSize"),
           Call("mergefrom", "OnMergeFrom").This("_this").Arg("&from"),
+          Call("unknown_fields", "OnUnknownFields"),
+          Call("mutable_unknown_fields", "OnMutableUnknownFields"),
 
           // "Has" is here as users calling "has" on a repeated field is a
           // mistake.
@@ -221,14 +223,13 @@ struct Getters {
 
 Getters RepeatedFieldGetters(const FieldDescriptor* field,
                              const Options& opts) {
-  std::string member = FieldMemberName(field, ShouldSplit(field, opts));
-
   Getters getters;
   if (!field->is_map() &&
       field->cpp_type() != FieldDescriptor::CPPTYPE_MESSAGE) {
-    getters.base = absl::Substitute("&$0.Get(index)", member);
-    getters.for_last = absl::Substitute("&$0.Get($0.size() - 1)", member);
-    getters.for_flat = absl::StrCat("&", member);
+    std::string accessor = absl::StrCat("_internal_", FieldName(field), "()");
+    getters.base = absl::Substitute("&$0.Get(index)", accessor);
+    getters.for_last = absl::Substitute("&$0.Get($0.size() - 1)", accessor);
+    getters.for_flat = absl::StrCat("&", accessor);
   }
 
   return getters;

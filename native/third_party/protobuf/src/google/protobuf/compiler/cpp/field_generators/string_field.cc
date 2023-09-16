@@ -36,12 +36,14 @@
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/log/absl_check.h"
 #include "absl/memory/memory.h"
+#include "absl/strings/str_cat.h"
 #include "google/protobuf/compiler/cpp/field.h"
 #include "google/protobuf/compiler/cpp/field_generators/generators.h"
 #include "google/protobuf/compiler/cpp/helpers.h"
+#include "google/protobuf/compiler/cpp/options.h"
+#include "google/protobuf/descriptor.h"
 #include "google/protobuf/descriptor.pb.h"
 #include "google/protobuf/io/printer.h"
 
@@ -146,7 +148,7 @@ class SingularString : public FieldGeneratorBase {
 
   void GenerateCopyAggregateInitializer(io::Printer* p) const override {
     p->Emit(R"cc(
-      decltype($field_$) {}
+      decltype($field_$){},
     )cc");
   }
 
@@ -424,6 +426,7 @@ void SingularString::GenerateInlineAccessorDefinitions(io::Printer* p) const {
         template <typename Arg_, typename... Args_>
         inline PROTOBUF_ALWAYS_INLINE void $Msg$::set_$name$(Arg_&& arg,
                                                              Args_... args) {
+          $TsanDetectConcurrentMutation$;
           $PrepareSplitMessageForWrite$;
           $update_hasbit$;
           $field_$.$Set$(static_cast<Arg_&&>(arg), args..., $set_args$);
@@ -438,26 +441,31 @@ void SingularString::GenerateInlineAccessorDefinitions(io::Printer* p) const {
           return _s;
         }
         inline const std::string& $Msg$::_internal_$name$() const {
+          $TsanDetectConcurrentRead$;
           $check_hasbit$;
           return $field_$.Get();
         }
         inline void $Msg$::_internal_set_$name$(const std::string& value) {
+          $TsanDetectConcurrentMutation$;
           $update_hasbit$;
           //~ Don't use $Set$ here; we always want the std::string variant
           //~ regardless of whether this is a `bytes` field.
           $field_$.Set(value, $set_args$);
         }
         inline std::string* $Msg$::_internal_mutable_$name$() {
+          $TsanDetectConcurrentMutation$;
           $update_hasbit$;
           return $field_$.Mutable($lazy_args$, $set_args$);
         }
         inline std::string* $Msg$::$release_name$() {
+          $TsanDetectConcurrentMutation$;
           $annotate_release$;
           $PrepareSplitMessageForWrite$;
           // @@protoc_insertion_point(field_release:$pkg.Msg.field$)
           $release_impl$;
         }
         inline void $Msg$::set_allocated_$name$(std::string* value) {
+          $TsanDetectConcurrentMutation$;
           $PrepareSplitMessageForWrite$;
           $set_allocated_impl$;
           $annotate_set$;
@@ -663,34 +671,31 @@ void SingularString::GenerateConstexprAggregateInitializer(
     io::Printer* p) const {
   if (inlined_) {
     p->Emit(R"cc(
-      /*decltype($field_$)*/ { nullptr, false }
+      /*decltype($field_$)*/ {nullptr, false},
     )cc");
-    return;
+  } else {
+    p->Emit(R"cc(
+      /*decltype($field_$)*/ {
+          &::_pbi::fixed_address_empty_string,
+          ::_pbi::ConstantInitialized{},
+      },
+    )cc");
   }
-
-  p->Emit(R"cc(
-    /*decltype($field_$)*/ {
-      &::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized {}
-    }
-  )cc");
 }
 
 void SingularString::GenerateAggregateInitializer(io::Printer* p) const {
   if (ShouldSplit(field_, options_)) {
     ABSL_CHECK(!inlined_);
     p->Emit(R"cc(
-      decltype(Impl_::Split::$name$_) {}
+      decltype(Impl_::Split::$name$_){},
     )cc");
-    return;
-  }
-
-  if (!inlined_) {
+  } else if (!inlined_) {
     p->Emit(R"cc(
-      decltype($field_$) {}
+      decltype($field_$){},
     )cc");
   } else {
     p->Emit(R"cc(
-      decltype($field_$) { arena }
+      decltype($field_$){arena},
     )cc");
   }
 }
@@ -722,9 +727,9 @@ class RepeatedString : public FieldGeneratorBase {
   }
 
   void GenerateSwappingCode(io::Printer* p) const override {
+    ABSL_CHECK(!ShouldSplit(descriptor_, options_));
     p->Emit(R"cc(
-      _internal_mutable_$name$()->InternalSwap(
-          other->_internal_mutable_$name$());
+      $field_$.InternalSwap(&other->$field_$);
     )cc");
   }
 
@@ -769,8 +774,7 @@ void RepeatedString::GenerateAccessorDeclarations(io::Printer* p) const {
     )cc");
   }
 
-  auto v1 = p->WithVars(
-      AnnotatedAccessors(field_, {"", "_internal_", "_internal_add_"}));
+  auto v1 = p->WithVars(AnnotatedAccessors(field_, {"", "_internal_"}));
   auto v2 = p->WithVars(
       AnnotatedAccessors(field_, {"set_", "add_"}, AnnotationCollector::kSet));
   auto v3 = p->WithVars(
@@ -794,8 +798,6 @@ void RepeatedString::GenerateAccessorDeclarations(io::Printer* p) const {
     $DEPRECATED$ $pb$::RepeatedPtrField<std::string>* $mutable_name$();
 
     private:
-    const std::string& $_internal_name$(int index) const;
-    std::string* $_internal_add_name$();
     const $pb$::RepeatedPtrField<std::string>& _internal_$name$() const;
     $pb$::RepeatedPtrField<std::string>* _internal_mutable_$name$();
 
@@ -805,18 +807,16 @@ void RepeatedString::GenerateAccessorDeclarations(io::Printer* p) const {
 
 void RepeatedString::GenerateInlineAccessorDefinitions(io::Printer* p) const {
   p->Emit({{"Get", opts_->safe_boundary_check ? "InternalCheckedGet" : "Get"},
-           {"get_args",
+           {"GetExtraArg",
             [&] {
-              if (!opts_->safe_boundary_check) {
-                p->Emit("index");
-                return;
-              }
-
-              p->Emit(R"cc(index, $pbi$::GetEmptyStringAlreadyInited())cc");
+              p->Emit(opts_->safe_boundary_check
+                          ? ", $pbi$::GetEmptyStringAlreadyInited()"
+                          : "");
             }}},
           R"cc(
             inline std::string* $Msg$::add_$name$() {
-              std::string* _s = _internal_add_$name$();
+              $TsanDetectConcurrentMutation$;
+              std::string* _s = _internal_mutable_$name$()->Add();
               $annotate_add_mutable$;
               // @@protoc_insertion_point(field_add_mutable:$pkg.Msg.field$)
               return _s;
@@ -824,7 +824,7 @@ void RepeatedString::GenerateInlineAccessorDefinitions(io::Printer* p) const {
             inline const std::string& $Msg$::$name$(int index) const {
               $annotate_get$;
               // @@protoc_insertion_point(field_get:$pkg.Msg.field$)
-              return _internal_$name$(index);
+              return _internal_$name$().$Get$(index$GetExtraArg$);
             }
             inline std::string* $Msg$::mutable_$name$(int index) {
               $annotate_mutable$;
@@ -861,28 +861,33 @@ void RepeatedString::GenerateInlineAccessorDefinitions(io::Printer* p) const {
               // @@protoc_insertion_point(field_set_string_piece:$pkg.Msg.field$)
             }
             inline void $Msg$::add_$name$(const std::string& value) {
+              $TsanDetectConcurrentMutation$;
               _internal_mutable_$name$()->Add()->assign(value);
               $annotate_add$;
               // @@protoc_insertion_point(field_add:$pkg.Msg.field$)
             }
             inline void $Msg$::add_$name$(std::string&& value) {
+              $TsanDetectConcurrentMutation$;
               _internal_mutable_$name$()->Add(std::move(value));
               $annotate_add$;
               // @@protoc_insertion_point(field_add:$pkg.Msg.field$)
             }
             inline void $Msg$::add_$name$(const char* value) {
               $DCHK$(value != nullptr);
+              $TsanDetectConcurrentMutation$;
               _internal_mutable_$name$()->Add()->assign(value);
               $annotate_add$;
               // @@protoc_insertion_point(field_add_char:$pkg.Msg.field$)
             }
             inline void $Msg$::add_$name$(const $byte$* value, std::size_t size) {
+              $TsanDetectConcurrentMutation$;
               _internal_mutable_$name$()->Add()->assign(
                   reinterpret_cast<const char*>(value), size);
               $annotate_add$;
               // @@protoc_insertion_point(field_add_pointer:$pkg.Msg.field$)
             }
             inline void $Msg$::add_$name$(absl::string_view value) {
+              $TsanDetectConcurrentMutation$;
               _internal_mutable_$name$()->Add()->assign(value.data(), value.size());
               $annotate_add$;
               // @@protoc_insertion_point(field_add_string_piece:$pkg.Msg.field$)
@@ -896,20 +901,17 @@ void RepeatedString::GenerateInlineAccessorDefinitions(io::Printer* p) const {
             inline ::$proto_ns$::RepeatedPtrField<std::string>* $Msg$::mutable_$name$() {
               $annotate_mutable_list$;
               // @@protoc_insertion_point(field_mutable_list:$pkg.Msg.field$)
+              $TsanDetectConcurrentMutation$;
               return _internal_mutable_$name$();
-            }
-            inline const std::string& $Msg$::_internal_$name$(int index) const {
-              return _internal_$name$().$Get$($get_args$);
-            }
-            inline std::string* $Msg$::_internal_add_$name$() {
-              return _internal_mutable_$name$()->Add();
             }
             inline const ::$proto_ns$::RepeatedPtrField<std::string>&
             $Msg$::_internal_$name$() const {
+              $TsanDetectConcurrentRead$;
               return $field_$;
             }
             inline ::$proto_ns$::RepeatedPtrField<std::string>*
             $Msg$::_internal_mutable_$name$() {
+              $TsanDetectConcurrentRead$;
               return &$field_$;
             }
           )cc");
@@ -925,7 +927,7 @@ void RepeatedString::GenerateSerializeWithCachedSizesToArray(
             }}},
           R"cc(
             for (int i = 0, n = this->_internal_$name$_size(); i < n; ++i) {
-              const auto& s = this->_internal_$name$(i);
+              const auto& s = this->_internal_$name$().Get(i);
               $utf8_check$;
               target = stream->Write$DeclaredType$($number$, s, target);
             }

@@ -1,5 +1,5 @@
 // Protocol Buffers - Google's data interchange format
-// Copyright 2023 Google Inc.  All rights reserved.
+// Copyright 2023 Google LLC.  All rights reserved.
 // https://developers.google.com/protocol-buffers/
 //
 // Redistribution and use in source and binary forms, with or without
@@ -12,7 +12,7 @@
 // copyright notice, this list of conditions and the following disclaimer
 // in the documentation and/or other materials provided with the
 // distribution.
-//     * Neither the name of Google Inc. nor the names of its
+//     * Neither the name of Google LLC. nor the names of its
 // contributors may be used to endorse or promote products derived from
 // this software without specific prior written permission.
 //
@@ -28,22 +28,38 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <iostream>
+#include <cstddef>
 
+#include "absl/strings/string_view.h"
 #include "google/protobuf/rust/cpp_kernel/cpp_api.h"
 #include "google/protobuf/unittest.pb.h"
 
-extern "C" void MutateInt64Field(protobuf_unittest::TestAllTypes* msg) {
+extern "C" void MutateTestAllTypes(protobuf_unittest::TestAllTypes* msg) {
   msg->set_optional_int64(42);
+  msg->set_optional_bytes("something mysterious");
+  msg->set_optional_bool(false);
 }
 
-extern "C" google::protobuf::rust_internal::SerializedData Serialize(
+extern "C" google::protobuf::rust_internal::SerializedData SerializeTestAllTypes(
     const protobuf_unittest::TestAllTypes* msg) {
   return google::protobuf::rust_internal::SerializeMsg(msg);
 }
 
-extern "C" google::protobuf::rust_internal::SerializedData SerializeMutatedInstance() {
-  protobuf_unittest::TestAllTypes* inst = new protobuf_unittest::TestAllTypes();
-  MutateInt64Field(inst);
-  return Serialize(inst);
+extern "C" void* DeserializeTestAllTypes(const void* data, size_t size) {
+  auto* proto = new protobuf_unittest::TestAllTypes;
+  proto->ParseFromArray(data, size);
+  return proto;
+}
+
+extern "C" void* NewWithExtension() {
+  auto* proto = new protobuf_unittest::TestAllExtensions;
+  proto->SetExtension(protobuf_unittest::optional_bytes_extension, "smuggled");
+  return proto;
+}
+
+extern "C" google::protobuf::rust_internal::PtrAndLen GetBytesExtension(
+    const protobuf_unittest::TestAllExtensions* proto) {
+  absl::string_view bytes =
+      proto->GetExtension(protobuf_unittest::optional_bytes_extension);
+  return {bytes.data(), bytes.size()};
 }

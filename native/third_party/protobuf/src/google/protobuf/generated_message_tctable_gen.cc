@@ -391,12 +391,18 @@ std::vector<TailCallTableInfo::FastFieldInfo> SplitFastFieldsForSize(
 
     TailCallTableInfo::FastFieldInfo& info = result[fast_idx];
     if (!info.func_name.empty()) {
-      // This field entry is already filled.
-      continue;
+      // Null field means END_GROUP which is guaranteed to be present.
+      if (info.field == nullptr) continue;
+
+      // This field entry is already filled. Skip if previous entry is more
+      // likely present.
+      const auto prev_options = option_provider.GetForField(info.field);
+      if (prev_options.presence_probability >= options.presence_probability) {
+        continue;
+      }
     }
 
     // Fill in this field's entry:
-    ABSL_CHECK(info.func_name.empty()) << info.func_name;
     PopulateFastFieldEntry(entry, options, info);
     info.field = field;
     info.coded_tag = tag;
@@ -694,10 +700,23 @@ uint16_t MakeTypeCardForField(
   // Fill in extra information about string and bytes field representations.
   if (field->type() == FieldDescriptor::TYPE_BYTES ||
       field->type() == FieldDescriptor::TYPE_STRING) {
-    if (field->is_repeated()) {
-      type_card |= fl::kRepSString;
-    } else {
-      type_card |= fl::kRepAString;
+    switch (internal::cpp::EffectiveStringCType(field)) {
+      case FieldOptions::CORD:
+        // `Cord` is always used, even for repeated fields.
+        type_card |= fl::kRepCord;
+        break;
+      case FieldOptions::STRING:
+        if (field->is_repeated()) {
+          // A repeated string field uses RepeatedPtrField<std::string>
+          // (unless it has a ctype option; see above).
+          type_card |= fl::kRepSString;
+        } else {
+          // Otherwise, non-repeated string fields use ArenaStringPtr.
+          type_card |= fl::kRepAString;
+        }
+        break;
+      default:
+        PROTOBUF_ASSUME(false);
     }
   }
 

@@ -152,6 +152,9 @@ class ImplicitWeakTypeHandler {
 
 template <typename T>
 struct WeakRepeatedPtrField {
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+
   using TypeHandler = internal::ImplicitWeakTypeHandler<T>;
   constexpr WeakRepeatedPtrField() : weak() {}
   explicit WeakRepeatedPtrField(Arena* arena) : weak(arena) {}
@@ -165,6 +168,7 @@ struct WeakRepeatedPtrField {
                                                 const void* const>
       const_pointer_iterator;
 
+  bool empty() const { return base().empty(); }
   iterator begin() { return iterator(base().raw_data()); }
   const_iterator begin() const { return iterator(base().raw_data()); }
   const_iterator cbegin() const { return begin(); }

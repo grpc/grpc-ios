@@ -662,8 +662,11 @@ bool Parser::Parse(io::Tokenizer* input, FileDescriptorProto* file) {
                                        DescriptorPool::ErrorCollector::OTHER);
 
     if (require_syntax_identifier_ || LookingAt("syntax")
+#ifdef PROTOBUF_FUTURE_EDITIONS
+        || LookingAt("edition")
+#endif  // PROTOBUF_FUTURE_EDITIONS
     ) {
-      if (!ParseSyntaxIdentifier(root_location)) {
+      if (!ParseSyntaxIdentifier(file, root_location)) {
         // Don't attempt to parse the file if we didn't recognize the syntax
         // identifier.
         return false;
@@ -671,6 +674,11 @@ bool Parser::Parse(io::Tokenizer* input, FileDescriptorProto* file) {
       // Store the syntax into the file.
       if (file != nullptr) {
         file->set_syntax(syntax_identifier_);
+#ifdef PROTOBUF_FUTURE_EDITIONS
+        if (syntax_identifier_ == "editions") {
+          file->set_edition(edition_);
+        }
+#endif  // PROTOBUF_FUTURE_EDITIONS
       }
     } else if (!stop_after_syntax_identifier_) {
       ABSL_LOG(WARNING) << "No syntax specified for the proto file: "
@@ -706,12 +714,24 @@ bool Parser::Parse(io::Tokenizer* input, FileDescriptorProto* file) {
   return !had_errors_;
 }
 
-bool Parser::ParseSyntaxIdentifier(const LocationRecorder& parent) {
+bool Parser::ParseSyntaxIdentifier(const FileDescriptorProto* file,
+                                   const LocationRecorder& parent) {
   LocationRecorder syntax_location(parent,
                                    FileDescriptorProto::kSyntaxFieldNumber);
+#ifdef PROTOBUF_FUTURE_EDITIONS
+  syntax_location.RecordLegacyLocation(
+      file, DescriptorPool::ErrorCollector::EDITIONS);
+  bool has_edition = false;
+  if (TryConsume("edition")) {
+    has_edition = true;
+  } else {
+#endif  // PROTOBUF_FUTURE_EDITIONS
     DO(Consume("syntax",
                "File must begin with a syntax statement, e.g. 'syntax = "
                "\"proto2\";'."));
+#ifdef PROTOBUF_FUTURE_EDITIONS
+  }
+#endif  // PROTOBUF_FUTURE_EDITIONS
 
   DO(Consume("="));
   io::Tokenizer::Token syntax_token = input_->current();
@@ -719,6 +739,19 @@ bool Parser::ParseSyntaxIdentifier(const LocationRecorder& parent) {
   DO(ConsumeString(&syntax, "Expected syntax identifier."));
   DO(ConsumeEndOfDeclaration(";", &syntax_location));
 
+#ifdef PROTOBUF_FUTURE_EDITIONS
+  (has_edition ? edition_ : syntax_identifier_) = syntax;
+  if (has_edition) {
+    if (syntax.empty()) {
+      RecordError(syntax_token.line, syntax_token.column,
+                  "A file's edition must be a nonempty string.");
+      return false;
+    }
+    edition_ = syntax;
+    syntax_identifier_ = "editions";
+    return true;
+  }
+#endif  // PROTOBUF_FUTURE_EDITIONS
   syntax_identifier_ = syntax;
   if (syntax != "proto2" && syntax != "proto3" &&
       !stop_after_syntax_identifier_) {
@@ -1189,40 +1222,44 @@ void Parser::GenerateMapEntry(const MapField& map_field,
   } else {
     value_field->set_type_name(map_field.value_type_name);
   }
-  // Propagate the "enforce_utf8" option to key and value fields if they
-  // are strings. This helps simplify the implementation of code generators
-  // and also reflection-based parsing code.
+  // Propagate all features to the generated key and value fields. This helps
+  // simplify the implementation of code generators and also reflection-based
+  // parsing code. Instead of having to implement complex inheritance rules
+  // special-casing maps, we can just copy them at generation time.
   //
   // The following definition:
   //   message Foo {
-  //     map<string, string> value = 1 [enforce_utf8 = false];
+  //     map<string, string> value = 1 [features.some_feature = VALUE];
   //   }
   // will be interpreted as:
   //   message Foo {
   //     message ValueEntry {
   //       option map_entry = true;
-  //       string key = 1 [enforce_utf8 = false];
-  //       string value = 2 [enforce_utf8 = false];
+  //       string key = 1 [features.some_feature = VALUE];
+  //       string value = 2 [features.some_feature = VALUE];
   //     }
-  //     repeated ValueEntry value = 1 [enforce_utf8 = false];
+  //     repeated ValueEntry value = 1 [features.some_feature = VALUE];
   //  }
-  //
-  // TODO(xiaofeng): Remove this when the "enforce_utf8" option is removed
-  // from protocol compiler.
   for (int i = 0; i < field->options().uninterpreted_option_size(); ++i) {
     const UninterpretedOption& option =
         field->options().uninterpreted_option(i);
+    // Legacy handling for the `enforce_utf8` option, which bears a striking
+    // similarity to features in many respects.
+    // TODO(b/289755572) Delete this once proto2/proto3 have been turned down.
     if (option.name_size() == 1 &&
         option.name(0).name_part() == "enforce_utf8" &&
         !option.name(0).is_extension()) {
       if (key_field->type() == FieldDescriptorProto::TYPE_STRING) {
-        key_field->mutable_options()->add_uninterpreted_option()->CopyFrom(
-            option);
+        *key_field->mutable_options()->add_uninterpreted_option() = option;
       }
       if (value_field->type() == FieldDescriptorProto::TYPE_STRING) {
-        value_field->mutable_options()->add_uninterpreted_option()->CopyFrom(
-            option);
+        *value_field->mutable_options()->add_uninterpreted_option() = option;
       }
+    }
+    if (option.name(0).name_part() == "features" &&
+        !option.name(0).is_extension()) {
+      *key_field->mutable_options()->add_uninterpreted_option() = option;
+      *value_field->mutable_options()->add_uninterpreted_option() = option;
     }
   }
 }
@@ -2306,6 +2343,18 @@ bool Parser::ParseLabel(FieldDescriptorProto::Label* label,
       !LookingAt("required")) {
     return false;
   }
+#ifdef PROTOBUF_FUTURE_EDITIONS
+  if (LookingAt("optional") && syntax_identifier_ == "editions") {
+    RecordError(
+        "Label \"optional\" is not supported in editions.  By default, all "
+        "singular fields have presence unless features.field_presence is set.");
+  }
+  if (LookingAt("required") && syntax_identifier_ == "editions") {
+    RecordError(
+        "Label \"required\" is not supported in editions, use "
+        "features.field_presence = LEGACY_REQUIRED.");
+  }
+#endif  // PROTOBUF_FUTURE_EDITIONS
 
   LocationRecorder location(field_location,
                             FieldDescriptorProto::kLabelFieldNumber);
@@ -2325,6 +2374,15 @@ bool Parser::ParseType(FieldDescriptorProto::Type* type,
   const auto& type_names_table = GetTypeNameTable();
   auto iter = type_names_table.find(input_->current().text);
   if (iter != type_names_table.end()) {
+#ifdef PROTOBUF_FUTURE_EDITIONS
+    if (syntax_identifier_ == "editions" &&
+        iter->second == FieldDescriptorProto::TYPE_GROUP) {
+      RecordError(
+          "Group syntax is no longer supported in editions. To get group "
+          "behavior you can specify features.message_encoding = DELIMITED on a "
+          "message field.");
+    }
+#endif  // PROTOBUF_FUTURE_EDITIONS
     *type = iter->second;
     input_->Next();
   } else {

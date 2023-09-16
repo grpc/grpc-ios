@@ -1005,46 +1005,35 @@ class MessageTest(unittest.TestCase):
     with self.assertRaises(NameError) as _:
       m.repeated_nested_enum.extend(a for i in range(10))  # pylint: disable=undefined-variable
 
-  FALSY_VALUES = [None, False, 0, 0.0, b'', u'', bytearray(), [], {}, set()]
+  FALSY_VALUES = [None, False, 0, 0.0]
+  EMPTY_VALUES = [b'', u'', bytearray(), [], {}, set()]
 
   def testExtendInt32WithNothing(self, message_module):
     """Test no-ops extending repeated int32 fields."""
     m = message_module.TestAllTypes()
     self.assertSequenceEqual([], m.repeated_int32)
 
-    # TODO(ptucker): Deprecate this behavior. b/18413862
-    for falsy_value in MessageTest.FALSY_VALUES:
-      m.repeated_int32.extend(falsy_value)
+    for empty_value in MessageTest.EMPTY_VALUES:
+      m.repeated_int32.extend(empty_value)
       self.assertSequenceEqual([], m.repeated_int32)
-
-    m.repeated_int32.extend([])
-    self.assertSequenceEqual([], m.repeated_int32)
 
   def testExtendFloatWithNothing(self, message_module):
     """Test no-ops extending repeated float fields."""
     m = message_module.TestAllTypes()
     self.assertSequenceEqual([], m.repeated_float)
 
-    # TODO(ptucker): Deprecate this behavior. b/18413862
-    for falsy_value in MessageTest.FALSY_VALUES:
-      m.repeated_float.extend(falsy_value)
+    for empty_value in MessageTest.EMPTY_VALUES:
+      m.repeated_float.extend(empty_value)
       self.assertSequenceEqual([], m.repeated_float)
-
-    m.repeated_float.extend([])
-    self.assertSequenceEqual([], m.repeated_float)
 
   def testExtendStringWithNothing(self, message_module):
     """Test no-ops extending repeated string fields."""
     m = message_module.TestAllTypes()
     self.assertSequenceEqual([], m.repeated_string)
 
-    # TODO(ptucker): Deprecate this behavior. b/18413862
-    for falsy_value in MessageTest.FALSY_VALUES:
-      m.repeated_string.extend(falsy_value)
+    for empty_value in MessageTest.EMPTY_VALUES:
+      m.repeated_string.extend(empty_value)
       self.assertSequenceEqual([], m.repeated_string)
-
-    m.repeated_string.extend([])
-    self.assertSequenceEqual([], m.repeated_string)
 
   def testExtendInt32WithPythonList(self, message_module):
     """Test extending repeated int32 fields with python lists."""
@@ -1373,6 +1362,33 @@ class Proto2Test(unittest.TestCase):
         123,
         msg1.submessage.Extensions[more_extensions_pb2.optional_int_extension])
 
+  def testCopyFromAll(self):
+    message = unittest_pb2.TestAllTypes()
+    test_util.SetAllFields(message)
+    copy = unittest_pb2.TestAllTypes()
+    copy.CopyFrom(message)
+    self.assertEqual(message, copy)
+    message.repeated_nested_message.add().bb = 123
+    self.assertNotEqual(message, copy)
+
+  def testCopyFromAllExtensions(self):
+    all_set = unittest_pb2.TestAllExtensions()
+    test_util.SetAllExtensions(all_set)
+    copy =  unittest_pb2.TestAllExtensions()
+    copy.CopyFrom(all_set)
+    self.assertEqual(all_set, copy)
+    all_set.Extensions[unittest_pb2.repeatedgroup_extension].add().a = 321
+    self.assertNotEqual(all_set, copy)
+
+  def testCopyFromAllPackedExtensions(self):
+    all_set = unittest_pb2.TestPackedExtensions()
+    test_util.SetAllPackedExtensions(all_set)
+    copy =  unittest_pb2.TestPackedExtensions()
+    copy.CopyFrom(all_set)
+    self.assertEqual(all_set, copy)
+    all_set.Extensions[unittest_pb2.packed_float_extension].extend([61.0, 71.0])
+    self.assertNotEqual(all_set, copy)
+
   def testGoldenExtensions(self):
     golden_data = test_util.GoldenFileData('golden_message')
     golden_message = unittest_pb2.TestAllExtensions()
@@ -1382,7 +1398,11 @@ class Proto2Test(unittest.TestCase):
     self.assertEqual(all_set, golden_message)
     self.assertEqual(golden_data, golden_message.SerializeToString())
     golden_copy = copy.deepcopy(golden_message)
-    self.assertEqual(golden_data, golden_copy.SerializeToString())
+    self.assertEqual(golden_message, golden_copy)
+    # Depend on a specific serialization order for extensions is not
+    # reasonable to guarantee.
+    if api_implementation.Type() != 'upb':
+      self.assertEqual(golden_data, golden_copy.SerializeToString())
 
   def testGoldenPackedExtensions(self):
     golden_data = test_util.GoldenFileData('golden_packed_fields_message')
@@ -1393,7 +1413,11 @@ class Proto2Test(unittest.TestCase):
     self.assertEqual(all_set, golden_message)
     self.assertEqual(golden_data, all_set.SerializeToString())
     golden_copy = copy.deepcopy(golden_message)
-    self.assertEqual(golden_data, golden_copy.SerializeToString())
+    self.assertEqual(golden_message, golden_copy)
+    # Depend on a specific serialization order for extensions is not
+    # reasonable to guarantee.
+    if api_implementation.Type() != 'upb':
+      self.assertEqual(golden_data, golden_copy.SerializeToString())
 
   def testPickleIncompleteProto(self):
     golden_message = unittest_pb2.TestRequired(a=1)

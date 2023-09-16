@@ -1,5 +1,5 @@
 // Protocol Buffers - Google's data interchange format
-// Copyright 2023 Google Inc.  All rights reserved.
+// Copyright 2023 Google LLC.  All rights reserved.
 // https://developers.google.com/protocol-buffers/
 //
 // Redistribution and use in source and binary forms, with or without
@@ -12,7 +12,7 @@
 // copyright notice, this list of conditions and the following disclaimer
 // in the documentation and/or other materials provided with the
 // distribution.
-//     * Neither the name of Google Inc. nor the names of its
+//     * Neither the name of Google LLC. nor the names of its
 // contributors may be used to endorse or promote products derived from
 // this software without specific prior written permission.
 //
@@ -61,13 +61,17 @@ class SingularBytes final : public AccessorGenerator {
               return None;
             }
             unsafe {
-              let val = $getter_thunk$(self.msg);
-              Some($std$::slice::from_raw_parts(val.ptr, val.len))
+              Some($getter_thunk$(self.msg).as_ref())
             }
           }
           pub fn $field$_set(&mut self, val: Option<&[u8]>) {
             match val {
-              Some(val) => unsafe { $setter_thunk$(self.msg, val.as_ptr(), val.len()) },
+              Some(val) =>
+                if val.len() == 0 {
+                  unsafe { $setter_thunk$(self.msg, $std$::ptr::null(), 0) }
+                } else {
+                  unsafe { $setter_thunk$(self.msg, val.as_ptr(), val.len()) }
+                },
               None => unsafe { $clearer_thunk$(self.msg) },
             }
           }
@@ -84,7 +88,7 @@ class SingularBytes final : public AccessorGenerator {
         },
         R"rs(
           fn $hazzer_thunk$(raw_msg: $NonNull$<u8>) -> bool;
-          fn $getter_thunk$(raw_msg: $NonNull$<u8>) -> $pb$::PtrAndLen;
+          fn $getter_thunk$(raw_msg: $NonNull$<u8>) -> $pbi$::PtrAndLen;
           fn $setter_thunk$(raw_msg: $NonNull$<u8>, val: *const u8, len: usize);
           fn $clearer_thunk$(raw_msg: $NonNull$<u8>);
         )rs");

@@ -40,12 +40,18 @@
 #include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "google/protobuf/compiler/cpp/file.h"
 #include "google/protobuf/compiler/cpp/helpers.h"
 #include "google/protobuf/descriptor.pb.h"
+#include "google/protobuf/descriptor_visitor.h"
+
+#ifdef PROTOBUF_FUTURE_EDITIONS
+#include "google/protobuf/cpp_features.pb.h"
+#endif  // PROTOBUF_FUTURE_EDITIONS
 
 namespace google {
 namespace protobuf {
@@ -61,7 +67,7 @@ absl::flat_hash_map<absl::string_view, std::string> CommonVars(
     const Options& options) {
   bool is_oss = options.opensource_runtime;
   return {
-      {"proto_ns", ProtobufNamespace(options)},
+      {"proto_ns", std::string(ProtobufNamespace(options))},
       {"pb", absl::StrCat("::", ProtobufNamespace(options))},
       {"pbi", absl::StrCat("::", ProtobufNamespace(options), "::internal")},
 
@@ -96,6 +102,7 @@ absl::flat_hash_map<absl::string_view, std::string> CommonVars(
        "K"},
   };
 }
+
 }  // namespace
 
 bool CppGenerator::Generate(const FileDescriptor* file,
@@ -198,6 +205,8 @@ bool CppGenerator::Generate(const FileDescriptor* file,
             "Unknown value for experimental_tail_call_table_mode: ", value);
         return false;
       }
+    } else if (key == "experimental_strip_nonfunctional_codegen") {
+      file_options.strip_nonfunctional_codegen = true;
     } else {
       *error = absl::StrCat("Unknown generator option: ", key);
       return false;
@@ -231,6 +240,12 @@ bool CppGenerator::Generate(const FileDescriptor* file,
   if (MaybeBootstrap(file_options, generator_context, file_options.bootstrap,
                      &basename)) {
     return true;
+  }
+
+  absl::Status validation_result = ValidateFeatures(file);
+  if (!validation_result.ok()) {
+    *error = std::string(validation_result.message());
+    return false;
   }
 
   FileGenerator file_generator(file, file_options);
@@ -349,6 +364,31 @@ bool CppGenerator::Generate(const FileDescriptor* file,
 
   return true;
 }
+
+absl::Status CppGenerator::ValidateFeatures(const FileDescriptor* file) const {
+  absl::Status status = absl::OkStatus();
+#ifdef PROTOBUF_FUTURE_EDITIONS
+  google::protobuf::internal::VisitDescriptors(*file, [&](const FieldDescriptor& field) {
+    const FeatureSet& source_features = GetSourceFeatures(field);
+    const FeatureSet& raw_features = GetSourceRawFeatures(field);
+    if (raw_features.GetExtension(::pb::cpp).has_legacy_closed_enum() &&
+        field.cpp_type() != FieldDescriptor::CPPTYPE_ENUM) {
+      status = absl::FailedPreconditionError(absl::StrCat(
+          "Field ", field.full_name(),
+          " specifies the legacy_closed_enum feature but has non-enum type."));
+    }
+    if (field.enum_type() != nullptr &&
+        source_features.GetExtension(::pb::cpp).legacy_closed_enum() &&
+        source_features.field_presence() == FeatureSet::IMPLICIT) {
+      status = absl::FailedPreconditionError(
+          absl::StrCat("Field ", field.full_name(),
+                       " has a closed enum type with implicit presence."));
+    }
+  });
+#endif  // PROTOBUF_FUTURE_EDITIONS
+  return status;
+}
+
 }  // namespace cpp
 }  // namespace compiler
 }  // namespace protobuf

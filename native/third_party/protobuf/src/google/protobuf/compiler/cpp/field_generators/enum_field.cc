@@ -34,17 +34,18 @@
 
 #include <memory>
 #include <string>
-#include <tuple>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/log/absl_check.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/substitute.h"
 #include "google/protobuf/compiler/cpp/field.h"
 #include "google/protobuf/compiler/cpp/field_generators/generators.h"
 #include "google/protobuf/compiler/cpp/helpers.h"
+#include "google/protobuf/compiler/cpp/options.h"
+#include "google/protobuf/descriptor.h"
 #include "google/protobuf/descriptor.pb.h"
+#include "google/protobuf/io/printer.h"
 
 namespace google {
 namespace protobuf {
@@ -139,26 +140,25 @@ class SingularEnum : public FieldGeneratorBase {
 
   void GenerateConstexprAggregateInitializer(io::Printer* p) const override {
     p->Emit(R"cc(
-      /*decltype($field_$)*/ $kDefault$
+      /*decltype($field_$)*/ $kDefault$,
     )cc");
   }
 
   void GenerateAggregateInitializer(io::Printer* p) const override {
     if (ShouldSplit(descriptor_, options_)) {
       p->Emit(R"cc(
-        decltype(Impl_::Split::$name$_) { $kDefault$ }
+        decltype(Impl_::Split::$name$_){$kDefault$},
       )cc");
-      return;
+    } else {
+      p->Emit(R"cc(
+        decltype($field_$){$kDefault$},
+      )cc");
     }
-
-    p->Emit(R"cc(
-      decltype($field_$) { $kDefault$ }
-    )cc");
   }
 
   void GenerateCopyAggregateInitializer(io::Printer* p) const override {
     p->Emit(R"cc(
-      decltype($field_$) {}
+      decltype($field_$){},
     )cc");
   }
 
@@ -195,7 +195,8 @@ void SingularEnum::GenerateInlineAccessorDefinitions(io::Printer* p) const {
       return _internal_$name$();
     }
     inline void $Msg$::set_$name$($Enum$ value) {
-      $PrepareSplitMessageForWrite$ _internal_set_$name$(value);
+      $PrepareSplitMessageForWrite$;
+      _internal_set_$name$(value);
       $annotate_set$;
       // @@protoc_insertion_point(field_set:$pkg.Msg.field$)
     }
@@ -221,9 +222,11 @@ void SingularEnum::GenerateInlineAccessorDefinitions(io::Printer* p) const {
   } else {
     p->Emit(R"cc(
       inline $Enum$ $Msg$::_internal_$name$() const {
+        $TsanDetectConcurrentRead$;
         return static_cast<$Enum$>($field_$);
       }
       inline void $Msg$::_internal_set_$name$($Enum$ value) {
+        $TsanDetectConcurrentMutation$;
         $assert_valid$;
         $set_hasbit$;
         $field_$ = value;
@@ -269,9 +272,9 @@ class RepeatedEnum : public FieldGeneratorBase {
   }
 
   void GenerateSwappingCode(io::Printer* p) const override {
+    ABSL_CHECK(!ShouldSplit(descriptor_, options_));
     p->Emit(R"cc(
-      _internal_mutable_$name$()->InternalSwap(
-          other->_internal_mutable_$name$());
+      $field_$.InternalSwap(&other->$field_$);
     )cc");
   }
 
@@ -283,35 +286,36 @@ class RepeatedEnum : public FieldGeneratorBase {
 
   void GenerateConstexprAggregateInitializer(io::Printer* p) const override {
     p->Emit(R"cc(
-      /*decltype($field_$)*/ {}
+      /*decltype($field_$)*/ {},
     )cc");
     if (has_cached_size_) {
       p->Emit(R"cc(
-        , /*decltype($cached_size_$)*/ { 0 }
+        /*decltype($cached_size_$)*/ {0},
       )cc");
     }
   }
 
   void GenerateAggregateInitializer(io::Printer* p) const override {
     p->Emit(R"cc(
-      decltype($field_$) { arena }
+      decltype($field_$){arena},
     )cc");
     if (has_cached_size_) {
       // std::atomic has no copy constructor, which prevents explicit aggregate
       // initialization pre-C++17.
       p->Emit(R"cc(
-        , /*decltype($cached_size_$)*/ { 0 }
+        /*decltype($cached_size_$)*/ {0},
       )cc");
     }
   }
 
   void GenerateCopyAggregateInitializer(io::Printer* p) const override {
     p->Emit(R"cc(
-      decltype($field_$) { from._internal_$name$() })cc");
+      decltype($field_$){from._internal_$name$()},
+    )cc");
     if (has_cached_size_) {
       // std::atomic has no copy constructor.
       p->Emit(R"cc(
-        , /*decltype($cached_size_$)*/ { 0 }
+        /*decltype($cached_size_$)*/ {0},
       )cc");
     }
   }
@@ -334,8 +338,8 @@ class RepeatedEnum : public FieldGeneratorBase {
 };
 
 void RepeatedEnum::GenerateAccessorDeclarations(io::Printer* p) const {
-  auto v = p->WithVars(AnnotatedAccessors(
-      field_, {"", "_internal_", "_internal_add_", "_internal_mutable_"}));
+  auto v = p->WithVars(
+      AnnotatedAccessors(field_, {"", "_internal_", "_internal_mutable_"}));
   auto vs =
       p->WithVars(AnnotatedAccessors(field_, {"set_", "add_"}, Semantic::kSet));
   auto vm =
@@ -350,8 +354,6 @@ void RepeatedEnum::GenerateAccessorDeclarations(io::Printer* p) const {
     $DEPRECATED$ $pb$::RepeatedField<int>* $mutable_name$();
 
     private:
-    $Enum$ $_internal_name$(int index) const;
-    void $_internal_add_name$($Enum$ value);
     const $pb$::RepeatedField<int>& $_internal_name$() const;
     $pb$::RepeatedField<int>* $_internal_mutable_name$();
 
@@ -364,7 +366,7 @@ void RepeatedEnum::GenerateInlineAccessorDefinitions(io::Printer* p) const {
     inline $Enum$ $Msg$::$name$(int index) const {
       $annotate_get$;
       // @@protoc_insertion_point(field_get:$pkg.Msg.field$)
-      return _internal_$name$(index);
+      return static_cast<$Enum$>(_internal_$name$().Get(index));
     }
     inline void $Msg$::set_$name$(int index, $Enum$ value) {
       $assert_valid$;
@@ -373,7 +375,9 @@ void RepeatedEnum::GenerateInlineAccessorDefinitions(io::Printer* p) const {
       // @@protoc_insertion_point(field_set:$pkg.Msg.field$)
     }
     inline void $Msg$::add_$name$($Enum$ value) {
-      _internal_add_$name$(value);
+      $assert_valid$;
+      $TsanDetectConcurrentMutation$;
+      _internal_mutable_$name$()->Add(value);
       $annotate_add$
       // @@protoc_insertion_point(field_add:$pkg.Msg.field$)
     }
@@ -385,19 +389,15 @@ void RepeatedEnum::GenerateInlineAccessorDefinitions(io::Printer* p) const {
     inline $pb$::RepeatedField<int>* $Msg$::mutable_$name$() {
       $annotate_mutable_list$;
       // @@protoc_insertion_point(field_mutable_list:$pkg.Msg.field$)
+      $TsanDetectConcurrentMutation$;
       return _internal_mutable_$name$();
     }
-    inline $Enum$ $Msg$::_internal_$name$(int index) const {
-      return static_cast<$Enum$>(_internal_$name$().Get(index));
-    }
-    inline void $Msg$::_internal_add_$name$($Enum$ value) {
-      $assert_valid$;
-      _internal_mutable_$name$()->Add(value);
-    }
     inline const $pb$::RepeatedField<int>& $Msg$::_internal_$name$() const {
+      $TsanDetectConcurrentRead$;
       return $field_$;
     }
     inline $pb$::RepeatedField<int>* $Msg$::_internal_mutable_$name$() {
+      $TsanDetectConcurrentRead$;
       return &$field_$;
     }
   )cc");
@@ -421,7 +421,8 @@ void RepeatedEnum::GenerateSerializeWithCachedSizesToArray(
     for (int i = 0, n = this->_internal_$name$_size(); i < n; ++i) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
-          $number$, this->_internal_$name$(i), target);
+          $number$, static_cast<$Enum$>(this->_internal_$name$().Get(i)),
+          target);
     }
   )cc");
 }
@@ -455,7 +456,7 @@ void RepeatedEnum::GenerateByteSize(io::Printer* p) const {
 
           for (std::size_t i = 0; i < count; ++i) {
             data_size += ::_pbi::WireFormatLite::EnumSize(
-                this->_internal_$name$(static_cast<int>(i)));
+                this->_internal_$name$().Get(static_cast<int>(i)));
           }
           total_size += data_size;
           $add_to_size$;

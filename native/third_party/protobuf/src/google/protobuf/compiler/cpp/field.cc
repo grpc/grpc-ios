@@ -39,8 +39,8 @@
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/log/absl_check.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
@@ -86,6 +86,12 @@ std::vector<Sub> FieldVars(const FieldDescriptor* field, const Options& opts) {
       {"{", ""},
       {"}", ""},
 
+      // For TSan validation.
+      {"TsanDetectConcurrentMutation",
+       "PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race)"},
+      {"TsanDetectConcurrentRead",
+       "PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race)"},
+
       // Old-style names.
       {"field", FieldMemberName(field, split)},
       {"declared_type", DeclaredTypeMethodName(field->type())},
@@ -112,24 +118,29 @@ std::vector<Sub> FieldVars(const FieldDescriptor* field, const Options& opts) {
 }
 
 void FieldGeneratorBase::GenerateAggregateInitializer(io::Printer* p) const {
-  Formatter format(p, variables_);
   if (ShouldSplit(descriptor_, options_)) {
-    format("decltype(Impl_::Split::$name$_){arena}");
-    return;
+    p->Emit(R"cc(
+      decltype(Impl_::Split::$name$_){arena},
+    )cc");
+  } else {
+    p->Emit(R"cc(
+      decltype($field$){arena},
+    )cc");
   }
-  format("decltype($field$){arena}");
 }
 
 void FieldGeneratorBase::GenerateConstexprAggregateInitializer(
     io::Printer* p) const {
-  Formatter format(p, variables_);
-  format("/*decltype($field$)*/{}");
+  p->Emit(R"cc(
+    /*decltype($field$)*/ {},
+  )cc");
 }
 
 void FieldGeneratorBase::GenerateCopyAggregateInitializer(
     io::Printer* p) const {
-  Formatter format(p, variables_);
-  format("decltype($field$){from.$field$}");
+  p->Emit(R"cc(
+    decltype($field$){from.$field$},
+  )cc");
 }
 
 void FieldGeneratorBase::GenerateCopyConstructorCode(io::Printer* p) const {
@@ -139,13 +150,6 @@ void FieldGeneratorBase::GenerateCopyConstructorCode(io::Printer* p) const {
     Formatter format(p, variables_);
     format("$field$ = from.$field$;\n");
   }
-}
-
-void FieldGeneratorBase::GenerateIfHasField(io::Printer* p) const {
-  ABSL_CHECK(internal::cpp::HasHasbit(descriptor_));
-
-  Formatter format(p);
-  format("if (($has_hasbit$) != 0) {\n");
 }
 
 namespace {
