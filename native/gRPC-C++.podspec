@@ -22,7 +22,7 @@
 Pod::Spec.new do |s|
   s.name     = 'gRPC-C++'
   # TODO (mxyan): use version that match gRPC version when pod is stabilized
-  version = '1.58.0'
+  version = '1.58.1'
   s.version  = version
   s.summary  = 'gRPC C++ library'
   s.homepage = 'https://grpc.io'
@@ -767,6 +767,7 @@ Pod::Spec.new do |s|
                       'src/core/lib/event_engine/grpc_polled_fd.h',
                       'src/core/lib/event_engine/handle_containers.h',
                       'src/core/lib/event_engine/memory_allocator_factory.h',
+                      'src/core/lib/event_engine/nameser.h',
                       'src/core/lib/event_engine/poller.h',
                       'src/core/lib/event_engine/posix.h',
                       'src/core/lib/event_engine/posix_engine/ev_epoll1_linux.h',
@@ -1824,6 +1825,7 @@ Pod::Spec.new do |s|
                               'src/core/lib/event_engine/grpc_polled_fd.h',
                               'src/core/lib/event_engine/handle_containers.h',
                               'src/core/lib/event_engine/memory_allocator_factory.h',
+                              'src/core/lib/event_engine/nameser.h',
                               'src/core/lib/event_engine/poller.h',
                               'src/core/lib/event_engine/posix.h',
                               'src/core/lib/event_engine/posix_engine/ev_epoll1_linux.h',
