@@ -211,11 +211,11 @@ config_setting(
 python_config_settings()
 
 # This should be updated along with build_handwritten.yaml
-g_stands_for = "generative"  # @unused
+g_stands_for = "gjallarhorn"  # @unused
 
-core_version = "35.0.0"  # @unused
+core_version = "36.0.0"  # @unused
 
-version = "1.59.0-dev"  # @unused
+version = "1.60.0-dev"  # @unused
 
 GPR_PUBLIC_HDRS = [
     "include/grpc/support/alloc.h",
@@ -2391,6 +2391,19 @@ grpc_cc_library(
     ],
 )
 
+# This is an EXPERIMENTAL target subject to change.
+grpc_cc_library(
+    name = "grpcpp_csm_observability",
+    hdrs = [
+        "include/grpcpp/ext/csm_observability.h",
+    ],
+    language = "c++",
+    tags = ["nofixdeps"],
+    deps = [
+        "//src/cpp/ext/csm:csm_observability",
+    ],
+)
+
 grpc_cc_library(
     name = "work_serializer",
     srcs = [
@@ -2412,7 +2425,9 @@ grpc_cc_library(
         "gpr",
         "grpc_trace",
         "orphanable",
+        "stats",
         "//src/core:experiments",
+        "//src/core:stats_data",
     ],
 )
 
@@ -2648,6 +2663,7 @@ grpc_cc_library(
         "grpc_trace",
         "//src/core:closure",
         "//src/core:error",
+        "//src/core:experiments",
         "//src/core:gpr_atm",
         "//src/core:gpr_spinlock",
         "//src/core:time",
@@ -2902,12 +2918,12 @@ grpc_cc_library(
 )
 
 grpc_cc_library(
-    name = "server_address",
+    name = "endpoint_addresses",
     srcs = [
-        "//src/core:lib/resolver/server_address.cc",
+        "//src/core:lib/resolver/endpoint_addresses.cc",
     ],
     hdrs = [
-        "//src/core:lib/resolver/server_address.h",
+        "//src/core:lib/resolver/endpoint_addresses.h",
     ],
     external_deps = [
         "absl/status",
@@ -2917,11 +2933,25 @@ grpc_cc_library(
     language = "c++",
     visibility = ["@grpc:client_channel"],
     deps = [
+        "gpr",
         "gpr_platform",
         "sockaddr_utils",
         "//src/core:channel_args",
         "//src/core:resolved_address",
         "//src/core:useful",
+    ],
+)
+
+grpc_cc_library(
+    name = "server_address",
+    hdrs = [
+        "//src/core:lib/resolver/server_address.h",
+    ],
+    language = "c++",
+    visibility = ["@grpc:client_channel"],
+    deps = [
+        "endpoint_addresses",
+        "gpr_public_hdrs",
     ],
 )
 
@@ -2945,6 +2975,7 @@ grpc_cc_library(
     language = "c++",
     visibility = ["@grpc:client_channel"],
     deps = [
+        "endpoint_addresses",
         "gpr",
         "grpc_trace",
         "orphanable",
@@ -3034,6 +3065,7 @@ grpc_cc_library(
         "config",
         "config_vars",
         "debug_location",
+        "endpoint_addresses",
         "exec_ctx",
         "gpr",
         "grpc_base",
@@ -3050,7 +3082,6 @@ grpc_cc_library(
         "promise",
         "protobuf_duration_upb",
         "ref_counted_ptr",
-        "server_address",
         "sockaddr_utils",
         "stats",
         "uri_parser",
@@ -3148,6 +3179,7 @@ grpc_cc_library(
         "config",
         "config_vars",
         "debug_location",
+        "endpoint_addresses",
         "exec_ctx",
         "gpr",
         "grpc_base",
@@ -3159,7 +3191,6 @@ grpc_cc_library(
         "orphanable",
         "parse_address",
         "ref_counted_ptr",
-        "server_address",
         "sockaddr_utils",
         "uri_parser",
         "//src/core:channel_args",
@@ -3602,9 +3633,9 @@ grpc_cc_library(
     language = "c++",
     visibility = ["@grpc:grpclb"],
     deps = [
+        "endpoint_addresses",
         "gpr_platform",
         "grpc_public_hdrs",
-        "server_address",
         "//src/core:channel_args",
         "//src/core:useful",
     ],
@@ -3722,12 +3753,12 @@ grpc_cc_library(
     deps = [
         "config",
         "debug_location",
+        "endpoint_addresses",
         "gpr",
         "grpc_public_hdrs",
         "grpc_resolver",
         "orphanable",
         "ref_counted_ptr",
-        "server_address",
         "uri_parser",
         "work_serializer",
         "//src/core:channel_args",
@@ -3842,6 +3873,7 @@ grpc_cc_library(
     ],
     external_deps = [
         "absl/base:core_headers",
+        "absl/random:bit_gen_ref",
         "absl/status",
         "absl/strings",
         "absl/types:optional",
@@ -3964,6 +3996,8 @@ grpc_cc_library(
         "absl/container:flat_hash_map",
         "absl/hash",
         "absl/meta:type_traits",
+        "absl/random",
+        "absl/random:bit_gen_ref",
         "absl/status",
         "absl/strings",
         "absl/strings:cord",
@@ -4008,6 +4042,7 @@ grpc_cc_library(
         "//src/core:match",
         "//src/core:memory_quota",
         "//src/core:ping_abuse_policy",
+        "//src/core:ping_callbacks",
         "//src/core:ping_rate_policy",
         "//src/core:poll",
         "//src/core:ref_counted",

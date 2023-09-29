@@ -310,6 +310,7 @@ libs:
   - src/core/ext/transport/chttp2/transport/internal.h
   - src/core/ext/transport/chttp2/transport/legacy_frame.h
   - src/core/ext/transport/chttp2/transport/ping_abuse_policy.h
+  - src/core/ext/transport/chttp2/transport/ping_callbacks.h
   - src/core/ext/transport/chttp2/transport/ping_rate_policy.h
   - src/core/ext/transport/chttp2/transport/varint.h
   - src/core/ext/transport/inproc/inproc_transport.h
@@ -879,6 +880,7 @@ libs:
   - src/core/lib/promise/sleep.h
   - src/core/lib/promise/trace.h
   - src/core/lib/promise/try_seq.h
+  - src/core/lib/resolver/endpoint_addresses.h
   - src/core/lib/resolver/resolver.h
   - src/core/lib/resolver/resolver_factory.h
   - src/core/lib/resolver/resolver_registry.h
@@ -1135,6 +1137,7 @@ libs:
   - src/core/ext/transport/chttp2/transport/huffsyms.cc
   - src/core/ext/transport/chttp2/transport/parsing.cc
   - src/core/ext/transport/chttp2/transport/ping_abuse_policy.cc
+  - src/core/ext/transport/chttp2/transport/ping_callbacks.cc
   - src/core/ext/transport/chttp2/transport/ping_rate_policy.cc
   - src/core/ext/transport/chttp2/transport/stream_lists.cc
   - src/core/ext/transport/chttp2/transport/varint.cc
@@ -1655,9 +1658,9 @@ libs:
   - src/core/lib/promise/party.cc
   - src/core/lib/promise/sleep.cc
   - src/core/lib/promise/trace.cc
+  - src/core/lib/resolver/endpoint_addresses.cc
   - src/core/lib/resolver/resolver.cc
   - src/core/lib/resolver/resolver_registry.cc
-  - src/core/lib/resolver/server_address.cc
   - src/core/lib/resource_quota/api.cc
   - src/core/lib/resource_quota/arena.cc
   - src/core/lib/resource_quota/memory_quota.cc
@@ -1819,6 +1822,8 @@ libs:
   - absl/functional:function_ref
   - absl/hash:hash
   - absl/meta:type_traits
+  - absl/random:bit_gen_ref
+  - absl/random:distributions
   - absl/status:statusor
   - absl/types:span
   - absl/utility:utility
@@ -2046,6 +2051,7 @@ libs:
   - src/core/ext/transport/chttp2/transport/internal.h
   - src/core/ext/transport/chttp2/transport/legacy_frame.h
   - src/core/ext/transport/chttp2/transport/ping_abuse_policy.h
+  - src/core/ext/transport/chttp2/transport/ping_callbacks.h
   - src/core/ext/transport/chttp2/transport/ping_rate_policy.h
   - src/core/ext/transport/chttp2/transport/varint.h
   - src/core/ext/transport/inproc/inproc_transport.h
@@ -2288,6 +2294,7 @@ libs:
   - src/core/lib/promise/sleep.h
   - src/core/lib/promise/trace.h
   - src/core/lib/promise/try_seq.h
+  - src/core/lib/resolver/endpoint_addresses.h
   - src/core/lib/resolver/resolver.h
   - src/core/lib/resolver/resolver_factory.h
   - src/core/lib/resolver/resolver_registry.h
@@ -2483,6 +2490,7 @@ libs:
   - src/core/ext/transport/chttp2/transport/huffsyms.cc
   - src/core/ext/transport/chttp2/transport/parsing.cc
   - src/core/ext/transport/chttp2/transport/ping_abuse_policy.cc
+  - src/core/ext/transport/chttp2/transport/ping_callbacks.cc
   - src/core/ext/transport/chttp2/transport/ping_rate_policy.cc
   - src/core/ext/transport/chttp2/transport/stream_lists.cc
   - src/core/ext/transport/chttp2/transport/varint.cc
@@ -2680,9 +2688,9 @@ libs:
   - src/core/lib/promise/party.cc
   - src/core/lib/promise/sleep.cc
   - src/core/lib/promise/trace.cc
+  - src/core/lib/resolver/endpoint_addresses.cc
   - src/core/lib/resolver/resolver.cc
   - src/core/lib/resolver/resolver_registry.cc
-  - src/core/lib/resolver/server_address.cc
   - src/core/lib/resource_quota/api.cc
   - src/core/lib/resource_quota/arena.cc
   - src/core/lib/resource_quota/memory_quota.cc
@@ -2791,6 +2799,8 @@ libs:
   - absl/functional:function_ref
   - absl/hash:hash
   - absl/meta:type_traits
+  - absl/random:bit_gen_ref
+  - absl/random:distributions
   - absl/status:statusor
   - absl/types:span
   - absl/utility:utility
@@ -4293,6 +4303,7 @@ libs:
   - src/core/lib/promise/seq.h
   - src/core/lib/promise/trace.h
   - src/core/lib/promise/try_seq.h
+  - src/core/lib/resolver/endpoint_addresses.h
   - src/core/lib/resolver/resolver.h
   - src/core/lib/resolver/resolver_factory.h
   - src/core/lib/resolver/resolver_registry.h
@@ -4568,9 +4579,9 @@ libs:
   - src/core/lib/promise/activity.cc
   - src/core/lib/promise/party.cc
   - src/core/lib/promise/trace.cc
+  - src/core/lib/resolver/endpoint_addresses.cc
   - src/core/lib/resolver/resolver.cc
   - src/core/lib/resolver/resolver_registry.cc
-  - src/core/lib/resolver/server_address.cc
   - src/core/lib/resource_quota/api.cc
   - src/core/lib/resource_quota/arena.cc
   - src/core/lib/resource_quota/memory_quota.cc
@@ -4842,6 +4853,7 @@ targets:
   run: false
   language: c++
   headers:
+  - src/core/lib/debug/trace.h
   - src/core/lib/gprpp/atomic_utils.h
   - src/core/lib/gprpp/bitset.h
   - src/core/lib/gprpp/orphanable.h
@@ -4860,10 +4872,13 @@ targets:
   - src/core/lib/promise/poll.h
   - src/core/lib/promise/promise.h
   - src/core/lib/promise/seq.h
+  - src/core/lib/promise/trace.h
   - src/core/lib/promise/wait_set.h
   - test/core/promise/test_wakeup_schedulers.h
   src:
+  - src/core/lib/debug/trace.cc
   - src/core/lib/promise/activity.cc
+  - src/core/lib/promise/trace.cc
   - test/core/promise/activity_test.cc
   deps:
   - gtest
@@ -6746,6 +6761,7 @@ targets:
   - src/core/lib/promise/poll.h
   - src/core/lib/promise/race.h
   - src/core/lib/promise/seq.h
+  - src/core/lib/promise/trace.h
   - src/core/lib/resource_quota/arena.h
   - src/core/lib/resource_quota/memory_quota.h
   - src/core/lib/resource_quota/periodic_update.h
@@ -6786,6 +6802,7 @@ targets:
   - src/core/lib/iomgr/executor.cc
   - src/core/lib/iomgr/iomgr_internal.cc
   - src/core/lib/promise/activity.cc
+  - src/core/lib/promise/trace.cc
   - src/core/lib/resource_quota/arena.cc
   - src/core/lib/resource_quota/memory_quota.cc
   - src/core/lib/resource_quota/periodic_update.cc
@@ -8006,6 +8023,8 @@ targets:
   - src/core/ext/upb-generated/google/protobuf/descriptor.upb.h
   - src/core/ext/upb-generated/google/rpc/status.upb.h
   - src/core/lib/debug/trace.h
+  - src/core/lib/experiments/config.h
+  - src/core/lib/experiments/experiments.h
   - src/core/lib/gpr/spinlock.h
   - src/core/lib/gprpp/atomic_utils.h
   - src/core/lib/gprpp/bitset.h
@@ -8050,6 +8069,8 @@ targets:
   - src/core/ext/upb-generated/google/protobuf/descriptor.upb.c
   - src/core/ext/upb-generated/google/rpc/status.upb.c
   - src/core/lib/debug/trace.cc
+  - src/core/lib/experiments/config.cc
+  - src/core/lib/experiments/experiments.cc
   - src/core/lib/gprpp/status_helper.cc
   - src/core/lib/gprpp/time.cc
   - src/core/lib/iomgr/closure.cc
@@ -8537,6 +8558,7 @@ targets:
   - src/core/lib/promise/poll.h
   - src/core/lib/promise/race.h
   - src/core/lib/promise/seq.h
+  - src/core/lib/promise/trace.h
   - src/core/lib/resource_quota/memory_quota.h
   - src/core/lib/resource_quota/periodic_update.h
   - src/core/lib/resource_quota/resource_quota.h
@@ -8581,6 +8603,7 @@ targets:
   - src/core/lib/iomgr/executor.cc
   - src/core/lib/iomgr/iomgr_internal.cc
   - src/core/lib/promise/activity.cc
+  - src/core/lib/promise/trace.cc
   - src/core/lib/resource_quota/memory_quota.cc
   - src/core/lib/resource_quota/periodic_update.cc
   - src/core/lib/resource_quota/resource_quota.cc
@@ -9987,6 +10010,7 @@ targets:
   build: test
   language: c++
   headers:
+  - src/core/lib/debug/trace.h
   - src/core/lib/gprpp/atomic_utils.h
   - src/core/lib/gprpp/orphanable.h
   - src/core/lib/gprpp/ref_counted.h
@@ -10001,9 +10025,12 @@ targets:
   - src/core/lib/promise/inter_activity_pipe.h
   - src/core/lib/promise/poll.h
   - src/core/lib/promise/seq.h
+  - src/core/lib/promise/trace.h
   - test/core/promise/test_wakeup_schedulers.h
   src:
+  - src/core/lib/debug/trace.cc
   - src/core/lib/promise/activity.cc
+  - src/core/lib/promise/trace.cc
   - test/core/promise/inter_activity_pipe_test.cc
   deps:
   - gtest
@@ -10245,17 +10272,22 @@ targets:
   build: test
   language: c++
   headers:
+  - src/core/lib/debug/trace.h
   - src/core/lib/gprpp/bitset.h
   - src/core/lib/promise/detail/join_state.h
   - src/core/lib/promise/detail/promise_like.h
   - src/core/lib/promise/join.h
   - src/core/lib/promise/map.h
   - src/core/lib/promise/poll.h
+  - src/core/lib/promise/trace.h
   src:
+  - src/core/lib/debug/trace.cc
+  - src/core/lib/promise/trace.cc
   - test/core/promise/join_test.cc
   deps:
   - gtest
   - absl/meta:type_traits
+  - absl/status:statusor
   - gpr
   uses_polling: false
 - name: json_object_loader_test
@@ -10556,6 +10588,7 @@ targets:
   build: test
   language: c++
   headers:
+  - src/core/lib/debug/trace.h
   - src/core/lib/promise/detail/basic_seq.h
   - src/core/lib/promise/detail/promise_factory.h
   - src/core/lib/promise/detail/promise_like.h
@@ -10563,7 +10596,10 @@ targets:
   - src/core/lib/promise/loop.h
   - src/core/lib/promise/poll.h
   - src/core/lib/promise/seq.h
+  - src/core/lib/promise/trace.h
   src:
+  - src/core/lib/debug/trace.cc
+  - src/core/lib/promise/trace.cc
   - test/core/promise/loop_test.cc
   deps:
   - gtest
@@ -11509,6 +11545,8 @@ targets:
   - src/core/ext/upb-generated/google/protobuf/descriptor.upb.h
   - src/core/ext/upb-generated/google/rpc/status.upb.h
   - src/core/lib/debug/trace.h
+  - src/core/lib/experiments/config.h
+  - src/core/lib/experiments/experiments.h
   - src/core/lib/gpr/spinlock.h
   - src/core/lib/gprpp/bitset.h
   - src/core/lib/gprpp/manual_constructor.h
@@ -11543,6 +11581,8 @@ targets:
   - src/core/ext/upb-generated/google/protobuf/descriptor.upb.c
   - src/core/ext/upb-generated/google/rpc/status.upb.c
   - src/core/lib/debug/trace.cc
+  - src/core/lib/experiments/config.cc
+  - src/core/lib/experiments/experiments.cc
   - src/core/lib/gprpp/status_helper.cc
   - src/core/lib/gprpp/time.cc
   - src/core/lib/iomgr/closure.cc
@@ -11653,6 +11693,18 @@ targets:
   deps:
   - gtest
   - grpc_test_util
+  uses_polling: false
+- name: ping_callbacks_test
+  gtest: true
+  build: test
+  language: c++
+  headers:
+  - test/core/event_engine/mock_event_engine.h
+  src:
+  - test/core/transport/chttp2/ping_callbacks_test.cc
+  deps:
+  - gtest
+  - grpc
   uses_polling: false
 - name: ping_configuration_test
   gtest: true
@@ -12215,6 +12267,8 @@ targets:
   - test/core/backoff/random_early_detection_test.cc
   deps:
   - gtest
+  - absl/random:bit_gen_ref
+  - absl/random:distributions
   - absl/random:random
   uses_polling: false
 - name: raw_end2end_test
@@ -14021,17 +14075,22 @@ targets:
   build: test
   language: c++
   headers:
+  - src/core/lib/debug/trace.h
   - src/core/lib/promise/detail/basic_seq.h
   - src/core/lib/promise/detail/promise_factory.h
   - src/core/lib/promise/detail/promise_like.h
   - src/core/lib/promise/detail/seq_state.h
   - src/core/lib/promise/poll.h
   - src/core/lib/promise/seq.h
+  - src/core/lib/promise/trace.h
   src:
+  - src/core/lib/debug/trace.cc
+  - src/core/lib/promise/trace.cc
   - test/core/promise/seq_test.cc
   deps:
   - gtest
   - absl/meta:type_traits
+  - absl/status:statusor
   - gpr
   uses_polling: false
 - name: sequential_connectivity_test
@@ -15815,6 +15874,7 @@ targets:
   - src/core/lib/promise/seq.h
   - src/core/lib/promise/trace.h
   - src/core/lib/promise/try_seq.h
+  - src/core/lib/resolver/endpoint_addresses.h
   - src/core/lib/resolver/resolver.h
   - src/core/lib/resolver/resolver_factory.h
   - src/core/lib/resolver/resolver_registry.h
@@ -16072,9 +16132,9 @@ targets:
   - src/core/lib/promise/activity.cc
   - src/core/lib/promise/party.cc
   - src/core/lib/promise/trace.cc
+  - src/core/lib/resolver/endpoint_addresses.cc
   - src/core/lib/resolver/resolver.cc
   - src/core/lib/resolver/resolver_registry.cc
-  - src/core/lib/resolver/server_address.cc
   - src/core/lib/resource_quota/api.cc
   - src/core/lib/resource_quota/arena.cc
   - src/core/lib/resource_quota/memory_quota.cc
@@ -16147,6 +16207,8 @@ targets:
   - absl/functional:function_ref
   - absl/hash:hash
   - absl/meta:type_traits
+  - absl/random:bit_gen_ref
+  - absl/random:distributions
   - absl/status:statusor
   - absl/types:span
   - absl/utility:utility
@@ -16678,13 +16740,17 @@ targets:
   build: test
   language: c++
   headers:
+  - src/core/lib/debug/trace.h
   - src/core/lib/gprpp/bitset.h
   - src/core/lib/promise/detail/join_state.h
   - src/core/lib/promise/detail/promise_like.h
   - src/core/lib/promise/map.h
   - src/core/lib/promise/poll.h
+  - src/core/lib/promise/trace.h
   - src/core/lib/promise/try_join.h
   src:
+  - src/core/lib/debug/trace.cc
+  - src/core/lib/promise/trace.cc
   - test/core/promise/try_join_test.cc
   deps:
   - gtest
@@ -16709,14 +16775,18 @@ targets:
   build: test
   language: c++
   headers:
+  - src/core/lib/debug/trace.h
   - src/core/lib/promise/detail/basic_seq.h
   - src/core/lib/promise/detail/promise_factory.h
   - src/core/lib/promise/detail/promise_like.h
   - src/core/lib/promise/detail/seq_state.h
   - src/core/lib/promise/detail/status.h
   - src/core/lib/promise/poll.h
+  - src/core/lib/promise/trace.h
   - src/core/lib/promise/try_seq.h
   src:
+  - src/core/lib/debug/trace.cc
+  - src/core/lib/promise/trace.cc
   - test/core/promise/try_seq_test.cc
   deps:
   - gtest
@@ -17415,8 +17485,7 @@ targets:
   gtest: true
   build: test
   language: c++
-  headers:
-  - test/core/util/scoped_env_var.h
+  headers: []
   src:
   - src/proto/grpc/testing/xds/v3/address.proto
   - src/proto/grpc/testing/xds/v3/aggregate_cluster.proto
@@ -17762,8 +17831,7 @@ targets:
   gtest: true
   build: test
   language: c++
-  headers:
-  - test/core/util/scoped_env_var.h
+  headers: []
   src:
   - src/proto/grpc/testing/xds/v3/address.proto
   - src/proto/grpc/testing/xds/v3/base.proto
@@ -18117,7 +18185,6 @@ targets:
   build: test
   language: c++
   headers:
-  - test/core/util/scoped_env_var.h
   - test/cpp/end2end/counted_service.h
   - test/cpp/end2end/test_service_impl.h
   - test/cpp/end2end/xds/xds_end2end_test_lib.h
@@ -18130,7 +18197,6 @@ targets:
   - src/proto/grpc/testing/simple_messages.proto
   - src/proto/grpc/testing/xds/v3/address.proto
   - src/proto/grpc/testing/xds/v3/ads.proto
-  - src/proto/grpc/testing/xds/v3/aggregate_cluster.proto
   - src/proto/grpc/testing/xds/v3/base.proto
   - src/proto/grpc/testing/xds/v3/cluster.proto
   - src/proto/grpc/testing/xds/v3/config_source.proto
@@ -18562,12 +18628,12 @@ targets:
   - mac
 external_proto_libraries:
 - destination: third_party/envoy-api
-  hash: 6fd3496c82919a433219733819a93b56699519a193126959e9c4fedc25e70663
+  hash: fff067a5d6d776fc88549b5dd4773a6f8f0187b26a859de8b29bd4226a28ee63
   proto_prefix: third_party/envoy-api/
-  strip_prefix: data-plane-api-e53e7bbd012f81965f2e79848ad9a58ceb67201f
+  strip_prefix: data-plane-api-9d6ffa70677c4dbf23f6ed569676206c4e2edff4
   urls:
-  - https://storage.googleapis.com/grpc-bazel-mirror/github.com/envoyproxy/data-plane-api/archive/e53e7bbd012f81965f2e79848ad9a58ceb67201f.tar.gz
-  - https://github.com/envoyproxy/data-plane-api/archive/e53e7bbd012f81965f2e79848ad9a58ceb67201f.tar.gz
+  - https://storage.googleapis.com/grpc-bazel-mirror/github.com/envoyproxy/data-plane-api/archive/9d6ffa70677c4dbf23f6ed569676206c4e2edff4.tar.gz
+  - https://github.com/envoyproxy/data-plane-api/archive/9d6ffa70677c4dbf23f6ed569676206c4e2edff4.tar.gz
 - destination: third_party/googleapis
   hash: 5bb6b0253ccf64b53d6c7249625a7e3f6c3bc6402abd52d3778bfa48258703a0
   proto_prefix: third_party/googleapis/

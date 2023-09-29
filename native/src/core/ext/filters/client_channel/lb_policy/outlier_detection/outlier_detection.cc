@@ -49,6 +49,7 @@
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/config/core_configuration.h"
 #include "src/core/lib/debug/trace.h"
+#include "src/core/lib/experiments/experiments.h"
 #include "src/core/lib/gprpp/debug_location.h"
 #include "src/core/lib/gprpp/orphanable.h"
 #include "src/core/lib/gprpp/ref_counted.h"
@@ -59,13 +60,14 @@
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/iomgr/iomgr_fwd.h"
 #include "src/core/lib/iomgr/pollset_set.h"
+#include "src/core/lib/iomgr/resolved_address.h"
 #include "src/core/lib/json/json.h"
 #include "src/core/lib/load_balancing/delegating_helper.h"
 #include "src/core/lib/load_balancing/lb_policy.h"
 #include "src/core/lib/load_balancing/lb_policy_factory.h"
 #include "src/core/lib/load_balancing/lb_policy_registry.h"
 #include "src/core/lib/load_balancing/subchannel_interface.h"
-#include "src/core/lib/resolver/server_address.h"
+#include "src/core/lib/resolver/endpoint_addresses.h"
 #include "src/core/lib/transport/connectivity_state.h"
 
 namespace grpc_core {
@@ -123,9 +125,11 @@ class OutlierDetectionLb : public LoadBalancingPolicy {
   class SubchannelState;
   class SubchannelWrapper : public DelegatingSubchannel {
    public:
-    SubchannelWrapper(RefCountedPtr<SubchannelState> subchannel_state,
+    SubchannelWrapper(std::shared_ptr<WorkSerializer> work_serializer,
+                      RefCountedPtr<SubchannelState> subchannel_state,
                       RefCountedPtr<SubchannelInterface> subchannel)
         : DelegatingSubchannel(std::move(subchannel)),
+          work_serializer_(std::move(work_serializer)),
           subchannel_state_(std::move(subchannel_state)) {
       if (subchannel_state_ != nullptr) {
         subchannel_state_->AddSubchannel(this);
@@ -135,10 +139,21 @@ class OutlierDetectionLb : public LoadBalancingPolicy {
       }
     }
 
-    ~SubchannelWrapper() override {
-      if (subchannel_state_ != nullptr) {
-        subchannel_state_->RemoveSubchannel(this);
+    void Orphan() override {
+      if (!IsWorkSerializerDispatchEnabled()) {
+        if (subchannel_state_ != nullptr) {
+          subchannel_state_->RemoveSubchannel(this);
+        }
+        return;
       }
+      WeakRefCountedPtr<SubchannelWrapper> self = WeakRef();
+      work_serializer_->Run(
+          [self = std::move(self)]() {
+            if (self->subchannel_state_ != nullptr) {
+              self->subchannel_state_->RemoveSubchannel(self.get());
+            }
+          },
+          DEBUG_LOCATION);
     }
 
     void Eject();
@@ -206,6 +221,7 @@ class OutlierDetectionLb : public LoadBalancingPolicy {
       bool ejected_;
     };
 
+    std::shared_ptr<WorkSerializer> work_serializer_;
     RefCountedPtr<SubchannelState> subchannel_state_;
     bool ejected_ = false;
     WatcherWrapper* watcher_wrapper_ = nullptr;
@@ -331,7 +347,8 @@ class OutlierDetectionLb : public LoadBalancingPolicy {
               std::move(outlier_detection_policy)) {}
 
     RefCountedPtr<SubchannelInterface> CreateSubchannel(
-        ServerAddress address, const ChannelArgs& args) override;
+        const grpc_resolved_address& address,
+        const ChannelArgs& per_address_args, const ChannelArgs& args) override;
     void UpdateState(grpc_connectivity_state state, const absl::Status& status,
                      RefCountedPtr<SubchannelPicker> picker) override;
   };
@@ -358,7 +375,7 @@ class OutlierDetectionLb : public LoadBalancingPolicy {
 
   // Returns the address map key for an address, or the empty string if
   // the address should be ignored.
-  static std::string MakeKeyForAddress(const ServerAddress& address);
+  static std::string MakeKeyForAddress(const grpc_resolved_address& address);
 
   void ShutdownLocked() override;
 
@@ -522,9 +539,9 @@ OutlierDetectionLb::~OutlierDetectionLb() {
 }
 
 std::string OutlierDetectionLb::MakeKeyForAddress(
-    const ServerAddress& address) {
+    const grpc_resolved_address& address) {
   // Use only the address, not the attributes.
-  auto addr_str = grpc_sockaddr_to_string(&address.address(), false);
+  auto addr_str = grpc_sockaddr_to_string(&address, false);
   // If address couldn't be stringified, ignore it.
   if (!addr_str.ok()) return "";
   return std::move(*addr_str);
@@ -598,8 +615,8 @@ absl::Status OutlierDetectionLb::UpdateLocked(UpdateArgs args) {
   // Update subchannel state map.
   if (args.addresses.ok()) {
     std::set<std::string> current_addresses;
-    for (const ServerAddress& address : *args.addresses) {
-      std::string address_key = MakeKeyForAddress(address);
+    for (const EndpointAddresses& endpoint : *args.addresses) {
+      std::string address_key = MakeKeyForAddress(endpoint.address());
       if (address_key.empty()) continue;
       auto& subchannel_state = subchannel_state_map_[address_key];
       if (subchannel_state == nullptr) {
@@ -700,14 +717,14 @@ OrphanablePtr<LoadBalancingPolicy> OutlierDetectionLb::CreateChildPolicyLocked(
 //
 
 RefCountedPtr<SubchannelInterface> OutlierDetectionLb::Helper::CreateSubchannel(
-    ServerAddress address, const ChannelArgs& args) {
+    const grpc_resolved_address& address, const ChannelArgs& per_address_args,
+    const ChannelArgs& args) {
   if (parent()->shutting_down_) return nullptr;
   RefCountedPtr<SubchannelState> subchannel_state;
   std::string key = MakeKeyForAddress(address);
   if (GRPC_TRACE_FLAG_ENABLED(grpc_outlier_detection_lb_trace)) {
-    gpr_log(GPR_INFO,
-            "[outlier_detection_lb %p] using key %s for subchannel address %s",
-            parent(), key.c_str(), address.ToString().c_str());
+    gpr_log(GPR_INFO, "[outlier_detection_lb %p] creating subchannel, key %s",
+            parent(), key.c_str());
   }
   if (!key.empty()) {
     auto it = parent()->subchannel_state_map_.find(key);
@@ -716,8 +733,9 @@ RefCountedPtr<SubchannelInterface> OutlierDetectionLb::Helper::CreateSubchannel(
     }
   }
   auto subchannel = MakeRefCounted<SubchannelWrapper>(
-      subchannel_state, parent()->channel_control_helper()->CreateSubchannel(
-                            std::move(address), args));
+      parent()->work_serializer(), subchannel_state,
+      parent()->channel_control_helper()->CreateSubchannel(
+          address, per_address_args, args));
   if (subchannel_state != nullptr) {
     subchannel_state->AddSubchannel(subchannel.get());
   }

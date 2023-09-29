@@ -25,11 +25,11 @@
 cmake_minimum_required(VERSION 3.8)
 
 set(PACKAGE_NAME          "grpc")
-set(PACKAGE_VERSION       "1.59.0-dev")
-set(gRPC_CORE_VERSION     "35.0.0")
-set(gRPC_CORE_SOVERSION   "35")
-set(gRPC_CPP_VERSION      "1.59.0-dev")
-set(gRPC_CPP_SOVERSION    "1.59")
+set(PACKAGE_VERSION       "1.60.0-dev")
+set(gRPC_CORE_VERSION     "36.0.0")
+set(gRPC_CORE_SOVERSION   "36")
+set(gRPC_CPP_VERSION      "1.60.0-dev")
+set(gRPC_CPP_SOVERSION    "1.60")
 set(PACKAGE_STRING        "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_TARNAME       "${PACKAGE_NAME}-${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT     "https://github.com/grpc/grpc/issues/")
@@ -166,6 +166,7 @@ set(gRPC_ABSL_USED_TARGETS
   absl_numeric_representation
   absl_optional
   absl_prefetch
+  absl_random_bit_gen_ref
   absl_random_distributions
   absl_random_internal_distribution_caller
   absl_random_internal_fast_uniform_bits
@@ -347,18 +348,18 @@ if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/envoy-api)
   # Download the archive via HTTP, validate the checksum, and extract to third_party/envoy-api.
   download_archive(
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/envoy-api
-    https://storage.googleapis.com/grpc-bazel-mirror/github.com/envoyproxy/data-plane-api/archive/e53e7bbd012f81965f2e79848ad9a58ceb67201f.tar.gz
-    6fd3496c82919a433219733819a93b56699519a193126959e9c4fedc25e70663
-    data-plane-api-e53e7bbd012f81965f2e79848ad9a58ceb67201f
+    https://storage.googleapis.com/grpc-bazel-mirror/github.com/envoyproxy/data-plane-api/archive/9d6ffa70677c4dbf23f6ed569676206c4e2edff4.tar.gz
+    fff067a5d6d776fc88549b5dd4773a6f8f0187b26a859de8b29bd4226a28ee63
+    data-plane-api-9d6ffa70677c4dbf23f6ed569676206c4e2edff4
   )
 endif()
 if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/envoy-api)
   # Download the archive via HTTP, validate the checksum, and extract to third_party/envoy-api.
   download_archive(
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/envoy-api
-    https://github.com/envoyproxy/data-plane-api/archive/e53e7bbd012f81965f2e79848ad9a58ceb67201f.tar.gz
-    6fd3496c82919a433219733819a93b56699519a193126959e9c4fedc25e70663
-    data-plane-api-e53e7bbd012f81965f2e79848ad9a58ceb67201f
+    https://github.com/envoyproxy/data-plane-api/archive/9d6ffa70677c4dbf23f6ed569676206c4e2edff4.tar.gz
+    fff067a5d6d776fc88549b5dd4773a6f8f0187b26a859de8b29bd4226a28ee63
+    data-plane-api-9d6ffa70677c4dbf23f6ed569676206c4e2edff4
   )
 endif()
 # Setup external proto library at third_party/googleapis with 2 download URLs
@@ -1174,6 +1175,7 @@ if(gRPC_BUILD_TESTS)
   add_dependencies(buildtests_cxx pick_first_test)
   add_dependencies(buildtests_cxx pid_controller_test)
   add_dependencies(buildtests_cxx ping_abuse_policy_test)
+  add_dependencies(buildtests_cxx ping_callbacks_test)
   add_dependencies(buildtests_cxx ping_configuration_test)
   add_dependencies(buildtests_cxx ping_pong_streaming_test)
   add_dependencies(buildtests_cxx ping_rate_policy_test)
@@ -1831,6 +1833,7 @@ add_library(grpc
   src/core/ext/transport/chttp2/transport/huffsyms.cc
   src/core/ext/transport/chttp2/transport/parsing.cc
   src/core/ext/transport/chttp2/transport/ping_abuse_policy.cc
+  src/core/ext/transport/chttp2/transport/ping_callbacks.cc
   src/core/ext/transport/chttp2/transport/ping_rate_policy.cc
   src/core/ext/transport/chttp2/transport/stream_lists.cc
   src/core/ext/transport/chttp2/transport/varint.cc
@@ -2351,9 +2354,9 @@ add_library(grpc
   src/core/lib/promise/party.cc
   src/core/lib/promise/sleep.cc
   src/core/lib/promise/trace.cc
+  src/core/lib/resolver/endpoint_addresses.cc
   src/core/lib/resolver/resolver.cc
   src/core/lib/resolver/resolver_registry.cc
-  src/core/lib/resolver/server_address.cc
   src/core/lib/resource_quota/api.cc
   src/core/lib/resource_quota/arena.cc
   src/core/lib/resource_quota/memory_quota.cc
@@ -2553,6 +2556,8 @@ target_link_libraries(grpc
   absl::function_ref
   absl::hash
   absl::type_traits
+  absl::random_bit_gen_ref
+  absl::random_distributions
   absl::statusor
   absl::span
   absl::utility
@@ -2865,6 +2870,7 @@ add_library(grpc_unsecure
   src/core/ext/transport/chttp2/transport/huffsyms.cc
   src/core/ext/transport/chttp2/transport/parsing.cc
   src/core/ext/transport/chttp2/transport/ping_abuse_policy.cc
+  src/core/ext/transport/chttp2/transport/ping_callbacks.cc
   src/core/ext/transport/chttp2/transport/ping_rate_policy.cc
   src/core/ext/transport/chttp2/transport/stream_lists.cc
   src/core/ext/transport/chttp2/transport/varint.cc
@@ -3062,9 +3068,9 @@ add_library(grpc_unsecure
   src/core/lib/promise/party.cc
   src/core/lib/promise/sleep.cc
   src/core/lib/promise/trace.cc
+  src/core/lib/resolver/endpoint_addresses.cc
   src/core/lib/resolver/resolver.cc
   src/core/lib/resolver/resolver_registry.cc
-  src/core/lib/resolver/server_address.cc
   src/core/lib/resource_quota/api.cc
   src/core/lib/resource_quota/arena.cc
   src/core/lib/resource_quota/memory_quota.cc
@@ -3212,6 +3218,8 @@ target_link_libraries(grpc_unsecure
   absl::function_ref
   absl::hash
   absl::type_traits
+  absl::random_bit_gen_ref
+  absl::random_distributions
   absl::statusor
   absl::span
   absl::utility
@@ -5000,9 +5008,9 @@ add_library(grpc_authorization_provider
   src/core/lib/promise/activity.cc
   src/core/lib/promise/party.cc
   src/core/lib/promise/trace.cc
+  src/core/lib/resolver/endpoint_addresses.cc
   src/core/lib/resolver/resolver.cc
   src/core/lib/resolver/resolver_registry.cc
-  src/core/lib/resolver/server_address.cc
   src/core/lib/resource_quota/api.cc
   src/core/lib/resource_quota/arena.cc
   src/core/lib/resource_quota/memory_quota.cc
@@ -5549,7 +5557,9 @@ endif()
 if(gRPC_BUILD_TESTS)
 
 add_executable(activity_test
+  src/core/lib/debug/trace.cc
   src/core/lib/promise/activity.cc
+  src/core/lib/promise/trace.cc
   test/core/promise/activity_test.cc
 )
 target_compile_features(activity_test PUBLIC cxx_std_14)
@@ -8762,6 +8772,7 @@ add_executable(chunked_vector_test
   src/core/lib/iomgr/executor.cc
   src/core/lib/iomgr/iomgr_internal.cc
   src/core/lib/promise/activity.cc
+  src/core/lib/promise/trace.cc
   src/core/lib/resource_quota/arena.cc
   src/core/lib/resource_quota/memory_quota.cc
   src/core/lib/resource_quota/periodic_update.cc
@@ -11124,6 +11135,8 @@ add_executable(exec_ctx_wakeup_scheduler_test
   src/core/ext/upb-generated/google/protobuf/descriptor.upb.c
   src/core/ext/upb-generated/google/rpc/status.upb.c
   src/core/lib/debug/trace.cc
+  src/core/lib/experiments/config.cc
+  src/core/lib/experiments/experiments.cc
   src/core/lib/gprpp/status_helper.cc
   src/core/lib/gprpp/time.cc
   src/core/lib/iomgr/closure.cc
@@ -11866,6 +11879,7 @@ add_executable(flow_control_test
   src/core/lib/iomgr/executor.cc
   src/core/lib/iomgr/iomgr_internal.cc
   src/core/lib/promise/activity.cc
+  src/core/lib/promise/trace.cc
   src/core/lib/resource_quota/memory_quota.cc
   src/core/lib/resource_quota/periodic_update.cc
   src/core/lib/resource_quota/resource_quota.cc
@@ -14486,7 +14500,9 @@ endif()
 if(gRPC_BUILD_TESTS)
 
 add_executable(inter_activity_pipe_test
+  src/core/lib/debug/trace.cc
   src/core/lib/promise/activity.cc
+  src/core/lib/promise/trace.cc
   test/core/promise/inter_activity_pipe_test.cc
 )
 target_compile_features(inter_activity_pipe_test PUBLIC cxx_std_14)
@@ -14837,6 +14853,8 @@ endif()
 if(gRPC_BUILD_TESTS)
 
 add_executable(join_test
+  src/core/lib/debug/trace.cc
+  src/core/lib/promise/trace.cc
   test/core/promise/join_test.cc
 )
 target_compile_features(join_test PUBLIC cxx_std_14)
@@ -14863,6 +14881,7 @@ target_link_libraries(join_test
   ${_gRPC_ALLTARGETS_LIBRARIES}
   gtest
   absl::type_traits
+  absl::statusor
   gpr
 )
 
@@ -15393,6 +15412,8 @@ endif()
 if(gRPC_BUILD_TESTS)
 
 add_executable(loop_test
+  src/core/lib/debug/trace.cc
+  src/core/lib/promise/trace.cc
   test/core/promise/loop_test.cc
 )
 target_compile_features(loop_test PUBLIC cxx_std_14)
@@ -17090,6 +17111,8 @@ add_executable(periodic_update_test
   src/core/ext/upb-generated/google/protobuf/descriptor.upb.c
   src/core/ext/upb-generated/google/rpc/status.upb.c
   src/core/lib/debug/trace.cc
+  src/core/lib/experiments/config.cc
+  src/core/lib/experiments/experiments.cc
   src/core/lib/gprpp/status_helper.cc
   src/core/lib/gprpp/time.cc
   src/core/lib/iomgr/closure.cc
@@ -17264,6 +17287,39 @@ target_link_libraries(ping_abuse_policy_test
   ${_gRPC_ALLTARGETS_LIBRARIES}
   gtest
   grpc_test_util
+)
+
+
+endif()
+if(gRPC_BUILD_TESTS)
+
+add_executable(ping_callbacks_test
+  test/core/transport/chttp2/ping_callbacks_test.cc
+)
+target_compile_features(ping_callbacks_test PUBLIC cxx_std_14)
+target_include_directories(ping_callbacks_test
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${_gRPC_ADDRESS_SORTING_INCLUDE_DIR}
+    ${_gRPC_RE2_INCLUDE_DIR}
+    ${_gRPC_SSL_INCLUDE_DIR}
+    ${_gRPC_UPB_GENERATED_DIR}
+    ${_gRPC_UPB_GRPC_GENERATED_DIR}
+    ${_gRPC_UPB_INCLUDE_DIR}
+    ${_gRPC_XXHASH_INCLUDE_DIR}
+    ${_gRPC_ZLIB_INCLUDE_DIR}
+    third_party/googletest/googletest/include
+    third_party/googletest/googletest
+    third_party/googletest/googlemock/include
+    third_party/googletest/googlemock
+    ${_gRPC_PROTO_GENS_DIR}
+)
+
+target_link_libraries(ping_callbacks_test
+  ${_gRPC_ALLTARGETS_LIBRARIES}
+  gtest
+  grpc
 )
 
 
@@ -18355,6 +18411,8 @@ target_include_directories(random_early_detection_test
 target_link_libraries(random_early_detection_test
   ${_gRPC_ALLTARGETS_LIBRARIES}
   gtest
+  absl::random_bit_gen_ref
+  absl::random_distributions
   absl::random_random
 )
 
@@ -20884,6 +20942,8 @@ endif()
 if(gRPC_BUILD_TESTS)
 
 add_executable(seq_test
+  src/core/lib/debug/trace.cc
+  src/core/lib/promise/trace.cc
   test/core/promise/seq_test.cc
 )
 target_compile_features(seq_test PUBLIC cxx_std_14)
@@ -20910,6 +20970,7 @@ target_link_libraries(seq_test
   ${_gRPC_ALLTARGETS_LIBRARIES}
   gtest
   absl::type_traits
+  absl::statusor
   gpr
 )
 
@@ -24016,9 +24077,9 @@ add_executable(test_core_transport_chaotic_good_frame_test
   src/core/lib/promise/activity.cc
   src/core/lib/promise/party.cc
   src/core/lib/promise/trace.cc
+  src/core/lib/resolver/endpoint_addresses.cc
   src/core/lib/resolver/resolver.cc
   src/core/lib/resolver/resolver_registry.cc
-  src/core/lib/resolver/server_address.cc
   src/core/lib/resource_quota/api.cc
   src/core/lib/resource_quota/arena.cc
   src/core/lib/resource_quota/memory_quota.cc
@@ -24113,6 +24174,8 @@ target_link_libraries(test_core_transport_chaotic_good_frame_test
   absl::function_ref
   absl::hash
   absl::type_traits
+  absl::random_bit_gen_ref
+  absl::random_distributions
   absl::statusor
   absl::span
   absl::utility
@@ -25168,6 +25231,8 @@ endif()
 if(gRPC_BUILD_TESTS)
 
 add_executable(try_join_test
+  src/core/lib/debug/trace.cc
+  src/core/lib/promise/trace.cc
   test/core/promise/try_join_test.cc
 )
 target_compile_features(try_join_test PUBLIC cxx_std_14)
@@ -25237,6 +25302,8 @@ endif()
 if(gRPC_BUILD_TESTS)
 
 add_executable(try_seq_test
+  src/core/lib/debug/trace.cc
+  src/core/lib/promise/trace.cc
   test/core/promise/try_seq_test.cc
 )
 target_compile_features(try_seq_test PUBLIC cxx_std_14)
@@ -28467,10 +28534,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/ads.grpc.pb.cc
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/ads.pb.h
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/ads.grpc.pb.h
-    ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/aggregate_cluster.pb.cc
-    ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/aggregate_cluster.grpc.pb.cc
-    ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/aggregate_cluster.pb.h
-    ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/aggregate_cluster.grpc.pb.h
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/base.pb.cc
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/base.grpc.pb.cc
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/base.pb.h
@@ -29802,7 +29865,7 @@ generate_pkgconfig(
   "gRPC"
   "high performance general RPC framework"
   "${gRPC_CORE_VERSION}"
-  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_memory absl_optional absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr"
+  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_memory absl_optional absl_random_bit_gen_ref absl_random_distributions absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr"
   "libcares openssl re2 zlib"
   "-lgrpc"
   "-laddress_sorting -lupb_textformat_lib -lupb_json_lib -lupb -lutf8_range_lib -lupb_collections_lib"
@@ -29813,7 +29876,7 @@ generate_pkgconfig(
   "gRPC unsecure"
   "high performance general RPC framework without SSL"
   "${gRPC_CORE_VERSION}"
-  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_memory absl_optional absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr"
+  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_memory absl_optional absl_random_bit_gen_ref absl_random_distributions absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr"
   "libcares zlib"
   "-lgrpc_unsecure"
   "-laddress_sorting -lupb -lutf8_range_lib -lupb_collections_lib"
@@ -29824,7 +29887,7 @@ generate_pkgconfig(
   "gRPC++"
   "C++ wrapper for gRPC"
   "${gRPC_CPP_VERSION}"
-  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_memory absl_optional absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr grpc"
+  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_memory absl_optional absl_random_bit_gen_ref absl_random_distributions absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr grpc"
   "libcares openssl re2 zlib"
   "-lgrpc++"
   "-laddress_sorting -lupb_textformat_lib -lupb_json_lib -lupb -lutf8_range_lib -lupb_collections_lib"
@@ -29835,7 +29898,7 @@ generate_pkgconfig(
   "gRPC++ unsecure"
   "C++ wrapper for gRPC without SSL"
   "${gRPC_CPP_VERSION}"
-  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_memory absl_optional absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr grpc_unsecure"
+  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_memory absl_optional absl_random_bit_gen_ref absl_random_distributions absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr grpc_unsecure"
   "libcares zlib"
   "-lgrpc++_unsecure"
   "-laddress_sorting -lupb -lutf8_range_lib -lupb_collections_lib"
