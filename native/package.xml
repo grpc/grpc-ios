@@ -13,8 +13,8 @@
  <date>2019-09-24</date>
  <time>16:06:07</time>
  <version>
-  <release>1.59.0dev</release>
-  <api>1.59.0dev</api>
+  <release>1.59.0RC2</release>
+  <api>1.59.0RC2</api>
  </version>
  <stability>
   <release>beta</release>
@@ -1959,6 +1959,7 @@
     <file baseinstalldir="/" name="third_party/abseil-cpp/absl/profiling/internal/sample_recorder.h" role="src" />
     <file baseinstalldir="/" name="third_party/abseil-cpp/absl/random/bernoulli_distribution.h" role="src" />
     <file baseinstalldir="/" name="third_party/abseil-cpp/absl/random/beta_distribution.h" role="src" />
+    <file baseinstalldir="/" name="third_party/abseil-cpp/absl/random/bit_gen_ref.h" role="src" />
     <file baseinstalldir="/" name="third_party/abseil-cpp/absl/random/discrete_distribution.cc" role="src" />
     <file baseinstalldir="/" name="third_party/abseil-cpp/absl/random/discrete_distribution.h" role="src" />
     <file baseinstalldir="/" name="third_party/abseil-cpp/absl/random/distributions.h" role="src" />
