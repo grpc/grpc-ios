@@ -82,6 +82,7 @@
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/iomgr/polling_entity.h"
 #include "src/core/lib/iomgr/pollset_set.h"
+#include "src/core/lib/iomgr/resolved_address.h"
 #include "src/core/lib/json/json.h"
 #include "src/core/lib/load_balancing/lb_policy_registry.h"
 #include "src/core/lib/load_balancing/subchannel_interface.h"
@@ -93,8 +94,8 @@
 #include "src/core/lib/promise/poll.h"
 #include "src/core/lib/promise/promise.h"
 #include "src/core/lib/promise/try_seq.h"
+#include "src/core/lib/resolver/endpoint_addresses.h"
 #include "src/core/lib/resolver/resolver_registry.h"
-#include "src/core/lib/resolver/server_address.h"
 #include "src/core/lib/security/credentials/credentials.h"
 #include "src/core/lib/service_config/service_config_call_data.h"
 #include "src/core/lib/service_config/service_config_impl.h"
@@ -650,7 +651,7 @@ class ClientChannel::SubchannelWrapper : public SubchannelInterface {
               "chand=%p: destroying subchannel wrapper %p for subchannel %p",
               chand_, this, subchannel_.get());
     }
-    if (!IsClientChannelSubchannelWrapperWorkSerializerOrphanEnabled()) {
+    if (!IsWorkSerializerDispatchEnabled()) {
       chand_->subchannel_wrappers_.erase(this);
       if (chand_->channelz_node_ != nullptr) {
         auto* subchannel_node = subchannel_->channelz_node();
@@ -670,9 +671,7 @@ class ClientChannel::SubchannelWrapper : public SubchannelInterface {
   }
 
   void Orphan() override {
-    if (!IsClientChannelSubchannelWrapperWorkSerializerOrphanEnabled()) {
-      return;
-    }
+    if (!IsWorkSerializerDispatchEnabled()) return;
     // Make sure we clean up the channel's subchannel maps inside the
     // WorkSerializer.
     // Ref held by callback.
@@ -766,7 +765,7 @@ class ClientChannel::SubchannelWrapper : public SubchannelInterface {
         : watcher_(std::move(watcher)), parent_(std::move(parent)) {}
 
     ~WatcherWrapper() override {
-      if (!IsClientChannelSubchannelWrapperWorkSerializerOrphanEnabled()) {
+      if (!IsWorkSerializerDispatchEnabled()) {
         auto* parent = parent_.release();  // ref owned by lambda
         parent->chand_->work_serializer_->Run(
             [parent]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(
@@ -1084,15 +1083,16 @@ class ClientChannel::ClientChannelControlHelper
   }
 
   RefCountedPtr<SubchannelInterface> CreateSubchannel(
-      ServerAddress address, const ChannelArgs& args) override
+      const grpc_resolved_address& address, const ChannelArgs& per_address_args,
+      const ChannelArgs& args) override
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*chand_->work_serializer_) {
     if (chand_->resolver_ == nullptr) return nullptr;  // Shutting down.
     ChannelArgs subchannel_args = ClientChannel::MakeSubchannelArgs(
-        args, address.args(), chand_->subchannel_pool_,
+        args, per_address_args, chand_->subchannel_pool_,
         chand_->default_authority_);
     // Create subchannel.
     RefCountedPtr<Subchannel> subchannel =
-        chand_->client_channel_factory_->CreateSubchannel(address.address(),
+        chand_->client_channel_factory_->CreateSubchannel(address,
                                                           subchannel_args);
     if (subchannel == nullptr) return nullptr;
     // Make sure the subchannel has updated keepalive time.
@@ -2114,7 +2114,7 @@ absl::optional<absl::Status> ClientChannel::CallData::CheckResolution(
   // We have a result.  Apply service config to call.
   grpc_error_handle error = ApplyServiceConfigToCallLocked(config_selector);
   // ConfigSelector must be unreffed inside the WorkSerializer.
-  if (config_selector.ok()) {
+  if (!IsWorkSerializerDispatchEnabled() && config_selector.ok()) {
     chand()->work_serializer_->Run(
         [config_selector = std::move(*config_selector)]() mutable {
           config_selector.reset();
@@ -2670,7 +2670,7 @@ ServiceConfigCallData::CallAttributeInterface*
 ClientChannel::LoadBalancedCall::LbCallState::GetCallAttribute(
     UniqueTypeName type) const {
   auto* service_config_call_data =
-      GetServiceConfigCallData(lb_call_->call_context());
+      GetServiceConfigCallData(lb_call_->call_context_);
   return service_config_call_data->GetCallAttribute(type);
 }
 
@@ -2725,14 +2725,13 @@ class ClientChannel::LoadBalancedCall::BackendMetricAccessor
 
 namespace {
 
-ClientCallTracer::CallAttemptTracer* CreateCallAttemptTracer(
-    grpc_call_context_element* context, bool is_transparent_retry) {
+void CreateCallAttemptTracer(grpc_call_context_element* context,
+                             bool is_transparent_retry) {
   auto* call_tracer = static_cast<ClientCallTracer*>(
       context[GRPC_CONTEXT_CALL_TRACER_ANNOTATION_INTERFACE].value);
-  if (call_tracer == nullptr) return nullptr;
+  if (call_tracer == nullptr) return;
   auto* tracer = call_tracer->StartNewAttempt(is_transparent_retry);
   context[GRPC_CONTEXT_CALL_TRACER].value = tracer;
-  return tracer;
 }
 
 }  // namespace
@@ -2745,7 +2744,8 @@ ClientChannel::LoadBalancedCall::LoadBalancedCall(
               ? "LoadBalancedCall"
               : nullptr),
       chand_(chand),
-      on_commit_(std::move(on_commit)) {
+      on_commit_(std::move(on_commit)),
+      call_context_(call_context) {
   CreateCallAttemptTracer(call_context, is_transparent_retry);
   if (GRPC_TRACE_FLAG_ENABLED(grpc_client_channel_lb_call_trace)) {
     gpr_log(GPR_INFO, "chand=%p lb_call=%p: created", chand_, this);
@@ -2824,9 +2824,7 @@ absl::optional<absl::Status> ClientChannel::LoadBalancedCall::PickSubchannel(
   // We need to unref pickers in the WorkSerializer.
   std::vector<RefCountedPtr<LoadBalancingPolicy::SubchannelPicker>> pickers;
   auto cleanup = absl::MakeCleanup([&]() {
-    if (IsClientChannelSubchannelWrapperWorkSerializerOrphanEnabled()) {
-      return;
-    }
+    if (IsWorkSerializerDispatchEnabled()) return;
     chand_->work_serializer_->Run(
         [pickers = std::move(pickers)]() mutable {
           for (auto& picker : pickers) {
@@ -2837,7 +2835,7 @@ absl::optional<absl::Status> ClientChannel::LoadBalancedCall::PickSubchannel(
   });
   absl::AnyInvocable<void(RefCountedPtr<LoadBalancingPolicy::SubchannelPicker>)>
       set_picker;
-  if (!IsClientChannelSubchannelWrapperWorkSerializerOrphanEnabled()) {
+  if (!IsWorkSerializerDispatchEnabled()) {
     set_picker =
         [&](RefCountedPtr<LoadBalancingPolicy::SubchannelPicker> picker) {
           pickers.emplace_back(std::move(picker));
@@ -2868,6 +2866,7 @@ absl::optional<absl::Status> ClientChannel::LoadBalancedCall::PickSubchannel(
     grpc_error_handle error;
     bool pick_complete = PickSubchannelImpl(pickers.back().get(), &error);
     if (!pick_complete) {
+      RefCountedPtr<LoadBalancingPolicy::SubchannelPicker> old_picker;
       MutexLock lock(&chand_->lb_mu_);
       // If picker has been swapped out since we grabbed it, try again.
       if (pickers.back() != chand_->picker_) {
@@ -2875,6 +2874,10 @@ absl::optional<absl::Status> ClientChannel::LoadBalancedCall::PickSubchannel(
           gpr_log(GPR_INFO,
                   "chand=%p lb_call=%p: pick not complete, but picker changed",
                   chand_, this);
+        }
+        if (IsWorkSerializerDispatchEnabled()) {
+          // Don't unref until after we release the mutex.
+          old_picker = std::move(pickers.back());
         }
         set_picker(chand_->picker_);
         continue;
@@ -3004,7 +3007,6 @@ ClientChannel::FilterBasedLoadBalancedCall::FilterBasedLoadBalancedCall(
                        is_transparent_retry),
       deadline_(args.deadline),
       arena_(args.arena),
-      call_context_(args.context),
       owning_call_(args.call_stack),
       call_combiner_(args.call_combiner),
       pollent_(pollent),
@@ -3441,7 +3443,7 @@ void ClientChannel::FilterBasedLoadBalancedCall::CreateSubchannelCall() {
       deadline_, arena_,
       // TODO(roth): When we implement hedging support, we will probably
       // need to use a separate call context for each subchannel call.
-      call_context_, call_combiner_};
+      call_context(), call_combiner_};
   grpc_error_handle error;
   subchannel_call_ = SubchannelCall::Create(std::move(call_args), &error);
   if (GRPC_TRACE_FLAG_ENABLED(grpc_client_channel_lb_call_trace)) {
@@ -3490,12 +3492,14 @@ ClientChannel::PromiseBasedLoadBalancedCall::MakeCallPromise(
   }
   // Extract peer name from server initial metadata.
   call_args.server_initial_metadata->InterceptAndMap(
-      [this](ServerMetadataHandle metadata) {
-        if (call_attempt_tracer() != nullptr) {
-          call_attempt_tracer()->RecordReceivedInitialMetadata(metadata.get());
+      [self = RefCountedPtr<PromiseBasedLoadBalancedCall>(lb_call->Ref())](
+          ServerMetadataHandle metadata) {
+        if (self->call_attempt_tracer() != nullptr) {
+          self->call_attempt_tracer()->RecordReceivedInitialMetadata(
+              metadata.get());
         }
         Slice* peer_string = metadata->get_pointer(PeerString());
-        if (peer_string != nullptr) peer_string_ = peer_string->Ref();
+        if (peer_string != nullptr) self->peer_string_ = peer_string->Ref();
         return metadata;
       });
   client_initial_metadata_ = std::move(call_args.client_initial_metadata);
@@ -3584,11 +3588,6 @@ ClientChannel::PromiseBasedLoadBalancedCall::MakeCallPromise(
 
 Arena* ClientChannel::PromiseBasedLoadBalancedCall::arena() const {
   return GetContext<Arena>();
-}
-
-grpc_call_context_element*
-ClientChannel::PromiseBasedLoadBalancedCall::call_context() const {
-  return GetContext<grpc_call_context_element>();
 }
 
 grpc_metadata_batch*

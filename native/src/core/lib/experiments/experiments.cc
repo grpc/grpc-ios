@@ -73,9 +73,6 @@ const char* const additional_constraints_trace_record_callops = "{}";
 const char* const description_event_engine_dns =
     "If set, use EventEngine DNSResolver for client channel resolution";
 const char* const additional_constraints_event_engine_dns = "{}";
-const char* const description_work_stealing =
-    "If set, use a work stealing thread pool implementation in EventEngine";
-const char* const additional_constraints_work_stealing = "{}";
 const char* const description_client_privacy = "If set, client privacy";
 const char* const additional_constraints_client_privacy = "{}";
 const char* const description_canary_client_privacy =
@@ -83,11 +80,6 @@ const char* const description_canary_client_privacy =
 const char* const additional_constraints_canary_client_privacy = "{}";
 const char* const description_server_privacy = "If set, server privacy";
 const char* const additional_constraints_server_privacy = "{}";
-const char* const description_unique_metadata_strings =
-    "Ensure a unique copy of strings from parsed metadata are taken. The "
-    "hypothesis here is that ref counting these are causing read buffer "
-    "lifetimes to be extended leading to memory bloat.";
-const char* const additional_constraints_unique_metadata_strings = "{}";
 const char* const description_keepalive_fix =
     "Allows overriding keepalive_permit_without_calls. Refer "
     "https://github.com/grpc/grpc/pull/33428 for more information.";
@@ -115,13 +107,34 @@ const char* const description_round_robin_delegate_to_pick_first =
     "backend design.";
 const char* const additional_constraints_round_robin_delegate_to_pick_first =
     "{}";
-const char* const
-    description_client_channel_subchannel_wrapper_work_serializer_orphan =
-        "Client channel subchannel wrapper hops into WorkSerializer at "
-        "Orphan() time, rather than requiring callers to do it.";
-const char* const
-    additional_constraints_client_channel_subchannel_wrapper_work_serializer_orphan =
-        "{}";
+const char* const description_wrr_delegate_to_pick_first =
+    "Change WRR code to delegate to pick_first as per dualstack backend "
+    "design.";
+const char* const additional_constraints_wrr_delegate_to_pick_first = "{}";
+const char* const description_pick_first_happy_eyeballs =
+    "Use Happy Eyeballs in pick_first.";
+const char* const additional_constraints_pick_first_happy_eyeballs = "{}";
+const char* const description_combiner_offload_to_event_engine =
+    "Offload Combiner work onto the EventEngine instead of the Executor.";
+const char* const additional_constraints_combiner_offload_to_event_engine =
+    "{}";
+const char* const description_multiping =
+    "Allow more than one ping to be in flight at a time by default.";
+const char* const additional_constraints_multiping = "{}";
+const char* const description_registered_method_lookup_in_transport =
+    "Change registered method's lookup point to transport";
+const char* const additional_constraints_registered_method_lookup_in_transport =
+    "{}";
+const char* const description_call_status_override_on_cancellation =
+    "Avoid overriding call status of successfully finished calls if it races "
+    "with cancellation.";
+const char* const additional_constraints_call_status_override_on_cancellation =
+    "{}";
+#ifdef NDEBUG
+const bool kDefaultForDebugOnly = false;
+#else
+const bool kDefaultForDebugOnly = true;
+#endif
 }  // namespace
 
 namespace grpc_core {
@@ -157,16 +170,12 @@ const ExperimentMetadata g_experiment_metadata[] = {
      additional_constraints_trace_record_callops, false, true},
     {"event_engine_dns", description_event_engine_dns,
      additional_constraints_event_engine_dns, false, false},
-    {"work_stealing", description_work_stealing,
-     additional_constraints_work_stealing, true, false},
     {"client_privacy", description_client_privacy,
      additional_constraints_client_privacy, false, false},
     {"canary_client_privacy", description_canary_client_privacy,
      additional_constraints_canary_client_privacy, false, false},
     {"server_privacy", description_server_privacy,
      additional_constraints_server_privacy, false, false},
-    {"unique_metadata_strings", description_unique_metadata_strings,
-     additional_constraints_unique_metadata_strings, true, true},
     {"keepalive_fix", description_keepalive_fix,
      additional_constraints_keepalive_fix, false, false},
     {"keepalive_server_fix", description_keepalive_server_fix,
@@ -180,10 +189,22 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"round_robin_delegate_to_pick_first",
      description_round_robin_delegate_to_pick_first,
      additional_constraints_round_robin_delegate_to_pick_first, true, true},
-    {"client_channel_subchannel_wrapper_work_serializer_orphan",
-     description_client_channel_subchannel_wrapper_work_serializer_orphan,
-     additional_constraints_client_channel_subchannel_wrapper_work_serializer_orphan,
-     true, true},
+    {"wrr_delegate_to_pick_first", description_wrr_delegate_to_pick_first,
+     additional_constraints_wrr_delegate_to_pick_first, true, true},
+    {"pick_first_happy_eyeballs", description_pick_first_happy_eyeballs,
+     additional_constraints_pick_first_happy_eyeballs, true, true},
+    {"combiner_offload_to_event_engine",
+     description_combiner_offload_to_event_engine,
+     additional_constraints_combiner_offload_to_event_engine, true, true},
+    {"multiping", description_multiping, additional_constraints_multiping,
+     false, true},
+    {"registered_method_lookup_in_transport",
+     description_registered_method_lookup_in_transport,
+     additional_constraints_registered_method_lookup_in_transport, true, true},
+    {"call_status_override_on_cancellation",
+     description_call_status_override_on_cancellation,
+     additional_constraints_call_status_override_on_cancellation,
+     kDefaultForDebugOnly, true},
 };
 
 }  // namespace grpc_core
@@ -241,9 +262,6 @@ const char* const additional_constraints_trace_record_callops = "{}";
 const char* const description_event_engine_dns =
     "If set, use EventEngine DNSResolver for client channel resolution";
 const char* const additional_constraints_event_engine_dns = "{}";
-const char* const description_work_stealing =
-    "If set, use a work stealing thread pool implementation in EventEngine";
-const char* const additional_constraints_work_stealing = "{}";
 const char* const description_client_privacy = "If set, client privacy";
 const char* const additional_constraints_client_privacy = "{}";
 const char* const description_canary_client_privacy =
@@ -251,11 +269,6 @@ const char* const description_canary_client_privacy =
 const char* const additional_constraints_canary_client_privacy = "{}";
 const char* const description_server_privacy = "If set, server privacy";
 const char* const additional_constraints_server_privacy = "{}";
-const char* const description_unique_metadata_strings =
-    "Ensure a unique copy of strings from parsed metadata are taken. The "
-    "hypothesis here is that ref counting these are causing read buffer "
-    "lifetimes to be extended leading to memory bloat.";
-const char* const additional_constraints_unique_metadata_strings = "{}";
 const char* const description_keepalive_fix =
     "Allows overriding keepalive_permit_without_calls. Refer "
     "https://github.com/grpc/grpc/pull/33428 for more information.";
@@ -283,13 +296,34 @@ const char* const description_round_robin_delegate_to_pick_first =
     "backend design.";
 const char* const additional_constraints_round_robin_delegate_to_pick_first =
     "{}";
-const char* const
-    description_client_channel_subchannel_wrapper_work_serializer_orphan =
-        "Client channel subchannel wrapper hops into WorkSerializer at "
-        "Orphan() time, rather than requiring callers to do it.";
-const char* const
-    additional_constraints_client_channel_subchannel_wrapper_work_serializer_orphan =
-        "{}";
+const char* const description_wrr_delegate_to_pick_first =
+    "Change WRR code to delegate to pick_first as per dualstack backend "
+    "design.";
+const char* const additional_constraints_wrr_delegate_to_pick_first = "{}";
+const char* const description_pick_first_happy_eyeballs =
+    "Use Happy Eyeballs in pick_first.";
+const char* const additional_constraints_pick_first_happy_eyeballs = "{}";
+const char* const description_combiner_offload_to_event_engine =
+    "Offload Combiner work onto the EventEngine instead of the Executor.";
+const char* const additional_constraints_combiner_offload_to_event_engine =
+    "{}";
+const char* const description_multiping =
+    "Allow more than one ping to be in flight at a time by default.";
+const char* const additional_constraints_multiping = "{}";
+const char* const description_registered_method_lookup_in_transport =
+    "Change registered method's lookup point to transport";
+const char* const additional_constraints_registered_method_lookup_in_transport =
+    "{}";
+const char* const description_call_status_override_on_cancellation =
+    "Avoid overriding call status of successfully finished calls if it races "
+    "with cancellation.";
+const char* const additional_constraints_call_status_override_on_cancellation =
+    "{}";
+#ifdef NDEBUG
+const bool kDefaultForDebugOnly = false;
+#else
+const bool kDefaultForDebugOnly = true;
+#endif
 }  // namespace
 
 namespace grpc_core {
@@ -325,16 +359,12 @@ const ExperimentMetadata g_experiment_metadata[] = {
      additional_constraints_trace_record_callops, false, true},
     {"event_engine_dns", description_event_engine_dns,
      additional_constraints_event_engine_dns, false, false},
-    {"work_stealing", description_work_stealing,
-     additional_constraints_work_stealing, true, false},
     {"client_privacy", description_client_privacy,
      additional_constraints_client_privacy, false, false},
     {"canary_client_privacy", description_canary_client_privacy,
      additional_constraints_canary_client_privacy, false, false},
     {"server_privacy", description_server_privacy,
      additional_constraints_server_privacy, false, false},
-    {"unique_metadata_strings", description_unique_metadata_strings,
-     additional_constraints_unique_metadata_strings, true, true},
     {"keepalive_fix", description_keepalive_fix,
      additional_constraints_keepalive_fix, false, false},
     {"keepalive_server_fix", description_keepalive_server_fix,
@@ -348,10 +378,22 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"round_robin_delegate_to_pick_first",
      description_round_robin_delegate_to_pick_first,
      additional_constraints_round_robin_delegate_to_pick_first, true, true},
-    {"client_channel_subchannel_wrapper_work_serializer_orphan",
-     description_client_channel_subchannel_wrapper_work_serializer_orphan,
-     additional_constraints_client_channel_subchannel_wrapper_work_serializer_orphan,
-     true, true},
+    {"wrr_delegate_to_pick_first", description_wrr_delegate_to_pick_first,
+     additional_constraints_wrr_delegate_to_pick_first, true, true},
+    {"pick_first_happy_eyeballs", description_pick_first_happy_eyeballs,
+     additional_constraints_pick_first_happy_eyeballs, true, true},
+    {"combiner_offload_to_event_engine",
+     description_combiner_offload_to_event_engine,
+     additional_constraints_combiner_offload_to_event_engine, true, true},
+    {"multiping", description_multiping, additional_constraints_multiping,
+     false, true},
+    {"registered_method_lookup_in_transport",
+     description_registered_method_lookup_in_transport,
+     additional_constraints_registered_method_lookup_in_transport, true, true},
+    {"call_status_override_on_cancellation",
+     description_call_status_override_on_cancellation,
+     additional_constraints_call_status_override_on_cancellation,
+     kDefaultForDebugOnly, true},
 };
 
 }  // namespace grpc_core
@@ -409,9 +451,6 @@ const char* const additional_constraints_trace_record_callops = "{}";
 const char* const description_event_engine_dns =
     "If set, use EventEngine DNSResolver for client channel resolution";
 const char* const additional_constraints_event_engine_dns = "{}";
-const char* const description_work_stealing =
-    "If set, use a work stealing thread pool implementation in EventEngine";
-const char* const additional_constraints_work_stealing = "{}";
 const char* const description_client_privacy = "If set, client privacy";
 const char* const additional_constraints_client_privacy = "{}";
 const char* const description_canary_client_privacy =
@@ -419,11 +458,6 @@ const char* const description_canary_client_privacy =
 const char* const additional_constraints_canary_client_privacy = "{}";
 const char* const description_server_privacy = "If set, server privacy";
 const char* const additional_constraints_server_privacy = "{}";
-const char* const description_unique_metadata_strings =
-    "Ensure a unique copy of strings from parsed metadata are taken. The "
-    "hypothesis here is that ref counting these are causing read buffer "
-    "lifetimes to be extended leading to memory bloat.";
-const char* const additional_constraints_unique_metadata_strings = "{}";
 const char* const description_keepalive_fix =
     "Allows overriding keepalive_permit_without_calls. Refer "
     "https://github.com/grpc/grpc/pull/33428 for more information.";
@@ -451,13 +485,34 @@ const char* const description_round_robin_delegate_to_pick_first =
     "backend design.";
 const char* const additional_constraints_round_robin_delegate_to_pick_first =
     "{}";
-const char* const
-    description_client_channel_subchannel_wrapper_work_serializer_orphan =
-        "Client channel subchannel wrapper hops into WorkSerializer at "
-        "Orphan() time, rather than requiring callers to do it.";
-const char* const
-    additional_constraints_client_channel_subchannel_wrapper_work_serializer_orphan =
-        "{}";
+const char* const description_wrr_delegate_to_pick_first =
+    "Change WRR code to delegate to pick_first as per dualstack backend "
+    "design.";
+const char* const additional_constraints_wrr_delegate_to_pick_first = "{}";
+const char* const description_pick_first_happy_eyeballs =
+    "Use Happy Eyeballs in pick_first.";
+const char* const additional_constraints_pick_first_happy_eyeballs = "{}";
+const char* const description_combiner_offload_to_event_engine =
+    "Offload Combiner work onto the EventEngine instead of the Executor.";
+const char* const additional_constraints_combiner_offload_to_event_engine =
+    "{}";
+const char* const description_multiping =
+    "Allow more than one ping to be in flight at a time by default.";
+const char* const additional_constraints_multiping = "{}";
+const char* const description_registered_method_lookup_in_transport =
+    "Change registered method's lookup point to transport";
+const char* const additional_constraints_registered_method_lookup_in_transport =
+    "{}";
+const char* const description_call_status_override_on_cancellation =
+    "Avoid overriding call status of successfully finished calls if it races "
+    "with cancellation.";
+const char* const additional_constraints_call_status_override_on_cancellation =
+    "{}";
+#ifdef NDEBUG
+const bool kDefaultForDebugOnly = false;
+#else
+const bool kDefaultForDebugOnly = true;
+#endif
 }  // namespace
 
 namespace grpc_core {
@@ -493,16 +548,12 @@ const ExperimentMetadata g_experiment_metadata[] = {
      additional_constraints_trace_record_callops, false, true},
     {"event_engine_dns", description_event_engine_dns,
      additional_constraints_event_engine_dns, false, false},
-    {"work_stealing", description_work_stealing,
-     additional_constraints_work_stealing, true, false},
     {"client_privacy", description_client_privacy,
      additional_constraints_client_privacy, false, false},
     {"canary_client_privacy", description_canary_client_privacy,
      additional_constraints_canary_client_privacy, false, false},
     {"server_privacy", description_server_privacy,
      additional_constraints_server_privacy, false, false},
-    {"unique_metadata_strings", description_unique_metadata_strings,
-     additional_constraints_unique_metadata_strings, true, true},
     {"keepalive_fix", description_keepalive_fix,
      additional_constraints_keepalive_fix, false, false},
     {"keepalive_server_fix", description_keepalive_server_fix,
@@ -516,10 +567,22 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"round_robin_delegate_to_pick_first",
      description_round_robin_delegate_to_pick_first,
      additional_constraints_round_robin_delegate_to_pick_first, true, true},
-    {"client_channel_subchannel_wrapper_work_serializer_orphan",
-     description_client_channel_subchannel_wrapper_work_serializer_orphan,
-     additional_constraints_client_channel_subchannel_wrapper_work_serializer_orphan,
-     true, true},
+    {"wrr_delegate_to_pick_first", description_wrr_delegate_to_pick_first,
+     additional_constraints_wrr_delegate_to_pick_first, true, true},
+    {"pick_first_happy_eyeballs", description_pick_first_happy_eyeballs,
+     additional_constraints_pick_first_happy_eyeballs, true, true},
+    {"combiner_offload_to_event_engine",
+     description_combiner_offload_to_event_engine,
+     additional_constraints_combiner_offload_to_event_engine, true, true},
+    {"multiping", description_multiping, additional_constraints_multiping,
+     false, true},
+    {"registered_method_lookup_in_transport",
+     description_registered_method_lookup_in_transport,
+     additional_constraints_registered_method_lookup_in_transport, true, true},
+    {"call_status_override_on_cancellation",
+     description_call_status_override_on_cancellation,
+     additional_constraints_call_status_override_on_cancellation,
+     kDefaultForDebugOnly, true},
 };
 
 }  // namespace grpc_core
