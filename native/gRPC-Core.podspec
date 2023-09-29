@@ -21,7 +21,7 @@
 
 Pod::Spec.new do |s|
   s.name     = 'gRPC-Core'
-  version = '1.59.0-dev'
+  version = '1.59.0-pre2'
   s.version  = version
   s.summary  = 'Core cross-platform gRPC library, written in C'
   s.homepage = 'https://grpc.io'
@@ -64,6 +64,9 @@ Pod::Spec.new do |s|
   # because Cocoapods lets omit the pod name when including headers of static libraries, the
   # following lets users write `#include <grpc/grpc.h>`.
   s.header_dir = name
+
+  # The module map created automatically by Cocoapods doesn't work for C libraries like gRPC-Core.
+  s.module_map = 'include/grpc/module.modulemap'
 
   # To compile the library, we need the user headers search path (quoted includes) to point to the
   # root of the repo, third_party/** and two upb generated directories, and the system headers
@@ -196,6 +199,8 @@ Pod::Spec.new do |s|
     ss.dependency 'abseil/hash/hash', abseil_version
     ss.dependency 'abseil/memory/memory', abseil_version
     ss.dependency 'abseil/meta/type_traits', abseil_version
+    ss.dependency 'abseil/random/bit_gen_ref', abseil_version
+    ss.dependency 'abseil/random/distributions', abseil_version
     ss.dependency 'abseil/random/random', abseil_version
     ss.dependency 'abseil/status/status', abseil_version
     ss.dependency 'abseil/status/statusor', abseil_version

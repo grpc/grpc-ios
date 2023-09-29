@@ -213,9 +213,9 @@ python_config_settings()
 # This should be updated along with build_handwritten.yaml
 g_stands_for = "generative"  # @unused
 
-core_version = "35.0.0"  # @unused
+core_version = "36.0.0"  # @unused
 
-version = "1.59.0-dev"  # @unused
+version = "1.59.0-pre2"  # @unused
 
 GPR_PUBLIC_HDRS = [
     "include/grpc/support/alloc.h",
@@ -2391,6 +2391,19 @@ grpc_cc_library(
     ],
 )
 
+# This is an EXPERIMENTAL target subject to change.
+grpc_cc_library(
+    name = "grpcpp_csm_observability",
+    hdrs = [
+        "include/grpcpp/ext/csm_observability.h",
+    ],
+    language = "c++",
+    tags = ["nofixdeps"],
+    deps = [
+        "//src/cpp/ext/csm:csm_observability",
+    ],
+)
+
 grpc_cc_library(
     name = "work_serializer",
     srcs = [
@@ -2412,7 +2425,9 @@ grpc_cc_library(
         "gpr",
         "grpc_trace",
         "orphanable",
+        "stats",
         "//src/core:experiments",
+        "//src/core:stats_data",
     ],
 )
 
@@ -2648,6 +2663,7 @@ grpc_cc_library(
         "grpc_trace",
         "//src/core:closure",
         "//src/core:error",
+        "//src/core:experiments",
         "//src/core:gpr_atm",
         "//src/core:gpr_spinlock",
         "//src/core:time",
@@ -3842,6 +3858,7 @@ grpc_cc_library(
     ],
     external_deps = [
         "absl/base:core_headers",
+        "absl/random:bit_gen_ref",
         "absl/status",
         "absl/strings",
         "absl/types:optional",
@@ -3964,6 +3981,8 @@ grpc_cc_library(
         "absl/container:flat_hash_map",
         "absl/hash",
         "absl/meta:type_traits",
+        "absl/random",
+        "absl/random:bit_gen_ref",
         "absl/status",
         "absl/strings",
         "absl/strings:cord",
