@@ -22,7 +22,7 @@
 Pod::Spec.new do |s|
   s.name     = 'gRPC-C++'
   # TODO (mxyan): use version that match gRPC version when pod is stabilized
-  version = '1.59.1'
+  version = '1.59.2'
   s.version  = version
   s.summary  = 'gRPC C++ library'
   s.homepage = 'https://grpc.io'
@@ -380,9 +380,12 @@ Pod::Spec.new do |s|
                       'src/core/ext/transport/chttp2/transport/huffsyms.h',
                       'src/core/ext/transport/chttp2/transport/internal.h',
                       'src/core/ext/transport/chttp2/transport/legacy_frame.h',
+                      'src/core/ext/transport/chttp2/transport/max_concurrent_streams_policy.h',
                       'src/core/ext/transport/chttp2/transport/ping_abuse_policy.h',
+                      'src/core/ext/transport/chttp2/transport/ping_callbacks.h',
                       'src/core/ext/transport/chttp2/transport/ping_rate_policy.h',
                       'src/core/ext/transport/chttp2/transport/varint.h',
+                      'src/core/ext/transport/chttp2/transport/write_size_policy.h',
                       'src/core/ext/transport/inproc/inproc_transport.h',
                       'src/core/ext/upb-generated/envoy/admin/v3/certs.upb.h',
                       'src/core/ext/upb-generated/envoy/admin/v3/clusters.upb.h',
@@ -1449,9 +1452,12 @@ Pod::Spec.new do |s|
                               'src/core/ext/transport/chttp2/transport/huffsyms.h',
                               'src/core/ext/transport/chttp2/transport/internal.h',
                               'src/core/ext/transport/chttp2/transport/legacy_frame.h',
+                              'src/core/ext/transport/chttp2/transport/max_concurrent_streams_policy.h',
                               'src/core/ext/transport/chttp2/transport/ping_abuse_policy.h',
+                              'src/core/ext/transport/chttp2/transport/ping_callbacks.h',
                               'src/core/ext/transport/chttp2/transport/ping_rate_policy.h',
                               'src/core/ext/transport/chttp2/transport/varint.h',
+                              'src/core/ext/transport/chttp2/transport/write_size_policy.h',
                               'src/core/ext/transport/inproc/inproc_transport.h',
                               'src/core/ext/upb-generated/envoy/admin/v3/certs.upb.h',
                               'src/core/ext/upb-generated/envoy/admin/v3/clusters.upb.h',
