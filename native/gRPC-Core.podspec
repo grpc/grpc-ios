@@ -21,7 +21,7 @@
 
 Pod::Spec.new do |s|
   s.name     = 'gRPC-Core'
-  version = '1.59.1'
+  version = '1.59.2'
   s.version  = version
   s.summary  = 'Core cross-platform gRPC library, written in C'
   s.homepage = 'https://grpc.io'
@@ -414,14 +414,20 @@ Pod::Spec.new do |s|
                       'src/core/ext/transport/chttp2/transport/huffsyms.h',
                       'src/core/ext/transport/chttp2/transport/internal.h',
                       'src/core/ext/transport/chttp2/transport/legacy_frame.h',
+                      'src/core/ext/transport/chttp2/transport/max_concurrent_streams_policy.cc',
+                      'src/core/ext/transport/chttp2/transport/max_concurrent_streams_policy.h',
                       'src/core/ext/transport/chttp2/transport/parsing.cc',
                       'src/core/ext/transport/chttp2/transport/ping_abuse_policy.cc',
                       'src/core/ext/transport/chttp2/transport/ping_abuse_policy.h',
+                      'src/core/ext/transport/chttp2/transport/ping_callbacks.cc',
+                      'src/core/ext/transport/chttp2/transport/ping_callbacks.h',
                       'src/core/ext/transport/chttp2/transport/ping_rate_policy.cc',
                       'src/core/ext/transport/chttp2/transport/ping_rate_policy.h',
                       'src/core/ext/transport/chttp2/transport/stream_lists.cc',
                       'src/core/ext/transport/chttp2/transport/varint.cc',
                       'src/core/ext/transport/chttp2/transport/varint.h',
+                      'src/core/ext/transport/chttp2/transport/write_size_policy.cc',
+                      'src/core/ext/transport/chttp2/transport/write_size_policy.h',
                       'src/core/ext/transport/chttp2/transport/writing.cc',
                       'src/core/ext/transport/inproc/inproc_plugin.cc',
                       'src/core/ext/transport/inproc/inproc_transport.cc',
@@ -2201,9 +2207,12 @@ Pod::Spec.new do |s|
                               'src/core/ext/transport/chttp2/transport/huffsyms.h',
                               'src/core/ext/transport/chttp2/transport/internal.h',
                               'src/core/ext/transport/chttp2/transport/legacy_frame.h',
+                              'src/core/ext/transport/chttp2/transport/max_concurrent_streams_policy.h',
                               'src/core/ext/transport/chttp2/transport/ping_abuse_policy.h',
+                              'src/core/ext/transport/chttp2/transport/ping_callbacks.h',
                               'src/core/ext/transport/chttp2/transport/ping_rate_policy.h',
                               'src/core/ext/transport/chttp2/transport/varint.h',
+                              'src/core/ext/transport/chttp2/transport/write_size_policy.h',
                               'src/core/ext/transport/inproc/inproc_transport.h',
                               'src/core/ext/upb-generated/envoy/admin/v3/certs.upb.h',
                               'src/core/ext/upb-generated/envoy/admin/v3/clusters.upb.h',
