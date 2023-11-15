@@ -21,13 +21,15 @@ namespace _pb = ::google::protobuf;
 namespace _pbi = ::google::protobuf::internal;
 namespace _fl = ::google::protobuf::internal::field_layout;
 namespace pb {
-        template <typename>
+
+inline constexpr CppFeatures::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        legacy_closed_enum_{false} {}
+
+template <typename>
 PROTOBUF_CONSTEXPR CppFeatures::CppFeatures(::_pbi::ConstantInitialized)
-    : _impl_{
-      /*decltype(_impl_._has_bits_)*/ {},
-      /*decltype(_impl_._cached_size_)*/ {},
-      /*decltype(_impl_.legacy_closed_enum_)*/ false,
-    } {}
+    : _impl_(::_pbi::ConstantInitialized()) {}
 struct CppFeaturesDefaultTypeInternal {
   PROTOBUF_CONSTEXPR CppFeaturesDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
   ~CppFeaturesDefaultTypeInternal() {}
@@ -68,11 +70,11 @@ static const ::_pb::Message* const file_default_instances[] = {
 };
 const char descriptor_table_protodef_google_2fprotobuf_2fcpp_5ffeatures_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
     "\n\"google/protobuf/cpp_features.proto\022\002pb"
-    "\032 google/protobuf/descriptor.proto\"D\n\013Cp"
-    "pFeatures\0225\n\022legacy_closed_enum\030\001 \001(\010B\031\210"
-    "\001\001\230\001\004\230\001\001\242\001\r\n\0042023\022\005false::\n\003cpp\022\033.google"
-    ".protobuf.FeatureSet\030\350\007 \001(\0132\017.pb.CppFeat"
-    "ures"
+    "\032 google/protobuf/descriptor.proto\"M\n\013Cp"
+    "pFeatures\022>\n\022legacy_closed_enum\030\001 \001(\010B\"\210"
+    "\001\001\230\001\004\230\001\001\242\001\t\022\004true\030\346\007\242\001\n\022\005false\030\347\007::\n\003cpp"
+    "\022\033.google.protobuf.FeatureSet\030\350\007 \001(\0132\017.p"
+    "b.CppFeatures"
 };
 static const ::_pbi::DescriptorTable* const descriptor_table_google_2fprotobuf_2fcpp_5ffeatures_2eproto_deps[1] =
     {
@@ -82,7 +84,7 @@ static ::absl::once_flag descriptor_table_google_2fprotobuf_2fcpp_5ffeatures_2ep
 const ::_pbi::DescriptorTable descriptor_table_google_2fprotobuf_2fcpp_5ffeatures_2eproto = {
     false,
     false,
-    204,
+    213,
     descriptor_table_protodef_google_2fprotobuf_2fcpp_5ffeatures_2eproto,
     "google/protobuf/cpp_features.proto",
     &descriptor_table_google_2fprotobuf_2fcpp_5ffeatures_2eproto_once,
@@ -129,19 +131,19 @@ CppFeatures::CppFeatures(::google::protobuf::Arena* arena)
   SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:pb.CppFeatures)
 }
-CppFeatures::CppFeatures(const CppFeatures& from)
-    : ::google::protobuf::Message(), _impl_(from._impl_) {
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  // @@protoc_insertion_point(copy_constructor:pb.CppFeatures)
+CppFeatures::CppFeatures(
+    ::google::protobuf::Arena* arena, const CppFeatures& from)
+    : CppFeatures(arena) {
+  MergeFrom(from);
 }
+inline PROTOBUF_NDEBUG_INLINE CppFeatures::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : _cached_size_{0} {}
+
 inline void CppFeatures::SharedCtor(::_pb::Arena* arena) {
-  (void)arena;
-  new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){},
-      /*decltype(_impl_._cached_size_)*/ {},
-      decltype(_impl_.legacy_closed_enum_){false},
-  };
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.legacy_closed_enum_ = {};
 }
 CppFeatures::~CppFeatures() {
   // @@protoc_insertion_point(destructor:pb.CppFeatures)
@@ -149,14 +151,13 @@ CppFeatures::~CppFeatures() {
   SharedDtor();
 }
 inline void CppFeatures::SharedDtor() {
-  ABSL_DCHECK(GetArenaForAllocation() == nullptr);
-}
-void CppFeatures::SetCachedSize(int size) const {
-  _impl_._cached_size_.Set(size);
+  ABSL_DCHECK(GetArena() == nullptr);
+  _impl_.~Impl_();
 }
 
 PROTOBUF_NOINLINE void CppFeatures::Clear() {
 // @@protoc_insertion_point(message_clear_start:pb.CppFeatures)
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
   ::uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -245,11 +246,12 @@ const ::_pbi::TcParseTable<0, 1, 0, 0, 2> CppFeatures::_table_ = {
 }
 
 const ::google::protobuf::Message::ClassData CppFeatures::_class_data_ = {
-    ::google::protobuf::Message::CopyWithSourceCheck,
-    CppFeatures::MergeImpl
+    CppFeatures::MergeImpl,
+    nullptr,  // OnDemandRegisterArenaDtor
 };
-const ::google::protobuf::Message::ClassData*CppFeatures::GetClassData() const { return &_class_data_; }
-
+const ::google::protobuf::Message::ClassData* CppFeatures::GetClassData() const {
+  return &_class_data_;
+}
 
 void CppFeatures::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
   auto* const _this = static_cast<CppFeatures*>(&to_msg);
@@ -276,7 +278,10 @@ PROTOBUF_NOINLINE bool CppFeatures::IsInitialized() const {
   return true;
 }
 
-void CppFeatures::InternalSwap(CppFeatures* other) {
+::_pbi::CachedSize* CppFeatures::AccessCachedSize() const {
+  return &_impl_._cached_size_;
+}
+void CppFeatures::InternalSwap(CppFeatures* PROTOBUF_RESTRICT other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);

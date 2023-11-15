@@ -1,36 +1,15 @@
 // Protocol Buffers - Google's data interchange format
 // Copyright 2008 Google Inc.  All rights reserved.
-// https://developers.google.com/protocol-buffers/
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google Inc. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
 
 #include "google/protobuf/compiler/objectivec/file.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <iterator>
 #include <memory>
@@ -40,13 +19,16 @@
 #include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/log/absl_check.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "google/protobuf/compiler/objectivec/enum.h"
 #include "google/protobuf/compiler/objectivec/extension.h"
+#include "google/protobuf/compiler/objectivec/helpers.h"
 #include "google/protobuf/compiler/objectivec/import_writer.h"
 #include "google/protobuf/compiler/objectivec/message.h"
 #include "google/protobuf/compiler/objectivec/names.h"
+#include "google/protobuf/compiler/objectivec/options.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/descriptor.pb.h"
 #include "google/protobuf/descriptor_legacy.h"
@@ -64,28 +46,52 @@ const int32_t GOOGLE_PROTOBUF_OBJC_VERSION = 30007;
 
 const char* kHeaderExtension = ".pbobjc.h";
 
-// Checks if a message contains any extension definitions (on the message or
-// a nested message under it).
-bool MessageContainsExtensions(const Descriptor* message) {
+bool IsMapEntryMessage(const Descriptor* descriptor) {
+  return descriptor->options().map_entry();
+}
+
+// Checks if a message contains extension definitions (on the message or
+// a nested message under it). `include_custom_options` decides if custom
+// options count as extensions.
+bool MessageContainsExtensions(const Descriptor* message,
+                               bool include_custom_options) {
   if (message->extension_count() > 0) {
-    return true;
+    if (include_custom_options) {
+      return true;
+    }
+    for (int i = 0; i < message->extension_count(); i++) {
+      if (!ExtensionIsCustomOption(message->extension(i))) {
+        return true;
+      }
+    }
   }
   for (int i = 0; i < message->nested_type_count(); i++) {
-    if (MessageContainsExtensions(message->nested_type(i))) {
+    if (MessageContainsExtensions(message->nested_type(i),
+                                  include_custom_options)) {
       return true;
     }
   }
   return false;
 }
 
-// Checks if the file contains any extensions definitions (at the root or
-// nested under a message).
-bool FileContainsExtensions(const FileDescriptor* file) {
+// Checks if the file contains extensions definitions (at the root or
+// nested under a message). `include_custom_options` decides if custom
+// options count as extensions.
+bool FileContainsExtensions(const FileDescriptor* file,
+                            bool include_custom_options) {
   if (file->extension_count() > 0) {
-    return true;
+    if (include_custom_options) {
+      return true;
+    }
+    for (int i = 0; i < file->extension_count(); i++) {
+      if (!ExtensionIsCustomOption(file->extension(i))) {
+        return true;
+      }
+    }
   }
   for (int i = 0; i < file->message_type_count(); i++) {
-    if (MessageContainsExtensions(file->message_type(i))) {
+    if (MessageContainsExtensions(file->message_type(i),
+                                  include_custom_options)) {
       return true;
     }
   }
@@ -112,17 +118,25 @@ void MakeDescriptors(
     const Descriptor* descriptor, const std::string& file_description_name,
     std::vector<std::unique_ptr<EnumGenerator>>* enum_generators,
     std::vector<std::unique_ptr<ExtensionGenerator>>* extension_generators,
-    std::vector<std::unique_ptr<MessageGenerator>>* message_generators) {
+    std::vector<std::unique_ptr<MessageGenerator>>* message_generators,
+    const GenerationOptions& generation_options) {
   for (int i = 0; i < descriptor->enum_type_count(); i++) {
-    enum_generators->emplace_back(
-        std::make_unique<EnumGenerator>(descriptor->enum_type(i)));
+    enum_generators->emplace_back(std::make_unique<EnumGenerator>(
+        descriptor->enum_type(i), generation_options));
   }
   for (int i = 0; i < descriptor->nested_type_count(); i++) {
+    const Descriptor* message_type = descriptor->nested_type(i);
+    if (IsMapEntryMessage(message_type)) {
+      // Map entries can't have extensions, or sub messages, they are an
+      // implementation detail of how map<> works.
+      continue;
+    }
     message_generators->emplace_back(std::make_unique<MessageGenerator>(
-        file_description_name, descriptor->nested_type(i)));
+        file_description_name, message_type, generation_options));
     message_generators->back()->AddExtensionGenerators(extension_generators);
-    MakeDescriptors(descriptor->nested_type(i), file_description_name,
-                    enum_generators, extension_generators, message_generators);
+    MakeDescriptors(message_type, file_description_name, enum_generators,
+                    extension_generators, message_generators,
+                    generation_options);
   }
 }
 
@@ -184,7 +198,8 @@ FileGenerator::CommonState::CollectMinimalFileDepsContainingExtensionsInternal(
     }
   }
 
-  const bool file_has_exts = FileContainsExtensions(file);
+  const bool file_has_exts =
+      FileContainsExtensions(file, include_custom_options);
 
   // Fast path: if nothing to prune or there was only one dep, the prune work is
   // a waste, skip it.
@@ -237,20 +252,31 @@ FileGenerator::FileGenerator(const FileDescriptor* file,
       file_description_name_(FileClassName(file) + "_FileDescription"),
       is_bundled_proto_(IsProtobufLibraryBundledProtoFile(file)) {
   for (int i = 0; i < file_->enum_type_count(); i++) {
-    enum_generators_.emplace_back(
-        std::make_unique<EnumGenerator>(file_->enum_type(i)));
+    enum_generators_.emplace_back(std::make_unique<EnumGenerator>(
+        file_->enum_type(i), generation_options));
   }
   for (int i = 0; i < file_->extension_count(); i++) {
-    extension_generators_.push_back(std::make_unique<ExtensionGenerator>(
-        root_class_name_, file_->extension(i)));
+    const FieldDescriptor* extension = file_->extension(i);
+    if (!generation_options.strip_custom_options ||
+        !ExtensionIsCustomOption(extension)) {
+      extension_generators_.push_back(std::make_unique<ExtensionGenerator>(
+          root_class_name_, extension, generation_options));
+    }
   }
+  file_scoped_extension_count_ = extension_generators_.size();
   for (int i = 0; i < file_->message_type_count(); i++) {
+    const Descriptor* message_type = file_->message_type(i);
+    if (IsMapEntryMessage(message_type)) {
+      // Map entries can't have extensions, or sub messages, they are an
+      // implementation detail of how map<> works.
+      continue;
+    }
     message_generators_.emplace_back(std::make_unique<MessageGenerator>(
-        file_description_name_, file_->message_type(i)));
+        file_description_name_, message_type, generation_options));
     message_generators_.back()->AddExtensionGenerators(&extension_generators_);
-    MakeDescriptors(file_->message_type(i), file_description_name_,
-                    &enum_generators_, &extension_generators_,
-                    &message_generators_);
+    MakeDescriptors(message_type, file_description_name_, &enum_generators_,
+                    &extension_generators_, &message_generators_,
+                    generation_options);
   }
 }
 
@@ -298,17 +324,17 @@ void FileGenerator::GenerateHeader(io::Printer* p) const {
 
     // The dynamic methods block is only needed if there are extensions that are
     // file level scoped (not message scoped). The first
-    // file_->extension_count() of extension_generators_ are the file scoped
+    // file_scoped_extension_count_ of extension_generators_ are the file scoped
     // ones.
-    if (file_->extension_count()) {
+    if (file_scoped_extension_count_) {
       p->Emit("@interface $root_class_name$ (DynamicMethods)\n");
 
-      for (int i = 0; i < file_->extension_count(); i++) {
+      for (size_t i = 0; i < file_scoped_extension_count_; i++) {
         extension_generators_[i]->GenerateMembersHeader(p);
       }
 
       p->Emit("@end\n\n");
-    }  // file_->extension_count()
+    }
 
     for (const auto& generator : message_generators_) {
       generator->GenerateMessageHeader(p);
@@ -326,16 +352,7 @@ void FileGenerator::GenerateSource(io::Printer* p) const {
   std::vector<const FileDescriptor*> deps_with_extensions =
       common_state_->CollectMinimalFileDepsContainingExtensions(file_);
   GeneratedFileOptions file_options;
-
-  // If any indirect dependency provided extensions, it needs to be directly
-  // imported so it can get merged into the root's extensions registry.
-  // See the Note by CollectMinimalFileDepsContainingExtensions before
-  // changing this.
-  for (auto& dep : deps_with_extensions) {
-    if (!IsDirectDependency(dep, file_)) {
-      file_options.extra_files_to_import.push_back(dep);
-    }
-  }
+  file_options.forced_files_to_import = deps_with_extensions;
 
   absl::btree_set<std::string> fwd_decls;
   for (const auto& generator : message_generators_) {
@@ -382,16 +399,7 @@ void FileGenerator::GenerateGlobalSource(io::Printer* p) const {
   std::vector<const FileDescriptor*> deps_with_extensions =
       common_state_->CollectMinimalFileDepsContainingExtensions(file_);
   GeneratedFileOptions file_options;
-
-  // If any indirect dependency provided extensions, it needs to be directly
-  // imported so it can get merged into the root's extensions registry.
-  // See the Note by CollectMinimalFileDepsContainingExtensions before
-  // changing this.
-  for (auto& dep : deps_with_extensions) {
-    if (!IsDirectDependency(dep, file_)) {
-      file_options.extra_files_to_import.push_back(dep);
-    }
-  }
+  file_options.forced_files_to_import = deps_with_extensions;
 
   absl::btree_set<std::string> fwd_decls;
   for (const auto& generator : extension_generators_) {
@@ -451,6 +459,7 @@ void FileGenerator::GenerateFile(io::Printer* p, GeneratedFileType file_type,
       /* for_bundled_proto = */ is_bundled_proto_);
   const std::string header_extension(kHeaderExtension);
 
+  absl::flat_hash_set<const FileDescriptor*> file_imports;
   switch (file_type) {
     case GeneratedFileType::kHeader:
       // Generated files bundled with the library get minimal imports,
@@ -465,11 +474,13 @@ void FileGenerator::GenerateFile(io::Printer* p, GeneratedFileType file_type,
       if (HeadersUseForwardDeclarations()) {
         // #import any headers for "public imports" in the proto file.
         for (int i = 0; i < file_->public_dependency_count(); i++) {
-          import_writer.AddFile(file_->public_dependency(i), header_extension);
+          file_imports.insert(file_->public_dependency(i));
         }
+      } else if (generation_options_.generate_minimal_imports) {
+        DetermineNeededDeps(&file_imports, PublicDepsHandling::kForceInclude);
       } else {
         for (int i = 0; i < file_->dependency_count(); i++) {
-          import_writer.AddFile(file_->dependency(i), header_extension);
+          file_imports.insert(file_->dependency(i));
         }
       }
       break;
@@ -477,24 +488,67 @@ void FileGenerator::GenerateFile(io::Printer* p, GeneratedFileType file_type,
       import_writer.AddRuntimeImport("GPBProtocolBuffers_RuntimeSupport.h");
       import_writer.AddFile(file_, header_extension);
       if (HeadersUseForwardDeclarations()) {
-        // #import the headers for anything that a plain dependency of this
-        // proto file (that means they were just an include, not a "public"
-        // include).
-        absl::flat_hash_set<std::string> public_import_names;
-        for (int i = 0; i < file_->public_dependency_count(); i++) {
-          public_import_names.insert(file_->public_dependency(i)->name());
-        }
-        for (int i = 0; i < file_->dependency_count(); i++) {
-          const FileDescriptor* dep = file_->dependency(i);
-          if (!public_import_names.contains(dep->name())) {
-            import_writer.AddFile(dep, header_extension);
+        if (generation_options_.generate_minimal_imports) {
+          DetermineNeededDeps(&file_imports, PublicDepsHandling::kExclude);
+        } else {
+          // #import the headers for anything that a plain dependency of this
+          // proto file (that means they were just an include, not a "public"
+          // include).
+          absl::flat_hash_set<std::string> public_import_names;
+          for (int i = 0; i < file_->public_dependency_count(); i++) {
+            public_import_names.insert(file_->public_dependency(i)->name());
+          }
+          for (int i = 0; i < file_->dependency_count(); i++) {
+            const FileDescriptor* dep = file_->dependency(i);
+            if (!public_import_names.contains(dep->name())) {
+              file_imports.insert(dep);
+            }
           }
         }
       }
       break;
   }
 
-  for (const auto& dep : file_options.extra_files_to_import) {
+  // If a forced file was a direct dep, move it into the file_imports.
+  std::vector<const FileDescriptor*> extra_files_to_import;
+  for (const auto& dep : file_options.forced_files_to_import) {
+    if (IsDirectDependency(dep, file_)) {
+      file_imports.insert(dep);
+    } else {
+      extra_files_to_import.push_back(dep);
+    }
+  }
+
+  if (!file_imports.empty()) {
+    // Output the file_imports in the order they were listed as dependencies.
+    for (int i = 0; i < file_->dependency_count(); i++) {
+      const FileDescriptor* dep = file_->dependency(i);
+      if (file_imports.contains(dep)) {
+        import_writer.AddFile(file_->dependency(i), header_extension);
+        file_imports.erase(dep);
+      }
+    }
+    if (!file_imports.empty()) {
+      // If there are still things in file_imports, then there were files that
+      // were public imports into the non public imports, add those files are
+      // needed to define the types also.
+      //
+      // Sort them (to get stable generation), and add them to the extra files
+      // to imports.
+
+      // This can really only happen in minimal imports mode, every other case,
+      // it shouldn't happen.
+      ABSL_CHECK(generation_options_.generate_minimal_imports);
+      std::vector<const FileDescriptor*> still_needed(file_imports.begin(),
+                                                      file_imports.end());
+      std::sort(still_needed.begin(), still_needed.end(),
+                FileDescriptorsOrderedByName());
+      extra_files_to_import.insert(extra_files_to_import.end(),
+                                   still_needed.begin(), still_needed.end());
+    }
+  }
+
+  for (const auto& dep : extra_files_to_import) {
     import_writer.AddFile(dep, header_extension);
   }
 
@@ -594,17 +648,10 @@ void FileGenerator::EmitRootImplementation(
   // output a registry to override to create the file specific
   // registry.
   if (extension_generators_.empty() && deps_with_extensions.empty()) {
-    if (file_->dependency_count() == 0) {
-      p->Emit(R"objc(
-        // No extensions in the file and no imports, so no need to generate
-        // +extensionRegistry.
-      )objc");
-    } else {
-      p->Emit(R"objc(
-        // No extensions in the file and none of the imports (direct or indirect)
-        // defined extensions, so no need to generate +extensionRegistry.
-      )objc");
-    }
+    p->Emit(R"objc(
+      // No extensions in the file and no imports or none of the imports (direct or
+      // indirect) defined extensions, so no need to generate +extensionRegistry.
+    )objc");
   } else {
     EmitRootExtensionRegistryImplementation(p, deps_with_extensions);
   }
@@ -690,21 +737,25 @@ void FileGenerator::EmitFileDescription(io::Printer* p) const {
 
   const std::string objc_prefix(FileClassPrefix(file_));
   std::string syntax;
-  switch (FileDescriptorLegacy(file_).syntax()) {
-    case FileDescriptorLegacy::Syntax::SYNTAX_UNKNOWN:
-      syntax = "GPBFileSyntaxUnknown";
-      break;
-    case FileDescriptorLegacy::Syntax::SYNTAX_PROTO2:
-      syntax = "GPBFileSyntaxProto2";
-      break;
-    case FileDescriptorLegacy::Syntax::SYNTAX_PROTO3:
-      syntax = "GPBFileSyntaxProto3";
-      break;
-#ifdef PROTOBUF_FUTURE_EDITIONS
-    case FileDescriptorLegacy::Syntax::SYNTAX_EDITIONS:
-      syntax = "GPBFileSyntaxProtoEditions";
-      break;
-#endif  // PROTOBUF_FUTURE_EDITIONS
+  if (generation_options_.experimental_strip_nonfunctional_codegen) {
+    // Doesn't matter for current sources, use Unknown as a marker for this
+    // mode.
+    syntax = "GPBFileSyntaxUnknown";
+  } else {
+    switch (FileDescriptorLegacy(file_).syntax()) {
+      case FileDescriptorLegacy::Syntax::SYNTAX_UNKNOWN:
+        syntax = "GPBFileSyntaxUnknown";
+        break;
+      case FileDescriptorLegacy::Syntax::SYNTAX_PROTO2:
+        syntax = "GPBFileSyntaxProto2";
+        break;
+      case FileDescriptorLegacy::Syntax::SYNTAX_PROTO3:
+        syntax = "GPBFileSyntaxProto3";
+        break;
+      case FileDescriptorLegacy::Syntax::SYNTAX_EDITIONS:
+        syntax = "GPBFileSyntaxProtoEditions";
+        break;
+    }
   }
 
   p->Emit({{"file_description_name", file_description_name_},
@@ -724,6 +775,34 @@ void FileGenerator::EmitFileDescription(io::Printer* p) const {
             };
           )objc");
   p->Emit("\n");
+}
+
+void FileGenerator::DetermineNeededDeps(
+    absl::flat_hash_set<const FileDescriptor*>* deps,
+    PublicDepsHandling public_deps_handling) const {
+  // This logic captures the deps that are needed for types thus removing the
+  // ones that are only deps because they provide the definitions for custom
+  // options. If protoc gets something like "import options" then this logic can
+  // go away as the non "import options" deps would be the ones needed.
+
+  if (public_deps_handling == PublicDepsHandling::kForceInclude) {
+    for (int i = 0; i < file_->public_dependency_count(); i++) {
+      deps->insert(file_->public_dependency(i));
+    }
+  }
+
+  for (const auto& generator : message_generators_) {
+    generator->DetermineNeededFiles(deps);
+  }
+  for (const auto& generator : extension_generators_) {
+    generator->DetermineNeededFiles(deps);
+  }
+
+  if (public_deps_handling == PublicDepsHandling::kExclude) {
+    for (int i = 0; i < file_->public_dependency_count(); i++) {
+      deps->erase(file_);
+    }
+  }
 }
 
 }  // namespace objectivec

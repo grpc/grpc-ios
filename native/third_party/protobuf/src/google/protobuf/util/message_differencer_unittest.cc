@@ -1,38 +1,15 @@
 // Protocol Buffers - Google's data interchange format
 // Copyright 2008 Google Inc.  All rights reserved.
-// https://developers.google.com/protocol-buffers/
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google Inc. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
 
 // Author: jschorr@google.com (Joseph Schorr)
 //  Based on original Protocol Buffers design by
 //  Sanjay Ghemawat, Jeff Dean, and others.
 //
-// TODO(ksroka): Move some of these tests to field_comparator_test.cc.
+// TODO: Move some of these tests to field_comparator_test.cc.
 
 #include "google/protobuf/util/message_differencer.h"
 
@@ -47,6 +24,7 @@
 #include <gtest/gtest.h>
 #include "absl/functional/bind_front.h"
 #include "absl/log/absl_check.h"
+#include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
@@ -271,6 +249,7 @@ TEST(MessageDifferencerTest,
   EXPECT_FALSE(default_differencer.Compare(msg2, msg1));
   EXPECT_TRUE(default_differencer.NoPresenceFieldsCausingFailure().empty());
 }
+
 
 TEST(MessageDifferencerTest,
      PartialEqualityTestForceCompareWorksForRepeatedField) {
@@ -3589,7 +3568,7 @@ TEST_F(ComparisonTest, MapEntryPartialEmptyKeyTest) {
 
   util::MessageDifferencer differencer;
   differencer.set_scope(util::MessageDifferencer::PARTIAL);
-  // TODO(jieluo): Remove the round trip
+  // TODO: Remove the round trip
   std::string serialized_value;
   map1.SerializeToString(&serialized_value);
   map1.ParseFromString(serialized_value);
@@ -3979,6 +3958,26 @@ TEST(AnyTest, Simple) {
   message_differencer.ReportDifferencesToString(&difference_string);
   EXPECT_FALSE(message_differencer.Compare(m1, m2));
   EXPECT_EQ("modified: any_value.a: 20 -> 21\n", difference_string);
+}
+
+TEST(AnyTest, DifferentTypes) {
+  protobuf_unittest::TestField value1;
+  value1.set_a(20);
+  protobuf_unittest::ForeignMessage value2;
+  value2.set_c(30);
+
+  protobuf_unittest::TestAny m1, m2;
+  m1.mutable_any_value()->PackFrom(value1);
+  m2.mutable_any_value()->PackFrom(value2);
+  util::MessageDifferencer message_differencer;
+  std::string difference_string;
+  message_differencer.ReportDifferencesToString(&difference_string);
+  EXPECT_FALSE(message_differencer.Compare(m1, m2));
+  // Any should be treated as a regular proto when the payload types differ.
+  EXPECT_THAT(
+      difference_string,
+      testing::ContainsRegex(
+          R"(type_url: ".+/protobuf_unittest.TestField\" -> ".+/protobuf_unittest.ForeignMessage")"));
 }
 
 TEST(Anytest, TreatAsSet) {

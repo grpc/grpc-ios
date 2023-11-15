@@ -1,32 +1,9 @@
 // Protocol Buffers - Google's data interchange format
 // Copyright 2008 Google Inc.  All rights reserved.
-// https://developers.google.com/protocol-buffers/
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google Inc. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
 
 #ifndef GOOGLE_PROTOBUF_PARSE_CONTEXT_H__
 #define GOOGLE_PROTOBUF_PARSE_CONTEXT_H__
@@ -158,7 +135,7 @@ class PROTOBUF_EXPORT EpsCopyInputStream {
       return *this;
     }
 
-    ~LimitToken() = default;
+    ~LimitToken() { PROTOBUF_UNPOISON_MEMORY_REGION(&token_, sizeof(token_)); }
 
     int token() && {
       int t = token_;
@@ -187,7 +164,7 @@ class PROTOBUF_EXPORT EpsCopyInputStream {
     // end up with an invalid limit and it can lead to integer overflows.
     limit_ = limit_ + std::move(delta).token();
     if (PROTOBUF_PREDICT_FALSE(!EndedAtLimit())) return false;
-    // TODO(gerbens) We could remove this line and hoist the code to
+    // TODO We could remove this line and hoist the code to
     // DoneFallback. Study the perf/bin-size effects.
     limit_end_ = buffer_end_ + (std::min)(0, limit_);
     return true;
@@ -366,7 +343,7 @@ class PROTOBUF_EXPORT EpsCopyInputStream {
   uint32_t last_tag_minus_1_ = 0;
   int overall_limit_ = INT_MAX;  // Overall limit independent of pushed limits.
   // Pretty random large number that seems like a safe allocation on most
-  // systems. TODO(gerbens) do we need to set this as build flag?
+  // systems. TODO do we need to set this as build flag?
   enum { kSafeStringSize = 50000000 };
 
   // Advances to next buffer chunk returns a pointer to the same logical place
@@ -413,7 +390,7 @@ class PROTOBUF_EXPORT EpsCopyInputStream {
       append(ptr, chunk_size);
       ptr += chunk_size;
       size -= chunk_size;
-      // TODO(gerbens) Next calls NextBuffer which generates buffers with
+      // TODO Next calls NextBuffer which generates buffers with
       // overlap and thus incurs cost of copying the slop regions. This is not
       // necessary for reading strings. We should just call Next buffers.
       if (limit_ <= kSlopBytes) return nullptr;
@@ -429,8 +406,8 @@ class PROTOBUF_EXPORT EpsCopyInputStream {
   // AppendUntilEnd appends data until a limit (either a PushLimit or end of
   // stream. Normal payloads are from length delimited fields which have an
   // explicit size. Reading until limit only comes when the string takes
-  // the place of a protobuf, ie RawMessage/StringRawMessage, lazy fields and
-  // implicit weak messages. We keep these methods private and friend them.
+  // the place of a protobuf, ie RawMessage, lazy fields and implicit weak
+  // messages. We keep these methods private and friend them.
   template <typename A>
   const char* AppendUntilEnd(const char* ptr, const A& append) {
     if (ptr - buffer_end_ > limit_) return nullptr;
@@ -480,6 +457,30 @@ class PROTOBUF_EXPORT ParseContext : public EpsCopyInputStream {
     *start = InitFrom(std::forward<T>(args)...);
   }
 
+  struct Spawn {};
+  static constexpr Spawn kSpawn = {};
+
+  // Creates a new context from a given "ctx" to inherit a few attributes to
+  // emulate continued parsing. For example, recursion depth or descriptor pools
+  // must be passed down to a new "spawned" context to maintain the same parse
+  // context. Note that the spawned context always disables aliasing (different
+  // input).
+  template <typename... T>
+  ParseContext(Spawn, const ParseContext& ctx, const char** start, T&&... args)
+      : EpsCopyInputStream(false),
+        depth_(ctx.depth_),
+        data_(ctx.data_)
+  {
+    *start = InitFrom(std::forward<T>(args)...);
+  }
+
+  // Move constructor and assignment operator are not supported because "ptr"
+  // for parsing may have pointed to an inlined buffer (patch_buffer_) which can
+  // be invalid afterwards.
+  ParseContext(ParseContext&&) = delete;
+  ParseContext& operator=(ParseContext&&) = delete;
+  ParseContext& operator=(const ParseContext&) = delete;
+
   void TrackCorrectEnding() { group_depth_ = 0; }
 
   // Done should only be called when the parsing pointer is pointing to the
@@ -493,21 +494,9 @@ class PROTOBUF_EXPORT ParseContext : public EpsCopyInputStream {
 
   const char* ParseMessage(MessageLite* msg, const char* ptr);
 
-  // Spawns a child parsing context that inherits key properties. New context
-  // inherits the following:
-  // --depth_, data_, check_required_fields_, lazy_parse_mode_
-  // The spawned context always disables aliasing (different input).
-  template <typename... T>
-  ParseContext Spawn(const char** start, T&&... args) {
-    ParseContext spawned(depth_, false, start, std::forward<T>(args)...);
-    // Transfer key context states.
-    spawned.data_ = data_;
-    return spawned;
-  }
-
   // This overload supports those few cases where ParseMessage is called
   // on a class that is not actually a proto message.
-  // TODO(jorg): Eliminate this use case.
+  // TODO: Eliminate this use case.
   template <typename T,
             typename std::enable_if<!std::is_base_of<MessageLite, T>::value,
                                     bool>::type = true>
@@ -598,17 +587,6 @@ class PROTOBUF_EXPORT ParseContext : public EpsCopyInputStream {
   int group_depth_ = INT_MIN;
   Data data_;
 };
-
-template <uint32_t tag>
-bool ExpectTag(const char* ptr) {
-  if (tag < 128) {
-    return *ptr == static_cast<char>(tag);
-  } else {
-    static_assert(tag < 128 * 128, "We only expect tags for 1 or 2 bytes");
-    char buf[2] = {static_cast<char>(tag | 0x80), static_cast<char>(tag >> 7)};
-    return std::memcmp(ptr, buf, 2) == 0;
-  }
-}
 
 template <int>
 struct EndianHelper;
@@ -973,7 +951,7 @@ PROTOBUF_NODISCARD PROTOBUF_ALWAYS_INLINE constexpr T RotateLeft(
 
 PROTOBUF_NODISCARD inline PROTOBUF_ALWAYS_INLINE uint64_t
 RotRight7AndReplaceLowByte(uint64_t res, const char& byte) {
-  // TODO(b/239808098): remove the inline assembly
+  // TODO: remove the inline assembly
 #if defined(__x86_64__) && defined(__GNUC__)
   // This will only use one register for `res`.
   // `byte` comes as a reference to allow the compiler to generate code like:
@@ -992,7 +970,7 @@ RotRight7AndReplaceLowByte(uint64_t res, const char& byte) {
   res |= 0xFF & byte;
 #endif
   return res;
-};
+}
 
 inline PROTOBUF_ALWAYS_INLINE const char* ReadTagInlined(const char* ptr,
                                                          uint32_t* out) {

@@ -1,32 +1,9 @@
 // Protocol Buffers - Google's data interchange format
 // Copyright 2008 Google Inc.  All rights reserved.
-// https://developers.google.com/protocol-buffers/
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google Inc. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
 
 #include "google/protobuf/compiler/objectivec/message.h"
 
@@ -36,13 +13,19 @@
 #include <string>
 #include <vector>
 
+#include "absl/container/btree_set.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/log/absl_check.h"
 #include "absl/log/absl_log.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "google/protobuf/compiler/objectivec/extension.h"
+#include "google/protobuf/compiler/objectivec/field.h"
 #include "google/protobuf/compiler/objectivec/helpers.h"
 #include "google/protobuf/compiler/objectivec/names.h"
 #include "google/protobuf/compiler/objectivec/oneof.h"
+#include "google/protobuf/compiler/objectivec/options.h"
 #include "google/protobuf/compiler/objectivec/text_format_decode_data.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/descriptor.pb.h"
@@ -54,10 +37,6 @@ namespace compiler {
 namespace objectivec {
 
 namespace {
-
-bool IsMapEntryMessage(const Descriptor* descriptor) {
-  return descriptor->options().map_entry();
-}
 
 struct FieldOrderingByNumber {
   inline bool operator()(const FieldDescriptor* a,
@@ -214,16 +193,20 @@ const FieldDescriptor** SortFieldsByStorageSize(const Descriptor* descriptor) {
 }  // namespace
 
 MessageGenerator::MessageGenerator(const std::string& file_description_name,
-                                   const Descriptor* descriptor)
+                                   const Descriptor* descriptor,
+                                   const GenerationOptions& generation_options)
     : file_description_name_(file_description_name),
       descriptor_(descriptor),
-      field_generators_(descriptor),
+      generation_options_(generation_options),
+      field_generators_(descriptor, generation_options),
       class_name_(ClassName(descriptor_)),
-      deprecated_attribute_(GetOptionalDeprecatedAttribute(
-          descriptor, descriptor->file(), false, true)) {
+      deprecated_attribute_(
+          GetOptionalDeprecatedAttribute(descriptor, descriptor->file())) {
+  ABSL_DCHECK(!descriptor->options().map_entry())
+      << "error: MessageGenerator create of a map<>!";
   for (int i = 0; i < descriptor_->real_oneof_decl_count(); i++) {
-    oneof_generators_.push_back(
-        std::make_unique<OneofGenerator>(descriptor_->oneof_decl(i)));
+    oneof_generators_.push_back(std::make_unique<OneofGenerator>(
+        descriptor_->real_oneof_decl(i), generation_options));
   }
 
   // Assign has bits:
@@ -255,18 +238,19 @@ MessageGenerator::MessageGenerator(const std::string& file_description_name,
 void MessageGenerator::AddExtensionGenerators(
     std::vector<std::unique_ptr<ExtensionGenerator>>* extension_generators) {
   for (int i = 0; i < descriptor_->extension_count(); i++) {
-    extension_generators->push_back(std::make_unique<ExtensionGenerator>(
-        class_name_, descriptor_->extension(i)));
-    extension_generators_.push_back(extension_generators->back().get());
+    const FieldDescriptor* extension = descriptor_->extension(i);
+    if (!generation_options_.strip_custom_options ||
+        !ExtensionIsCustomOption(extension)) {
+      extension_generators->push_back(std::make_unique<ExtensionGenerator>(
+          class_name_, extension, generation_options_));
+      extension_generators_.push_back(extension_generators->back().get());
+    }
   }
 }
 
 void MessageGenerator::DetermineForwardDeclarations(
     absl::btree_set<std::string>* fwd_decls,
     bool include_external_types) const {
-  if (IsMapEntryMessage(descriptor_)) {
-    return;
-  }
   for (int i = 0; i < descriptor_->field_count(); i++) {
     const FieldDescriptor* fieldDescriptor = descriptor_->field(i);
     field_generators_.get(fieldDescriptor)
@@ -274,18 +258,24 @@ void MessageGenerator::DetermineForwardDeclarations(
   }
 }
 
+void MessageGenerator::DetermineNeededFiles(
+    absl::flat_hash_set<const FileDescriptor*>* deps) const {
+  for (int i = 0; i < descriptor_->field_count(); i++) {
+    const FieldDescriptor* fieldDescriptor = descriptor_->field(i);
+    field_generators_.get(fieldDescriptor).DetermineNeededFiles(deps);
+  }
+}
+
 void MessageGenerator::DetermineObjectiveCClassDefinitions(
     absl::btree_set<std::string>* fwd_decls) const {
-  if (!IsMapEntryMessage(descriptor_)) {
-    // Forward declare this class, as a linker symbol, so the symbol can be used
-    // to reference the class instead of calling +class later.
-    fwd_decls->insert(ObjCClassDeclaration(class_name_));
+  // Forward declare this class, as a linker symbol, so the symbol can be used
+  // to reference the class instead of calling +class later.
+  fwd_decls->insert(ObjCClassDeclaration(class_name_));
 
-    for (int i = 0; i < descriptor_->field_count(); i++) {
-      const FieldDescriptor* fieldDescriptor = descriptor_->field(i);
-      field_generators_.get(fieldDescriptor)
-          .DetermineObjectiveCClassDefinitions(fwd_decls);
-    }
+  for (int i = 0; i < descriptor_->field_count(); i++) {
+    const FieldDescriptor* fieldDescriptor = descriptor_->field(i);
+    field_generators_.get(fieldDescriptor)
+        .DetermineObjectiveCClassDefinitions(fwd_decls);
   }
 
   const Descriptor* containing_descriptor = descriptor_->containing_type();
@@ -296,19 +286,14 @@ void MessageGenerator::DetermineObjectiveCClassDefinitions(
 }
 
 void MessageGenerator::GenerateMessageHeader(io::Printer* printer) const {
-  // This a a map entry message, do nothing.
-  if (IsMapEntryMessage(descriptor_)) {
-    return;
-  }
-
   auto vars = printer->WithVars({{"classname", class_name_}});
-
   printer->Emit(
-      {{"deprecated_attribute", deprecated_attribute_},
+      {io::Printer::Sub("deprecated_attribute", deprecated_attribute_)
+           .WithSuffix(";"),
        {"message_comments",
         [&] {
           EmitCommentsString(printer, descriptor_,
-                             CommentStringFlags::kForceMultiline);
+                             kCommentStringFlags_ForceMultiline);
         }},
        {"message_fieldnum_enum",
         [&] {
@@ -358,7 +343,8 @@ void MessageGenerator::GenerateMessageHeader(io::Printer* printer) const {
         $message_fieldnum_enum$
         $oneof_enums$
         $message_comments$
-        $deprecated_attribute$GPB_FINAL @interface $classname$ : GPBMessage
+        $deprecated_attribute$;
+        GPB_FINAL @interface $classname$ : GPBMessage
 
         $message_properties$
         @end
@@ -377,7 +363,7 @@ void MessageGenerator::GenerateMessageHeader(io::Printer* printer) const {
     printer->Emit("\n");
   }
 
-  if (descriptor_->extension_count() > 0) {
+  if (!extension_generators_.empty()) {
     printer->Emit({{"extension_info",
                     [&] {
                       for (const auto* generator : extension_generators_) {
@@ -395,10 +381,6 @@ void MessageGenerator::GenerateMessageHeader(io::Printer* printer) const {
 }
 
 void MessageGenerator::GenerateSource(io::Printer* printer) const {
-  if (IsMapEntryMessage(descriptor_)) {
-    return;
-  }
-
   std::unique_ptr<const FieldDescriptor*[]> sorted_fields(
       SortFieldsByNumber(descriptor_));
   std::unique_ptr<const FieldDescriptor*[]> size_order_fields(
@@ -480,7 +462,7 @@ void MessageGenerator::GenerateSource(io::Printer* printer) const {
           // If the message scopes extensions, trigger the root class
           // +initialize/+extensionRegistry as that is where the
           // runtime support for extensions lives.
-          if (descriptor_->extension_count() > 0) {
+          if (!extension_generators_.empty()) {
             printer->Emit(R"objc(
               // Start up the root class to support the scoped extensions.
               __unused Class rootStartup = [$root_class_name$ class];
