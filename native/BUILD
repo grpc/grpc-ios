@@ -30,8 +30,8 @@ licenses(["reciprocal"])
 package(
     default_visibility = ["//visibility:public"],
     features = [
-        "-parse_headers",
         "layering_check",
+        "-parse_headers",
     ],
 )
 
@@ -211,11 +211,11 @@ config_setting(
 python_config_settings()
 
 # This should be updated along with build_handwritten.yaml
-g_stands_for = "grand"  # @unused
+g_stands_for = "gjallarhorn"  # @unused
 
 core_version = "37.0.0"  # @unused
 
-version = "1.61.0-dev"  # @unused
+version = "1.60.0-pre1"  # @unused
 
 GPR_PUBLIC_HDRS = [
     "include/grpc/support/alloc.h",
