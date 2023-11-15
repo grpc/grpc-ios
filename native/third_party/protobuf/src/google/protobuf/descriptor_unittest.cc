@@ -1,32 +1,9 @@
 // Protocol Buffers - Google's data interchange format
 // Copyright 2008 Google Inc.  All rights reserved.
-// https://developers.google.com/protocol-buffers/
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google Inc. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
 
 // Author: kenton@google.com (Kenton Varda)
 //  Based on original Protocol Buffers design by
@@ -39,51 +16,71 @@
 #include <cstdlib>
 #include <limits>
 #include <memory>
+#include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
-#include "google/protobuf/any.pb.h"
-#include "google/protobuf/compiler/importer.h"
-#include "google/protobuf/compiler/parser.h"
-#include "google/protobuf/descriptor.pb.h"
-#include "absl/container/btree_set.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/log/die_if_null.h"
-#include "absl/log/scoped_mock_log.h"
-#include "absl/strings/str_format.h"
-#include "absl/strings/string_view.h"
-#include "google/protobuf/descriptor_legacy.h"
-#include "google/protobuf/test_textproto.h"
-#include "google/protobuf/unittest.pb.h"
-#include "google/protobuf/unittest_custom_options.pb.h"
-#ifdef PROTOBUF_FUTURE_EDITIONS
-#include "google/protobuf/cpp_features.pb.h"
-#include "google/protobuf/unittest_features.pb.h"
-#include "google/protobuf/unittest_invalid_features.pb.h"
-#endif  // PROTOBUF_FUTURE_EDITIONS
 #include "google/protobuf/stubs/common.h"
+#include "google/protobuf/any.pb.h"
 #include "google/protobuf/descriptor.pb.h"
-#include "google/protobuf/descriptor_database.h"
-#include "google/protobuf/dynamic_message.h"
-#include "google/protobuf/text_format.h"
+#include "google/protobuf/descriptor.pb.h"
 #include <gmock/gmock.h>
 #include "google/protobuf/testing/googletest.h"
 #include <gtest/gtest.h>
+#include "absl/container/btree_set.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/log/absl_check.h"
 #include "absl/log/absl_log.h"
+#include "absl/log/die_if_null.h"
+#include "absl/log/scoped_mock_log.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
+#include "absl/strings/substitute.h"
+#include "google/protobuf/compiler/importer.h"
+#include "google/protobuf/compiler/parser.h"
+#include "google/protobuf/cpp_features.pb.h"
+#include "google/protobuf/descriptor_database.h"
+#include "google/protobuf/descriptor_legacy.h"
+#include "google/protobuf/dynamic_message.h"
+#include "google/protobuf/feature_resolver.h"
+#include "google/protobuf/io/tokenizer.h"
+#include "google/protobuf/io/zero_copy_stream_impl_lite.h"
+#include "google/protobuf/test_textproto.h"
+#include "google/protobuf/text_format.h"
+#include "google/protobuf/unittest.pb.h"
+#include "google/protobuf/unittest_custom_options.pb.h"
+#include "google/protobuf/unittest_features.pb.h"
 #include "google/protobuf/unittest_lazy_dependencies.pb.h"
 #include "google/protobuf/unittest_lazy_dependencies_custom_option.pb.h"
 #include "google/protobuf/unittest_lazy_dependencies_enum.pb.h"
 #include "google/protobuf/unittest_proto3_arena.pb.h"
-#include "absl/strings/substitute.h"
 
 
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 
+using ::google::protobuf::internal::cpp::GetUtf8CheckMode;
+using ::google::protobuf::internal::cpp::HasPreservingUnknownEnumSemantics;
+using ::google::protobuf::internal::cpp::Utf8CheckMode;
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
+using ::testing::HasSubstr;
 using ::testing::NotNull;
+
+absl::Status GetStatus(const absl::Status& s) { return s; }
+template <typename T>
+absl::Status GetStatus(const absl::StatusOr<T>& s) {
+  return s.status();
+}
+MATCHER_P(StatusIs, status,
+          absl::StrCat(".status() is ", testing::PrintToString(status))) {
+  return GetStatus(arg).code() == status;
+}
+#define EXPECT_OK(x) EXPECT_THAT(x, StatusIs(absl::StatusCode::kOk))
+#define ASSERT_OK(x) ASSERT_THAT(x, StatusIs(absl::StatusCode::kOk))
 
 namespace google {
 namespace protobuf {
@@ -497,22 +494,20 @@ TEST_F(FileDescriptorTest, Syntax) {
     file->CopyTo(&other);
     EXPECT_EQ("proto3", other.syntax());
   }
-#ifdef PROTOBUF_FUTURE_EDITIONS
   {
     proto.set_syntax("editions");
-    proto.set_edition("very-cool");
+    proto.set_edition(EDITION_2023);
     DescriptorPool pool;
     const FileDescriptor* file = pool.BuildFile(proto);
     ASSERT_TRUE(file != nullptr);
     EXPECT_EQ(FileDescriptorLegacy::Syntax::SYNTAX_EDITIONS,
               FileDescriptorLegacy(file).syntax());
-    EXPECT_EQ("very-cool", file->edition());
+    EXPECT_EQ(file->edition(), EDITION_2023);
     FileDescriptorProto other;
     file->CopyTo(&other);
     EXPECT_EQ("editions", other.syntax());
-    EXPECT_EQ("very-cool", other.edition());
+    EXPECT_EQ(other.edition(), EDITION_2023);
   }
-#endif  // PROTOBUF_FUTURE_EDITIONS
 }
 
 TEST_F(FileDescriptorTest, CopyHeadingTo) {
@@ -536,11 +531,10 @@ TEST_F(FileDescriptorTest, CopyHeadingTo) {
   EXPECT_EQ(other.syntax(), "proto3");
   EXPECT_EQ(other.options().java_package(), "foo.bar.baz");
   EXPECT_TRUE(other.message_type().empty());
-#ifdef PROTOBUF_FUTURE_EDITIONS
   EXPECT_EQ(&other.options().features(), &FeatureSet::default_instance());
   {
     proto.set_syntax("editions");
-    proto.set_edition("very-cool");
+    proto.set_edition(EDITION_2023);
 
     DescriptorPool pool;
     const FileDescriptor* file = pool.BuildFile(proto);
@@ -551,12 +545,11 @@ TEST_F(FileDescriptorTest, CopyHeadingTo) {
     EXPECT_EQ(other.name(), "foo.proto");
     EXPECT_EQ(other.package(), "foo.bar.baz");
     EXPECT_EQ(other.syntax(), "editions");
-    EXPECT_EQ(other.edition(), "very-cool");
+    EXPECT_EQ(other.edition(), EDITION_2023);
     EXPECT_EQ(other.options().java_package(), "foo.bar.baz");
     EXPECT_TRUE(other.message_type().empty());
     EXPECT_EQ(&other.options().features(), &FeatureSet::default_instance());
   }
-#endif  // PROTOBUF_FUTURE_EDITIONS
 }
 
 void ExtractDebugString(
@@ -616,6 +609,13 @@ TEST_F(FileDescriptorTest, DebugStringRoundTrip) {
     ASSERT_TRUE(descriptor != nullptr) << error_collector.last_error();
     EXPECT_EQ(content, descriptor->DebugString());
   }
+}
+
+TEST_F(FileDescriptorTest, AbslStringifyWorks) {
+  std::string s = absl::StrFormat(
+      "%v",
+      *protobuf_unittest::TestMessageWithCustomOptions::descriptor()->file());
+  EXPECT_THAT(s, HasSubstr("TestMessageWithCustomOptions"));
 }
 
 // ===================================================================
@@ -1213,6 +1213,12 @@ TEST_F(DescriptorTest, FieldEnumType) {
   EXPECT_EQ(enum_, bar_->enum_type());
 }
 
+TEST_F(DescriptorTest, AbslStringifyWorks) {
+  EXPECT_THAT(absl::StrFormat("%v", *message_),
+              HasSubstr(message_->full_name()));
+  EXPECT_THAT(absl::StrFormat("%v", *foo_), HasSubstr(foo_->name()));
+}
+
 
 // ===================================================================
 
@@ -1304,6 +1310,10 @@ TEST_F(OneofDescriptorTest, FindByName) {
   EXPECT_EQ(oneof_, oneof_message_->FindOneofByName("foo"));
   EXPECT_EQ(oneof2_, oneof_message_->FindOneofByName("bar"));
   EXPECT_TRUE(oneof_message_->FindOneofByName("no_such_oneof") == nullptr);
+}
+
+TEST_F(OneofDescriptorTest, AbslStringifyWorks) {
+  EXPECT_THAT(absl::StrFormat("%v", *oneof_), HasSubstr(oneof_->name()));
 }
 
 // ===================================================================
@@ -1654,6 +1664,11 @@ TEST_F(EnumDescriptorTest, IsClosed) {
   EXPECT_FALSE(enum3->is_closed());
 }
 
+TEST_F(EnumDescriptorTest, AbslStringifyWorks) {
+  EXPECT_THAT(absl::StrFormat("%v", *enum_), HasSubstr(enum_->full_name()));
+  EXPECT_THAT(absl::StrFormat("%v", *foo_), HasSubstr(foo_->name()));
+}
+
 // ===================================================================
 
 // Test service descriptors.
@@ -1812,6 +1827,11 @@ TEST_F(ServiceDescriptorTest, MethodInputType) {
 TEST_F(ServiceDescriptorTest, MethodOutputType) {
   EXPECT_EQ(foo_response_, foo_->output_type());
   EXPECT_EQ(bar_response_, bar_->output_type());
+}
+
+TEST_F(ServiceDescriptorTest, AbslStringifyWorks) {
+  EXPECT_THAT(absl::StrFormat("%v", *service_), HasSubstr(service_->name()));
+  EXPECT_THAT(absl::StrFormat("%v", *foo_), HasSubstr(foo_->name()));
 }
 
 // ===================================================================
@@ -2269,7 +2289,7 @@ TEST_F(ExtensionDescriptorTest, DuplicateFieldNumber) {
                FieldDescriptorProto::LABEL_OPTIONAL,
                FieldDescriptorProto::TYPE_INT32);
   // Currently we only generate a warning for conflicting extension numbers.
-  // TODO(xiaofeng): Change it to an error.
+  // TODO: Change it to an error.
   ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
 }
 
@@ -3301,7 +3321,7 @@ TEST(CustomOptions, OptionLocations) {
   const OneofDescriptor* oneof = message->FindOneofByName("AnOneof");
   const FieldDescriptor* map_field = message->FindFieldByName("map_field");
   const EnumDescriptor* enm = message->FindEnumTypeByName("AnEnum");
-  // TODO(benjy): Support EnumValue options, once the compiler does.
+  // TODO: Support EnumValue options, once the compiler does.
   const ServiceDescriptor* service =
       file->FindServiceByName("TestServiceWithCustomOptions");
   const MethodDescriptor* method = service->FindMethodByName("Foo");
@@ -3451,16 +3471,18 @@ TEST(CustomOptions, OptionsFromOtherFile) {
   // Test that to use a custom option, we only need to import the file
   // defining the option; we do not also have to import descriptor.proto.
   DescriptorPool pool;
-
+  {
+    FileDescriptorProto file_proto;
+    FileDescriptorProto::descriptor()->file()->CopyTo(&file_proto);
+    ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
+  }
+  {
+    // We have to import the Any dependency.
+    FileDescriptorProto any_proto;
+    google::protobuf::Any::descriptor()->file()->CopyTo(&any_proto);
+    ASSERT_TRUE(pool.BuildFile(any_proto) != nullptr);
+  }
   FileDescriptorProto file_proto;
-  FileDescriptorProto::descriptor()->file()->CopyTo(&file_proto);
-  ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
-
-  // We have to import the Any dependency.
-  FileDescriptorProto any_proto;
-  google::protobuf::Any::descriptor()->file()->CopyTo(&any_proto);
-  ASSERT_TRUE(pool.BuildFile(any_proto) != nullptr);
-
   protobuf_unittest::TestMessageWithCustomOptions::descriptor()->file()->CopyTo(
       &file_proto);
   ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
@@ -3515,14 +3537,17 @@ TEST(CustomOptions, MessageOptionThreeFieldsSet) {
   // you want to know more.
   DescriptorPool pool;
 
+  {
+    FileDescriptorProto file_proto;
+    FileDescriptorProto::descriptor()->file()->CopyTo(&file_proto);
+    ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
+  }
+  {
+    FileDescriptorProto any_proto;
+    google::protobuf::Any::descriptor()->file()->CopyTo(&any_proto);
+    ASSERT_TRUE(pool.BuildFile(any_proto) != nullptr);
+  }
   FileDescriptorProto file_proto;
-  FileDescriptorProto::descriptor()->file()->CopyTo(&file_proto);
-  ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
-
-  FileDescriptorProto any_proto;
-  google::protobuf::Any::descriptor()->file()->CopyTo(&any_proto);
-  ASSERT_TRUE(pool.BuildFile(any_proto) != nullptr);
-
   protobuf_unittest::TestMessageWithCustomOptions::descriptor()->file()->CopyTo(
       &file_proto);
   ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
@@ -3596,14 +3621,17 @@ TEST(CustomOptions, MessageOptionRepeatedLeafFieldSet) {
   // when they are merged into the final option value.
   DescriptorPool pool;
 
+  {
+    FileDescriptorProto file_proto;
+    FileDescriptorProto::descriptor()->file()->CopyTo(&file_proto);
+    ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
+  }
+  {
+    FileDescriptorProto any_proto;
+    google::protobuf::Any::descriptor()->file()->CopyTo(&any_proto);
+    ASSERT_TRUE(pool.BuildFile(any_proto) != nullptr);
+  }
   FileDescriptorProto file_proto;
-  FileDescriptorProto::descriptor()->file()->CopyTo(&file_proto);
-  ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
-
-  FileDescriptorProto any_proto;
-  google::protobuf::Any::descriptor()->file()->CopyTo(&any_proto);
-  ASSERT_TRUE(pool.BuildFile(any_proto) != nullptr);
-
   protobuf_unittest::TestMessageWithCustomOptions::descriptor()->file()->CopyTo(
       &file_proto);
   ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
@@ -3680,14 +3708,17 @@ TEST(CustomOptions, MessageOptionRepeatedMsgFieldSet) {
   // when they are merged into the final option value.
   DescriptorPool pool;
 
+  {
+    FileDescriptorProto file_proto;
+    FileDescriptorProto::descriptor()->file()->CopyTo(&file_proto);
+    ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
+  }
+  {
+    FileDescriptorProto any_proto;
+    google::protobuf::Any::descriptor()->file()->CopyTo(&any_proto);
+    ASSERT_TRUE(pool.BuildFile(any_proto) != nullptr);
+  }
   FileDescriptorProto file_proto;
-  FileDescriptorProto::descriptor()->file()->CopyTo(&file_proto);
-  ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
-
-  FileDescriptorProto any_proto;
-  google::protobuf::Any::descriptor()->file()->CopyTo(&any_proto);
-  ASSERT_TRUE(pool.BuildFile(any_proto) != nullptr);
-
   protobuf_unittest::TestMessageWithCustomOptions::descriptor()->file()->CopyTo(
       &file_proto);
   ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
@@ -3810,14 +3841,17 @@ TEST(CustomOptions, AggregateOptions) {
 TEST(CustomOptions, UnusedImportError) {
   DescriptorPool pool;
 
+  {
+    FileDescriptorProto file_proto;
+    FileDescriptorProto::descriptor()->file()->CopyTo(&file_proto);
+    ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
+  }
+  {
+    FileDescriptorProto any_proto;
+    google::protobuf::Any::descriptor()->file()->CopyTo(&any_proto);
+    ASSERT_TRUE(pool.BuildFile(any_proto) != nullptr);
+  }
   FileDescriptorProto file_proto;
-  FileDescriptorProto::descriptor()->file()->CopyTo(&file_proto);
-  ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
-
-  FileDescriptorProto any_proto;
-  google::protobuf::Any::descriptor()->file()->CopyTo(&any_proto);
-  ASSERT_TRUE(pool.BuildFile(any_proto) != nullptr);
-
   protobuf_unittest::TestMessageWithCustomOptions::descriptor()->file()->CopyTo(
       &file_proto);
   ASSERT_TRUE(pool.BuildFile(file_proto) != nullptr);
@@ -3972,6 +4006,11 @@ TEST(CustomOptions, DebugString) {
 
 class ValidationErrorTest : public testing::Test {
  protected:
+  void SetUp() override {
+    // Enable extension declaration enforcement since most test cases want to
+    // exercise the full validation.
+    pool_.EnforceExtensionDeclarations(true);
+  }
   // Parse file_text as a FileDescriptorProto in text format and add it
   // to the DescriptorPool.  Expect no errors.
   const FileDescriptor* BuildFile(const std::string& file_text) {
@@ -7178,12 +7217,37 @@ TEST_F(ValidationErrorTest, UnusedImportWithOtherError) {
       "foo.proto: Foo.foo: EXTENDEE: \"Baz\" is not defined.\n");
 }
 
-#ifdef PROTOBUF_FUTURE_EDITIONS
-using FeaturesTest = ValidationErrorTest;
+using FeaturesBaseTest = ValidationErrorTest;
+
+class FeaturesTest : public FeaturesBaseTest {
+ protected:
+  void SetUp() override {
+    ValidationErrorTest::SetUp();
+
+    auto default_spec = FeatureResolver::CompileDefaults(
+        FeatureSet::descriptor(),
+        {GetExtensionReflection(pb::cpp), GetExtensionReflection(pb::test),
+         GetExtensionReflection(pb::TestMessage::test_message),
+         GetExtensionReflection(pb::TestMessage::Nested::test_nested)},
+        EDITION_PROTO2, EDITION_99999_TEST_ONLY);
+    ASSERT_OK(default_spec);
+    pool_.SetFeatureSetDefaults(std::move(default_spec).value());
+  }
+};
 
 template <typename T>
 const FeatureSet& GetFeatures(const T* descriptor) {
   return internal::InternalFeatureHelper::GetFeatures<T>(*descriptor);
+}
+
+template <typename T>
+FeatureSet GetCoreFeatures(const T* descriptor) {
+  FeatureSet features = GetFeatures(descriptor);
+  // Strip test features to avoid excessive brittleness.
+  features.ClearExtension(pb::test);
+  features.ClearExtension(pb::TestMessage::test_message);
+  features.ClearExtension(pb::TestMessage::Nested::test_nested);
+  return features;
 }
 
 TEST_F(FeaturesTest, InvalidProto2Features) {
@@ -7248,34 +7312,38 @@ TEST_F(FeaturesTest, Proto2Features) {
   const FieldDescriptor* field = message->field(0);
   const FieldDescriptor* group = message->field(1);
   EXPECT_THAT(file->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(file), EqualsProto(R"pb(
+  EXPECT_EQ(GetFeatures(file).GetExtension(pb::test).int_file_feature(), -2);
+  EXPECT_THAT(GetCoreFeatures(file), EqualsProto(R"pb(
                 field_presence: EXPLICIT
                 enum_type: CLOSED
                 repeated_field_encoding: EXPANDED
-                string_field_validation: HINT
+                utf8_validation: NONE
                 message_encoding: LENGTH_PREFIXED
                 json_format: LEGACY_BEST_EFFORT
                 [pb.cpp] { legacy_closed_enum: true })pb"));
-  EXPECT_THAT(GetFeatures(field), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(field), EqualsProto(R"pb(
                 field_presence: EXPLICIT
                 enum_type: CLOSED
                 repeated_field_encoding: EXPANDED
-                string_field_validation: HINT
+                utf8_validation: NONE
                 message_encoding: LENGTH_PREFIXED
                 json_format: LEGACY_BEST_EFFORT
                 [pb.cpp] { legacy_closed_enum: true })pb"));
-  EXPECT_THAT(GetFeatures(group), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(group), EqualsProto(R"pb(
                 field_presence: EXPLICIT
                 enum_type: CLOSED
                 repeated_field_encoding: EXPANDED
-                string_field_validation: HINT
+                utf8_validation: NONE
                 message_encoding: DELIMITED
                 json_format: LEGACY_BEST_EFFORT
                 [pb.cpp] { legacy_closed_enum: true })pb"));
   EXPECT_TRUE(field->has_presence());
   EXPECT_FALSE(field->requires_utf8_validation());
+  EXPECT_EQ(GetUtf8CheckMode(field, /*is_lite=*/false), Utf8CheckMode::kVerify);
+  EXPECT_EQ(GetUtf8CheckMode(field, /*is_lite=*/true), Utf8CheckMode::kNone);
   EXPECT_FALSE(field->is_packed());
   EXPECT_FALSE(field->legacy_enum_field_treated_as_closed());
+  EXPECT_FALSE(HasPreservingUnknownEnumSemantics(field));
   EXPECT_FALSE(message->FindFieldByName("str")->requires_utf8_validation());
   EXPECT_FALSE(message->FindFieldByName("rep")->is_packed());
   EXPECT_FALSE(message->FindFieldByName("utf8")->requires_utf8_validation());
@@ -7318,24 +7386,30 @@ TEST_F(FeaturesTest, Proto3Features) {
   const Descriptor* message = file->message_type(0);
   const FieldDescriptor* field = message->field(0);
   EXPECT_THAT(file->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(file), EqualsProto(R"pb(
+  EXPECT_EQ(GetFeatures(file).GetExtension(pb::test).int_file_feature(), -3);
+  EXPECT_THAT(GetCoreFeatures(file), EqualsProto(R"pb(
                 field_presence: IMPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
-  EXPECT_THAT(GetFeatures(field), EqualsProto(R"pb(
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
+  EXPECT_THAT(GetCoreFeatures(field), EqualsProto(R"pb(
                 field_presence: IMPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
   EXPECT_FALSE(field->has_presence());
   EXPECT_FALSE(field->requires_utf8_validation());
+  EXPECT_EQ(GetUtf8CheckMode(field, /*is_lite=*/false), Utf8CheckMode::kStrict);
+  EXPECT_EQ(GetUtf8CheckMode(field, /*is_lite=*/true), Utf8CheckMode::kStrict);
   EXPECT_FALSE(field->is_packed());
   EXPECT_FALSE(field->legacy_enum_field_treated_as_closed());
+  EXPECT_FALSE(HasPreservingUnknownEnumSemantics(field));
   EXPECT_TRUE(message->FindFieldByName("rep")->is_packed());
   EXPECT_TRUE(message->FindFieldByName("str")->requires_utf8_validation());
   EXPECT_FALSE(message->FindFieldByName("expanded")->is_packed());
@@ -7447,25 +7521,76 @@ TEST_F(FeaturesTest, Proto3Extensions) {
                                     R"pb([bar_ext] { baz: 1 })pb"));
 }
 
+TEST_F(FeaturesTest, Edition2023Defaults) {
+  FileDescriptorProto file_proto = ParseTextOrDie(R"pb(
+    name: "foo.proto"
+    syntax: "editions"
+    edition: EDITION_2023
+  )pb");
+
+  BuildDescriptorMessagesInTestPool();
+  const FileDescriptor* file = ABSL_DIE_IF_NULL(pool_.BuildFile(file_proto));
+  EXPECT_THAT(file->options(), EqualsProto(""));
+  EXPECT_THAT(GetCoreFeatures(file), EqualsProto(R"pb(
+                field_presence: EXPLICIT
+                enum_type: OPEN
+                repeated_field_encoding: PACKED
+                utf8_validation: VERIFY
+                message_encoding: LENGTH_PREFIXED
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false }
+              )pb"));
+
+  // Since pb::test is registered in the pool, it should end up with defaults in
+  // our FeatureSet.
+  EXPECT_TRUE(GetFeatures(file).HasExtension(pb::test));
+  EXPECT_EQ(GetFeatures(file).GetExtension(pb::test).int_file_feature(), 1);
+}
+
+TEST_F(FeaturesBaseTest, DefaultEdition2023Defaults) {
+  BuildDescriptorMessagesInTestPool();
+  BuildFileInTestPool(pb::TestFeatures::descriptor()->file());
+  const FileDescriptor* file = BuildFile(R"pb(
+    name: "foo.proto"
+    syntax: "editions"
+    edition: EDITION_2023
+    dependency: "google/protobuf/unittest_features.proto"
+  )pb");
+  ASSERT_NE(file, nullptr);
+
+  EXPECT_THAT(file->options(), EqualsProto(""));
+  EXPECT_THAT(GetFeatures(file), EqualsProto(R"pb(
+                field_presence: EXPLICIT
+                enum_type: OPEN
+                repeated_field_encoding: PACKED
+                utf8_validation: VERIFY
+                message_encoding: LENGTH_PREFIXED
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false }
+              )pb"));
+  EXPECT_FALSE(GetFeatures(file).HasExtension(pb::test));
+}
+
 TEST_F(FeaturesTest, ClearsOptions) {
   BuildDescriptorMessagesInTestPool();
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     options {
       java_package: "bar"
       features { field_presence: IMPLICIT }
     }
   )pb");
   EXPECT_THAT(file->options(), EqualsProto("java_package: 'bar'"));
-  EXPECT_THAT(GetFeatures(file), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(file), EqualsProto(R"pb(
                 field_presence: IMPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
 }
 
 TEST_F(FeaturesTest, RestoresOptionsRoundTrip) {
@@ -7474,7 +7599,7 @@ TEST_F(FeaturesTest, RestoresOptionsRoundTrip) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       java_package: "bar"
@@ -7496,7 +7621,7 @@ TEST_F(FeaturesTest, RestoresOptionsRoundTrip) {
         label: LABEL_REPEATED
         type: TYPE_INT64
         options {
-          packed: true
+          deprecated: true
           features {
             [pb.test] { int_field_feature: 9 }
           }
@@ -7581,7 +7706,7 @@ TEST_F(FeaturesTest, RestoresOptionsRoundTrip) {
                                  [pb.test] { int_message_feature: 3 }
                                })pb"));
   EXPECT_THAT(proto.message_type(0).field(0).options(),
-              EqualsProto(R"pb(packed: true
+              EqualsProto(R"pb(deprecated: true
                                features {
                                  [pb.test] { int_field_feature: 9 }
                                })pb"));
@@ -7616,12 +7741,116 @@ TEST_F(FeaturesTest, RestoresOptionsRoundTrip) {
                                })pb"));
 }
 
+TEST_F(FeaturesTest, ReusesFeaturesFromParent) {
+  BuildDescriptorMessagesInTestPool();
+  const FileDescriptor* file = BuildFile(R"pb(
+    name: "foo.proto"
+    syntax: "editions"
+    edition: EDITION_2023
+    options { features { field_presence: IMPLICIT } }
+    message_type {
+      name: "Foo"
+      options { deprecated: true }
+      field {
+        name: "bar"
+        number: 1
+        label: LABEL_REPEATED
+        type: TYPE_INT64
+        options { deprecated: true }
+      }
+    }
+  )pb");
+  EXPECT_EQ(&GetFeatures(file), &GetFeatures(file->message_type(0)));
+  EXPECT_EQ(&GetFeatures(file), &GetFeatures(file->message_type(0)->field(0)));
+}
+
+TEST_F(FeaturesTest, ReusesFeaturesFromSibling) {
+  BuildDescriptorMessagesInTestPool();
+  const FileDescriptor* file = BuildFile(R"pb(
+    name: "foo.proto"
+    syntax: "editions"
+    edition: EDITION_2023
+    options { features { field_presence: IMPLICIT } }
+    message_type {
+      name: "Foo"
+      options { deprecated: true }
+      field {
+        name: "bar1"
+        number: 1
+        label: LABEL_OPTIONAL
+        type: TYPE_INT64
+        options {
+          deprecated: true
+          features { field_presence: EXPLICIT }
+        }
+      }
+      field {
+        name: "baz"
+        number: 2
+        label: LABEL_OPTIONAL
+        type: TYPE_STRING
+        options { features { field_presence: EXPLICIT } }
+      }
+    }
+  )pb");
+  const Descriptor* message = file->message_type(0);
+  EXPECT_NE(&GetFeatures(file), &GetFeatures(message->field(0)));
+  EXPECT_EQ(&GetFeatures(message->field(0)), &GetFeatures(message->field(1)));
+}
+
+TEST_F(FeaturesTest, ReusesFeaturesFromDifferentFile) {
+  BuildDescriptorMessagesInTestPool();
+  const FileDescriptor* file1 = BuildFile(R"pb(
+    name: "foo.proto"
+    syntax: "editions"
+    edition: EDITION_2023
+    options { features { field_presence: IMPLICIT } }
+  )pb");
+  const FileDescriptor* file2 = BuildFile(R"pb(
+    name: "bar.proto"
+    syntax: "editions"
+    edition: EDITION_2023
+    options { features { field_presence: IMPLICIT } }
+  )pb");
+  EXPECT_EQ(&GetFeatures(file1), &GetFeatures(file2));
+}
+
+TEST_F(FeaturesTest, ReusesFeaturesExtension) {
+  BuildDescriptorMessagesInTestPool();
+  BuildFileInTestPool(pb::TestFeatures::descriptor()->file());
+  const FileDescriptor* file1 = BuildFile(R"pb(
+    name: "foo.proto"
+    syntax: "editions"
+    edition: EDITION_2023
+    options {
+      features {
+        [pb.TestMessage.test_message] { int_file_feature: 8 }
+        [pb.TestMessage.Nested.test_nested] { int_file_feature: 7 }
+        [pb.test] { int_file_feature: 9 }
+      }
+    }
+  )pb");
+  const FileDescriptor* file2 = BuildFile(R"pb(
+    name: "bar.proto"
+    syntax: "editions"
+    edition: EDITION_2023
+    options {
+      features {
+        [pb.test] { int_file_feature: 9 }
+        [pb.TestMessage.test_message] { int_file_feature: 8 }
+        [pb.TestMessage.Nested.test_nested] { int_file_feature: 7 }
+      }
+    }
+  )pb");
+  EXPECT_EQ(&GetFeatures(file1), &GetFeatures(file2));
+}
+
 TEST_F(FeaturesTest, RestoresLabelRoundTrip) {
   BuildDescriptorMessagesInTestPool();
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     message_type {
       name: "Foo"
       field {
@@ -7651,7 +7880,7 @@ TEST_F(FeaturesTest, RestoresGroupRoundTrip) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     message_type {
       name: "Foo"
       nested_type {
@@ -7685,7 +7914,7 @@ TEST_F(FeaturesTest, OnlyMessagesInheritGroupEncoding) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     options { features { message_encoding: DELIMITED } }
     message_type {
       name: "Foo"
@@ -7715,27 +7944,27 @@ TEST_F(FeaturesTest, NoOptions) {
   BuildDescriptorMessagesInTestPool();
   const FileDescriptor* file =
       BuildFile(R"pb(
-        name: "foo.proto" syntax: "editions" edition: "2023"
+        name: "foo.proto" syntax: "editions" edition: EDITION_2023
       )pb");
   EXPECT_EQ(&file->options(), &FileOptions::default_instance());
-  EXPECT_THAT(GetFeatures(file), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(file), EqualsProto(R"pb(
                 field_presence: EXPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
 }
 
 TEST_F(FeaturesTest, InvalidEdition) {
   BuildDescriptorMessagesInTestPool();
   BuildFileWithErrors(
       R"pb(
-        name: "foo.proto" syntax: "editions" edition: "2022"
+        name: "foo.proto" syntax: "editions" edition: EDITION_1_TEST_ONLY
       )pb",
-      "foo.proto: foo.proto: EDITIONS: No valid default found for edition 2022 "
-      "in "
-      "feature field google.protobuf.FeatureSet.field_presence\n");
+      "foo.proto: foo.proto: EDITIONS: Edition 1_TEST_ONLY is earlier than the "
+      "minimum supported edition PROTO2\n");
 }
 
 TEST_F(FeaturesTest, FileFeatures) {
@@ -7743,17 +7972,18 @@ TEST_F(FeaturesTest, FileFeatures) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     options { features { field_presence: IMPLICIT } }
   )pb");
   EXPECT_THAT(file->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(file), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(file), EqualsProto(R"pb(
                 field_presence: IMPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
 }
 
 TEST_F(FeaturesTest, FileFeaturesExtension) {
@@ -7762,22 +7992,22 @@ TEST_F(FeaturesTest, FileFeaturesExtension) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2024"
+    edition: EDITION_99998_TEST_ONLY
     dependency: "google/protobuf/unittest_features.proto"
     options { features { field_presence: IMPLICIT } }
   )pb");
   EXPECT_THAT(file->options(), EqualsProto(""));
   EXPECT_EQ(GetFeatures(file).field_presence(), FeatureSet::IMPLICIT);
-  EXPECT_EQ(GetFeatures(file).string_field_validation(), FeatureSet::MANDATORY);
-  EXPECT_EQ(GetFeatures(file).GetExtension(pb::test).int_file_feature(), 4);
+  EXPECT_EQ(GetFeatures(file).enum_type(), FeatureSet::OPEN);
+  EXPECT_EQ(GetFeatures(file).GetExtension(pb::test).int_file_feature(), 3);
   EXPECT_EQ(GetFeatures(file)
                 .GetExtension(pb::TestMessage::test_message)
                 .int_file_feature(),
-            4);
+            3);
   EXPECT_EQ(GetFeatures(file)
                 .GetExtension(pb::TestMessage::Nested::test_nested)
                 .int_file_feature(),
-            4);
+            3);
 }
 
 TEST_F(FeaturesTest, FileFeaturesExtensionOverride) {
@@ -7786,7 +8016,7 @@ TEST_F(FeaturesTest, FileFeaturesExtensionOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2024"
+    edition: EDITION_99998_TEST_ONLY
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
@@ -7799,7 +8029,7 @@ TEST_F(FeaturesTest, FileFeaturesExtensionOverride) {
   )pb");
   EXPECT_THAT(file->options(), EqualsProto(""));
   EXPECT_EQ(GetFeatures(file).field_presence(), FeatureSet::IMPLICIT);
-  EXPECT_EQ(GetFeatures(file).string_field_validation(), FeatureSet::MANDATORY);
+  EXPECT_EQ(GetFeatures(file).enum_type(), FeatureSet::OPEN);
   EXPECT_EQ(GetFeatures(file).GetExtension(pb::test).int_file_feature(), 9);
   EXPECT_EQ(GetFeatures(file)
                 .GetExtension(pb::TestMessage::test_message)
@@ -7816,18 +8046,19 @@ TEST_F(FeaturesTest, MessageFeaturesDefault) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     message_type { name: "Foo" }
   )pb");
   const Descriptor* message = file->message_type(0);
   EXPECT_THAT(message->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(message), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(message), EqualsProto(R"pb(
                 field_presence: EXPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
 }
 
 TEST_F(FeaturesTest, MessageFeaturesInherit) {
@@ -7835,7 +8066,7 @@ TEST_F(FeaturesTest, MessageFeaturesInherit) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     options { features { field_presence: IMPLICIT } }
     message_type { name: "Foo" }
   )pb");
@@ -7850,7 +8081,7 @@ TEST_F(FeaturesTest, MessageFeaturesOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
@@ -7878,7 +8109,7 @@ TEST_F(FeaturesTest, NestedMessageFeaturesOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
@@ -7917,7 +8148,7 @@ TEST_F(FeaturesTest, FieldFeaturesDefault) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     message_type {
       name: "Foo"
       field { name: "bar" number: 1 label: LABEL_REPEATED type: TYPE_INT64 }
@@ -7925,13 +8156,14 @@ TEST_F(FeaturesTest, FieldFeaturesDefault) {
   )pb");
   const FieldDescriptor* field = file->message_type(0)->field(0);
   EXPECT_THAT(field->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(field), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(field), EqualsProto(R"pb(
                 field_presence: EXPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
 }
 
 TEST_F(FeaturesTest, FieldFeaturesInherit) {
@@ -7940,7 +8172,7 @@ TEST_F(FeaturesTest, FieldFeaturesInherit) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
@@ -7971,11 +8203,11 @@ TEST_F(FeaturesTest, FieldFeaturesOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
-        string_field_validation: HINT
+        enum_type: CLOSED
         field_presence: IMPLICIT
         [pb.test] { int_multiple_feature: 2 }
       }
@@ -7994,7 +8226,7 @@ TEST_F(FeaturesTest, FieldFeaturesOverride) {
         type: TYPE_STRING
         options {
           features {
-            string_field_validation: NONE
+            field_presence: EXPLICIT
             [pb.test] { int_multiple_feature: 9 }
           }
         }
@@ -8003,8 +8235,8 @@ TEST_F(FeaturesTest, FieldFeaturesOverride) {
   )pb");
   const FieldDescriptor* field = file->message_type(0)->field(0);
   EXPECT_THAT(field->options(), EqualsProto(""));
-  EXPECT_EQ(GetFeatures(field).field_presence(), FeatureSet::IMPLICIT);
-  EXPECT_EQ(GetFeatures(field).string_field_validation(), FeatureSet::NONE);
+  EXPECT_EQ(GetFeatures(field).field_presence(), FeatureSet::EXPLICIT);
+  EXPECT_EQ(GetFeatures(field).enum_type(), FeatureSet::CLOSED);
   EXPECT_EQ(GetFeatures(field).GetExtension(pb::test).int_multiple_feature(),
             9);
 }
@@ -8015,7 +8247,7 @@ TEST_F(FeaturesTest, OneofFieldFeaturesInherit) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
@@ -8060,7 +8292,7 @@ TEST_F(FeaturesTest, OneofFieldFeaturesOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
@@ -8081,7 +8313,6 @@ TEST_F(FeaturesTest, OneofFieldFeaturesOverride) {
         type: TYPE_STRING
         options {
           features {
-            string_field_validation: NONE
             [pb.test] { int_multiple_feature: 9 }
           }
         }
@@ -8170,13 +8401,13 @@ TEST_F(FeaturesTest, MapFieldFeaturesStringValidation) {
 
     message Foo {
       map<string, string> map_field = 1 [
-        features.string_field_validation = HINT
+        features.utf8_validation = NONE
       ];
       map<int32, string> map_field_value = 2 [
-        features.string_field_validation = HINT
+        features.utf8_validation = NONE
       ];
       map<string, int32> map_field_key = 3 [
-        features.string_field_validation = HINT
+        features.utf8_validation = NONE
       ];
     }
   )schema";
@@ -8216,11 +8447,11 @@ TEST_F(FeaturesTest, RootExtensionFeaturesOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
-        string_field_validation: HINT
+        enum_type: CLOSED
         field_presence: IMPLICIT
         [pb.test] { int_multiple_feature: 2 }
       }
@@ -8232,7 +8463,7 @@ TEST_F(FeaturesTest, RootExtensionFeaturesOverride) {
       type: TYPE_STRING
       options {
         features {
-          string_field_validation: NONE
+          enum_type: OPEN
           [pb.test] { int_multiple_feature: 9 }
         }
       }
@@ -8246,7 +8477,7 @@ TEST_F(FeaturesTest, RootExtensionFeaturesOverride) {
   const FieldDescriptor* field = file->extension(0);
   EXPECT_THAT(field->options(), EqualsProto(""));
   EXPECT_EQ(GetFeatures(field).field_presence(), FeatureSet::IMPLICIT);
-  EXPECT_EQ(GetFeatures(field).string_field_validation(), FeatureSet::NONE);
+  EXPECT_EQ(GetFeatures(field).enum_type(), FeatureSet::OPEN);
   EXPECT_EQ(GetFeatures(field).GetExtension(pb::test).int_multiple_feature(),
             9);
 }
@@ -8257,11 +8488,11 @@ TEST_F(FeaturesTest, MessageExtensionFeaturesOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
-        string_field_validation: HINT
+        enum_type: CLOSED
         field_presence: IMPLICIT
         [pb.test] { int_multiple_feature: 2 }
       }
@@ -8278,7 +8509,7 @@ TEST_F(FeaturesTest, MessageExtensionFeaturesOverride) {
         number: 1
         label: LABEL_OPTIONAL
         type: TYPE_STRING
-        options { features { string_field_validation: NONE } }
+        options { features { enum_type: OPEN } }
         extendee: "Foo2"
       }
     }
@@ -8295,7 +8526,7 @@ TEST_F(FeaturesTest, MessageExtensionFeaturesOverride) {
   const FieldDescriptor* field = file->message_type(0)->extension(0);
   EXPECT_THAT(field->options(), EqualsProto(""));
   EXPECT_EQ(GetFeatures(field).field_presence(), FeatureSet::IMPLICIT);
-  EXPECT_EQ(GetFeatures(field).string_field_validation(), FeatureSet::NONE);
+  EXPECT_EQ(GetFeatures(field).enum_type(), FeatureSet::OPEN);
   EXPECT_EQ(GetFeatures(field).GetExtension(pb::test).int_multiple_feature(),
             3);
 }
@@ -8305,7 +8536,7 @@ TEST_F(FeaturesTest, EnumFeaturesDefault) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     enum_type {
       name: "Foo"
       value { name: "BAR" number: 0 }
@@ -8313,13 +8544,14 @@ TEST_F(FeaturesTest, EnumFeaturesDefault) {
   )pb");
   const EnumDescriptor* enm = file->enum_type(0);
   EXPECT_THAT(enm->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(enm), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(enm), EqualsProto(R"pb(
                 field_presence: EXPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
 }
 
 TEST_F(FeaturesTest, EnumFeaturesInherit) {
@@ -8327,7 +8559,7 @@ TEST_F(FeaturesTest, EnumFeaturesInherit) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     options { features { enum_type: CLOSED } }
     enum_type {
       name: "Foo"
@@ -8345,7 +8577,7 @@ TEST_F(FeaturesTest, EnumFeaturesOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
@@ -8373,7 +8605,7 @@ TEST_F(FeaturesTest, NestedEnumFeatures) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
@@ -8411,7 +8643,7 @@ TEST_F(FeaturesTest, EnumValueFeaturesDefault) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     enum_type {
       name: "Foo"
       value { name: "BAR" number: 0 }
@@ -8419,13 +8651,14 @@ TEST_F(FeaturesTest, EnumValueFeaturesDefault) {
   )pb");
   const EnumValueDescriptor* value = file->enum_type(0)->value(0);
   EXPECT_THAT(value->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(value), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(value), EqualsProto(R"pb(
                 field_presence: EXPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
 }
 
 TEST_F(FeaturesTest, EnumValueFeaturesInherit) {
@@ -8433,7 +8666,7 @@ TEST_F(FeaturesTest, EnumValueFeaturesInherit) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     options { features { enum_type: CLOSED } }
     enum_type {
       name: "Foo"
@@ -8457,7 +8690,7 @@ TEST_F(FeaturesTest, EnumValueFeaturesOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
@@ -8495,7 +8728,7 @@ TEST_F(FeaturesTest, OneofFeaturesDefault) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     message_type {
       name: "Foo"
       field {
@@ -8510,13 +8743,14 @@ TEST_F(FeaturesTest, OneofFeaturesDefault) {
   )pb");
   const OneofDescriptor* oneof = file->message_type(0)->oneof_decl(0);
   EXPECT_THAT(oneof->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(oneof), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(oneof), EqualsProto(R"pb(
                 field_presence: EXPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
 }
 
 TEST_F(FeaturesTest, OneofFeaturesInherit) {
@@ -8524,7 +8758,7 @@ TEST_F(FeaturesTest, OneofFeaturesInherit) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     options { features { enum_type: CLOSED } }
     message_type {
       name: "Foo"
@@ -8555,7 +8789,7 @@ TEST_F(FeaturesTest, OneofFeaturesOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
@@ -8599,7 +8833,7 @@ TEST_F(FeaturesTest, ExtensionRangeFeaturesDefault) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     message_type {
       name: "Foo"
       extension_range { start: 1 end: 100 }
@@ -8608,13 +8842,14 @@ TEST_F(FeaturesTest, ExtensionRangeFeaturesDefault) {
   const Descriptor::ExtensionRange* range =
       file->message_type(0)->extension_range(0);
   EXPECT_THAT(range->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(range), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(range), EqualsProto(R"pb(
                 field_presence: EXPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
 }
 
 TEST_F(FeaturesTest, ExtensionRangeFeaturesInherit) {
@@ -8622,7 +8857,7 @@ TEST_F(FeaturesTest, ExtensionRangeFeaturesInherit) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     options { features { enum_type: CLOSED } }
     message_type {
       name: "Foo"
@@ -8647,7 +8882,7 @@ TEST_F(FeaturesTest, ExtensionRangeFeaturesOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
@@ -8686,18 +8921,19 @@ TEST_F(FeaturesTest, ServiceFeaturesDefault) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     service { name: "Foo" }
   )pb");
   const ServiceDescriptor* service = file->service(0);
   EXPECT_THAT(service->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(service), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(service), EqualsProto(R"pb(
                 field_presence: EXPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
 }
 
 TEST_F(FeaturesTest, ServiceFeaturesInherit) {
@@ -8705,7 +8941,7 @@ TEST_F(FeaturesTest, ServiceFeaturesInherit) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     options { features { enum_type: CLOSED } }
     service { name: "Foo" }
   )pb");
@@ -8720,7 +8956,7 @@ TEST_F(FeaturesTest, ServiceFeaturesOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       features {
@@ -8747,7 +8983,7 @@ TEST_F(FeaturesTest, MethodFeaturesDefault) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     message_type { name: "EmptyMsg" }
     service {
       name: "Foo"
@@ -8756,13 +8992,14 @@ TEST_F(FeaturesTest, MethodFeaturesDefault) {
   )pb");
   const MethodDescriptor* method = file->service(0)->method(0);
   EXPECT_THAT(method->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(method), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(method), EqualsProto(R"pb(
                 field_presence: EXPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
 }
 
 TEST_F(FeaturesTest, MethodFeaturesInherit) {
@@ -8771,7 +9008,7 @@ TEST_F(FeaturesTest, MethodFeaturesInherit) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     message_type { name: "EmptyMsg" }
     options { features { enum_type: CLOSED } }
@@ -8798,7 +9035,7 @@ TEST_F(FeaturesTest, MethodFeaturesOverride) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     message_type { name: "EmptyMsg" }
     options {
@@ -8840,7 +9077,7 @@ TEST_F(FeaturesTest, FieldFeatureHelpers) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     message_type {
       name: "Foo"
       field { name: "def" number: 1 label: LABEL_OPTIONAL type: TYPE_STRING }
@@ -8879,14 +9116,7 @@ TEST_F(FeaturesTest, FieldFeatureHelpers) {
         number: 7
         label: LABEL_REPEATED
         type: TYPE_STRING
-        options { features { string_field_validation: HINT } }
-      }
-      field {
-        name: "utf8_none_field"
-        number: 8
-        label: LABEL_REPEATED
-        type: TYPE_STRING
-        options { features { string_field_validation: NONE } }
+        options { features { utf8_validation: NONE } }
       }
     }
   )pb");
@@ -8898,16 +9128,23 @@ TEST_F(FeaturesTest, FieldFeatureHelpers) {
   const FieldDescriptor* required_message_field = message->field(4);
   const FieldDescriptor* expanded_field = message->field(5);
   const FieldDescriptor* utf8_verify_field = message->field(6);
-  const FieldDescriptor* utf8_none_field = message->field(7);
 
   EXPECT_FALSE(default_field->is_packed());
   EXPECT_FALSE(default_field->is_required());
   EXPECT_TRUE(default_field->has_presence());
   EXPECT_TRUE(default_field->requires_utf8_validation());
+  EXPECT_EQ(GetUtf8CheckMode(default_field, /*is_lite=*/false),
+            Utf8CheckMode::kStrict);
+  EXPECT_EQ(GetUtf8CheckMode(default_field, /*is_lite=*/true),
+            Utf8CheckMode::kStrict);
 
   EXPECT_TRUE(default_repeated_field->is_packed());
   EXPECT_FALSE(default_repeated_field->has_presence());
   EXPECT_FALSE(default_repeated_field->requires_utf8_validation());
+  EXPECT_EQ(GetUtf8CheckMode(default_repeated_field, /*is_lite=*/false),
+            Utf8CheckMode::kStrict);
+  EXPECT_EQ(GetUtf8CheckMode(default_repeated_field, /*is_lite=*/true),
+            Utf8CheckMode::kStrict);
 
   EXPECT_TRUE(required_field->has_presence());
   EXPECT_TRUE(required_field->is_required());
@@ -8917,7 +9154,14 @@ TEST_F(FeaturesTest, FieldFeatureHelpers) {
   EXPECT_FALSE(implicit_field->has_presence());
   EXPECT_FALSE(expanded_field->is_packed());
   EXPECT_FALSE(utf8_verify_field->requires_utf8_validation());
-  EXPECT_FALSE(utf8_none_field->requires_utf8_validation());
+  EXPECT_EQ(GetUtf8CheckMode(utf8_verify_field, /*is_lite=*/false),
+            Utf8CheckMode::kVerify);
+  EXPECT_EQ(GetUtf8CheckMode(utf8_verify_field, /*is_lite=*/true),
+            Utf8CheckMode::kNone);
+  EXPECT_EQ(GetUtf8CheckMode(utf8_verify_field, /*is_lite=*/false),
+            Utf8CheckMode::kVerify);
+  EXPECT_EQ(GetUtf8CheckMode(utf8_verify_field, /*is_lite=*/true),
+            Utf8CheckMode::kNone);
 }
 
 TEST_F(FeaturesTest, EnumFeatureHelpers) {
@@ -8927,7 +9171,7 @@ TEST_F(FeaturesTest, EnumFeatureHelpers) {
     name: "foo.proto"
     syntax: "editions"
     dependency: "google/protobuf/cpp_features.proto"
-    edition: "2023"
+    edition: EDITION_2023
     enum_type {
       name: "FooOpen"
       value { name: "BAR" number: 0 }
@@ -8979,6 +9223,9 @@ TEST_F(FeaturesTest, EnumFeatureHelpers) {
   EXPECT_FALSE(field_open->legacy_enum_field_treated_as_closed());
   EXPECT_TRUE(field_closed->legacy_enum_field_treated_as_closed());
   EXPECT_TRUE(field_legacy_closed->legacy_enum_field_treated_as_closed());
+  EXPECT_TRUE(HasPreservingUnknownEnumSemantics(field_open));
+  EXPECT_FALSE(HasPreservingUnknownEnumSemantics(field_closed));
+  EXPECT_FALSE(HasPreservingUnknownEnumSemantics(field_legacy_closed));
 }
 
 TEST_F(FeaturesTest, MergeFeatureValidationFailed) {
@@ -8988,12 +9235,12 @@ TEST_F(FeaturesTest, MergeFeatureValidationFailed) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2024"
+        edition: EDITION_2023
         dependency: "google/protobuf/unittest_features.proto"
         options { features { field_presence: FIELD_PRESENCE_UNKNOWN } }
       )pb",
       "foo.proto: foo.proto: EDITIONS: Feature field "
-      "google.protobuf.FeatureSet.field_presence must resolve to a known value, found "
+      "`field_presence` must resolve to a known value, found "
       "FIELD_PRESENCE_UNKNOWN\n");
 }
 
@@ -9011,26 +9258,41 @@ TEST_F(FeaturesTest, FeaturesOutsideEditions) {
       "editions.\n");
 }
 
-TEST_F(FeaturesTest, InvalidExtensionNonMessage) {
+TEST_F(FeaturesTest, InvalidRequiredByDefault) {
   BuildDescriptorMessagesInTestPool();
-  BuildFileInTestPool(::pb::TestInvalid::descriptor()->file());
   BuildFileWithErrors(
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
-        dependency: "google/protobuf/unittest_invalid_features.proto"
-        options {
-          features {
-            [pb.TestInvalid.scalar_extension]: "hello"
+        edition: EDITION_2023
+        options { features { field_presence: LEGACY_REQUIRED } }
+      )pb",
+      "foo.proto: foo.proto: EDITIONS: Required presence can't be specified "
+      "by default.\n");
+}
+TEST_F(FeaturesTest, InvalidFieldPacked) {
+  BuildDescriptorMessagesInTestPool();
+  BuildFileWithErrors(
+      R"pb(
+        name: "foo.proto"
+        syntax: "editions"
+        edition: EDITION_2023
+        message_type {
+          name: "Foo"
+          field {
+            name: "bar"
+            number: 1
+            label: LABEL_REPEATED
+            type: TYPE_INT64
+            options { packed: true }
           }
         }
       )pb",
-      "foo.proto: google/protobuf/unittest_invalid_features.proto: "
-      "EDITIONS: FeatureSet extension pb.TestInvalid.scalar_extension is not "
-      "of message type.  Feature extensions should always use messages to "
-      "allow for evolution.\n");
+      "foo.proto: Foo.bar: NAME: Field option packed is not allowed under "
+      "editions.  Use the repeated_field_encoding feature to control this "
+      "behavior.\n");
 }
+
 
 TEST_F(FeaturesTest, InvalidFieldImplicitDefault) {
   BuildDescriptorMessagesInTestPool();
@@ -9038,7 +9300,7 @@ TEST_F(FeaturesTest, InvalidFieldImplicitDefault) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           field {
@@ -9061,7 +9323,7 @@ TEST_F(FeaturesTest, InvalidFieldImplicitOpen) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           field {
@@ -9089,7 +9351,7 @@ TEST_F(FeaturesTest, InvalidFieldRequiredExtension) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           extension_range { start: 1 end: 100 }
@@ -9106,13 +9368,36 @@ TEST_F(FeaturesTest, InvalidFieldRequiredExtension) {
       "foo.proto: bar: NAME: Extensions can't be required.\n");
 }
 
+TEST_F(FeaturesTest, InvalidFieldImplicitExtension) {
+  BuildDescriptorMessagesInTestPool();
+  BuildFileWithErrors(
+      R"pb(
+        name: "foo.proto"
+        syntax: "editions"
+        edition: EDITION_2023
+        message_type {
+          name: "Foo"
+          extension_range { start: 1 end: 100 }
+        }
+        extension {
+          name: "bar"
+          number: 1
+          label: LABEL_OPTIONAL
+          type: TYPE_STRING
+          options { features { field_presence: IMPLICIT } }
+          extendee: "Foo"
+        }
+      )pb",
+      "foo.proto: bar: NAME: Extensions can't specify field presence.\n");
+}
+
 TEST_F(FeaturesTest, InvalidFieldMessageImplicit) {
   BuildDescriptorMessagesInTestPool();
   BuildFileWithErrors(
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           field {
@@ -9125,8 +9410,8 @@ TEST_F(FeaturesTest, InvalidFieldMessageImplicit) {
           }
         }
       )pb",
-      "foo.proto: Foo.bar: NAME: Only singular scalar fields can specify "
-      "implicit field presence.\n");
+      "foo.proto: Foo.bar: NAME: Message fields can't specify implicit "
+      "presence.\n");
 }
 
 TEST_F(FeaturesTest, InvalidFieldRepeatedImplicit) {
@@ -9135,7 +9420,7 @@ TEST_F(FeaturesTest, InvalidFieldRepeatedImplicit) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           field {
@@ -9147,8 +9432,36 @@ TEST_F(FeaturesTest, InvalidFieldRepeatedImplicit) {
           }
         }
       )pb",
-      "foo.proto: Foo.bar: NAME: Only singular scalar fields can specify "
-      "implicit field presence.\n");
+      "foo.proto: Foo.bar: NAME: Repeated fields can't specify field "
+      "presence.\n");
+}
+
+TEST_F(FeaturesTest, InvalidFieldMapImplicit) {
+  constexpr absl::string_view kProtoFile = R"schema(
+    edition = "2023";
+
+    message Foo {
+      map<string, Foo> bar = 1 [
+        features.field_presence = IMPLICIT
+      ];
+    }
+  )schema";
+  io::ArrayInputStream input_stream(kProtoFile.data(), kProtoFile.size());
+  SimpleErrorCollector error_collector;
+  io::Tokenizer tokenizer(&input_stream, &error_collector);
+  compiler::Parser parser;
+  parser.RecordErrorsTo(&error_collector);
+  FileDescriptorProto proto;
+  ASSERT_TRUE(parser.Parse(&tokenizer, &proto))
+      << error_collector.last_error() << "\n"
+      << kProtoFile;
+  ASSERT_EQ("", error_collector.last_error());
+  proto.set_name("foo.proto");
+
+  BuildDescriptorMessagesInTestPool();
+  BuildFileWithErrors(proto.DebugString(),
+                      "foo.proto: Foo.bar: NAME: Repeated fields can't specify "
+                      "field presence.\n");
 }
 
 TEST_F(FeaturesTest, InvalidFieldOneofImplicit) {
@@ -9157,7 +9470,7 @@ TEST_F(FeaturesTest, InvalidFieldOneofImplicit) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           field {
@@ -9171,8 +9484,7 @@ TEST_F(FeaturesTest, InvalidFieldOneofImplicit) {
           oneof_decl { name: "_foo" }
         }
       )pb",
-      "foo.proto: Foo.bar: NAME: Only singular scalar fields can specify "
-      "implicit field presence.\n");
+      "foo.proto: Foo.bar: NAME: Oneof fields can't specify field presence.\n");
 }
 
 TEST_F(FeaturesTest, InvalidFieldRepeatedRequired) {
@@ -9181,7 +9493,7 @@ TEST_F(FeaturesTest, InvalidFieldRepeatedRequired) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           field {
@@ -9193,8 +9505,8 @@ TEST_F(FeaturesTest, InvalidFieldRepeatedRequired) {
           }
         }
       )pb",
-      "foo.proto: Foo.bar: NAME: Only singular scalar fields can specify "
-      "required field presence.\n");
+      "foo.proto: Foo.bar: NAME: Repeated fields can't specify field "
+      "presence.\n");
 }
 
 TEST_F(FeaturesTest, InvalidFieldOneofRequired) {
@@ -9203,7 +9515,7 @@ TEST_F(FeaturesTest, InvalidFieldOneofRequired) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           field {
@@ -9217,8 +9529,7 @@ TEST_F(FeaturesTest, InvalidFieldOneofRequired) {
           oneof_decl { name: "_foo" }
         }
       )pb",
-      "foo.proto: Foo.bar: NAME: Only singular scalar fields can specify "
-      "required field presence.\n");
+      "foo.proto: Foo.bar: NAME: Oneof fields can't specify field presence.\n");
 }
 
 TEST_F(FeaturesTest, InvalidFieldNonStringWithStringValidation) {
@@ -9227,7 +9538,7 @@ TEST_F(FeaturesTest, InvalidFieldNonStringWithStringValidation) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           field {
@@ -9235,12 +9546,12 @@ TEST_F(FeaturesTest, InvalidFieldNonStringWithStringValidation) {
             number: 1
             label: LABEL_OPTIONAL
             type: TYPE_INT64
-            options { features { string_field_validation: MANDATORY } }
+            options { features { utf8_validation: NONE } }
           }
         }
       )pb",
       "foo.proto: Foo.bar: NAME: Only string fields can specify "
-      "`string_field_validation`.\n");
+      "utf8 validation.\n");
 }
 
 TEST_F(FeaturesTest, InvalidFieldNonStringMapWithStringValidation) {
@@ -9249,7 +9560,7 @@ TEST_F(FeaturesTest, InvalidFieldNonStringMapWithStringValidation) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           nested_type {
@@ -9262,11 +9573,8 @@ TEST_F(FeaturesTest, InvalidFieldNonStringMapWithStringValidation) {
               options {
                 uninterpreted_option {
                   name { name_part: "features" is_extension: false }
-                  name {
-                    name_part: "string_field_validation"
-                    is_extension: false
-                  }
-                  identifier_value: "HINT"
+                  name { name_part: "utf8_validation" is_extension: false }
+                  identifier_value: "NONE"
                 }
               }
             }
@@ -9278,11 +9586,8 @@ TEST_F(FeaturesTest, InvalidFieldNonStringMapWithStringValidation) {
               options {
                 uninterpreted_option {
                   name { name_part: "features" is_extension: false }
-                  name {
-                    name_part: "string_field_validation"
-                    is_extension: false
-                  }
-                  identifier_value: "HINT"
+                  name { name_part: "utf8_validation" is_extension: false }
+                  identifier_value: "NONE"
                 }
               }
             }
@@ -9296,18 +9601,15 @@ TEST_F(FeaturesTest, InvalidFieldNonStringMapWithStringValidation) {
             options {
               uninterpreted_option {
                 name { name_part: "features" is_extension: false }
-                name {
-                  name_part: "string_field_validation"
-                  is_extension: false
-                }
-                identifier_value: "HINT"
+                name { name_part: "utf8_validation" is_extension: false }
+                identifier_value: "NONE"
               }
             }
           }
         }
       )pb",
       "foo.proto: Foo.map_field: NAME: Only string fields can specify "
-      "`string_field_validation`.\n");
+      "utf8 validation.\n");
 }
 
 TEST_F(FeaturesTest, InvalidFieldNonRepeatedWithRepeatedEncoding) {
@@ -9316,7 +9618,7 @@ TEST_F(FeaturesTest, InvalidFieldNonRepeatedWithRepeatedEncoding) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           field {
@@ -9324,12 +9626,85 @@ TEST_F(FeaturesTest, InvalidFieldNonRepeatedWithRepeatedEncoding) {
             number: 1
             label: LABEL_OPTIONAL
             type: TYPE_INT64
+            options { features { repeated_field_encoding: EXPANDED } }
+          }
+        }
+      )pb",
+      "foo.proto: Foo.bar: NAME: Only repeated fields can specify repeated "
+      "field encoding.\n");
+}
+
+TEST_F(FeaturesTest, InvalidFieldNonPackableWithPackedRepeatedEncoding) {
+  BuildDescriptorMessagesInTestPool();
+  BuildFileWithErrors(
+      R"pb(
+        name: "foo.proto"
+        syntax: "editions"
+        edition: EDITION_2023
+        message_type {
+          name: "Foo"
+          field {
+            name: "bar"
+            number: 1
+            label: LABEL_REPEATED
+            type: TYPE_STRING
             options { features { repeated_field_encoding: PACKED } }
           }
         }
       )pb",
-      "foo.proto: Foo.bar: NAME: Only repeated fields can specify "
-      "`repeated_field_encoding`.\n");
+      "foo.proto: Foo.bar: NAME: Only repeated primitive fields can specify "
+      "PACKED repeated field encoding.\n");
+}
+
+TEST_F(FeaturesTest, InvalidFieldNonMessageWithMessageEncoding) {
+  BuildDescriptorMessagesInTestPool();
+  BuildFileWithErrors(
+      R"pb(
+        name: "foo.proto"
+        syntax: "editions"
+        edition: EDITION_2023
+        message_type {
+          name: "Foo"
+          field {
+            name: "bar"
+            number: 1
+            label: LABEL_OPTIONAL
+            type: TYPE_INT64
+            options { features { message_encoding: DELIMITED } }
+          }
+        }
+      )pb",
+      "foo.proto: Foo.bar: NAME: Only message fields can specify message "
+      "encoding.\n");
+}
+
+TEST_F(FeaturesTest, InvalidFieldMapWithMessageEncoding) {
+  constexpr absl::string_view kProtoFile = R"schema(
+    edition = "2023";
+
+    message Foo {
+      map<string, Foo> bar = 1 [
+        features.message_encoding = DELIMITED
+      ];
+    }
+  )schema";
+  io::ArrayInputStream input_stream(kProtoFile.data(), kProtoFile.size());
+  SimpleErrorCollector error_collector;
+  io::Tokenizer tokenizer(&input_stream, &error_collector);
+  compiler::Parser parser;
+  parser.RecordErrorsTo(&error_collector);
+  FileDescriptorProto proto;
+  ASSERT_TRUE(parser.Parse(&tokenizer, &proto))
+      << error_collector.last_error() << "\n"
+      << kProtoFile;
+  ASSERT_EQ("", error_collector.last_error());
+  proto.set_name("foo.proto");
+
+  BuildDescriptorMessagesInTestPool();
+  BuildFileWithErrors(
+      proto.DebugString(),
+      "foo.proto: Foo.bar: NAME: Only message fields can specify message "
+      "encoding.\n");
 }
 
 TEST_F(FeaturesTest, InvalidOpenEnumNonZeroFirstValue) {
@@ -9338,7 +9713,7 @@ TEST_F(FeaturesTest, InvalidOpenEnumNonZeroFirstValue) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         enum_type {
           name: "Enum"
           value { name: "BAR" number: 1 }
@@ -9355,7 +9730,7 @@ TEST_F(FeaturesTest, ClosedEnumNonZeroFirstValue) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         enum_type {
           name: "Enum"
           value { name: "BAR" number: 9 }
@@ -9372,7 +9747,7 @@ TEST_F(FeaturesTest, CopyToIncludesFeatures) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       java_package: "pkg"
@@ -9413,7 +9788,7 @@ TEST_F(FeaturesTest, UninterpretedOptions) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     options {
       uninterpreted_option {
         name { name_part: "features" is_extension: false }
@@ -9423,13 +9798,14 @@ TEST_F(FeaturesTest, UninterpretedOptions) {
     }
   )pb");
   EXPECT_THAT(file->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(file), EqualsProto(R"pb(
+  EXPECT_THAT(GetCoreFeatures(file), EqualsProto(R"pb(
                 field_presence: IMPLICIT
                 enum_type: OPEN
                 repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
+                utf8_validation: VERIFY
                 message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
+                json_format: ALLOW
+                [pb.cpp] { legacy_closed_enum: false })pb"));
 }
 
 TEST_F(FeaturesTest, UninterpretedOptionsMerge) {
@@ -9437,12 +9813,12 @@ TEST_F(FeaturesTest, UninterpretedOptionsMerge) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     options {
       uninterpreted_option {
         name { name_part: "features" is_extension: false }
-        name { name_part: "string_field_validation" is_extension: false }
-        identifier_value: "HINT"
+        name { name_part: "enum_type" is_extension: false }
+        identifier_value: "CLOSED"
       }
     }
     message_type {
@@ -9455,8 +9831,8 @@ TEST_F(FeaturesTest, UninterpretedOptionsMerge) {
         options {
           uninterpreted_option {
             name { name_part: "features" is_extension: false }
-            name { name_part: "string_field_validation" is_extension: false }
-            identifier_value: "NONE"
+            name { name_part: "enum_type" is_extension: false }
+            identifier_value: "OPEN"
           }
         }
       }
@@ -9465,8 +9841,8 @@ TEST_F(FeaturesTest, UninterpretedOptionsMerge) {
   const FieldDescriptor* field = file->message_type(0)->field(0);
   EXPECT_THAT(file->options(), EqualsProto(""));
   EXPECT_THAT(field->options(), EqualsProto(""));
-  EXPECT_EQ(GetFeatures(file).string_field_validation(), FeatureSet::HINT);
-  EXPECT_EQ(GetFeatures(field).string_field_validation(), FeatureSet::NONE);
+  EXPECT_EQ(GetFeatures(file).enum_type(), FeatureSet::CLOSED);
+  EXPECT_EQ(GetFeatures(field).enum_type(), FeatureSet::OPEN);
 }
 
 TEST_F(FeaturesTest, UninterpretedOptionsMergeExtension) {
@@ -9475,7 +9851,7 @@ TEST_F(FeaturesTest, UninterpretedOptionsMergeExtension) {
   const FileDescriptor* file = BuildFile(R"pb(
     name: "foo.proto"
     syntax: "editions"
-    edition: "2023"
+    edition: EDITION_2023
     dependency: "google/protobuf/unittest_features.proto"
     options {
       uninterpreted_option {
@@ -9538,53 +9914,12 @@ TEST_F(FeaturesTest, UninterpretedOptionsMergeExtension) {
             9);
 }
 
-TEST_F(FeaturesTest, RawFeatures) {
-  BuildDescriptorMessagesInTestPool();
-  const FileDescriptor* file = BuildFile(R"pb(
-    name: "foo.proto"
-    syntax: "editions"
-    edition: "2023"
-    options { features { raw_features { field_presence: IMPLICIT } } }
-  )pb");
-  EXPECT_THAT(file->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(file), EqualsProto(R"pb(
-                field_presence: IMPLICIT
-                enum_type: OPEN
-                repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
-                message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
-}
-
-TEST_F(FeaturesTest, RawFeaturesConflict) {
-  BuildDescriptorMessagesInTestPool();
-  const FileDescriptor* file = BuildFile(R"pb(
-    name: "foo.proto"
-    syntax: "editions"
-    edition: "2023"
-    options {
-      features {
-        enum_type: CLOSED
-        raw_features { field_presence: IMPLICIT }
-      }
-    }
-  )pb");
-  EXPECT_THAT(file->options(), EqualsProto(""));
-  EXPECT_THAT(GetFeatures(file), EqualsProto(R"pb(
-                field_presence: IMPLICIT
-                enum_type: OPEN
-                repeated_field_encoding: PACKED
-                string_field_validation: MANDATORY
-                message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW)pb"));
-}
-
 TEST_F(FeaturesTest, InvalidJsonUniquenessDefaultWarning) {
   BuildFileWithWarnings(
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           field {
@@ -9611,7 +9946,7 @@ TEST_F(FeaturesTest, InvalidJsonUniquenessDefaultError) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           field {
@@ -9638,7 +9973,7 @@ TEST_F(FeaturesTest, InvalidJsonUniquenessCustomError) {
       R"pb(
         name: "foo.proto"
         syntax: "editions"
-        edition: "2023"
+        edition: EDITION_2023
         message_type {
           name: "Foo"
           field {
@@ -9660,6 +9995,51 @@ TEST_F(FeaturesTest, InvalidJsonUniquenessCustomError) {
       )pb",
       "foo.proto: Foo: NAME: The custom JSON name of field \"bar2\" (\"baz\") "
       "conflicts with the custom JSON name of field \"bar\".\n");
+}
+
+TEST_F(FeaturesTest, InvalidRequiredLabel) {
+  BuildDescriptorMessagesInTestPool();
+  BuildFileWithErrors(
+      R"pb(
+        name: "foo.proto"
+        syntax: "editions"
+        edition: EDITION_2023
+        message_type {
+          name: "Foo"
+          field {
+            name: "bar"
+            number: 1
+            label: LABEL_REQUIRED
+            type: TYPE_STRING
+          }
+        }
+      )pb",
+      "foo.proto: Foo.bar: NAME: Required label is not allowed under editions. "
+      " Use the feature field_presence = LEGACY_REQUIRED to control this "
+      "behavior.\n");
+}
+
+TEST_F(FeaturesTest, InvalidGroupLabel) {
+  BuildDescriptorMessagesInTestPool();
+  BuildFileWithErrors(
+      R"pb(
+        name: "foo.proto"
+        syntax: "editions"
+        edition: EDITION_2023
+        message_type {
+          name: "Foo"
+          field {
+            name: "bar"
+            number: 1
+            type_name: ".Foo"
+            label: LABEL_OPTIONAL
+            type: TYPE_GROUP
+          }
+        }
+      )pb",
+      "foo.proto: Foo.bar: NAME: Group types are not allowed under editions.  "
+      "Use the feature message_encoding = DELIMITED to control this "
+      "behavior.\n");
 }
 
 // Test that the result of FileDescriptor::DebugString() can be used to create
@@ -9718,13 +10098,13 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Values(
         std::make_tuple("Empty", R"pb(name: "foo.proto"
                                       syntax: "editions"
-                                      edition: "2023"
+                                      edition: EDITION_2023
         )pb"),
         std::make_tuple(
             "FileFeature",
             R"pb(name: "foo.proto"
                  syntax: "editions"
-                 edition: "2023"
+                 edition: EDITION_2023
                  dependency: "google/protobuf/unittest_features.proto"
                  options {
                    features {
@@ -9735,7 +10115,7 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple("FieldFeature",
                         R"pb(name: "foo.proto"
                              syntax: "editions"
-                             edition: "2023"
+                             edition: EDITION_2023
                              message_type {
                                name: "Foo"
                                field {
@@ -9752,7 +10132,7 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple("Required",
                         R"pb(name: "foo.proto"
                              syntax: "editions"
-                             edition: "2023"
+                             edition: EDITION_2023
                              message_type {
                                name: "Foo"
                                field {
@@ -9769,7 +10149,7 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple("Group",
                         R"pb(name: "foo.proto"
                              syntax: "editions"
-                             edition: "2023"
+                             edition: EDITION_2023
                              message_type {
                                name: "Foo"
                                nested_type {
@@ -9796,7 +10176,7 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple("MessageFeature",
                         R"pb(name: "foo.proto"
                              syntax: "editions"
-                             edition: "2023"
+                             edition: EDITION_2023
                              message_type {
                                name: "Foo"
                                options {
@@ -9808,7 +10188,7 @@ INSTANTIATE_TEST_SUITE_P(
             "OneofFeature",
             R"pb(name: "foo.proto"
                  syntax: "editions"
-                 edition: "2023"
+                 edition: EDITION_2023
                  dependency: "google/protobuf/unittest_features.proto"
                  message_type {
                    name: "Foo"
@@ -9832,7 +10212,7 @@ INSTANTIATE_TEST_SUITE_P(
             "ExtensionRangeFeature",
             R"pb(name: "foo.proto"
                  syntax: "editions"
-                 edition: "2023"
+                 edition: EDITION_2023
                  dependency: "google/protobuf/unittest_features.proto"
                  message_type {
                    name: "Foo"
@@ -9850,7 +10230,7 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple("EnumFeature",
                         R"pb(name: "foo.proto"
                              syntax: "editions"
-                             edition: "2023"
+                             edition: EDITION_2023
                              enum_type {
                                name: "Foo"
                                value { name: "BAR" number: 1 }
@@ -9861,7 +10241,7 @@ INSTANTIATE_TEST_SUITE_P(
             "EnumValueFeature",
             R"pb(name: "foo.proto"
                  syntax: "editions"
-                 edition: "2023"
+                 edition: EDITION_2023
                  dependency: "google/protobuf/unittest_features.proto"
                  enum_type {
                    name: "Foo"
@@ -9881,7 +10261,7 @@ INSTANTIATE_TEST_SUITE_P(
             "ServiceFeature",
             R"pb(name: "foo.proto"
                  syntax: "editions"
-                 edition: "2023"
+                 edition: EDITION_2023
                  dependency: "google/protobuf/unittest_features.proto"
                  service {
                    name: "FooService"
@@ -9896,7 +10276,7 @@ INSTANTIATE_TEST_SUITE_P(
             "MethodFeature",
             R"pb(name: "foo.proto"
                  syntax: "editions"
-                 edition: "2023"
+                 edition: EDITION_2023
                  dependency: "google/protobuf/unittest_features.proto"
                  message_type { name: "EmptyMessage" }
                  service {
@@ -9915,8 +10295,671 @@ INSTANTIATE_TEST_SUITE_P(
     [](const ::testing::TestParamInfo<FeaturesDebugStringTest::ParamType>&
            info) { return std::string(std::get<0>(info.param)); });
 
-#endif  // PROTOBUF_FUTURE_EDITIONS
 
+
+TEST_F(ValidationErrorTest, ExtensionDeclarationsMatchFullNameCompile) {
+  BuildFile(R"pb(
+    name: "foo.proto"
+    package: "ext.test"
+    message_type {
+      name: "Foo"
+      extension_range {
+        start: 11
+        end: 999
+        options: {
+          declaration: {
+            number: 100
+            full_name: ".ext.test.foo"
+            type: ".ext.test.Bar"
+          }
+        }
+      }
+    }
+    message_type { name: "Bar" }
+    extension { extendee: "Foo" name: "foo" number: 100 type_name: "Bar" }
+  )pb");
+}
+
+TEST_F(ValidationErrorTest, ExtensionDeclarationsMismatchFullName) {
+  BuildFileWithErrors(
+      R"pb(
+        name: "foo.proto"
+        package: "ext.test"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 11
+            end: 999
+            options: {
+              declaration: {
+                number: 100
+                full_name: ".ext.test.buz"
+                type: ".ext.test.Bar"
+              }
+            }
+          }
+        }
+        message_type { name: "Bar" }
+        extension { extendee: "Foo" name: "foo" number: 100 type_name: "Bar" }
+      )pb",
+      "foo.proto: ext.test.foo: EXTENDEE: \"ext.test.Foo\" extension field 100"
+      " is expected to have field name \".ext.test.buz\", not "
+      "\".ext.test.foo\".\n");
+}
+
+TEST_F(ValidationErrorTest, ExtensionDeclarationsMismatchFullNameAllowed) {
+  // Make sure that extension declaration names and types are not validated
+  // outside of protoc. This is important for allowing extensions to be renamed
+  // safely.
+  pool_.EnforceExtensionDeclarations(false);
+  BuildFile(
+      R"pb(
+        name: "foo.proto"
+        package: "ext.test"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 11
+            end: 999
+            options: {
+              declaration: {
+                number: 100
+                full_name: ".ext.test.buz"
+                type: ".ext.test.Bar"
+              }
+            }
+          }
+        }
+        message_type { name: "Bar" }
+        extension { extendee: "Foo" name: "foo" number: 100 type_name: "Bar" }
+      )pb");
+}
+
+TEST_F(ValidationErrorTest,
+       ExtensionDeclarationsFullNameDoesNotLookLikeIdentifier) {
+  BuildFileWithErrors(
+      R"pb(
+        name: "foo.proto"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 10
+            end: 11
+            options: {
+              declaration: {
+                number: 10
+                full_name: ".ext..test.bar"
+                type: ".baz"
+              }
+            }
+          }
+        }
+      )pb",
+      "foo.proto: Foo: NAME: \".ext..test.bar\" contains invalid "
+      "identifiers.\n");
+}
+
+TEST_F(ValidationErrorTest, ExtensionDeclarationsDuplicateNames) {
+  BuildFileWithErrors(
+      R"pb(
+        name: "foo.proto"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 11
+            end: 1000
+            options: {
+              declaration: {
+                number: 123
+                full_name: ".foo.Bar.baz",
+                type: ".Bar"
+              }
+              declaration: {
+                number: 999
+                full_name: ".foo.Bar.baz",
+                type: "int32"
+              }
+            }
+          }
+        }
+      )pb",
+      "foo.proto: .foo.Bar.baz: NAME: Extension field name \".foo.Bar.baz\" is "
+      "declared multiple times.\n");
+}
+
+TEST_F(ValidationErrorTest, ExtensionDeclarationMissingFullNameOrType) {
+  BuildFileWithErrors(
+      R"pb(
+        name: "foo.proto"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 10
+            end: 11
+            options: { declaration: { number: 10 full_name: ".foo.Bar.foo" } }
+          }
+          extension_range {
+            start: 11
+            end: 12
+            options: { declaration: { number: 11 type: ".Baz" } }
+          }
+        }
+      )pb",
+      "foo.proto: Foo: EXTENDEE: Extension declaration #10 should have both"
+      " \"full_name\" and \"type\" set.\n"
+      "foo.proto: Foo: EXTENDEE: Extension declaration #11 should have both"
+      " \"full_name\" and \"type\" set.\n");
+}
+
+TEST_F(ValidationErrorTest, ExtensionDeclarationsNumberNotInRange) {
+  BuildFileWithErrors(
+      R"pb(
+        name: "foo.proto"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 4
+            end: 9999
+            options: {
+              declaration: { number: 9999 full_name: ".abc" type: ".Bar" }
+            }
+          }
+        }
+      )pb",
+      "foo.proto: Foo: NUMBER: Extension declaration number 9999 is not in the "
+      "extension range.\n");
+}
+
+TEST_F(ValidationErrorTest, ExtensionDeclarationsFullNameMissingLeadingDot) {
+  BuildFileWithErrors(
+      R"pb(
+        name: "foo.proto"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 4
+            end: 9999
+            options: {
+              declaration: { number: 10 full_name: "bar" type: "fixed64" }
+            }
+          }
+        }
+      )pb",
+      "foo.proto: Foo: NAME: \"bar\" must have a leading dot to indicate the "
+      "fully-qualified scope.\n");
+}
+
+struct ExtensionDeclarationsTestParams {
+  std::string test_name;
+};
+
+// For OSS, we only have declaration to test with.
+using ExtensionDeclarationsTest =
+    testing::TestWithParam<ExtensionDeclarationsTestParams>;
+
+// For OSS, this is a function that directly returns the parsed
+// FileDescriptorProto.
+absl::StatusOr<FileDescriptorProto> ParameterizeFileProto(
+    absl::string_view file_text, const ExtensionDeclarationsTestParams& param) {
+  (void)file_text;  // Parameter is used by Google-internal code.
+  (void)param;      // Parameter is used by Google-internal code.
+  FileDescriptorProto file_proto;
+  if (!TextFormat::ParseFromString(file_text, &file_proto)) {
+    return absl::InvalidArgumentError("Failed to parse the input file text.");
+  }
+
+  return file_proto;
+}
+
+TEST_P(ExtensionDeclarationsTest, DotPrefixTypeCompile) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        package: "ext.test"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 4
+            end: 99999
+            options: {
+              declaration: {
+                number: 10
+                full_name: ".ext.test.bar"
+                type: ".ext.test.Bar"
+              }
+            }
+          }
+        }
+        message_type { name: "Bar" }
+        extension { extendee: "Foo" name: "bar" number: 10 type_name: "Bar" }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  EXPECT_NE(pool.BuildFile(*file_proto), nullptr);
+}
+
+TEST_P(ExtensionDeclarationsTest, EnumTypeCompile) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        package: "ext.test"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 4
+            end: 99999
+            options: {
+              declaration: {
+                number: 10
+                full_name: ".ext.test.bar"
+                type: ".ext.test.Bar"
+              }
+            }
+          }
+        }
+        enum_type {
+          name: "Bar"
+          value: { name: "BUZ" number: 123 }
+        }
+        extension { extendee: "Foo" name: "bar" number: 10 type_name: "Bar" }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  EXPECT_NE(pool.BuildFile(*file_proto), nullptr);
+}
+
+TEST_P(ExtensionDeclarationsTest, MismatchEnumType) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        package: "ext.test"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 4
+            end: 99999
+            options: {
+              declaration: {
+                number: 10
+                full_name: ".ext.test.bar"
+                type: ".ext.test.Bar"
+              }
+            }
+          }
+        }
+        enum_type {
+          name: "Bar"
+          value: { name: "BUZ1" number: 123 }
+        }
+        enum_type {
+          name: "Abc"
+          value: { name: "BUZ2" number: 456 }
+        }
+        extension { extendee: "Foo" name: "bar" number: 10 type_name: "Abc" }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  MockErrorCollector error_collector;
+  EXPECT_EQ(pool.BuildFileCollectingErrors(*file_proto, &error_collector),
+            nullptr);
+  EXPECT_EQ(
+      error_collector.text_,
+      "foo.proto: ext.test.bar: EXTENDEE: \"ext.test.Foo\" extension field 10 "
+      "is expected to be type \".ext.test.Bar\", not \".ext.test.Abc\".\n");
+}
+
+TEST_P(ExtensionDeclarationsTest, DotPrefixFullNameCompile) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        package: "ext.test"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 4
+            end: 99999
+            options: {
+              declaration: {
+                number: 10
+                full_name: ".ext.test.bar"
+                type: ".ext.test.Bar"
+              }
+            }
+          }
+        }
+        message_type { name: "Bar" }
+        extension { extendee: "Foo" name: "bar" number: 10 type_name: "Bar" }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  EXPECT_NE(pool.BuildFile(*file_proto), nullptr);
+}
+
+TEST_P(ExtensionDeclarationsTest, MismatchDotPrefixTypeExpectingMessage) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        package: "ext.test"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 4
+            end: 99999
+            options: {
+              declaration: {
+                number: 10
+                full_name: ".ext.test.bar"
+                type: ".int32"
+              }
+            }
+          }
+        }
+        extension { name: "bar" number: 10 type: TYPE_INT32 extendee: "Foo" }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  MockErrorCollector error_collector;
+  EXPECT_EQ(pool.BuildFileCollectingErrors(*file_proto, &error_collector),
+            nullptr);
+  EXPECT_EQ(error_collector.text_,
+            "foo.proto: ext.test.bar: EXTENDEE: \"ext.test.Foo\" extension "
+            "field 10 is expected to be type \".int32\", not \"int32\".\n");
+}
+
+TEST_P(ExtensionDeclarationsTest, MismatchDotPrefixTypeExpectingNonMessage) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 4
+            end: 99999
+            options: {
+              declaration: { number: 10 full_name: ".bar" type: "int32" }
+            }
+          }
+        }
+        message_type { name: "int32" }
+        extension { name: "bar" number: 10 type_name: "int32" extendee: "Foo" }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  MockErrorCollector error_collector;
+  EXPECT_EQ(pool.BuildFileCollectingErrors(*file_proto, &error_collector),
+            nullptr);
+  EXPECT_EQ(error_collector.text_,
+            "foo.proto: bar: EXTENDEE: \"Foo\" extension field 10 is expected "
+            "to be type \"int32\", not \".int32\".\n");
+}
+
+TEST_P(ExtensionDeclarationsTest, MismatchMessageType) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        package: "ext.test"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 4
+            end: 99999
+            options: {
+              declaration: {
+                number: 10
+                full_name: ".ext.test.foo"
+                type: ".ext.test.Foo"
+              }
+            }
+          }
+        }
+        message_type { name: "Bar" }
+        extension { extendee: "Foo" name: "foo" number: 10 type_name: "Bar" }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  MockErrorCollector error_collector;
+  EXPECT_EQ(pool.BuildFileCollectingErrors(*file_proto, &error_collector),
+            nullptr);
+  EXPECT_EQ(
+      error_collector.text_,
+      "foo.proto: ext.test.foo: EXTENDEE: \"ext.test.Foo\" extension field 10 "
+      "is expected to be type \".ext.test.Foo\", not \".ext.test.Bar\".\n");
+}
+
+TEST_P(ExtensionDeclarationsTest, NonMessageTypeCompile) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 10
+            end: 11
+            options: {
+              declaration: { number: 10 full_name: ".bar" type: "fixed64" }
+            }
+          }
+        }
+        extension { name: "bar" number: 10 type: TYPE_FIXED64 extendee: "Foo" }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  EXPECT_NE(pool.BuildFile(*file_proto), nullptr);
+}
+
+TEST_P(ExtensionDeclarationsTest, MismatchNonMessageType) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        package: "ext.test"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 10
+            end: 11
+            options: {
+              declaration: {
+                number: 10
+                full_name: ".ext.test.bar"
+                type: "int32"
+              }
+            }
+          }
+        }
+        extension { name: "bar" number: 10 type: TYPE_FIXED64 extendee: "Foo" }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  MockErrorCollector error_collector;
+  EXPECT_EQ(pool.BuildFileCollectingErrors(*file_proto, &error_collector),
+            nullptr);
+  EXPECT_EQ(error_collector.text_,
+            "foo.proto: ext.test.bar: EXTENDEE: \"ext.test.Foo\" extension "
+            "field 10 is expected to be type \"int32\", not \"fixed64\".\n");
+}
+
+TEST_P(ExtensionDeclarationsTest, MismatchCardinalityExpectingRepeated) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        package: "ext.test"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 10
+            end: 11
+            options: {
+              declaration: {
+                number: 10
+                full_name: ".ext.test.bar"
+                type: "fixed64"
+                repeated: true
+              }
+            }
+          }
+        }
+        extension { name: "bar" number: 10 type: TYPE_FIXED64 extendee: "Foo" }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  MockErrorCollector error_collector;
+  EXPECT_EQ(pool.BuildFileCollectingErrors(*file_proto, &error_collector),
+            nullptr);
+  EXPECT_EQ(error_collector.text_,
+            "foo.proto: ext.test.bar: EXTENDEE: \"ext.test.Foo\" extension "
+            "field 10 is expected to be repeated.\n");
+}
+
+TEST_P(ExtensionDeclarationsTest, MismatchCardinalityExpectingOptional) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        package: "ext.test"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 10
+            end: 11
+            options: {
+              declaration: {
+                number: 10
+                full_name: ".ext.test.bar"
+                type: "fixed64"
+              }
+            }
+          }
+        }
+        extension {
+          name: "bar"
+          number: 10
+          type: TYPE_FIXED64
+          extendee: "Foo"
+          label: LABEL_REPEATED
+        }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  MockErrorCollector error_collector;
+  EXPECT_EQ(pool.BuildFileCollectingErrors(*file_proto, &error_collector),
+            nullptr);
+  EXPECT_EQ(error_collector.text_,
+            "foo.proto: ext.test.bar: EXTENDEE: \"ext.test.Foo\" extension "
+            "field 10 is expected to be optional.\n");
+}
+
+TEST_P(ExtensionDeclarationsTest, TypeDoesNotLookLikeIdentifier) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 10
+            end: 11
+            options: {
+              declaration: {
+                number: 10
+                full_name: ".ext.test.bar"
+                type: ".b#az"
+              }
+            }
+          }
+        }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  MockErrorCollector error_collector;
+  EXPECT_EQ(pool.BuildFileCollectingErrors(*file_proto, &error_collector),
+            nullptr);
+  EXPECT_EQ(error_collector.text_,
+            "foo.proto: Foo: NAME: \".b#az\" contains invalid identifiers.\n");
+}
+
+TEST_P(ExtensionDeclarationsTest, MultipleDeclarationsInARangeCompile) {
+  absl::StatusOr<FileDescriptorProto> file_proto = ParameterizeFileProto(
+      R"pb(
+        name: "foo.proto"
+        package: "ext.test"
+        message_type {
+          name: "Foo"
+          extension_range {
+            start: 4
+            end: 99999
+            options: {
+              declaration: {
+                number: 10
+                full_name: ".ext.test.foo"
+                type: ".ext.test.Bar"
+              }
+              declaration: {
+                number: 99998
+                full_name: ".ext.test.bar"
+                type: ".ext.test.Bar"
+              }
+              declaration: {
+                number: 12345
+                full_name: ".ext.test.baz"
+                type: ".ext.test.Bar"
+              }
+            }
+          }
+        }
+        message_type { name: "Bar" }
+        extension { extendee: "Foo" name: "foo" number: 10 type_name: "Bar" }
+        extension { extendee: "Foo" name: "bar" number: 99998 type_name: "Bar" }
+        extension { extendee: "Foo" name: "baz" number: 12345 type_name: "Bar" }
+      )pb",
+      GetParam());
+  ASSERT_OK(file_proto);
+
+  DescriptorPool pool;
+  pool.EnforceExtensionDeclarations(true);
+  EXPECT_NE(pool.BuildFile(*file_proto), nullptr);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    ExtensionDeclarationTests, ExtensionDeclarationsTest,
+    testing::ValuesIn<ExtensionDeclarationsTestParams>({
+        {"Declaration"},
+    }),
+    [](const testing::TestParamInfo<ExtensionDeclarationsTest::ParamType>&
+           info) { return info.param.test_name; });
 
 
 TEST_F(ValidationErrorTest, PackageTooLong) {
@@ -10593,7 +11636,7 @@ class SourceLocationTest : public testing::Test {
   static constexpr int kAFieldNumber = 1;
 };
 
-// TODO(adonovan): implement support for option fields and for
+// TODO: implement support for option fields and for
 // subparts of declarations.
 
 TEST_F(SourceLocationTest, GetSourceLocation) {

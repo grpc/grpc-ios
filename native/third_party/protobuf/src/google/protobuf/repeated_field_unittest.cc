@@ -1,38 +1,15 @@
 // Protocol Buffers - Google's data interchange format
 // Copyright 2008 Google Inc.  All rights reserved.
-// https://developers.google.com/protocol-buffers/
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google Inc. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
 
 // Author: kenton@google.com (Kenton Varda)
 //  Based on original Protocol Buffers design by
 //  Sanjay Ghemawat, Jeff Dean, and others.
 //
-// TODO(kenton):  Improve this unittest to bring it up to the standards of
+// TODO:  Improve this unittest to bring it up to the standards of
 //   other proto2 unittests.
 
 #include "google/protobuf/repeated_field.h"
@@ -41,6 +18,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
+#include <functional>
 #include <iterator>
 #include <limits>
 #include <list>
@@ -50,7 +29,6 @@
 #include <utility>
 #include <vector>
 
-#include "google/protobuf/arena.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "absl/log/absl_check.h"
@@ -63,7 +41,6 @@
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/io/zero_copy_stream_impl_lite.h"
 #include "google/protobuf/parse_context.h"
-#include "google/protobuf/repeated_field.h"
 #include "google/protobuf/repeated_ptr_field.h"
 #include "google/protobuf/unittest.pb.h"
 
@@ -76,6 +53,7 @@ namespace protobuf {
 namespace {
 
 using ::protobuf_unittest::TestAllTypes;
+using ::protobuf_unittest::TestMessageWithManyRepeatedPtrFields;
 using ::testing::AllOf;
 using ::testing::ElementsAre;
 using ::testing::Ge;
@@ -885,13 +863,9 @@ TEST(RepeatedField, MoveAssign) {
         Arena::CreateMessage<RepeatedField<int>>(&arena);
     destination->Add(3);
     const int* source_data = source->data();
-    const int* destination_data = destination->data();
     *destination = std::move(*source);
     EXPECT_EQ(source_data, destination->data());
     EXPECT_THAT(*destination, ElementsAre(1, 2));
-    // This property isn't guaranteed but it's useful to have a test that would
-    // catch changes in this area.
-    EXPECT_EQ(destination_data, source->data());
     EXPECT_THAT(*source, ElementsAre(3));
   }
   {
@@ -1655,9 +1629,18 @@ TEST(RepeatedPtrField, AddAllocated) {
     field.Add()->assign("filler");
   }
 
+  const auto ensure_at_capacity = [&] {
+    while (field.size() < field.Capacity()) {
+      field.Add()->assign("filler");
+    }
+  };
+  const auto ensure_not_at_capacity = [&] { field.Reserve(field.size() + 1); };
+
+  ensure_at_capacity();
   int index = field.size();
 
   // First branch:  Field is at capacity with no cleared objects.
+  ASSERT_EQ(field.size(), field.Capacity());
   std::string* foo = new std::string("foo");
   field.AddAllocated(foo);
   EXPECT_EQ(index + 1, field.size());
@@ -1665,6 +1648,7 @@ TEST(RepeatedPtrField, AddAllocated) {
   EXPECT_EQ(foo, &field.Get(index));
 
   // Last branch:  Field is not at capacity and there are no cleared objects.
+  ensure_not_at_capacity();
   std::string* bar = new std::string("bar");
   field.AddAllocated(bar);
   ++index;
@@ -1673,6 +1657,7 @@ TEST(RepeatedPtrField, AddAllocated) {
   EXPECT_EQ(bar, &field.Get(index));
 
   // Third branch:  Field is not at capacity and there are no cleared objects.
+  ensure_not_at_capacity();
   field.RemoveLast();
   std::string* baz = new std::string("baz");
   field.AddAllocated(baz);
@@ -1681,9 +1666,7 @@ TEST(RepeatedPtrField, AddAllocated) {
   EXPECT_EQ(baz, &field.Get(index));
 
   // Second branch:  Field is at capacity but has some cleared objects.
-  while (field.size() < field.Capacity()) {
-    field.Add()->assign("filler2");
-  }
+  ensure_at_capacity();
   field.RemoveLast();
   index = field.size();
   std::string* moo = new std::string("moo");
@@ -1777,12 +1760,30 @@ TEST(RepeatedPtrField, Erase) {
 }
 
 TEST(RepeatedPtrField, CopyConstruct) {
+  auto token = internal::InternalVisibilityForTesting{};
   RepeatedPtrField<std::string> source;
   source.Add()->assign("1");
   source.Add()->assign("2");
 
-  RepeatedPtrField<std::string> destination(source);
+  RepeatedPtrField<std::string> destination1(source);
+  ASSERT_EQ(2, destination1.size());
+  EXPECT_EQ("1", destination1.Get(0));
+  EXPECT_EQ("2", destination1.Get(1));
 
+  RepeatedPtrField<std::string> destination2(token, nullptr, source);
+  ASSERT_EQ(2, destination2.size());
+  EXPECT_EQ("1", destination2.Get(0));
+  EXPECT_EQ("2", destination2.Get(1));
+}
+
+TEST(RepeatedPtrField, CopyConstructWithArena) {
+  auto token = internal::InternalVisibilityForTesting{};
+  RepeatedPtrField<std::string> source;
+  source.Add()->assign("1");
+  source.Add()->assign("2");
+
+  Arena arena;
+  RepeatedPtrField<std::string> destination(token, &arena, source);
   ASSERT_EQ(2, destination.size());
   EXPECT_EQ("1", destination.Get(0));
   EXPECT_EQ("2", destination.Get(1));
@@ -1821,6 +1822,47 @@ TEST(RepeatedPtrField, IteratorConstruct_Proto) {
   ASSERT_EQ(values.size(), other.size());
   EXPECT_EQ(values[0].bb(), other.Get(0).bb());
   EXPECT_EQ(values[1].bb(), other.Get(1).bb());
+}
+
+TEST(RepeatedPtrField, SmallOptimization) {
+  // Properties checked here are not part of the contract of RepeatedPtrField,
+  // but we test them to verify that SSO is working as expected by the
+  // implementation.
+
+  // We use an arena to easily measure memory usage, but not needed.
+  Arena arena;
+  auto* array = Arena::CreateMessage<RepeatedPtrField<std::string>>(&arena);
+  EXPECT_EQ(array->Capacity(), 1);
+  EXPECT_EQ(array->SpaceUsedExcludingSelf(), 0);
+  std::string str;
+  auto usage_before = arena.SpaceUsed();
+  // We use UnsafeArenaAddAllocated just to grow the array without creating
+  // objects or causing extra cleanup costs in the arena to make the
+  // measurements simpler.
+  array->UnsafeArenaAddAllocated(&str);
+  // No backing array, just the string.
+  EXPECT_EQ(array->SpaceUsedExcludingSelf(), sizeof(str));
+  // We have not used any arena space.
+  EXPECT_EQ(usage_before, arena.SpaceUsed());
+  // Verify the string is where we think it is.
+  EXPECT_EQ(&*array->begin(), &str);
+  EXPECT_EQ(array->pointer_begin()[0], &str);
+  // The T** in pointer_begin points into the sso in the object.
+  EXPECT_TRUE(std::less_equal<void*>{}(array, &*array->pointer_begin()));
+  EXPECT_TRUE(std::less_equal<void*>{}(&*array->pointer_begin(), array + 1));
+
+  // Adding a second object stops sso.
+  std::string str2;
+  array->UnsafeArenaAddAllocated(&str2);
+  EXPECT_EQ(array->Capacity(), 3);
+  // Backing array and the strings.
+  EXPECT_EQ(array->SpaceUsedExcludingSelf(),
+            (1 + array->Capacity()) * sizeof(void*) + 2 * sizeof(str));
+  // We used some arena space now.
+  EXPECT_LT(usage_before, arena.SpaceUsed());
+  // And the pointer_begin is not in the sso anymore.
+  EXPECT_FALSE(std::less_equal<void*>{}(array, &*array->pointer_begin()) &&
+               std::less_equal<void*>{}(&*array->pointer_begin(), array + 1));
 }
 
 TEST(RepeatedPtrField, CopyAssign) {
@@ -1888,13 +1930,9 @@ TEST(RepeatedPtrField, MoveAssign) {
     RepeatedPtrField<std::string> destination;
     *destination.Add() = "3";
     const std::string* const* source_data = source.data();
-    const std::string* const* destination_data = destination.data();
     destination = std::move(source);
     EXPECT_EQ(source_data, destination.data());
     EXPECT_THAT(destination, ElementsAre("1", "2"));
-    // This property isn't guaranteed but it's useful to have a test that would
-    // catch changes in this area.
-    EXPECT_EQ(destination_data, source.data());
     EXPECT_THAT(source, ElementsAre("3"));
   }
   {
@@ -1907,13 +1945,9 @@ TEST(RepeatedPtrField, MoveAssign) {
         Arena::CreateMessage<RepeatedPtrField<std::string>>(&arena);
     *destination->Add() = "3";
     const std::string* const* source_data = source->data();
-    const std::string* const* destination_data = destination->data();
     *destination = std::move(*source);
     EXPECT_EQ(source_data, destination->data());
     EXPECT_THAT(*destination, ElementsAre("1", "2"));
-    // This property isn't guaranteed but it's useful to have a test that would
-    // catch changes in this area.
-    EXPECT_EQ(destination_data, source->data());
     EXPECT_THAT(*source, ElementsAre("3"));
   }
   {

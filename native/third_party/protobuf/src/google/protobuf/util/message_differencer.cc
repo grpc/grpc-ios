@@ -1,32 +1,9 @@
 // Protocol Buffers - Google's data interchange format
 // Copyright 2008 Google Inc.  All rights reserved.
-// https://developers.google.com/protocol-buffers/
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google Inc. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
 
 // Author: jschorr@google.com (Joseph Schorr)
 //  Based on original Protocol Buffers design by
@@ -43,12 +20,6 @@
 #include <utility>
 
 #include "google/protobuf/descriptor.pb.h"
-#include "google/protobuf/descriptor.h"
-#include "google/protobuf/dynamic_message.h"
-#include "google/protobuf/generated_enum_reflection.h"
-#include "google/protobuf/map_field.h"
-#include "google/protobuf/message.h"
-#include "google/protobuf/text_format.h"
 #include "absl/container/fixed_array.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/absl_check.h"
@@ -57,9 +28,15 @@
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/dynamic_message.h"
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/io/printer.h"
 #include "google/protobuf/io/zero_copy_stream.h"
 #include "google/protobuf/io/zero_copy_stream_impl.h"
+#include "google/protobuf/map_field.h"
+#include "google/protobuf/message.h"
+#include "google/protobuf/text_format.h"
 #include "google/protobuf/util/field_comparator.h"
 
 // Always include as last one, otherwise it can break compilation
@@ -91,7 +68,7 @@ std::string PrintShortTextFormat(const google::protobuf::Message& message) {
 }  // namespace
 
 // A reporter to report the total number of diffs.
-// TODO(ykzhu): we can improve this to take into account the value differencers.
+// TODO: we can improve this to take into account the value differencers.
 class NumDiffsReporter : public google::protobuf::util::MessageDifferencer::Reporter {
  public:
   NumDiffsReporter() : num_diffs_(0) {}
@@ -223,7 +200,7 @@ class MessageDifferencer::MultipleFieldsMapKeyComparator
 // implementation is to find the longest matching sequence from the first
 // element. The optimal solution requires to use //util/diff/lcs.h, which is
 // not open sourced yet. Overwrite this method if you want to have that.
-// TODO(ykzhu): change to use LCS once it is open sourced.
+// TODO: change to use LCS once it is open sourced.
 void MatchIndicesPostProcessorForSmartList(std::vector<int>* match_list1,
                                            std::vector<int>* match_list2) {
   int last_matched_index = -1;
@@ -639,13 +616,13 @@ bool MessageDifferencer::Compare(const Message& message1,
     std::unique_ptr<Message> data1;
     std::unique_ptr<Message> data2;
     if (unpack_any_field_.UnpackAny(message1, &data1) &&
-        unpack_any_field_.UnpackAny(message2, &data2)) {
-      // Avoid DFATAL for different descriptors in google.protobuf.Any payloads.
-      if (data1->GetDescriptor() != data2->GetDescriptor()) {
-        return false;
-      }
+        unpack_any_field_.UnpackAny(message2, &data2) &&
+        data1->GetDescriptor() == data2->GetDescriptor()) {
       return Compare(*data1, *data2, unpacked_any + 1, parent_fields);
     }
+    // If the Any payload is unparsable, or the payload types are different
+    // between message1 and message2, fall through and treat Any as a regular
+    // proto.
   }
 
   bool unknown_compare_result = true;
@@ -879,12 +856,14 @@ bool MessageDifferencer::CompareWithFieldsInternal(
       ++field_index1;
       continue;
     } else if (FieldBefore(field2, field1)) {
-      if (force_compare_no_presence_fields_.contains(field2)) {
+      const bool ignore_field =
+          IsIgnored(message1, message2, field2, *parent_fields);
+      if (!ignore_field && force_compare_no_presence_fields_.contains(field2)) {
         force_compare_failure_triggering_fields_.insert(field2->full_name());
       }
 
       // Field 2 is not in the field list for message 1.
-      if (IsIgnored(message1, message2, field2, *parent_fields)) {
+      if (ignore_field) {
         // We are ignoring field2. Report the ignore and move on to
         // the next field in message2_fields.
         if (reporter_ != NULL) {
@@ -1165,7 +1144,7 @@ bool MessageDifferencer::CompareMapField(
   // When both map fields are on map, do not sync to repeated field.
   if (reflection1->GetMapData(message1, repeated_field)->IsMapValid() &&
       reflection2->GetMapData(message2, repeated_field)->IsMapValid() &&
-      // TODO(jieluo): Add support for reporter
+      // TODO: Add support for reporter
       reporter_ == nullptr &&
       // Users didn't set custom map field key comparator
       map_field_key_comparator_.find(repeated_field) ==
@@ -2184,7 +2163,7 @@ void MessageDifferencer::StreamReporter::PrintUnknownFieldValue(
           "\"%s\"", absl::CEscape(unknown_field->length_delimited()).c_str());
       break;
     case UnknownField::TYPE_GROUP:
-      // TODO(kenton):  Print the contents of the group like we do for
+      // TODO:  Print the contents of the group like we do for
       //   messages.  Requires an equivalent of ShortDebugString() for
       //   UnknownFieldSet.
       output = "{ ... }";

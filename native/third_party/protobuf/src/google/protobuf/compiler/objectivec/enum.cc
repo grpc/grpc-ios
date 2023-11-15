@@ -1,35 +1,13 @@
 // Protocol Buffers - Google's data interchange format
 // Copyright 2008 Google Inc.  All rights reserved.
-// https://developers.google.com/protocol-buffers/
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google Inc. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
 
 #include "google/protobuf/compiler/objectivec/enum.h"
 
+#include <cstddef>
 #include <limits>
 #include <string>
 
@@ -38,7 +16,9 @@
 #include "absl/strings/str_cat.h"
 #include "google/protobuf/compiler/objectivec/helpers.h"
 #include "google/protobuf/compiler/objectivec/names.h"
+#include "google/protobuf/compiler/objectivec/options.h"
 #include "google/protobuf/compiler/objectivec/text_format_decode_data.h"
+#include "google/protobuf/descriptor.h"
 #include "google/protobuf/io/printer.h"
 
 namespace google {
@@ -57,7 +37,8 @@ std::string SafelyPrintIntToCode(int v) {
 }
 }  // namespace
 
-EnumGenerator::EnumGenerator(const EnumDescriptor* descriptor)
+EnumGenerator::EnumGenerator(const EnumDescriptor* descriptor,
+                             const GenerationOptions& generation_options)
     : descriptor_(descriptor), name_(EnumName(descriptor_)) {
   // Track the names for the enum values, and if an alias overlaps a base
   // value, skip making a name for it. Likewise if two alias overlap, the
@@ -91,16 +72,16 @@ void EnumGenerator::GenerateHeader(io::Printer* printer) const {
   // Swift 5 included SE0192 "Handling Future Enum Cases"
   //   https://github.com/apple/swift-evolution/blob/master/proposals/0192-non-exhaustive-enums.md
   // Since a .proto file can get new values added to an enum at any time, they
-  // are effectively "non-frozen". Even in a proto3 syntax file where there is
-  // support for the unknown value, an edit to the file can always add a new
-  // value moving something from unknown to known. Since Swift is now ABI
-  // stable, it also means a binary could contain Swift compiled against one
-  // version of the .pbobjc.h file, but finally linked against an enum with
-  // more cases. So the Swift code will always have to treat ObjC Proto Enums
-  // as "non-frozen". The default behavior in SE0192 is for all objc enums to
-  // be "non-frozen" unless marked as otherwise, so this means this generation
-  // doesn't have to bother with the `enum_extensibility` attribute, as the
-  // default will be what is needed.
+  // are effectively "non-frozen". Even with an EnumType::Open there is support
+  // for the unknown value, an edit to the file can always add a new value
+  // moving something from unknown to known. Since Swift is ABI stable, it also
+  // means a binary could contain Swift compiled against one version of the
+  // .pbobjc.h file, but finally linked against an enum with more cases. So the
+  // Swift code will always have to treat ObjC Proto Enums as "non-frozen". The
+  // default behavior in SE0192 is for all objc enums to be "non-frozen" unless
+  // marked as otherwise, so this means this generation doesn't have to bother
+  // with the `enum_extensibility` clang attribute, as the default will be what
+  // is needed.
 
   printer->Emit(
       {
@@ -124,7 +105,7 @@ void EnumGenerator::GenerateHeader(io::Printer* printer) const {
            }},
           {"enum_values",
            [&] {
-             CommentStringFlags comment_flags = CommentStringFlags::kNone;
+             CommentStringFlags comment_flags = kCommentStringFlags_None;
              for (const auto* v : all_values_) {
                if (alias_values_to_skip_.contains(v)) continue;
                printer->Emit(
@@ -139,9 +120,9 @@ void EnumGenerator::GenerateHeader(io::Printer* printer) const {
                    },
                    R"objc(
                      $comments$
-                     $name$$deprecated_attribute$ = $value$,
+                     $name$$ deprecated_attribute$ = $value$,
                    )objc");
-               comment_flags = CommentStringFlags::kAddLeadingNewline;
+               comment_flags = kCommentStringFlags_AddLeadingNewline;
              }
            }},
       },
@@ -149,7 +130,7 @@ void EnumGenerator::GenerateHeader(io::Printer* printer) const {
         #pragma mark - Enum $enum_name$
 
         $enum_comments$
-        typedef$enum_deprecated_attribute$ GPB_ENUM($enum_name$) {
+        typedef$ enum_deprecated_attribute$ GPB_ENUM($enum_name$) {
           $maybe_unknown_value$
           $enum_values$
         };

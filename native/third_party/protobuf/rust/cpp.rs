@@ -1,44 +1,20 @@
 // Protocol Buffers - Google's data interchange format
 // Copyright 2023 Google LLC.  All rights reserved.
-// https://developers.google.com/protocol-buffers/
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google LLC. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
 
 // Rust Protobuf runtime using the C++ kernel.
 
-use std::alloc;
+use crate::__internal::{Private, RawArena, RawMessage};
 use std::alloc::Layout;
 use std::cell::UnsafeCell;
 use std::fmt;
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 use std::ops::Deref;
-use std::ptr::NonNull;
-use std::slice;
+use std::ptr::{self, NonNull};
 
 /// A wrapper over a `proto2::Arena`.
 ///
@@ -49,9 +25,10 @@ use std::slice;
 /// dropped.
 ///
 /// Note that this type is neither `Sync` nor `Send`.
+#[derive(Debug)]
 pub struct Arena {
     #[allow(dead_code)]
-    ptr: NonNull<u8>,
+    ptr: RawArena,
     _not_sync: PhantomData<UnsafeCell<()>>,
 }
 
@@ -72,7 +49,7 @@ impl Arena {
     ///
     /// # Safety
     ///
-    /// `layout`'s alignment must be less than `UPB_MALLOC_ALIGN`.
+    /// TODO alignment requirement for layout
     #[inline]
     pub unsafe fn alloc(&self, _layout: Layout) -> &mut [MaybeUninit<u8>] {
         unimplemented!()
@@ -83,8 +60,8 @@ impl Arena {
     /// # Safety
     ///
     /// After calling this function, `ptr` is essentially zapped. `old` must
-    /// be the layout `ptr` was allocated with via [`Arena::alloc()`]. `new`'s
-    /// alignment must be less than `UPB_MALLOC_ALIGN`.
+    /// be the layout `ptr` was allocated with via [`Arena::alloc()`].
+    /// TODO alignment for layout
     #[inline]
     pub unsafe fn resize(&self, _ptr: *mut u8, _old: Layout, _new: Layout) -> &[MaybeUninit<u8>] {
         unimplemented!()
@@ -111,23 +88,42 @@ pub struct SerializedData {
 }
 
 impl SerializedData {
+    /// Constructs owned serialized data from raw components.
+    ///
+    /// # Safety
+    /// - `data` must be readable for `len` bytes.
+    /// - `data` must be an owned pointer and valid until deallocated.
+    /// - `data` must have been allocated by the Rust global allocator with a
+    ///   size of `len` and align of 1.
     pub unsafe fn from_raw_parts(data: NonNull<u8>, len: usize) -> Self {
         Self { data, len }
+    }
+
+    /// Gets a raw slice pointer.
+    pub fn as_ptr(&self) -> *const [u8] {
+        ptr::slice_from_raw_parts(self.data.as_ptr(), self.len)
+    }
+
+    /// Gets a mutable raw slice pointer.
+    fn as_mut_ptr(&mut self) -> *mut [u8] {
+        ptr::slice_from_raw_parts_mut(self.data.as_ptr(), self.len)
     }
 }
 
 impl Deref for SerializedData {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
-        unsafe { slice::from_raw_parts(self.data.as_ptr(), self.len) }
+        // SAFETY: `data` is valid for `len` bytes until deallocated as promised by
+        // `from_raw_parts`.
+        unsafe { &*self.as_ptr() }
     }
 }
 
 impl Drop for SerializedData {
     fn drop(&mut self) {
-        unsafe {
-            alloc::dealloc(self.data.as_ptr(), Layout::array::<u8>(self.len).unwrap());
-        };
+        // SAFETY: `data` was allocated by the Rust global allocator with a
+        // size of `len` and align of 1 as promised by `from_raw_parts`.
+        unsafe { drop(Box::from_raw(self.as_mut_ptr())) }
     }
 }
 
@@ -135,6 +131,55 @@ impl fmt::Debug for SerializedData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self.deref(), f)
     }
+}
+
+pub type BytesPresentMutData<'msg> = crate::vtable::RawVTableOptionalMutatorData<'msg, [u8]>;
+pub type BytesAbsentMutData<'msg> = crate::vtable::RawVTableOptionalMutatorData<'msg, [u8]>;
+pub type InnerBytesMut<'msg> = crate::vtable::RawVTableMutator<'msg, [u8]>;
+pub type InnerPrimitiveMut<'a, T> = crate::vtable::RawVTableMutator<'a, T>;
+
+/// The raw contents of every generated message.
+#[derive(Debug)]
+pub struct MessageInner {
+    pub msg: RawMessage,
+}
+
+/// Mutators that point to their original message use this to do so.
+///
+/// Since C++ messages manage their own memory, this can just copy the
+/// `RawMessage` instead of referencing an arena like UPB must.
+///
+/// Note: even though this type is `Copy`, it should only be copied by
+/// protobuf internals that can maintain mutation invariants:
+///
+/// - No concurrent mutation for any two fields in a message: this means
+///   mutators cannot be `Send` but are `Sync`.
+/// - If there are multiple accessible `Mut` to a single message at a time, they
+///   must be different fields, and not be in the same oneof. As such, a `Mut`
+///   cannot be `Clone` but *can* reborrow itself with `.as_mut()`, which
+///   converts `&'b mut Mut<'a, T>` to `Mut<'b, T>`.
+#[derive(Clone, Copy, Debug)]
+pub struct MutatorMessageRef<'msg> {
+    msg: RawMessage,
+    _phantom: PhantomData<&'msg mut ()>,
+}
+impl<'msg> MutatorMessageRef<'msg> {
+    #[allow(clippy::needless_pass_by_ref_mut)] // Sound construction requires mutable access.
+    pub fn new(_private: Private, msg: &'msg mut MessageInner) -> Self {
+        MutatorMessageRef { msg: msg.msg, _phantom: PhantomData }
+    }
+
+    pub fn msg(&self) -> RawMessage {
+        self.msg
+    }
+}
+
+pub fn copy_bytes_in_arena_if_needed_by_runtime<'a>(
+    _msg_ref: MutatorMessageRef<'a>,
+    val: &'a [u8],
+) -> &'a [u8] {
+    // Nothing to do, the message manages its own string memory for C++.
+    val
 }
 
 #[cfg(test)]
