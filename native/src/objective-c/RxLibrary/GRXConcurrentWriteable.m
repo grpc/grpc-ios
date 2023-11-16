@@ -18,7 +18,7 @@
 
 #import "GRXConcurrentWriteable.h"
 
-#import "GRXWriteable.h"
+#import <RxLibrary/GRXWriteable.h>
 
 @interface GRXConcurrentWriteable ()
 // This is atomic so that cancellation can nillify it from any thread.

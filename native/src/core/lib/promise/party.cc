@@ -247,7 +247,7 @@ bool Party::RunParty() {
     }
     // Poll the participant.
     currently_polling_ = i;
-    bool done = participant->PollParticipantPromise();
+    bool done = participant->Poll();
     currently_polling_ = kNotPolling;
     if (done) {
       if (!name.empty()) {
