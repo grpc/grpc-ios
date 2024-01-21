@@ -286,7 +286,10 @@ grpc_core_end2end_test(name = "channelz")
 
 grpc_core_end2end_test(name = "client_streaming")
 
-grpc_core_end2end_test(name = "compressed_payload")
+grpc_core_end2end_test(
+    name = "compressed_payload",
+    tags = ["compression_test"],
+)
 
 grpc_core_end2end_test(name = "connectivity")
 
@@ -540,6 +543,7 @@ grpc_cc_test(
         "//src/core:closure",
         "//src/core:default_event_engine",
         "//src/core:error",
+        "//src/core:experiments",
         "//src/core:grpc_sockaddr",
         "//src/core:iomgr_fwd",
         "//src/core:resolved_address",
