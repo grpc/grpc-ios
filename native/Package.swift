@@ -2142,10 +2142,10 @@ let package = Package(
         "third_party/utf8_range/utf8_range.h",
         "third_party/xxhash/xxhash.h",
       ],
-      publicHeadersPath: "spm-core-include",
       resources: [
         .copy("src/objective-c/PrivacyInfo.xcprivacy"),
       ],
+      publicHeadersPath: "spm-core-include",
       cSettings: [
         .headerSearchPath("./"),
         .headerSearchPath("include/"),
@@ -2191,10 +2191,10 @@ let package = Package(
       sources: [
         "src/cpp/",
       ],
-      publicHeadersPath: "spm-cpp-include",
       resources: [
         .copy("src/objective-c/PrivacyInfo.xcprivacy"),
       ],
+      publicHeadersPath: "spm-cpp-include",
       cSettings: [
         .headerSearchPath("./"),
         .headerSearchPath("include/"),
