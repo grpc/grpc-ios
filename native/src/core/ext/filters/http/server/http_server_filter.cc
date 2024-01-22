@@ -141,7 +141,7 @@ ServerMetadataHandle HttpServerFilter::Call::OnClientInitialMetadata(
 void HttpServerFilter::Call::OnServerInitialMetadata(ServerMetadata& md) {
   if (grpc_call_trace.enabled()) {
     gpr_log(GPR_INFO, "%s[http-server] Write metadata",
-            GetContext<Activity>()->DebugTag().c_str());
+            Activity::current()->DebugTag().c_str());
   }
   FilterOutgoingMetadata(&md);
   md.Set(HttpStatusMetadata(), 200);

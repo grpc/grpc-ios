@@ -47,14 +47,17 @@ struct Done;
 
 template <>
 struct Done<absl::Status> {
-  static absl::Status Make(bool cancelled) {
-    return cancelled ? absl::CancelledError() : absl::OkStatus();
-  }
+  static absl::Status Make() { return absl::OkStatus(); }
 };
 
 template <>
 struct Done<StatusFlag> {
-  static StatusFlag Make(bool cancelled) { return StatusFlag(!cancelled); }
+  static StatusFlag Make() { return StatusFlag(true); }
+};
+
+template <>
+struct Done<Success> {
+  static Success Make() { return Success{}; }
 };
 
 template <typename Reader, typename Action>
@@ -115,7 +118,7 @@ class ForEach {
   };
 
   std::string DebugTag() {
-    return absl::StrCat(GetContext<Activity>()->DebugTag(), " FOR_EACH[0x",
+    return absl::StrCat(Activity::current()->DebugTag(), " FOR_EACH[0x",
                         reinterpret_cast<uintptr_t>(this), "]: ");
   }
 
@@ -136,7 +139,7 @@ class ForEach {
         reading_next_ = false;
         return PollAction();
       } else {
-        return Done<Result>::Make(p->cancelled());
+        return Done<Result>::Make();
       }
     }
     return Pending();

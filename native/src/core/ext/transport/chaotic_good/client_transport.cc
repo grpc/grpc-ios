@@ -165,7 +165,11 @@ auto ChaoticGoodClientTransport::TransportReadLoop() {
 }
 
 auto ChaoticGoodClientTransport::OnTransportActivityDone() {
-  return [this](absl::Status) { AbortWithError(); };
+  return [this](absl::Status status) {
+    if (!(status.ok() || status.code() == absl::StatusCode::kCancelled)) {
+      this->AbortWithError();
+    }
+  };
 }
 
 ChaoticGoodClientTransport::ChaoticGoodClientTransport(
@@ -275,17 +279,7 @@ void ChaoticGoodClientTransport::StartCall(CallHandler call_handler) {
   // At this point, the connection is set up.
   // Start sending data frames.
   call_handler.SpawnGuarded("outbound_loop", [this, call_handler]() mutable {
-    const uint32_t stream_id = MakeStream(call_handler);
-    return Map(CallOutboundLoop(stream_id, call_handler),
-               [stream_id, this](absl::Status result) {
-                 if (!result.ok()) {
-                   CancelFrame frame;
-                   frame.stream_id = stream_id;
-                   outgoing_frames_.MakeSender().UnbufferedImmediateSend(
-                       std::move(frame));
-                 }
-                 return result;
-               });
+    return CallOutboundLoop(MakeStream(call_handler), call_handler);
   });
 }
 

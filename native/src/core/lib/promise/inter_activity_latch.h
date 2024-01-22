@@ -56,8 +56,7 @@ class InterActivityLatch<void> {
       if (is_set_) {
         return Empty{};
       } else {
-        return waiters_.AddPending(
-            GetContext<Activity>()->MakeNonOwningWaker());
+        return waiters_.AddPending(Activity::current()->MakeNonOwningWaker());
       }
     };
   }
@@ -79,7 +78,7 @@ class InterActivityLatch<void> {
 
  private:
   std::string DebugTag() {
-    return absl::StrCat(GetContext<Activity>()->DebugTag(),
+    return absl::StrCat(Activity::current()->DebugTag(),
                         " INTER_ACTIVITY_LATCH[0x",
                         reinterpret_cast<uintptr_t>(this), "]: ");
   }

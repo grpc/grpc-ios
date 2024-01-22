@@ -49,7 +49,7 @@ class Barrier {
       if (cleared_) {
         return Result{};
       } else {
-        return wait_set_.AddPending(GetContext<Activity>()->MakeOwningWaker());
+        return wait_set_.AddPending(Activity::current()->MakeOwningWaker());
       }
     };
   }
@@ -80,7 +80,7 @@ class SingleBarrier {
       if (cleared_) {
         return Result{};
       } else {
-        waker_ = GetContext<Activity>()->MakeOwningWaker();
+        waker_ = Activity::current()->MakeOwningWaker();
         return Pending();
       }
     };

@@ -573,7 +573,8 @@ PosixEventEngine::GetDNSResolver(
   }
   GRPC_EVENT_ENGINE_DNS_TRACE(
       "PosixEventEngine:%p creating NativePosixDNSResolver", this);
-  return std::make_unique<NativePosixDNSResolver>(shared_from_this());
+  return std::make_unique<PosixEventEngine::PosixDNSResolver>(
+      grpc_core::MakeOrphanable<NativePosixDNSResolver>(shared_from_this()));
 #endif  // GRPC_POSIX_SOCKET_RESOLVE_ADDRESS
 }
 

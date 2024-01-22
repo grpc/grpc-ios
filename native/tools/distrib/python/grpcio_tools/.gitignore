@@ -6,4 +6,3 @@ grpc_root/
 *.cpp
 *.egg-info
 *.so
-third_party/

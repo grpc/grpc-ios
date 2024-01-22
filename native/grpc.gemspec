@@ -39,7 +39,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'simplecov',          '~> 0.22'
   s.add_development_dependency 'rake',               '~> 13.0'
   s.add_development_dependency 'rake-compiler',      '~> 1.2.1'
-  s.add_development_dependency 'rake-compiler-dock', '~> 1.4'
+  s.add_development_dependency 'rake-compiler-dock', '~> 1.3'
   s.add_development_dependency 'rspec',              '~> 3.6'
   s.add_development_dependency 'rubocop',            '~> 1.41.0'
   s.add_development_dependency 'signet',             '~> 0.7'
@@ -1414,7 +1414,6 @@ Gem::Specification.new do |s|
   s.files += %w( src/core/lib/gprpp/crash.h )
   s.files += %w( src/core/lib/gprpp/debug_location.h )
   s.files += %w( src/core/lib/gprpp/directory_reader.h )
-  s.files += %w( src/core/lib/gprpp/down_cast.h )
   s.files += %w( src/core/lib/gprpp/dual_ref_counted.h )
   s.files += %w( src/core/lib/gprpp/env.h )
   s.files += %w( src/core/lib/gprpp/examine_stack.cc )
@@ -1892,8 +1891,6 @@ Gem::Specification.new do |s|
   s.files += %w( src/core/lib/transport/batch_builder.h )
   s.files += %w( src/core/lib/transport/bdp_estimator.cc )
   s.files += %w( src/core/lib/transport/bdp_estimator.h )
-  s.files += %w( src/core/lib/transport/call_filters.cc )
-  s.files += %w( src/core/lib/transport/call_filters.h )
   s.files += %w( src/core/lib/transport/call_final_info.cc )
   s.files += %w( src/core/lib/transport/call_final_info.h )
   s.files += %w( src/core/lib/transport/connectivity_state.cc )
@@ -1909,10 +1906,6 @@ Gem::Specification.new do |s|
   s.files += %w( src/core/lib/transport/http2_errors.h )
   s.files += %w( src/core/lib/transport/http_connect_handshaker.cc )
   s.files += %w( src/core/lib/transport/http_connect_handshaker.h )
-  s.files += %w( src/core/lib/transport/message.cc )
-  s.files += %w( src/core/lib/transport/message.h )
-  s.files += %w( src/core/lib/transport/metadata.cc )
-  s.files += %w( src/core/lib/transport/metadata.h )
   s.files += %w( src/core/lib/transport/metadata_batch.cc )
   s.files += %w( src/core/lib/transport/metadata_batch.h )
   s.files += %w( src/core/lib/transport/metadata_compression_traits.h )

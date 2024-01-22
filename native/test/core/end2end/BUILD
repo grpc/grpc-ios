@@ -543,7 +543,6 @@ grpc_cc_test(
         "//src/core:closure",
         "//src/core:default_event_engine",
         "//src/core:error",
-        "//src/core:experiments",
         "//src/core:grpc_sockaddr",
         "//src/core:iomgr_fwd",
         "//src/core:resolved_address",

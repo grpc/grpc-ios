@@ -135,14 +135,11 @@ TEST_F(TransportTest, AddOneStream) {
       "test-read", [&on_done, initiator = call.initiator]() mutable {
         return Seq(
             initiator.PullServerInitialMetadata(),
-            [](ValueOrFailure<absl::optional<ServerMetadataHandle>> md) {
+            [](ValueOrFailure<ServerMetadataHandle> md) {
               EXPECT_TRUE(md.ok());
-              EXPECT_TRUE(md.value().has_value());
-              EXPECT_EQ(md.value()
-                            .value()
-                            ->get_pointer(HttpPathMetadata())
-                            ->as_string_view(),
-                        "/demo.Service/Step");
+              EXPECT_EQ(
+                  md.value()->get_pointer(HttpPathMetadata())->as_string_view(),
+                  "/demo.Service/Step");
               return Empty{};
             },
             initiator.PullMessage(),
@@ -222,14 +219,11 @@ TEST_F(TransportTest, AddOneStreamMultipleMessages) {
       "test-read", [&on_done, initiator = call.initiator]() mutable {
         return Seq(
             initiator.PullServerInitialMetadata(),
-            [](ValueOrFailure<absl::optional<ServerMetadataHandle>> md) {
+            [](ValueOrFailure<ServerMetadataHandle> md) {
               EXPECT_TRUE(md.ok());
-              EXPECT_TRUE(md.value().has_value());
-              EXPECT_EQ(md.value()
-                            .value()
-                            ->get_pointer(HttpPathMetadata())
-                            ->as_string_view(),
-                        "/demo.Service/Step");
+              EXPECT_EQ(
+                  md.value()->get_pointer(HttpPathMetadata())->as_string_view(),
+                  "/demo.Service/Step");
               return Empty{};
             },
             initiator.PullMessage(),

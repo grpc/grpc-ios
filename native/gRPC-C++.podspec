@@ -22,7 +22,7 @@
 Pod::Spec.new do |s|
   s.name     = 'gRPC-C++'
   # TODO (mxyan): use version that match gRPC version when pod is stabilized
-  version = '1.62.0-dev'
+  version = '1.61.0-pre1'
   s.version  = version
   s.summary  = 'gRPC C++ library'
   s.homepage = 'https://grpc.io'
@@ -219,7 +219,6 @@ Pod::Spec.new do |s|
     abseil_version = '1.20230802.0'
     ss.dependency 'abseil/algorithm/container', abseil_version
     ss.dependency 'abseil/base/base', abseil_version
-    ss.dependency 'abseil/base/config', abseil_version
     ss.dependency 'abseil/base/core_headers', abseil_version
     ss.dependency 'abseil/cleanup/cleanup', abseil_version
     ss.dependency 'abseil/container/flat_hash_map', abseil_version
@@ -1013,7 +1012,6 @@ Pod::Spec.new do |s|
                       'src/core/lib/gprpp/crash.h',
                       'src/core/lib/gprpp/debug_location.h',
                       'src/core/lib/gprpp/directory_reader.h',
-                      'src/core/lib/gprpp/down_cast.h',
                       'src/core/lib/gprpp/dual_ref_counted.h',
                       'src/core/lib/gprpp/env.h',
                       'src/core/lib/gprpp/examine_stack.h',
@@ -1266,7 +1264,6 @@ Pod::Spec.new do |s|
                       'src/core/lib/surface/wait_for_cq_end_op.h',
                       'src/core/lib/transport/batch_builder.h',
                       'src/core/lib/transport/bdp_estimator.h',
-                      'src/core/lib/transport/call_filters.h',
                       'src/core/lib/transport/call_final_info.h',
                       'src/core/lib/transport/connectivity_state.h',
                       'src/core/lib/transport/custom_metadata.h',
@@ -1276,8 +1273,6 @@ Pod::Spec.new do |s|
                       'src/core/lib/transport/handshaker_registry.h',
                       'src/core/lib/transport/http2_errors.h',
                       'src/core/lib/transport/http_connect_handshaker.h',
-                      'src/core/lib/transport/message.h',
-                      'src/core/lib/transport/metadata.h',
                       'src/core/lib/transport/metadata_batch.h',
                       'src/core/lib/transport/metadata_compression_traits.h',
                       'src/core/lib/transport/parsed_metadata.h',
@@ -2261,7 +2256,6 @@ Pod::Spec.new do |s|
                               'src/core/lib/gprpp/crash.h',
                               'src/core/lib/gprpp/debug_location.h',
                               'src/core/lib/gprpp/directory_reader.h',
-                              'src/core/lib/gprpp/down_cast.h',
                               'src/core/lib/gprpp/dual_ref_counted.h',
                               'src/core/lib/gprpp/env.h',
                               'src/core/lib/gprpp/examine_stack.h',
@@ -2514,7 +2508,6 @@ Pod::Spec.new do |s|
                               'src/core/lib/surface/wait_for_cq_end_op.h',
                               'src/core/lib/transport/batch_builder.h',
                               'src/core/lib/transport/bdp_estimator.h',
-                              'src/core/lib/transport/call_filters.h',
                               'src/core/lib/transport/call_final_info.h',
                               'src/core/lib/transport/connectivity_state.h',
                               'src/core/lib/transport/custom_metadata.h',
@@ -2524,8 +2517,6 @@ Pod::Spec.new do |s|
                               'src/core/lib/transport/handshaker_registry.h',
                               'src/core/lib/transport/http2_errors.h',
                               'src/core/lib/transport/http_connect_handshaker.h',
-                              'src/core/lib/transport/message.h',
-                              'src/core/lib/transport/metadata.h',
                               'src/core/lib/transport/metadata_batch.h',
                               'src/core/lib/transport/metadata_compression_traits.h',
                               'src/core/lib/transport/parsed_metadata.h',

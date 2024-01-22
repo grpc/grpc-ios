@@ -47,7 +47,7 @@ class Delayed {
   explicit Delayed(T x) : x_(x) {}
 
   Poll<T> operator()() {
-    GetContext<Activity>()->ForceImmediateRepoll();
+    Activity::current()->ForceImmediateRepoll();
     ++polls_;
     if (polls_ == 10) return std::move(x_);
     return Pending();
