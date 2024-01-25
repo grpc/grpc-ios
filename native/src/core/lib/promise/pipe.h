@@ -374,7 +374,7 @@ class Center : public InterceptorList<T> {
   const T& value() const { return value_; }
 
   std::string DebugTag() {
-    if (auto* activity = GetContext<Activity>()) {
+    if (auto* activity = Activity::current()) {
       return absl::StrCat(activity->DebugTag(), " PIPE[0x", absl::Hex(this),
                           "]: ");
     } else {
@@ -661,7 +661,7 @@ class Push {
     if (center_ == nullptr) {
       if (grpc_trace_promise_primitives.enabled()) {
         gpr_log(GPR_DEBUG, "%s Pipe push has a null center",
-                GetContext<Activity>()->DebugTag().c_str());
+                Activity::current()->DebugTag().c_str());
       }
       return false;
     }

@@ -55,7 +55,8 @@ BatchBuilder::PendingCompletion::PendingCompletion(RefCountedPtr<Batch> batch)
 
 BatchBuilder::Batch::Batch(grpc_transport_stream_op_batch_payload* payload,
                            grpc_stream_refcount* stream_refcount)
-    : party(GetContext<Party>()->Ref()), stream_refcount(stream_refcount) {
+    : party(static_cast<Party*>(Activity::current())->Ref()),
+      stream_refcount(stream_refcount) {
   batch.payload = payload;
   batch.is_traced = GetContext<CallContext>()->traced();
 #ifndef NDEBUG
@@ -69,7 +70,7 @@ BatchBuilder::Batch::~Batch() {
   auto* arena = party->arena();
   if (grpc_call_trace.enabled()) {
     gpr_log(GPR_DEBUG, "%s[connected] [batch %p] Destroy",
-            GetContext<Activity>()->DebugTag().c_str(), this);
+            Activity::current()->DebugTag().c_str(), this);
   }
   if (pending_receive_message != nullptr) {
     arena->DeletePooled(pending_receive_message);

@@ -495,15 +495,11 @@ grpc_cc_library(
 
 grpc_cc_library(
     name = "context",
-    external_deps = ["absl/meta:type_traits"],
     language = "c++",
     public_hdrs = [
         "lib/promise/context.h",
     ],
-    deps = [
-        "down_cast",
-        "//:gpr",
-    ],
+    deps = ["//:gpr"],
 )
 
 grpc_cc_library(
@@ -1042,20 +1038,6 @@ grpc_cc_library(
         "wait_set",
         "//:gpr",
         "//:ref_counted_ptr",
-    ],
-)
-
-grpc_cc_library(
-    name = "observable",
-    hdrs = [
-        "lib/promise/observable.h",
-    ],
-    external_deps = ["absl/container:flat_hash_set"],
-    language = "c++",
-    deps = [
-        "activity",
-        "poll",
-        "//:gpr",
     ],
 )
 
@@ -2568,6 +2550,7 @@ grpc_cc_library(
     ],
     deps = [
         "iomgr_port",
+        "ref_counted_dns_resolver_interface",
         "useful",
         "//:event_engine_base_hdrs",
         "//:gpr",
@@ -2598,7 +2581,6 @@ grpc_cc_library(
         "absl/strings:str_format",
         "absl/types:optional",
         "absl/types:variant",
-        "address_sorting",
         "cares",
     ],
     deps = [
@@ -5104,13 +5086,6 @@ grpc_cc_library(
 )
 
 grpc_cc_library(
-    name = "down_cast",
-    hdrs = ["lib/gprpp/down_cast.h"],
-    external_deps = ["absl/base:config"],
-    deps = ["//:gpr"],
-)
-
-grpc_cc_library(
     name = "status_conversion",
     srcs = ["lib/transport/status_conversion.cc"],
     hdrs = ["lib/transport/status_conversion.h"],
@@ -6530,13 +6505,11 @@ grpc_cc_library(
     deps = [
         "chaotic_good_frame",
         "chaotic_good_frame_header",
-        "event_engine_tcp_socket_utils",
         "grpc_promise_endpoint",
         "if",
         "try_join",
         "try_seq",
         "//:gpr_platform",
-        "//:grpc_trace",
         "//:hpack_encoder",
         "//:promise",
     ],
@@ -6670,26 +6643,6 @@ grpc_cc_library(
 )
 
 grpc_cc_library(
-    name = "call_filters",
-    srcs = [
-        "lib/transport/call_filters.cc",
-    ],
-    hdrs = [
-        "lib/transport/call_filters.h",
-    ],
-    deps = [
-        "call_final_info",
-        "message",
-        "metadata",
-        "ref_counted",
-        "status_flag",
-        "//:gpr",
-        "//:promise",
-        "//:ref_counted_ptr",
-    ],
-)
-
-grpc_cc_library(
     name = "parsed_metadata",
     srcs = [
         "lib/transport/parsed_metadata.cc",
@@ -6706,40 +6659,6 @@ grpc_cc_library(
         "slice",
         "time",
         "//:gpr_platform",
-    ],
-)
-
-grpc_cc_library(
-    name = "metadata",
-    srcs = [
-        "lib/transport/metadata.cc",
-    ],
-    hdrs = [
-        "lib/transport/metadata.h",
-    ],
-    deps = [
-        "error_utils",
-        "metadata_batch",
-        "//:gpr_platform",
-    ],
-)
-
-grpc_cc_library(
-    name = "message",
-    srcs = [
-        "lib/transport/message.cc",
-    ],
-    hdrs = [
-        "lib/transport/message.h",
-    ],
-    external_deps = [
-        "absl/strings",
-    ],
-    deps = [
-        "arena",
-        "slice_buffer",
-        "//:gpr_platform",
-        "//:grpc_public_hdrs",
     ],
 )
 

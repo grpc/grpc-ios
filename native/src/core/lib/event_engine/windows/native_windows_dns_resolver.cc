@@ -20,7 +20,6 @@
 
 #include <string>
 
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 
 #include <grpc/event_engine/event_engine.h>

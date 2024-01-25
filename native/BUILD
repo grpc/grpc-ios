@@ -211,11 +211,11 @@ config_setting(
 python_config_settings()
 
 # This should be updated along with build_handwritten.yaml
-g_stands_for = "guardian"  # @unused
+g_stands_for = "grand"  # @unused
 
 core_version = "38.0.0"  # @unused
 
-version = "1.62.0-dev"  # @unused
+version = "1.61.0-pre1"  # @unused
 
 GPR_PUBLIC_HDRS = [
     "include/grpc/support/alloc.h",
@@ -1530,7 +1530,6 @@ grpc_cc_library(
         "//src/core:arena_promise",
         "//src/core:atomic_utils",
         "//src/core:bitset",
-        "//src/core:call_filters",
         "//src/core:call_final_info",
         "//src/core:cancel_callback",
         "//src/core:channel_args",
@@ -1571,8 +1570,6 @@ grpc_cc_library(
         "//src/core:loop",
         "//src/core:map",
         "//src/core:memory_quota",
-        "//src/core:message",
-        "//src/core:metadata",
         "//src/core:metadata_batch",
         "//src/core:no_destruct",
         "//src/core:per_cpu",
@@ -1580,7 +1577,6 @@ grpc_cc_library(
         "//src/core:poll",
         "//src/core:pollset_set",
         "//src/core:posix_event_engine_base_hdrs",
-        "//src/core:prioritized_race",
         "//src/core:promise_status",
         "//src/core:race",
         "//src/core:random_early_detection",

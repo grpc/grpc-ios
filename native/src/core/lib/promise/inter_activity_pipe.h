@@ -35,24 +35,6 @@ namespace grpc_core {
 
 template <typename T, uint8_t kQueueSize>
 class InterActivityPipe {
- public:
-  class NextResult {
-   public:
-    template <typename... Args>
-    explicit NextResult(Args&&... args) : value_(std::forward<Args>(args)...) {}
-    using value_type = T;
-    void reset() { value_.reset(); }
-    bool cancelled() const { return false; }
-    bool has_value() const { return value_.has_value(); }
-    const T& value() const { return value_.value(); }
-    T& value() { return value_.value(); }
-    const T& operator*() const { return *value_; }
-    T& operator*() { return *value_; }
-
-   private:
-    absl::optional<T> value_;
-  };
-
  private:
   class Center : public RefCounted<Center, NonPolymorphicRefCount> {
    public:
@@ -60,7 +42,7 @@ class InterActivityPipe {
       ReleasableMutexLock lock(&mu_);
       if (closed_) return false;
       if (count_ == kQueueSize) {
-        on_available_ = GetContext<Activity>()->MakeNonOwningWaker();
+        on_available_ = Activity::current()->MakeNonOwningWaker();
         return Pending{};
       }
       queue_[(first_ + count_) % kQueueSize] = std::move(value);
@@ -73,11 +55,11 @@ class InterActivityPipe {
       return true;
     }
 
-    Poll<NextResult> Next() {
+    Poll<absl::optional<T>> Next() {
       ReleasableMutexLock lock(&mu_);
       if (count_ == 0) {
         if (closed_) return absl::nullopt;
-        on_occupied_ = GetContext<Activity>()->MakeNonOwningWaker();
+        on_occupied_ = Activity::current()->MakeNonOwningWaker();
         return Pending{};
       }
       auto value = std::move(queue_[first_]);

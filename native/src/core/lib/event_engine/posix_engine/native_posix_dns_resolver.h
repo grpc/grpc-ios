@@ -27,12 +27,14 @@
 
 #include <grpc/event_engine/event_engine.h>
 
+#include "src/core/lib/event_engine/ref_counted_dns_resolver_interface.h"
+
 namespace grpc_event_engine {
 namespace experimental {
 
 // An asynchronous DNS resolver which uses the native platform's getaddrinfo
 // API. Only supports A/AAAA records.
-class NativePosixDNSResolver : public EventEngine::DNSResolver {
+class NativePosixDNSResolver : public RefCountedDNSResolverInterface {
  public:
   explicit NativePosixDNSResolver(std::shared_ptr<EventEngine> event_engine);
 
@@ -45,6 +47,8 @@ class NativePosixDNSResolver : public EventEngine::DNSResolver {
 
   void LookupTXT(EventEngine::DNSResolver::LookupTXTCallback on_resolved,
                  absl::string_view name) override;
+
+  void Orphan() override { delete this; }
 
  private:
   std::shared_ptr<EventEngine> event_engine_;

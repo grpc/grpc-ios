@@ -112,15 +112,17 @@ class InprocClientTransport final : public Transport, public ClientTransport {
   void StartCall(CallHandler call_handler) override {
     call_handler.SpawnGuarded(
         "pull_initial_metadata",
-        TrySeq(call_handler.PullClientInitialMetadata(),
-               [server_transport = server_transport_,
-                call_handler](ClientMetadataHandle md) {
-                 auto call_initiator = server_transport->AcceptCall(*md);
-                 if (!call_initiator.ok()) return call_initiator.status();
-                 ForwardCall(call_handler, std::move(*call_initiator),
-                             std::move(md));
-                 return absl::OkStatus();
-               }));
+        TrySeq(
+            call_handler.PullClientInitialMetadata(),
+            [server_transport = server_transport_,
+             call_handler](ClientMetadataHandle md) {
+              auto call_initiator = server_transport->AcceptCall(*md);
+              if (!call_initiator.ok()) return call_initiator.status();
+              ForwardCall(call_handler, std::move(*call_initiator),
+                          std::move(md));
+              return absl::OkStatus();
+            },
+            ImmediateOkStatus()));
   }
 
   void Orphan() override { delete this; }
@@ -170,9 +172,8 @@ RefCountedPtr<Channel> MakeLameChannel(absl::string_view why,
 
 RefCountedPtr<Channel> MakeInprocChannel(Server* server,
                                          ChannelArgs client_channel_args) {
-  auto transports = MakeInProcessTransportPair();
-  auto client_transport = std::move(transports.first);
-  auto server_transport = std::move(transports.second);
+  auto client_transport = MakeOrphanable<InprocClientTransport>();
+  auto server_transport = client_transport->GetServerTransport();
   auto error =
       server->SetupTransport(server_transport.get(), nullptr,
                              server->channel_args()
@@ -193,14 +194,6 @@ RefCountedPtr<Channel> MakeInprocChannel(Server* server,
   return std::move(*channel);
 }
 }  // namespace
-
-std::pair<OrphanablePtr<Transport>, OrphanablePtr<Transport>>
-MakeInProcessTransportPair() {
-  auto client_transport = MakeOrphanable<InprocClientTransport>();
-  auto server_transport = client_transport->GetServerTransport();
-  return std::make_pair(std::move(client_transport),
-                        std::move(server_transport));
-}
 
 }  // namespace grpc_core
 
