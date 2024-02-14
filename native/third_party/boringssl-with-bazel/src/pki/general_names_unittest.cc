@@ -4,15 +4,15 @@
 
 #include "general_names.h"
 
-#include "test_helpers.h"
 #include <gtest/gtest.h>
+#include "test_helpers.h"
 
 namespace bssl {
 namespace {
 
-::testing::AssertionResult LoadTestData(const char* token,
-                                        const std::string& basename,
-                                        std::string* result) {
+::testing::AssertionResult LoadTestData(const char *token,
+                                        const std::string &basename,
+                                        std::string *result) {
   std::string path = "testdata/name_constraints_unittest/" + basename;
 
   const PemBlockMapping mappings[] = {
@@ -23,13 +23,11 @@ namespace {
 }
 
 ::testing::AssertionResult LoadTestSubjectAltNameData(
-    const std::string& basename,
-    std::string* result) {
+    const std::string &basename, std::string *result) {
   return LoadTestData("SUBJECT ALTERNATIVE NAME", basename, result);
 }
 
-void ReplaceFirstSubstring(std::string* str,
-                           std::string_view substr,
+void ReplaceFirstSubstring(std::string *str, std::string_view substr,
                            std::string_view replacement) {
   size_t idx = str->find(substr);
   if (idx != std::string::npos) {
@@ -182,7 +180,8 @@ TEST(GeneralNames, IPAddress_v4) {
   ASSERT_TRUE(general_names);
   EXPECT_EQ(GENERAL_NAME_IP_ADDRESS, general_names->present_name_types);
   ASSERT_EQ(1U, general_names->ip_addresses.size());
-  EXPECT_EQ(fillins::IPAddress(192, 168, 6, 7), general_names->ip_addresses[0]);
+  static const uint8_t kIP[] = {192, 168, 6, 7};
+  EXPECT_EQ(der::Input(kIP), general_names->ip_addresses[0]);
   EXPECT_EQ(0U, general_names->ip_address_ranges.size());
 }
 
@@ -196,9 +195,9 @@ TEST(GeneralNames, IPAddress_v6) {
   ASSERT_TRUE(general_names);
   EXPECT_EQ(GENERAL_NAME_IP_ADDRESS, general_names->present_name_types);
   ASSERT_EQ(1U, general_names->ip_addresses.size());
-  EXPECT_EQ(
-      fillins::IPAddress(0xFE, 0x80, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
-      general_names->ip_addresses[0]);
+  static const uint8_t kIP[] = {0xFE, 0x80, 1, 2,  3,  4,  5,  6,
+                                7,    8,    9, 10, 11, 12, 13, 14};
+  EXPECT_EQ(der::Input(kIP), general_names->ip_addresses[0]);
   EXPECT_EQ(0U, general_names->ip_address_ranges.size());
 }
 
@@ -224,4 +223,4 @@ TEST(GeneralNames, RegisteredIDs) {
   EXPECT_EQ(der::Input(expected_der), general_names->registered_ids[0]);
 }
 
-}  // namespace net
+}  // namespace bssl

@@ -155,7 +155,7 @@ static int ensure_fixed_copy(BIGNUM **out, const BIGNUM *in, int width) {
     return 0;
   }
   *out = copy;
-  CONSTTIME_SECRET(copy->d, sizeof(BN_ULONG) * width);
+  bn_secret(copy);
 
   return 1;
 }
@@ -259,8 +259,7 @@ static int freeze_private_key(RSA *rsa, BN_CTX *ctx) {
           goto err;
         }
         rsa->iqmp_mont = iqmp_mont;
-        CONSTTIME_SECRET(rsa->iqmp_mont->d,
-                         sizeof(BN_ULONG) * rsa->iqmp_mont->width);
+        bn_secret(rsa->iqmp_mont);
       }
     }
   }
@@ -376,7 +375,7 @@ static BN_BLINDING *rsa_blinding_get(RSA *rsa, size_t *index_used,
   assert(new_num_blindings > rsa->num_blindings);
 
   BN_BLINDING **new_blindings =
-      OPENSSL_malloc(sizeof(BN_BLINDING *) * new_num_blindings);
+      OPENSSL_calloc(new_num_blindings, sizeof(BN_BLINDING *));
   uint8_t *new_blindings_inuse = OPENSSL_malloc(new_num_blindings);
   if (new_blindings == NULL || new_blindings_inuse == NULL) {
     goto err;
@@ -622,7 +621,9 @@ int rsa_default_private_transform(RSA *rsa, uint8_t *out, const uint8_t *in,
     goto err;
   }
 
-  if (BN_ucmp(f, rsa->n) >= 0) {
+  // The input to the RSA private transform may be secret, but padding is
+  // expected to construct a value within range, so we can leak this comparison.
+  if (constant_time_declassify_int(BN_ucmp(f, rsa->n) >= 0)) {
     // Usually the padding functions would catch this.
     OPENSSL_PUT_ERROR(RSA, RSA_R_DATA_TOO_LARGE_FOR_MODULUS);
     goto err;

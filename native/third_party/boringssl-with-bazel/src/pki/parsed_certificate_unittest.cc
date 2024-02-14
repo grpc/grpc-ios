@@ -4,12 +4,12 @@
 
 #include "parsed_certificate.h"
 
-#include "cert_errors.h"
-#include "parse_certificate.h"
-#include "test_helpers.h"
-#include "input.h"
 #include <gtest/gtest.h>
 #include <openssl/pool.h>
+#include "cert_errors.h"
+#include "input.h"
+#include "parse_certificate.h"
+#include "test_helpers.h"
 
 // TODO(eroman): Add tests for parsing of policy mappings.
 
@@ -17,7 +17,7 @@ namespace bssl {
 
 namespace {
 
-std::string GetFilePath(const std::string& file_name) {
+std::string GetFilePath(const std::string &file_name) {
   return std::string("testdata/parse_certificate_unittest/") + file_name;
 }
 
@@ -26,8 +26,7 @@ std::string GetFilePath(const std::string& file_name) {
 // Returns nullptr if the certificate parsing failed, and verifies that any
 // errors match the ERRORS block in the .pem file.
 std::shared_ptr<const ParsedCertificate> ParseCertificateFromFile(
-    const std::string& file_name,
-    const ParseCertificateOptions& options) {
+    const std::string &file_name, const ParseCertificateOptions &options) {
   std::string data;
   std::string expected_errors;
 
@@ -41,15 +40,17 @@ std::shared_ptr<const ParsedCertificate> ParseCertificateFromFile(
 
   CertErrors errors;
   std::shared_ptr<const ParsedCertificate> cert = ParsedCertificate::Create(
-      bssl::UniquePtr<CRYPTO_BUFFER>(CRYPTO_BUFFER_new(
-          reinterpret_cast<const uint8_t*>(data.data()), data.size(), nullptr)),
+      bssl::UniquePtr<CRYPTO_BUFFER>(
+          CRYPTO_BUFFER_new(reinterpret_cast<const uint8_t *>(data.data()),
+                            data.size(), nullptr)),
       options, &errors);
 
   // The errors are baselined for |!allow_invalid_serial_numbers|. So if
   // requesting a non-default option skip the error checks.
   // TODO(eroman): This is ugly.
-  if (!options.allow_invalid_serial_numbers)
+  if (!options.allow_invalid_serial_numbers) {
     VerifyCertErrors(expected_errors, errors, test_file_path);
+  }
 
   // Every parse failure being tested should emit error information.
   if (!cert) {
@@ -231,7 +232,7 @@ TEST(ParsedCertificateTest, ExtendedKeyUsage) {
   ASSERT_TRUE(cert->GetExtension(der::Input(kExtKeyUsageOid), &extension));
 
   EXPECT_FALSE(extension.critical);
-  EXPECT_EQ(45u, extension.value.Length());
+  EXPECT_EQ(45u, extension.value.size());
 
   EXPECT_TRUE(cert->has_extended_key_usage());
   EXPECT_EQ(4u, cert->extended_key_usage().size());
@@ -267,7 +268,7 @@ TEST(ParsedCertificateTest, Policies) {
       cert->GetExtension(der::Input(kCertificatePoliciesOid), &extension));
 
   EXPECT_FALSE(extension.critical);
-  EXPECT_EQ(95u, extension.value.Length());
+  EXPECT_EQ(95u, extension.value.size());
 
   EXPECT_TRUE(cert->has_policy_oids());
   EXPECT_EQ(2u, cert->policy_oids().size());
@@ -319,7 +320,7 @@ TEST(ParsedCertificateTest, ExtensionsReal) {
       cert->GetExtension(der::Input(kCertificatePoliciesOid), &extension));
 
   EXPECT_FALSE(extension.critical);
-  EXPECT_EQ(16u, extension.value.Length());
+  EXPECT_EQ(16u, extension.value.size());
 
   // TODO(eroman): Verify the other extensions' values.
 }
@@ -569,9 +570,9 @@ TEST(ParsedCertificateTest, InhibitAnyPolicy) {
   ParsedExtension extension;
   ASSERT_TRUE(cert->GetExtension(der::Input(kInhibitAnyPolicyOid), &extension));
 
-  uint8_t skip_count;
-  ASSERT_TRUE(ParseInhibitAnyPolicy(extension.value, &skip_count));
-  EXPECT_EQ(3, skip_count);
+  std::optional<uint8_t> skip_count = ParseInhibitAnyPolicy(extension.value);
+  ASSERT_TRUE(skip_count.has_value());
+  EXPECT_EQ(3, skip_count.value());
 }
 
 // Tests a subjectKeyIdentifier that is not an OCTET_STRING.
@@ -590,4 +591,4 @@ TEST(ParsedCertificateTest, AuthourityKeyIdentifierNotSequence) {
 
 }  // namespace
 
-}  // namespace net
+}  // namespace bssl

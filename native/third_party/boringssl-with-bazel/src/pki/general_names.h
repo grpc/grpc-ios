@@ -5,11 +5,12 @@
 #ifndef BSSL_PKI_GENERAL_NAMES_H_
 #define BSSL_PKI_GENERAL_NAMES_H_
 
-#include "fillins/openssl_util.h"
 #include <memory>
+#include <string_view>
 #include <vector>
 
-#include "fillins/ip_address.h"
+#include <openssl/base.h>
+
 
 #include "cert_error_id.h"
 
@@ -62,15 +63,13 @@ struct OPENSSL_EXPORT GeneralNames {
   // |general_names_tlv|, so is only valid as long as |general_names_tlv| is.
   // Returns nullptr on failure, and may fill |errors| with
   // additional information. |errors| must be non-null.
-  static std::unique_ptr<GeneralNames> Create(
-      const der::Input& general_names_tlv,
-      CertErrors* errors);
+  static std::unique_ptr<GeneralNames> Create(der::Input general_names_tlv,
+                                              CertErrors *errors);
 
   // As above, but takes the GeneralNames sequence value, without the tag and
   // length.
   static std::unique_ptr<GeneralNames> CreateFromValue(
-      const der::Input& general_names_value,
-      CertErrors* errors);
+      der::Input general_names_value, CertErrors *errors);
 
   // DER-encoded OtherName values.
   std::vector<der::Input> other_names;
@@ -94,12 +93,21 @@ struct OPENSSL_EXPORT GeneralNames {
   std::vector<std::string_view> uniform_resource_identifiers;
 
   // iPAddresses as sequences of octets in network byte order. This will be
-  // populated if the GeneralNames represents a Subject Alternative Name.
-  std::vector<fillins::IPAddress> ip_addresses;
+  // populated if the GeneralNames represents a Subject Alternative Name. Each
+  // address is guaranteed to be either 4 bytes (IPv4) or 16 bytes (IPv6) long.
+  std::vector<der::Input> ip_addresses;
 
-  // iPAddress ranges, as <IP, prefix length> pairs. This will be populated
-  // if the GeneralNames represents a Name Constraints.
-  std::vector<std::pair<fillins::IPAddress, unsigned>> ip_address_ranges;
+  // iPAddress ranges, as <IP, mask> pairs. This will be populated
+  // if the GeneralNames represents a Name Constraints. Each address is
+  // guaranteed to be either 4 bytes (IPv4) or 16 bytes (IPv6) long. The mask
+  // half is guaranteed to be the same size, and consist of some number of 1
+  // bits, followed by some number of 0 bits.
+  //
+  // WARNING: It is not guaranteed that the masked portions of the address are
+  // zero.
+  //
+  // TODO(davidben): Should addresses with non-zero masked portions be rejected?
+  std::vector<std::pair<der::Input, der::Input>> ip_address_ranges;
 
   // DER-encoded OBJECT IDENTIFIERs.
   std::vector<der::Input> registered_ids;
@@ -114,11 +122,10 @@ struct OPENSSL_EXPORT GeneralNames {
 // |errors| must be non-null.
 // TODO(mattm): should this be a method on GeneralNames?
 [[nodiscard]] OPENSSL_EXPORT bool ParseGeneralName(
-    const der::Input& input,
+    der::Input input,
     GeneralNames::ParseGeneralNameIPAddressType ip_address_type,
-    GeneralNames* subtrees,
-    CertErrors* errors);
+    GeneralNames *subtrees, CertErrors *errors);
 
-}  // namespace net
+}  // namespace bssl
 
 #endif  // BSSL_PKI_GENERAL_NAMES_H_

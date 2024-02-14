@@ -55,7 +55,7 @@ endif()
 
 if(FIPS_DELOCATE)
   if(FIPS_SHARED)
-    error("Can't set both delocate and shared mode for FIPS build")
+    message(FATAL_ERROR "Can't set both delocate and shared mode for FIPS build")
   endif()
 
   add_library(
@@ -83,7 +83,7 @@ if(FIPS_DELOCATE)
     -a $<TARGET_FILE:bcm_c_generated_asm>
     -o bcm-delocated.S
     -cc ${CMAKE_ASM_COMPILER}
-    -cc-flags "${TARGET} $CMAKE_ASM_FLAGS"
+    -cc-flags "${TARGET} ${CMAKE_ASM_FLAGS}"
     ${PROJECT_SOURCE_DIR}/include/openssl/arm_arch.h
     ${PROJECT_SOURCE_DIR}/include/openssl/asm_base.h
     ${PROJECT_SOURCE_DIR}/include/openssl/target.h
@@ -134,7 +134,7 @@ if(FIPS_DELOCATE)
   set_target_properties(fipsmodule PROPERTIES LINKER_LANGUAGE C)
 elseif(FIPS_SHARED)
   if(NOT BUILD_SHARED_LIBS)
-    error("FIPS_SHARED set but not BUILD_SHARED_LIBS")
+    message(FATAL_ERROR "FIPS_SHARED set but not BUILD_SHARED_LIBS")
   endif()
 
   add_library(

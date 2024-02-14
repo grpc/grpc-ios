@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
 # Defer enabling C and CXX languages.
 project(BoringSSL NONE)
@@ -43,20 +43,12 @@ function(install_if_enabled)
   endif()
 endfunction()
 
-if(ANDROID)
-  # Android-NDK CMake files reconfigure the path and so Perl won't be found.
-  # However, ninja will still find them in $PATH if we just name them.
-  if(NOT PERL_EXECUTABLE)
-    set(PERL_EXECUTABLE "perl")
-  endif()
-else()
-  find_package(Perl REQUIRED)
-endif()
+find_package(Perl REQUIRED)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT CMAKE_CROSSCOMPILING)
   find_package(PkgConfig QUIET)
   if (PkgConfig_FOUND)
-    pkg_check_modules(LIBUNWIND libunwind-generic)
+    pkg_check_modules(LIBUNWIND libunwind-generic>=1.3.0)
     if(LIBUNWIND_FOUND)
       add_definitions(-DBORINGSSL_HAVE_LIBUNWIND)
     else()
@@ -139,8 +131,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 if(CMAKE_COMPILER_IS_GNUCXX OR CLANG)
   # Note clang-cl is odd and sets both CLANG and MSVC. We base our configuration
   # primarily on our normal Clang one.
-  # TODO(bbe) took out -Wmissing-field-initializers for pki - fix and put back or disable only for pki
-  set(C_CXX_FLAGS "-Werror -Wformat=2 -Wsign-compare -Wwrite-strings -Wvla -Wshadow -Wtype-limits")
+  set(C_CXX_FLAGS "-Werror -Wformat=2 -Wsign-compare -Wwrite-strings -Wvla -Wshadow -Wtype-limits -Wmissing-field-initializers")
   if(MSVC)
     # clang-cl sets different default warnings than clang. It also treats -Wall
     # as -Weverything, to match MSVC. Instead -W3 is the alias for -Wall.
@@ -478,14 +469,22 @@ endif()
 
 # Add minimal googletest targets. The provided one has many side-effects, and
 # googletest has a very straightforward build.
-add_library(boringssl_gtest third_party/googletest/src/gtest-all.cc)
+add_library(
+  boringssl_gtest
+  third_party/googletest/googlemock/src/gmock-all.cc
+  third_party/googletest/googletest/src/gtest-all.cc
+)
 if(USE_CUSTOM_LIBCXX)
   target_link_libraries(boringssl_gtest libcxx)
 endif()
 target_include_directories(
     boringssl_gtest
-    PUBLIC third_party/googletest/include
-    PRIVATE third_party/googletest
+    PUBLIC
+    third_party/googletest/googlemock/include
+    third_party/googletest/googletest/include
+    PRIVATE
+    third_party/googletest/googlemock
+    third_party/googletest/googletest
 )
 
 # Declare a dummy target to build all unit tests. Test targets should inject
@@ -555,11 +554,9 @@ if(APPLE)
 endif()
 
 add_library(pki ${PKI_SOURCES})
-target_compile_definitions(pki PRIVATE _BORINGSSL_LIBPKI_)
 target_link_libraries(pki crypto)
 
 add_executable(pki_test ${PKI_TEST_SOURCES})
-target_compile_definitions(pki_test PRIVATE _BORINGSSL_LIBPKI_)
 target_link_libraries(pki_test test_support_lib boringssl_gtest pki crypto)
 add_dependencies(all_tests pki_test)
 

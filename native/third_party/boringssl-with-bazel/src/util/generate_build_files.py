@@ -29,7 +29,6 @@ import json
 # TODO(https://crbug.com/boringssl/542): This probably should be a map, but some
 # downstream scripts import this to find what folders to add/remove from git.
 OS_ARCH_COMBOS = [
-    ('apple', 'arm', 'ios32', [], 'S'),
     ('apple', 'aarch64', 'ios64', [], 'S'),
     ('apple', 'x86', 'macosx', ['-fPIC', '-DOPENSSL_IA32_SSE2'], 'S'),
     ('apple', 'x86_64', 'macosx', [], 'S'),
@@ -48,6 +47,8 @@ NON_PERL_FILES = {
     ('apple', 'x86_64'): [
         'src/third_party/fiat/asm/fiat_curve25519_adx_mul.S',
         'src/third_party/fiat/asm/fiat_curve25519_adx_square.S',
+        'src/third_party/fiat/asm/fiat_p256_adx_mul.S',
+        'src/third_party/fiat/asm/fiat_p256_adx_sqr.S',
     ],
     ('linux', 'arm'): [
         'src/crypto/curve25519/asm/x25519-asm-arm.S',
@@ -57,6 +58,8 @@ NON_PERL_FILES = {
         'src/crypto/hrss/asm/poly_rq_mul.S',
         'src/third_party/fiat/asm/fiat_curve25519_adx_mul.S',
         'src/third_party/fiat/asm/fiat_curve25519_adx_square.S',
+        'src/third_party/fiat/asm/fiat_p256_adx_mul.S',
+        'src/third_party/fiat/asm/fiat_p256_adx_sqr.S',
     ],
 }
 
@@ -263,6 +266,8 @@ class Bazel(object):
       self.PrintVariableSection(
           out, 'pki_internal_headers', files['pki_internal_headers'])
       self.PrintVariableSection(out, 'pki_sources', files['pki'])
+      self.PrintVariableSection(out, 'rust_bssl_sys', files['rust_bssl_sys'])
+      self.PrintVariableSection(out, 'rust_bssl_crypto', files['rust_bssl_crypto'])
       self.PrintVariableSection(out, 'tool_sources', files['tool'])
       self.PrintVariableSection(out, 'tool_headers', files['tool_headers'])
 
@@ -334,10 +339,15 @@ class GN(object):
       out.write('\n')
     self.firstSection = False
 
-    out.write('%s = [\n' % name)
-    for f in sorted(files):
-      out.write('  "%s",\n' % f)
-    out.write(']\n')
+    if len(files) == 0:
+      out.write('%s = []\n' % name)
+    elif len(files) == 1:
+      out.write('%s = [ "%s" ]\n' % (name, files[0]))
+    else:
+      out.write('%s = [\n' % name)
+      for f in sorted(files):
+        out.write('  "%s",\n' % f)
+      out.write(']\n')
 
   def WriteFiles(self, files):
     with open('BUILD.generated.gni', 'w+') as out:
@@ -351,9 +361,16 @@ class GN(object):
                                 files['crypto_nasm'])
       self.PrintVariableSection(out, 'crypto_headers',
                                 files['crypto_headers'])
+      self.PrintVariableSection(out, 'rust_bssl_sys', files['rust_bssl_sys'])
+      self.PrintVariableSection(out, 'rust_bssl_crypto',
+                                files['rust_bssl_crypto'])
       self.PrintVariableSection(out, 'ssl_sources',
                                 files['ssl'] + files['ssl_internal_headers'])
       self.PrintVariableSection(out, 'ssl_headers', files['ssl_headers'])
+      self.PrintVariableSection(out, 'pki_sources',
+                                files['pki'])
+      self.PrintVariableSection(out, 'pki_internal_headers',
+                                files['pki_internal_headers'])
       self.PrintVariableSection(out, 'tool_sources',
                                 files['tool'] + files['tool_headers'])
 
@@ -372,7 +389,10 @@ class GN(object):
                                 files['crypto_test'])
       self.PrintVariableSection(out, 'crypto_test_data',
                                 files['crypto_test_data'])
+      self.PrintVariableSection(out, 'pki_test_data',
+                                files['pki_test_data'])
       self.PrintVariableSection(out, 'ssl_test_sources', files['ssl_test'])
+      self.PrintVariableSection(out, 'pki_test_sources', files['pki_test'])
 
 
 class GYP(object):
@@ -412,7 +432,7 @@ class CMake(object):
     self.header = LicenseHeader("#") + R'''
 # This file is created by generate_build_files.py. Do not edit manually.
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
 project(BoringSSL LANGUAGES C CXX)
 
@@ -532,7 +552,7 @@ endif()
       self.PrintExe(cmake, 'bssl', files['tool'], ['ssl', 'crypto'])
 
       cmake.write(
-R'''if(NOT ANDROID)
+R'''if(NOT CMAKE_SYSTEM_NAME STREQUAL "Android")
   find_package(Threads REQUIRED)
   target_link_libraries(crypto Threads::Threads)
 endif()
@@ -613,6 +633,21 @@ def FindCFiles(directory, filter_func):
 
   cfiles.sort()
   return cfiles
+
+
+def FindRustFiles(directory):
+  """Recurses through directory and returns a list of paths to all the Rust source
+  files."""
+  rust_files = []
+
+  for (path, dirnames, filenames) in os.walk(directory):
+    for filename in filenames:
+      if not filename.endswith('.rs'):
+        continue
+      rust_files.append(os.path.join(path, filename))
+
+  rust_files.sort()
+  return rust_files
 
 
 def FindHeaderFiles(directory, filter_func):
@@ -754,6 +789,8 @@ def main(platforms):
   fips_fragments = FindCFiles(os.path.join('src', 'crypto', 'fipsmodule'), OnlyFIPSFragments)
   ssl_source_files = FindCFiles(os.path.join('src', 'ssl'), NoTests)
   tool_h_files = FindHeaderFiles(os.path.join('src', 'tool'), AllFiles)
+  bssl_sys_files = FindRustFiles(os.path.join('src', 'rust', 'bssl-sys', 'src'))
+  bssl_crypto_files = FindRustFiles(os.path.join('src', 'rust', 'bssl-crypto', 'src'))
 
   # BCM shared library C files
   bcm_crypto_c_files = [
@@ -834,6 +871,8 @@ def main(platforms):
       'pki_internal_headers': sorted(list(pki_internal_h_files)),
       'pki_test': PrefixWithSrc(cmake['PKI_TEST_SOURCES']),
       'pki_test_data': PrefixWithSrc(cmake['PKI_TEST_DATA']),
+      'rust_bssl_crypto': bssl_crypto_files,
+      'rust_bssl_sys': bssl_sys_files,
       'ssl': ssl_source_files,
       'ssl_headers': ssl_h_files,
       'ssl_internal_headers': ssl_internal_h_files,

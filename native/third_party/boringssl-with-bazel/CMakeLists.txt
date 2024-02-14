@@ -14,7 +14,7 @@
 
 # This file is created by generate_build_files.py. Do not edit manually.
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
 project(BoringSSL LANGUAGES C CXX)
 
@@ -98,17 +98,6 @@ set(
   apple-aarch64/crypto/fipsmodule/sha512-armv8-apple.S
   apple-aarch64/crypto/fipsmodule/vpaes-armv8-apple.S
   apple-aarch64/crypto/test/trampoline-armv8-apple.S
-  apple-arm/crypto/chacha/chacha-armv4-apple.S
-  apple-arm/crypto/fipsmodule/aesv8-armv7-apple.S
-  apple-arm/crypto/fipsmodule/armv4-mont-apple.S
-  apple-arm/crypto/fipsmodule/bsaes-armv7-apple.S
-  apple-arm/crypto/fipsmodule/ghash-armv4-apple.S
-  apple-arm/crypto/fipsmodule/ghashv8-armv7-apple.S
-  apple-arm/crypto/fipsmodule/sha1-armv4-large-apple.S
-  apple-arm/crypto/fipsmodule/sha256-armv4-apple.S
-  apple-arm/crypto/fipsmodule/sha512-armv4-apple.S
-  apple-arm/crypto/fipsmodule/vpaes-armv7-apple.S
-  apple-arm/crypto/test/trampoline-armv4-apple.S
   apple-x86/crypto/chacha/chacha-x86-apple.S
   apple-x86/crypto/fipsmodule/aesni-x86-apple.S
   apple-x86/crypto/fipsmodule/bn-586-apple.S
@@ -204,6 +193,8 @@ set(
   src/crypto/poly1305/poly1305_arm_asm.S
   src/third_party/fiat/asm/fiat_curve25519_adx_mul.S
   src/third_party/fiat/asm/fiat_curve25519_adx_square.S
+  src/third_party/fiat/asm/fiat_p256_adx_mul.S
+  src/third_party/fiat/asm/fiat_p256_adx_sqr.S
   win-aarch64/crypto/chacha/chacha-armv8-win.S
   win-aarch64/crypto/cipher_extra/chacha20_poly1305_armv8-win.S
   win-aarch64/crypto/fipsmodule/aesv8-armv8-win.S
@@ -379,7 +370,7 @@ add_library(
   src/crypto/fipsmodule/fips_shared_support.c
   src/crypto/hpke/hpke.c
   src/crypto/hrss/hrss.c
-  src/crypto/kyber/keccak.c
+  src/crypto/keccak/keccak.c
   src/crypto/kyber/kyber.c
   src/crypto/lhash/lhash.c
   src/crypto/mem.c
@@ -416,6 +407,13 @@ add_library(
   src/crypto/rsa_extra/rsa_crypt.c
   src/crypto/rsa_extra/rsa_print.c
   src/crypto/siphash/siphash.c
+  src/crypto/spx/address.c
+  src/crypto/spx/fors.c
+  src/crypto/spx/merkle.c
+  src/crypto/spx/spx.c
+  src/crypto/spx/spx_util.c
+  src/crypto/spx/thash.c
+  src/crypto/spx/wots.c
   src/crypto/stack/stack.c
   src/crypto/thread.c
   src/crypto/thread_none.c
@@ -439,6 +437,29 @@ add_library(
   src/crypto/x509/t_req.c
   src/crypto/x509/t_x509.c
   src/crypto/x509/t_x509a.c
+  src/crypto/x509/v3_akey.c
+  src/crypto/x509/v3_akeya.c
+  src/crypto/x509/v3_alt.c
+  src/crypto/x509/v3_bcons.c
+  src/crypto/x509/v3_bitst.c
+  src/crypto/x509/v3_conf.c
+  src/crypto/x509/v3_cpols.c
+  src/crypto/x509/v3_crld.c
+  src/crypto/x509/v3_enum.c
+  src/crypto/x509/v3_extku.c
+  src/crypto/x509/v3_genn.c
+  src/crypto/x509/v3_ia5.c
+  src/crypto/x509/v3_info.c
+  src/crypto/x509/v3_int.c
+  src/crypto/x509/v3_lib.c
+  src/crypto/x509/v3_ncons.c
+  src/crypto/x509/v3_ocsp.c
+  src/crypto/x509/v3_pcons.c
+  src/crypto/x509/v3_pmaps.c
+  src/crypto/x509/v3_prn.c
+  src/crypto/x509/v3_purp.c
+  src/crypto/x509/v3_skey.c
+  src/crypto/x509/v3_utl.c
   src/crypto/x509/x509.c
   src/crypto/x509/x509_att.c
   src/crypto/x509/x509_cmp.c
@@ -463,9 +484,7 @@ add_library(
   src/crypto/x509/x_attrib.c
   src/crypto/x509/x_crl.c
   src/crypto/x509/x_exten.c
-  src/crypto/x509/x_info.c
   src/crypto/x509/x_name.c
-  src/crypto/x509/x_pkey.c
   src/crypto/x509/x_pubkey.c
   src/crypto/x509/x_req.c
   src/crypto/x509/x_sig.c
@@ -473,29 +492,6 @@ add_library(
   src/crypto/x509/x_val.c
   src/crypto/x509/x_x509.c
   src/crypto/x509/x_x509a.c
-  src/crypto/x509v3/v3_akey.c
-  src/crypto/x509v3/v3_akeya.c
-  src/crypto/x509v3/v3_alt.c
-  src/crypto/x509v3/v3_bcons.c
-  src/crypto/x509v3/v3_bitst.c
-  src/crypto/x509v3/v3_conf.c
-  src/crypto/x509v3/v3_cpols.c
-  src/crypto/x509v3/v3_crld.c
-  src/crypto/x509v3/v3_enum.c
-  src/crypto/x509v3/v3_extku.c
-  src/crypto/x509v3/v3_genn.c
-  src/crypto/x509v3/v3_ia5.c
-  src/crypto/x509v3/v3_info.c
-  src/crypto/x509v3/v3_int.c
-  src/crypto/x509v3/v3_lib.c
-  src/crypto/x509v3/v3_ncons.c
-  src/crypto/x509v3/v3_ocsp.c
-  src/crypto/x509v3/v3_pcons.c
-  src/crypto/x509v3/v3_pmaps.c
-  src/crypto/x509v3/v3_prn.c
-  src/crypto/x509v3/v3_purp.c
-  src/crypto/x509v3/v3_skey.c
-  src/crypto/x509v3/v3_utl.c
 )
 
 target_include_directories(crypto PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/include>)
@@ -568,7 +564,7 @@ add_executable(
 
 target_link_libraries(bssl ssl crypto)
 
-if(NOT ANDROID)
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Android")
   find_package(Threads REQUIRED)
   target_link_libraries(crypto Threads::Threads)
 endif()
