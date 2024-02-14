@@ -105,14 +105,16 @@ auto ChaoticGoodConnector::DataEndpointReadSettingsFrame(
 
 auto ChaoticGoodConnector::DataEndpointWriteSettingsFrame(
     RefCountedPtr<ChaoticGoodConnector> self) {
-  // Serialize setting frame.
-  SettingsFrame frame;
-  // frame.header set connectiion_type: control
-  frame.headers = SettingsMetadata{SettingsMetadata::ConnectionType::kData,
-                                   self->connection_id_, kDataAlignmentBytes}
-                      .ToMetadataBatch(GetContext<Arena>());
-  auto write_buffer = frame.Serialize(&self->hpack_compressor_);
-  return self->data_endpoint_.Write(std::move(write_buffer.control));
+  return [self]() {
+    // Serialize setting frame.
+    SettingsFrame frame;
+    // frame.header set connectiion_type: control
+    frame.headers = SettingsMetadata{SettingsMetadata::ConnectionType::kData,
+                                     self->connection_id_, kDataAlignmentBytes}
+                        .ToMetadataBatch(GetContext<Arena>());
+    auto write_buffer = frame.Serialize(&self->hpack_compressor_);
+    return self->data_endpoint_.Write(std::move(write_buffer.control));
+  };
 }
 
 auto ChaoticGoodConnector::WaitForDataEndpointSetup(
@@ -198,14 +200,16 @@ auto ChaoticGoodConnector::ControlEndpointReadSettingsFrame(
 
 auto ChaoticGoodConnector::ControlEndpointWriteSettingsFrame(
     RefCountedPtr<ChaoticGoodConnector> self) {
-  // Serialize setting frame.
-  SettingsFrame frame;
-  // frame.header set connectiion_type: control
-  frame.headers = SettingsMetadata{SettingsMetadata::ConnectionType::kControl,
-                                   absl::nullopt, absl::nullopt}
-                      .ToMetadataBatch(GetContext<Arena>());
-  auto write_buffer = frame.Serialize(&self->hpack_compressor_);
-  return self->control_endpoint_.Write(std::move(write_buffer.control));
+  return [self]() {
+    // Serialize setting frame.
+    SettingsFrame frame;
+    // frame.header set connectiion_type: control
+    frame.headers = SettingsMetadata{SettingsMetadata::ConnectionType::kControl,
+                                     absl::nullopt, absl::nullopt}
+                        .ToMetadataBatch(GetContext<Arena>());
+    auto write_buffer = frame.Serialize(&self->hpack_compressor_);
+    return self->control_endpoint_.Write(std::move(write_buffer.control));
+  };
 }
 
 void ChaoticGoodConnector::Connect(const Args& args, Result* result,

@@ -17,7 +17,6 @@
 """Dictionary of tags to experiments so we know when to test different experiments."""
 
 EXPERIMENT_ENABLES = {
-    "absl_base64": "absl_base64",
     "call_status_override_on_cancellation": "call_status_override_on_cancellation",
     "call_v3": "call_v3",
     "canary_client_privacy": "canary_client_privacy",
@@ -124,9 +123,6 @@ EXPERIMENTS = {
                 "round_robin_delegate_to_pick_first",
                 "wrr_delegate_to_pick_first",
             ],
-            "credential_token_tests": [
-                "absl_base64",
-            ],
             "event_engine_listener_test": [
                 "event_engine_listener",
             ],
@@ -203,9 +199,6 @@ EXPERIMENTS = {
                 "round_robin_delegate_to_pick_first",
                 "wrr_delegate_to_pick_first",
             ],
-            "credential_token_tests": [
-                "absl_base64",
-            ],
             "flow_control_test": [
                 "write_size_cap",
                 "write_size_policy",
@@ -239,7 +232,6 @@ EXPERIMENTS = {
                 "v3_compression_filter",
             ],
             "core_end2end_test": [
-                "chaotic_good",
                 "event_engine_client",
                 "promise_based_client_call",
                 "promise_based_server_call",
@@ -292,9 +284,6 @@ EXPERIMENTS = {
                 "pick_first_happy_eyeballs",
                 "round_robin_delegate_to_pick_first",
                 "wrr_delegate_to_pick_first",
-            ],
-            "credential_token_tests": [
-                "absl_base64",
             ],
             "event_engine_listener_test": [
                 "event_engine_listener",
