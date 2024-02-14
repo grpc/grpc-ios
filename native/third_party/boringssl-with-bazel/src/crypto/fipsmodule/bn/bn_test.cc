@@ -1158,8 +1158,8 @@ TEST_F(BNTest, LittleEndian) {
   ASSERT_TRUE(BN_bn2le_padded(out, sizeof(out), x.get()));
   EXPECT_EQ(Bytes(zeros), Bytes(out));
 
-  ASSERT_TRUE(BN_le2bn(out, sizeof(out), y.get()));
-  EXPECT_BIGNUMS_EQUAL("BN_le2bn round-trip", x.get(), y.get());
+  ASSERT_TRUE(BN_lebin2bn(out, sizeof(out), y.get()));
+  EXPECT_BIGNUMS_EQUAL("BN_lebin2bn round-trip", x.get(), y.get());
 
   // Test random numbers at various byte lengths.
   for (size_t bytes = 128 - 7; bytes <= 128; bytes++) {
@@ -1182,8 +1182,8 @@ TEST_F(BNTest, LittleEndian) {
     EXPECT_EQ(Bytes(out), Bytes(expected));
 
     // Make sure the decoding produces the same BIGNUM.
-    ASSERT_TRUE(BN_le2bn(out, bytes, y.get()));
-    EXPECT_BIGNUMS_EQUAL("BN_le2bn round-trip", x.get(), y.get());
+    ASSERT_TRUE(BN_lebin2bn(out, bytes, y.get()));
+    EXPECT_BIGNUMS_EQUAL("BN_lebin2bn round-trip", x.get(), y.get());
   }
 }
 
@@ -2881,10 +2881,44 @@ TEST_F(BNTest, BNMulMontABI) {
     a[0] = 1;
     b[0] = 42;
 
+#if defined(OPENSSL_X86_64)
+    if (bn_mulx4x_mont_capable(words)) {
+      CHECK_ABI(bn_mulx4x_mont, r.data(), a.data(), b.data(), mont->N.d,
+                mont->n0, words);
+      CHECK_ABI(bn_mulx4x_mont, r.data(), a.data(), a.data(), mont->N.d,
+                mont->n0, words);
+    }
+    if (bn_mul4x_mont_capable(words)) {
+      CHECK_ABI(bn_mul4x_mont, r.data(), a.data(), b.data(), mont->N.d,
+                mont->n0, words);
+      CHECK_ABI(bn_mul4x_mont, r.data(), a.data(), a.data(), mont->N.d,
+                mont->n0, words);
+    }
+    CHECK_ABI(bn_mul_mont_nohw, r.data(), a.data(), b.data(), mont->N.d,
+              mont->n0, words);
+    CHECK_ABI(bn_mul_mont_nohw, r.data(), a.data(), a.data(), mont->N.d,
+              mont->n0, words);
+    if (bn_sqr8x_mont_capable(words)) {
+      CHECK_ABI(bn_sqr8x_mont, r.data(), a.data(), bn_mulx_adx_capable(),
+                mont->N.d, mont->n0, words);
+    }
+#elif defined(OPENSSL_ARM)
+    if (bn_mul8x_mont_neon_capable(words)) {
+      CHECK_ABI(bn_mul8x_mont_neon, r.data(), a.data(), b.data(), mont->N.d,
+                mont->n0, words);
+      CHECK_ABI(bn_mul8x_mont_neon, r.data(), a.data(), a.data(), mont->N.d,
+                mont->n0, words);
+    }
+    CHECK_ABI(bn_mul_mont_nohw, r.data(), a.data(), b.data(), mont->N.d,
+              mont->n0, words);
+    CHECK_ABI(bn_mul_mont_nohw, r.data(), a.data(), a.data(), mont->N.d,
+              mont->n0, words);
+#else
     CHECK_ABI(bn_mul_mont, r.data(), a.data(), b.data(), mont->N.d, mont->n0,
               words);
     CHECK_ABI(bn_mul_mont, r.data(), a.data(), a.data(), mont->N.d, mont->n0,
               words);
+#endif
   }
 }
 #endif   // OPENSSL_BN_ASM_MONT && SUPPORTS_ABI_TEST

@@ -1,16 +1,20 @@
 # Building BoringSSL
 
+## Checking out BoringSSL
+
+    git clone "https://boringssl.googlesource.com/boringssl"
+
 ## Build Prerequisites
 
 The standalone CMake build is primarily intended for developers. If embedding
 BoringSSL into another project with a pre-existing build system, see
-[INCORPORATING.md](/INCORPORATING.md).
+[INCORPORATING.md](./INCORPORATING.md).
 
 Unless otherwise noted, build tools must at most five years old, matching
 [Abseil guidelines](https://abseil.io/about/compatibility). If in doubt, use the
 most recent stable version of each tool.
 
-  * [CMake](https://cmake.org/download/) 3.10 or later is required.
+  * [CMake](https://cmake.org/download/) 3.12 or later is required.
 
   * A recent version of Perl is required. On Windows,
     [Active State Perl](http://www.activestate.com/activeperl/) has been
@@ -30,11 +34,11 @@ most recent stable version of each tool.
     by CMake, it may be configured explicitly by setting
     `CMAKE_ASM_NASM_COMPILER`.
 
-  * C and C++ compilers with C++14 support are required. If using a C compiler
-    other than MSVC, C11 support is also requried. On Windows, MSVC from
-    Visual Studio 2019 or later with Windows 10 SDK 2104 or later are supported,
-    but using the latest versions is recommended. Recent versions of GCC (6.1+)
-    and Clang should work on non-Windows platforms, and maybe on Windows too.
+  * Compilers for C11 and C++14, or later, are required. On Windows, MSVC from
+    Visual Studio 2019 or later with Windows 10 SDK 2104 or later are
+    supported, but using the latest versions is recommended. Recent versions of
+    GCC (6.1+) and Clang should work on non-Windows platforms, and maybe on
+    Windows too.
 
   * The most recent stable version of [Go](https://golang.org/dl/) is required.
     Note Go is exempt from the five year support window. If not found by CMake,
@@ -56,13 +60,12 @@ Using Make (does not work on Windows):
     cmake -B build
     make -C build
 
-You usually don't need to run `cmake` again after changing `CMakeLists.txt`
-files because the build scripts will detect changes to them and rebuild
-themselves automatically.
+This produces a debug build by default. Optimisation isn't enabled, and debug
+assertions are included. Pass `-DCMAKE_BUILD_TYPE=Release` to `cmake` to
+configure a release build:
 
-Note that the default build flags in the top-level `CMakeLists.txt` are for
-debugging—optimisation isn't enabled. Pass `-DCMAKE_BUILD_TYPE=Release` to
-`cmake` to configure a release build.
+    cmake -GNinja -B build -DCMAKE_BUILD_TYPE=Release
+    ninja -C build
 
 If you want to cross-compile then there is an example toolchain file for 32-bit
 Intel in `util/`. Wipe out the build directory, run `cmake` like this:
@@ -80,6 +83,10 @@ remove some code that is especially large.
 
 See [CMake's documentation](https://cmake.org/cmake/help/v3.4/manual/cmake-variables.7.html)
 for other variables which may be used to configure the build.
+
+You usually don't need to run `cmake` again after changing `CMakeLists.txt`
+files because the build scripts will detect changes to them and rebuild
+themselves automatically.
 
 ### Building for Android
 

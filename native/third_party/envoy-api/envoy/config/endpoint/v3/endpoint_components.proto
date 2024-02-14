@@ -88,8 +88,8 @@ message Endpoint {
   // :ref:`auto_host_rewrite <envoy_v3_api_field_config.route.v3.RouteAction.auto_host_rewrite>`.
   string hostname = 3;
 
-  // An ordered list of addresses that together with `address` comprise the
-  // list of addresses for an endpoint. The address given in the `address` is
+  // An ordered list of addresses that together with ``address`` comprise the
+  // list of addresses for an endpoint. The address given in the ``address`` is
   // prepended to this list. It is assumed that the list must already be
   // sorted by preference order of the addresses. This will only be supported
   // for STATIC and EDS clusters.
@@ -194,9 +194,9 @@ message LocalityLbEndpoints {
   // default to the highest priority (0).
   //
   // Under usual circumstances, Envoy will only select endpoints for the highest
-  // priority (0). In the event all endpoints for a particular priority are
+  // priority (0). In the event that enough endpoints for a particular priority are
   // unavailable/unhealthy, Envoy will fail over to selecting endpoints for the
-  // next highest priority group.
+  // next highest priority group. Read more at :ref:`priority levels <arch_overview_load_balancing_priority_levels>`.
   //
   // Priorities should range from 0 (highest) to N (lowest) without skipping.
   uint32 priority = 5 [(validate.rules).uint32 = {lte: 128}];

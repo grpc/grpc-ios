@@ -12,8 +12,7 @@ macro(fuzzer name)
     ${name}
     PROPERTIES
     CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED YES
-    COMPILE_FLAGS "-D_BORINGSSL_LIBPKI_")
+    CXX_STANDARD_REQUIRED YES)
 endmacro()
 
 fuzzer(arm_cpuinfo)
@@ -36,6 +35,7 @@ fuzzer(ocsp_parse_ocsp_response_fuzzer pki)
 fuzzer(ocsp_parse_ocsp_single_response_fuzzer pki)
 fuzzer(parse_authority_key_identifier_fuzzer pki)
 fuzzer(parse_certificate_fuzzer pki)
+fuzzer(parse_crldp_fuzzer pki)
 fuzzer(pkcs12)
 fuzzer(pkcs8)
 fuzzer(privkey)

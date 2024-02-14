@@ -24,11 +24,15 @@
 
 #if defined(GRPC_CFSTREAM)
 namespace {
+const char* const description_absl_base64 = "Use abseil base64 functions.";
+const char* const additional_constraints_absl_base64 = "{}";
 const char* const description_call_status_override_on_cancellation =
     "Avoid overriding call status of successfully finished calls if it races "
     "with cancellation.";
 const char* const additional_constraints_call_status_override_on_cancellation =
     "{}";
+const char* const description_call_v3 = "Promise-based call version 3.";
+const char* const additional_constraints_call_v3 = "{}";
 const char* const description_canary_client_privacy =
     "If set, canary client privacy";
 const char* const additional_constraints_canary_client_privacy = "{}";
@@ -86,10 +90,20 @@ const char* const description_promise_based_client_call =
     "If set, use the new gRPC promise based call code when it's appropriate "
     "(ie when all filters in a stack are promise based)";
 const char* const additional_constraints_promise_based_client_call = "{}";
+const uint8_t required_experiments_promise_based_client_call[] = {
+    static_cast<uint8_t>(grpc_core::kExperimentIdEventEngineClient),
+    static_cast<uint8_t>(grpc_core::kExperimentIdEventEngineListener)};
 const char* const description_promise_based_server_call =
     "If set, use the new gRPC promise based call code when it's appropriate "
     "(ie when all filters in a stack are promise based)";
 const char* const additional_constraints_promise_based_server_call = "{}";
+const char* const description_chaotic_good =
+    "If set, enable the chaotic good load transport (this is mostly here for "
+    "testing)";
+const char* const additional_constraints_chaotic_good = "{}";
+const uint8_t required_experiments_chaotic_good[] = {
+    static_cast<uint8_t>(grpc_core::kExperimentIdPromiseBasedClientCall),
+    static_cast<uint8_t>(grpc_core::kExperimentIdPromiseBasedServerCall)};
 const char* const description_registered_method_lookup_in_transport =
     "Change registered method's lookup point to transport";
 const char* const additional_constraints_registered_method_lookup_in_transport =
@@ -102,9 +116,6 @@ const uint8_t required_experiments_promise_based_inproc_transport[] = {
     static_cast<uint8_t>(grpc_core::kExperimentIdPromiseBasedServerCall),
     static_cast<uint8_t>(
         grpc_core::kExperimentIdRegisteredMethodLookupInTransport)};
-const char* const description_registered_methods_map =
-    "Use absl::flat_hash_map for registered methods.";
-const char* const additional_constraints_registered_methods_map = "{}";
 const char* const description_rfc_max_concurrent_streams =
     "If set, enable rfc-compliant behavior (cancellation) in the advent that "
     "max concurrent streams are exceeded in chttp2. See "
@@ -184,10 +195,14 @@ const bool kDefaultForDebugOnly = true;
 namespace grpc_core {
 
 const ExperimentMetadata g_experiment_metadata[] = {
+    {"absl_base64", description_absl_base64, additional_constraints_absl_base64,
+     nullptr, 0, true, true},
     {"call_status_override_on_cancellation",
      description_call_status_override_on_cancellation,
      additional_constraints_call_status_override_on_cancellation, nullptr, 0,
      kDefaultForDebugOnly, true},
+    {"call_v3", description_call_v3, additional_constraints_call_v3, nullptr, 0,
+     false, true},
     {"canary_client_privacy", description_canary_client_privacy,
      additional_constraints_canary_client_privacy, nullptr, 0, false, false},
     {"client_idleness", description_client_idleness,
@@ -219,9 +234,13 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"pick_first_happy_eyeballs", description_pick_first_happy_eyeballs,
      additional_constraints_pick_first_happy_eyeballs, nullptr, 0, true, true},
     {"promise_based_client_call", description_promise_based_client_call,
-     additional_constraints_promise_based_client_call, nullptr, 0, false, true},
+     additional_constraints_promise_based_client_call,
+     required_experiments_promise_based_client_call, 2, false, true},
     {"promise_based_server_call", description_promise_based_server_call,
      additional_constraints_promise_based_server_call, nullptr, 0, false, true},
+    {"chaotic_good", description_chaotic_good,
+     additional_constraints_chaotic_good, required_experiments_chaotic_good, 2,
+     false, true},
     {"registered_method_lookup_in_transport",
      description_registered_method_lookup_in_transport,
      additional_constraints_registered_method_lookup_in_transport, nullptr, 0,
@@ -230,8 +249,6 @@ const ExperimentMetadata g_experiment_metadata[] = {
      description_promise_based_inproc_transport,
      additional_constraints_promise_based_inproc_transport,
      required_experiments_promise_based_inproc_transport, 3, false, false},
-    {"registered_methods_map", description_registered_methods_map,
-     additional_constraints_registered_methods_map, nullptr, 0, false, true},
     {"rfc_max_concurrent_streams", description_rfc_max_concurrent_streams,
      additional_constraints_rfc_max_concurrent_streams, nullptr, 0, false,
      true},
@@ -284,11 +301,15 @@ const ExperimentMetadata g_experiment_metadata[] = {
 
 #elif defined(GPR_WINDOWS)
 namespace {
+const char* const description_absl_base64 = "Use abseil base64 functions.";
+const char* const additional_constraints_absl_base64 = "{}";
 const char* const description_call_status_override_on_cancellation =
     "Avoid overriding call status of successfully finished calls if it races "
     "with cancellation.";
 const char* const additional_constraints_call_status_override_on_cancellation =
     "{}";
+const char* const description_call_v3 = "Promise-based call version 3.";
+const char* const additional_constraints_call_v3 = "{}";
 const char* const description_canary_client_privacy =
     "If set, canary client privacy";
 const char* const additional_constraints_canary_client_privacy = "{}";
@@ -346,10 +367,20 @@ const char* const description_promise_based_client_call =
     "If set, use the new gRPC promise based call code when it's appropriate "
     "(ie when all filters in a stack are promise based)";
 const char* const additional_constraints_promise_based_client_call = "{}";
+const uint8_t required_experiments_promise_based_client_call[] = {
+    static_cast<uint8_t>(grpc_core::kExperimentIdEventEngineClient),
+    static_cast<uint8_t>(grpc_core::kExperimentIdEventEngineListener)};
 const char* const description_promise_based_server_call =
     "If set, use the new gRPC promise based call code when it's appropriate "
     "(ie when all filters in a stack are promise based)";
 const char* const additional_constraints_promise_based_server_call = "{}";
+const char* const description_chaotic_good =
+    "If set, enable the chaotic good load transport (this is mostly here for "
+    "testing)";
+const char* const additional_constraints_chaotic_good = "{}";
+const uint8_t required_experiments_chaotic_good[] = {
+    static_cast<uint8_t>(grpc_core::kExperimentIdPromiseBasedClientCall),
+    static_cast<uint8_t>(grpc_core::kExperimentIdPromiseBasedServerCall)};
 const char* const description_registered_method_lookup_in_transport =
     "Change registered method's lookup point to transport";
 const char* const additional_constraints_registered_method_lookup_in_transport =
@@ -362,9 +393,6 @@ const uint8_t required_experiments_promise_based_inproc_transport[] = {
     static_cast<uint8_t>(grpc_core::kExperimentIdPromiseBasedServerCall),
     static_cast<uint8_t>(
         grpc_core::kExperimentIdRegisteredMethodLookupInTransport)};
-const char* const description_registered_methods_map =
-    "Use absl::flat_hash_map for registered methods.";
-const char* const additional_constraints_registered_methods_map = "{}";
 const char* const description_rfc_max_concurrent_streams =
     "If set, enable rfc-compliant behavior (cancellation) in the advent that "
     "max concurrent streams are exceeded in chttp2. See "
@@ -444,10 +472,14 @@ const bool kDefaultForDebugOnly = true;
 namespace grpc_core {
 
 const ExperimentMetadata g_experiment_metadata[] = {
+    {"absl_base64", description_absl_base64, additional_constraints_absl_base64,
+     nullptr, 0, true, true},
     {"call_status_override_on_cancellation",
      description_call_status_override_on_cancellation,
      additional_constraints_call_status_override_on_cancellation, nullptr, 0,
      kDefaultForDebugOnly, true},
+    {"call_v3", description_call_v3, additional_constraints_call_v3, nullptr, 0,
+     false, true},
     {"canary_client_privacy", description_canary_client_privacy,
      additional_constraints_canary_client_privacy, nullptr, 0, false, false},
     {"client_idleness", description_client_idleness,
@@ -479,9 +511,13 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"pick_first_happy_eyeballs", description_pick_first_happy_eyeballs,
      additional_constraints_pick_first_happy_eyeballs, nullptr, 0, true, true},
     {"promise_based_client_call", description_promise_based_client_call,
-     additional_constraints_promise_based_client_call, nullptr, 0, false, true},
+     additional_constraints_promise_based_client_call,
+     required_experiments_promise_based_client_call, 2, false, true},
     {"promise_based_server_call", description_promise_based_server_call,
      additional_constraints_promise_based_server_call, nullptr, 0, false, true},
+    {"chaotic_good", description_chaotic_good,
+     additional_constraints_chaotic_good, required_experiments_chaotic_good, 2,
+     false, true},
     {"registered_method_lookup_in_transport",
      description_registered_method_lookup_in_transport,
      additional_constraints_registered_method_lookup_in_transport, nullptr, 0,
@@ -490,8 +526,6 @@ const ExperimentMetadata g_experiment_metadata[] = {
      description_promise_based_inproc_transport,
      additional_constraints_promise_based_inproc_transport,
      required_experiments_promise_based_inproc_transport, 3, false, false},
-    {"registered_methods_map", description_registered_methods_map,
-     additional_constraints_registered_methods_map, nullptr, 0, false, true},
     {"rfc_max_concurrent_streams", description_rfc_max_concurrent_streams,
      additional_constraints_rfc_max_concurrent_streams, nullptr, 0, false,
      true},
@@ -544,11 +578,15 @@ const ExperimentMetadata g_experiment_metadata[] = {
 
 #else
 namespace {
+const char* const description_absl_base64 = "Use abseil base64 functions.";
+const char* const additional_constraints_absl_base64 = "{}";
 const char* const description_call_status_override_on_cancellation =
     "Avoid overriding call status of successfully finished calls if it races "
     "with cancellation.";
 const char* const additional_constraints_call_status_override_on_cancellation =
     "{}";
+const char* const description_call_v3 = "Promise-based call version 3.";
+const char* const additional_constraints_call_v3 = "{}";
 const char* const description_canary_client_privacy =
     "If set, canary client privacy";
 const char* const additional_constraints_canary_client_privacy = "{}";
@@ -606,10 +644,20 @@ const char* const description_promise_based_client_call =
     "If set, use the new gRPC promise based call code when it's appropriate "
     "(ie when all filters in a stack are promise based)";
 const char* const additional_constraints_promise_based_client_call = "{}";
+const uint8_t required_experiments_promise_based_client_call[] = {
+    static_cast<uint8_t>(grpc_core::kExperimentIdEventEngineClient),
+    static_cast<uint8_t>(grpc_core::kExperimentIdEventEngineListener)};
 const char* const description_promise_based_server_call =
     "If set, use the new gRPC promise based call code when it's appropriate "
     "(ie when all filters in a stack are promise based)";
 const char* const additional_constraints_promise_based_server_call = "{}";
+const char* const description_chaotic_good =
+    "If set, enable the chaotic good load transport (this is mostly here for "
+    "testing)";
+const char* const additional_constraints_chaotic_good = "{}";
+const uint8_t required_experiments_chaotic_good[] = {
+    static_cast<uint8_t>(grpc_core::kExperimentIdPromiseBasedClientCall),
+    static_cast<uint8_t>(grpc_core::kExperimentIdPromiseBasedServerCall)};
 const char* const description_registered_method_lookup_in_transport =
     "Change registered method's lookup point to transport";
 const char* const additional_constraints_registered_method_lookup_in_transport =
@@ -622,9 +670,6 @@ const uint8_t required_experiments_promise_based_inproc_transport[] = {
     static_cast<uint8_t>(grpc_core::kExperimentIdPromiseBasedServerCall),
     static_cast<uint8_t>(
         grpc_core::kExperimentIdRegisteredMethodLookupInTransport)};
-const char* const description_registered_methods_map =
-    "Use absl::flat_hash_map for registered methods.";
-const char* const additional_constraints_registered_methods_map = "{}";
 const char* const description_rfc_max_concurrent_streams =
     "If set, enable rfc-compliant behavior (cancellation) in the advent that "
     "max concurrent streams are exceeded in chttp2. See "
@@ -704,10 +749,14 @@ const bool kDefaultForDebugOnly = true;
 namespace grpc_core {
 
 const ExperimentMetadata g_experiment_metadata[] = {
+    {"absl_base64", description_absl_base64, additional_constraints_absl_base64,
+     nullptr, 0, true, true},
     {"call_status_override_on_cancellation",
      description_call_status_override_on_cancellation,
      additional_constraints_call_status_override_on_cancellation, nullptr, 0,
      kDefaultForDebugOnly, true},
+    {"call_v3", description_call_v3, additional_constraints_call_v3, nullptr, 0,
+     false, true},
     {"canary_client_privacy", description_canary_client_privacy,
      additional_constraints_canary_client_privacy, nullptr, 0, false, false},
     {"client_idleness", description_client_idleness,
@@ -739,9 +788,13 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"pick_first_happy_eyeballs", description_pick_first_happy_eyeballs,
      additional_constraints_pick_first_happy_eyeballs, nullptr, 0, true, true},
     {"promise_based_client_call", description_promise_based_client_call,
-     additional_constraints_promise_based_client_call, nullptr, 0, false, true},
+     additional_constraints_promise_based_client_call,
+     required_experiments_promise_based_client_call, 2, false, true},
     {"promise_based_server_call", description_promise_based_server_call,
      additional_constraints_promise_based_server_call, nullptr, 0, false, true},
+    {"chaotic_good", description_chaotic_good,
+     additional_constraints_chaotic_good, required_experiments_chaotic_good, 2,
+     false, true},
     {"registered_method_lookup_in_transport",
      description_registered_method_lookup_in_transport,
      additional_constraints_registered_method_lookup_in_transport, nullptr, 0,
@@ -750,8 +803,6 @@ const ExperimentMetadata g_experiment_metadata[] = {
      description_promise_based_inproc_transport,
      additional_constraints_promise_based_inproc_transport,
      required_experiments_promise_based_inproc_transport, 3, false, false},
-    {"registered_methods_map", description_registered_methods_map,
-     additional_constraints_registered_methods_map, nullptr, 0, false, true},
     {"rfc_max_concurrent_streams", description_rfc_max_concurrent_streams,
      additional_constraints_rfc_max_concurrent_streams, nullptr, 0, false,
      true},

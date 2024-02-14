@@ -5,12 +5,12 @@
 #ifndef BSSL_PKI_TRUST_STORE_H_
 #define BSSL_PKI_TRUST_STORE_H_
 
-#include "fillins/openssl_util.h"
+#include <optional>
 
+#include <openssl/base.h>
 
 #include "cert_issuer_source.h"
 #include "parsed_certificate.h"
-#include <optional>
 
 namespace bssl {
 
@@ -101,7 +101,7 @@ struct OPENSSL_EXPORT CertificateTrust {
   std::string ToDebugString() const;
 
   static std::optional<CertificateTrust> FromDebugString(
-      const std::string& trust_string);
+      const std::string &trust_string);
 
   // The overall type of trust.
   CertificateTrustType type = CertificateTrustType::UNSPECIFIED;
@@ -128,25 +128,17 @@ class OPENSSL_EXPORT TrustStore : public CertIssuerSource {
  public:
   TrustStore();
 
-  TrustStore(const TrustStore&) = delete;
-  TrustStore& operator=(const TrustStore&) = delete;
+  TrustStore(const TrustStore &) = delete;
+  TrustStore &operator=(const TrustStore &) = delete;
 
   // Returns the trusted of |cert|, which must be non-null.
-  //
-  // Optionally, if |debug_data| is non-null, debug information may be added
-  // (any added Data must implement the Clone method.) The same |debug_data|
-  // object may be passed to multiple GetTrust calls for a single verification,
-  // so implementations should check whether they already added data with a
-  // certain key and update it instead of overwriting it.
-  virtual CertificateTrust GetTrust(const ParsedCertificate* cert,
-                                    void* debug_data) = 0;
+  virtual CertificateTrust GetTrust(const ParsedCertificate *cert) = 0;
 
   // Disable async issuers for TrustStore, as it isn't needed.
-  // TODO(mattm): Pass debug_data here too.
-  void AsyncGetIssuersOf(const ParsedCertificate* cert,
-                         std::unique_ptr<Request>* out_req) final;
+  void AsyncGetIssuersOf(const ParsedCertificate *cert,
+                         std::unique_ptr<Request> *out_req) final;
 };
 
-}  // namespace net
+}  // namespace bssl
 
 #endif  // BSSL_PKI_TRUST_STORE_H_
