@@ -108,13 +108,13 @@ class ErrorCollectorImpl : public MultiFileErrorCollector {
       : errors_(errors), warnings_(warnings) {}
 
   void RecordError(absl::string_view filename, int line, int column,
-                   absl::string_view message) override {
+                   absl::string_view message) {
     errors_->emplace_back(std::string(filename), line, column,
                           std::string(message));
   }
 
   void RecordWarning(absl::string_view filename, int line, int column,
-                     absl::string_view message) override {
+                     absl::string_view message) {
     warnings_->emplace_back(std::string(filename), line, column,
                             std::string(message));
   }

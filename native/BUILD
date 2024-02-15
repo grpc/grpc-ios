@@ -215,7 +215,7 @@ g_stands_for = "guardian"  # @unused
 
 core_version = "39.0.0"  # @unused
 
-version = "1.62.0-dev"  # @unused
+version = "1.62.0-pre1"  # @unused
 
 GPR_PUBLIC_HDRS = [
     "include/grpc/support/alloc.h",
@@ -3384,7 +3384,6 @@ grpc_cc_library(
         "//src/core:arena_promise",
         "//src/core:closure",
         "//src/core:error",
-        "//src/core:experiments",
         "//src/core:gpr_manual_constructor",
         "//src/core:httpcli_ssl_credentials",
         "//src/core:iomgr_fwd",

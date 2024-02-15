@@ -55,6 +55,8 @@ static void channel_idle_start_watch(grpc_channel* channel,
   grpc_channel_watch_connectivity_state(channel, GRPC_CHANNEL_IDLE,
                                         connect_deadline, cq,
                                         reinterpret_cast<void*>(next_tag++));
+  gpr_log(GPR_DEBUG, "number of active connect watchers: %d",
+          grpc_channel_num_external_connectivity_watchers(channel));
 }
 
 static void channel_idle_poll_for_timeout(grpc_channel* channel,
@@ -69,8 +71,9 @@ static void channel_idle_poll_for_timeout(grpc_channel* channel,
             GRPC_CHANNEL_IDLE);
 }
 
-// Test to make sure that "connectivity watcher" structs are free'd just
-// after, if their corresponding timeouts occur.
+// Test and use the "num_external_watchers" call to make sure
+// that "connectivity watcher" structs are free'd just after, if
+// their corresponding timeouts occur.
 static void run_timeouts_test(const test_fixture* fixture) {
   gpr_log(GPR_INFO, "TEST: %s", fixture->name);
 
@@ -84,6 +87,7 @@ static void run_timeouts_test(const test_fixture* fixture) {
   // start 1 watcher and then let it time out
   channel_idle_start_watch(channel, cq);
   channel_idle_poll_for_timeout(channel, cq);
+  ASSERT_EQ(grpc_channel_num_external_connectivity_watchers(channel), 0);
 
   // start 3 watchers and then let them all time out
   for (size_t i = 1; i <= 3; i++) {
@@ -92,6 +96,7 @@ static void run_timeouts_test(const test_fixture* fixture) {
   for (size_t i = 1; i <= 3; i++) {
     channel_idle_poll_for_timeout(channel, cq);
   }
+  ASSERT_EQ(grpc_channel_num_external_connectivity_watchers(channel), 0);
 
   // start 3 watchers, see one time out, start another 3, and then see them all
   // time out
@@ -105,6 +110,7 @@ static void run_timeouts_test(const test_fixture* fixture) {
   for (size_t i = 1; i <= 5; i++) {
     channel_idle_poll_for_timeout(channel, cq);
   }
+  ASSERT_EQ(grpc_channel_num_external_connectivity_watchers(channel), 0);
 
   grpc_channel_destroy(channel);
   grpc_completion_queue_shutdown(cq);
@@ -130,7 +136,9 @@ static void run_channel_shutdown_before_timeout_test(
   grpc_channel* channel = fixture->create_channel(addr.c_str());
   grpc_completion_queue* cq = grpc_completion_queue_create_for_next(nullptr);
 
-  // start 1 watcher and then shut down the channel before the timer goes off.
+  // start 1 watcher and then shut down the channel before the timer goes off
+  ASSERT_EQ(grpc_channel_num_external_connectivity_watchers(channel), 0);
+
   // expecting a 30 second timeout to go off much later than the shutdown.
   gpr_timespec connect_deadline = grpc_timeout_seconds_to_deadline(30);
   ASSERT_EQ(grpc_channel_check_connectivity_state(channel, 0),

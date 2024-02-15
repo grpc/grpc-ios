@@ -48,16 +48,16 @@ class ErrorPrinter : public protobuf::compiler::MultiFileErrorCollector {
  public:
   explicit ErrorPrinter(ProtoFileParser* parser) : parser_(parser) {}
 
-  void RecordError(absl::string_view filename, int line, int column,
-                   absl::string_view message) override {
+  void AddError(const std::string& filename, int line, int column,
+                const std::string& message) override {
     std::ostringstream oss;
     oss << "error " << filename << " " << line << " " << column << " "
         << message << "\n";
     parser_->LogError(oss.str());
   }
 
-  void RecordWarning(absl::string_view filename, int line, int column,
-                     absl::string_view message) override {
+  void AddWarning(const std::string& filename, int line, int column,
+                  const std::string& message) override {
     std::cerr << "warning " << filename << " " << line << " " << column << " "
               << message << std::endl;
   }
