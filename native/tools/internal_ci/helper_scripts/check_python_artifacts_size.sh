@@ -1,4 +1,5 @@
-# Copyright 2016 gRPC authors.
+#!/usr/bin/env bash
+# Copyright 2024 The gRPC Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# AUTO-GENERATED FROM `$REPO_ROOT/templates/src/python/grpcio_health_checking/grpc_version.py.template`!!!
+# Checks if any of the Python artifacts exceeds a certern size limit since
+# Pypi has a per-file size limit.
 
-VERSION = '1.61.1'
+set -ex
+
+find . -path "*/artifacts/*" -size +80M | egrep '.*' && echo "Found Python artifacts larger than 80 MB." && FAILED="true"
+
+
+if [ "$FAILED" != "" ]
+then
+  exit 1
+fi
