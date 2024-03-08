@@ -24,7 +24,7 @@ let package = Package(
 
   dependencies: [
     .package(url: "https://github.com/firebase/abseil-cpp-SwiftPM.git", "0.20230802.0"..<"0.20230803.0"),
-    .package(url: "https://github.com/firebase/boringssl-SwiftPM.git", "0.32.0"..<"0.33.0"),
+    .package(url: "https://github.com/firebase/boringssl-SwiftPM.git", "0.9.0"..<"0.10.0"),
   ],
 
   targets: [
