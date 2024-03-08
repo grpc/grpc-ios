@@ -1006,6 +1006,7 @@ let package = Package(
         "src/objective-c/examples/",
         "src/objective-c/manual_tests/",
         "src/objective-c/tests/",
+        "src/cpp/README.md",
       ],
       sources: [
         "src/cpp/",
