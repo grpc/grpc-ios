@@ -171,6 +171,16 @@ void XdsEnd2endTest::ServerThread::StopListeningAndSendGoaways() {
   gpr_log(GPR_INFO, "%s done sending GOAWAYs", Type());
 }
 
+void XdsEnd2endTest::ServerThread::StopListening() {
+  gpr_log(GPR_INFO, "%s about to stop listening", Type());
+  {
+    grpc_core::ExecCtx exec_ctx;
+    auto* server = grpc_core::Server::FromC(server_->c_server());
+    server->StopListening();
+  }
+  gpr_log(GPR_INFO, "%s stopped listening", Type());
+}
+
 void XdsEnd2endTest::ServerThread::Serve(grpc_core::Mutex* mu,
                                          grpc_core::CondVar* cond) {
   // We need to acquire the lock here in order to prevent the notify_one
@@ -351,6 +361,9 @@ void XdsEnd2endTest::RpcOptions::SetupRpc(ClientContext* context,
   if (backend_metrics.has_value()) {
     *request->mutable_param()->mutable_backend_metrics() = *backend_metrics;
   }
+  if (server_notify_client_when_started) {
+    request->mutable_param()->set_server_notify_client_when_started(true);
+  }
 }
 
 //
@@ -470,9 +483,12 @@ std::vector<int> XdsEnd2endTest::GetBackendPorts(size_t start_index,
   return backend_ports;
 }
 
-void XdsEnd2endTest::InitClient(XdsBootstrapBuilder builder,
+void XdsEnd2endTest::InitClient(absl::optional<XdsBootstrapBuilder> builder,
                                 std::string lb_expected_authority,
                                 int xds_resource_does_not_exist_timeout_ms) {
+  if (!builder.has_value()) {
+    builder = MakeBootstrapBuilder();
+  }
   if (xds_resource_does_not_exist_timeout_ms > 0) {
     xds_channel_args_to_add_.emplace_back(grpc_channel_arg_integer_create(
         const_cast<char*>(GRPC_ARG_XDS_RESOURCE_DOES_NOT_EXIST_TIMEOUT_MS),
@@ -490,10 +506,7 @@ void XdsEnd2endTest::InitClient(XdsBootstrapBuilder builder,
   }
   xds_channel_args_.num_args = xds_channel_args_to_add_.size();
   xds_channel_args_.args = xds_channel_args_to_add_.data();
-  // Initialize XdsClient state.
-  builder.SetDefaultServer(absl::StrCat("localhost:", balancer_->port()),
-                           /*ignore_if_set=*/true);
-  bootstrap_ = builder.Build();
+  bootstrap_ = builder->Build();
   if (GetParam().bootstrap_source() == XdsTestType::kBootstrapFromEnvVar) {
     grpc_core::SetEnv("GRPC_XDS_BOOTSTRAP_CONFIG", bootstrap_.c_str());
   } else if (GetParam().bootstrap_source() == XdsTestType::kBootstrapFromFile) {
@@ -513,7 +526,7 @@ void XdsEnd2endTest::InitClient(XdsBootstrapBuilder builder,
     // because it's not expecting the client to connect.  It also
     // ensures that each test can independently set the global channel
     // args for the xDS channel.
-    grpc_core::internal::UnsetGlobalXdsClientForTest();
+    grpc_core::internal::UnsetGlobalXdsClientsForTest();
   }
   // Create channel and stub.
   ResetStub();
@@ -548,7 +561,14 @@ std::shared_ptr<Channel> XdsEnd2endTest::CreateChannel(
         GRPC_ARG_TEST_ONLY_DO_NOT_USE_IN_PROD_XDS_CLIENT_CHANNEL_ARGS,
         &xds_channel_args_, &kChannelArgsArgVtable);
   }
-  std::string uri = absl::StrCat("xds://", xds_authority, "/", server_name);
+  std::vector<absl::string_view> parts = {"xds:"};
+  if (xds_authority != nullptr && xds_authority[0] != '\0') {
+    parts.emplace_back("//");
+    parts.emplace_back(xds_authority);
+    parts.emplace_back("/");
+  }
+  parts.emplace_back(server_name);
+  std::string uri = absl::StrJoin(parts, "");
   std::shared_ptr<ChannelCredentials> channel_creds =
       GetParam().use_xds_credentials()
           ? XdsCredentials(CreateTlsFallbackCredentials())

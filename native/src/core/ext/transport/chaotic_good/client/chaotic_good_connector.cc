@@ -33,8 +33,10 @@
 #include "src/core/ext/transport/chaotic_good/frame_header.h"
 #include "src/core/ext/transport/chaotic_good/settings_metadata.h"
 #include "src/core/lib/channel/channel_args.h"
+#include "src/core/lib/config/core_configuration.h"
 #include "src/core/lib/event_engine/channel_args_endpoint_config.h"
-#include "src/core/lib/event_engine/default_event_engine.h"
+#include "src/core/lib/event_engine/extensions/chaotic_good_extension.h"
+#include "src/core/lib/event_engine/query_extensions.h"
 #include "src/core/lib/event_engine/tcp_socket_utils.h"
 #include "src/core/lib/gprpp/debug_location.h"
 #include "src/core/lib/gprpp/no_destruct.h"
@@ -58,6 +60,7 @@
 #include "src/core/lib/slice/slice_buffer.h"
 #include "src/core/lib/surface/api_trace.h"
 #include "src/core/lib/surface/channel.h"
+#include "src/core/lib/surface/channel_create.h"
 #include "src/core/lib/transport/error_utils.h"
 #include "src/core/lib/transport/handshaker.h"
 #include "src/core/lib/transport/promise_endpoint.h"
@@ -67,7 +70,7 @@ namespace chaotic_good {
 using grpc_event_engine::experimental::EventEngine;
 namespace {
 const int32_t kDataAlignmentBytes = 64;
-const int32_t kTimeoutSecs = 5;
+const int32_t kTimeoutSecs = 120;
 }  // namespace
 
 ChaoticGoodConnector::ChaoticGoodConnector(
@@ -129,6 +132,14 @@ auto ChaoticGoodConnector::WaitForDataEndpointSetup(
                            GRPC_ERROR_CREATE("connect endpoint failed"));
               return;
             }
+            auto* chaotic_good_ext =
+                grpc_event_engine::experimental::QueryExtension<
+                    grpc_event_engine::experimental::ChaoticGoodExtension>(
+                    endpoint.value().get());
+            if (chaotic_good_ext != nullptr) {
+              chaotic_good_ext->EnableStatsCollection(
+                  /*is_control_channel=*/false);
+            }
             self->data_endpoint_ =
                 PromiseEndpoint(std::move(endpoint.value()), SliceBuffer());
             self->data_endpoint_ready_.Set();
@@ -139,7 +150,7 @@ auto ChaoticGoodConnector::WaitForDataEndpointSetup(
           self->args_.channel_args),
       ResourceQuota::Default()->memory_quota()->CreateMemoryAllocator(
           "data_endpoint_connection"),
-      EventEngine::Duration(kTimeoutSecs));
+      std::chrono::seconds(kTimeoutSecs));
 
   return TrySeq(Race(
       TrySeq(self->data_endpoint_ready_.Wait(),
@@ -240,6 +251,13 @@ void ChaoticGoodConnector::Connect(const Args& args, Result* result,
           return;
         }
         auto* p = self.release();
+        auto* chaotic_good_ext =
+            grpc_event_engine::experimental::QueryExtension<
+                grpc_event_engine::experimental::ChaoticGoodExtension>(
+                endpoint.value().get());
+        if (chaotic_good_ext != nullptr) {
+          chaotic_good_ext->EnableStatsCollection(/*is_control_channel=*/true);
+        }
         p->handshake_mgr_->DoHandshake(
             grpc_event_engine_endpoint_create(std::move(endpoint.value())),
             p->args_.channel_args, p->args_.deadline, nullptr /* acceptor */,
@@ -251,7 +269,7 @@ void ChaoticGoodConnector::Connect(const Args& args, Result* result,
           args_.channel_args),
       ResourceQuota::Default()->memory_quota()->CreateMemoryAllocator(
           "data_endpoint_connection"),
-      EventEngine::Duration(kTimeoutSecs));
+      std::chrono::seconds(kTimeoutSecs));
 }
 
 void ChaoticGoodConnector::OnHandshakeDone(void* arg, grpc_error_handle error) {
@@ -352,15 +370,11 @@ grpc_channel* grpc_chaotic_good_channel_create(const char* target,
   grpc_channel* channel = nullptr;
   grpc_error_handle error;
   // Create channel.
-  std::string canonical_target = grpc_core::CoreConfiguration::Get()
-                                     .resolver_registry()
-                                     .AddDefaultPrefixIfNeeded(target);
-  auto r = grpc_core::Channel::Create(
+  auto r = grpc_core::ChannelCreate(
       target,
       grpc_core::CoreConfiguration::Get()
           .channel_args_preconditioning()
           .PreconditionChannelArgs(args)
-          .Set(GRPC_ARG_SERVER_URI, canonical_target)
           .SetObject(
               grpc_core::NoDestructSingleton<
                   grpc_core::chaotic_good::ChaoticGoodChannelFactory>::Get()),

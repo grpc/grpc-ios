@@ -7,9 +7,11 @@
 #include <limits.h>
 
 #include <memory>
+#include <optional>
 
 #include <openssl/base.h>
-#include <optional>
+#include <openssl/bytestring.h>
+
 #include "cert_errors.h"
 #include "common_cert_errors.h"
 #include "general_names.h"
@@ -17,7 +19,6 @@
 #include "ip_util.h"
 #include "parser.h"
 #include "string_util.h"
-#include "tag.h"
 #include "verify_name_match.h"
 
 namespace bssl {
@@ -288,6 +289,17 @@ std::unique_ptr<NameConstraints> NameConstraints::Create(
   return name_constraints;
 }
 
+std::unique_ptr<NameConstraints> NameConstraints::CreateFromPermittedSubtrees(
+    GeneralNames permitted_subtrees) {
+  auto name_constraints = std::make_unique<NameConstraints>();
+
+  name_constraints->constrained_name_types_ =
+      permitted_subtrees.present_name_types;
+  name_constraints->permitted_subtrees_ = std::move(permitted_subtrees);
+
+  return name_constraints;
+}
+
 bool NameConstraints::Parse(der::Input extension_value, bool is_critical,
                             CertErrors *errors) {
   BSSL_CHECK(errors);
@@ -306,8 +318,9 @@ bool NameConstraints::Parse(der::Input extension_value, bool is_critical,
   }
 
   std::optional<der::Input> permitted_subtrees_value;
-  if (!sequence_parser.ReadOptionalTag(der::ContextSpecificConstructed(0),
-                                       &permitted_subtrees_value)) {
+  if (!sequence_parser.ReadOptionalTag(
+          CBS_ASN1_CONTEXT_SPECIFIC | CBS_ASN1_CONSTRUCTED | 0,
+          &permitted_subtrees_value)) {
     return false;
   }
   if (permitted_subtrees_value &&
@@ -320,8 +333,9 @@ bool NameConstraints::Parse(der::Input extension_value, bool is_critical,
       (is_critical ? GENERAL_NAME_ALL_TYPES : kSupportedNameTypes);
 
   std::optional<der::Input> excluded_subtrees_value;
-  if (!sequence_parser.ReadOptionalTag(der::ContextSpecificConstructed(1),
-                                       &excluded_subtrees_value)) {
+  if (!sequence_parser.ReadOptionalTag(
+          CBS_ASN1_CONTEXT_SPECIFIC | CBS_ASN1_CONSTRUCTED | 1,
+          &excluded_subtrees_value)) {
     return false;
   }
   if (excluded_subtrees_value &&
