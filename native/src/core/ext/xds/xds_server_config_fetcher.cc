@@ -1372,7 +1372,8 @@ grpc_server_config_fetcher* grpc_server_config_fetcher_xds_create(
       "update=%p, user_data=%p}, args=%p)",
       3, (notifier.on_serving_status_update, notifier.user_data, args));
   auto xds_client = grpc_core::GrpcXdsClient::GetOrCreate(
-      channel_args, "XdsServerConfigFetcher");
+      grpc_core::GrpcXdsClient::kServerKey, channel_args,
+      "XdsServerConfigFetcher");
   if (!xds_client.ok()) {
     gpr_log(GPR_ERROR, "Failed to create xds client: %s",
             xds_client.status().ToString().c_str());

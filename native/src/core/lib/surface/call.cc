@@ -98,7 +98,7 @@
 #include "src/core/lib/surface/call_test_only.h"
 #include "src/core/lib/surface/channel.h"
 #include "src/core/lib/surface/completion_queue.h"
-#include "src/core/lib/surface/server.h"
+#include "src/core/lib/surface/server_interface.h"
 #include "src/core/lib/surface/validate_metadata.h"
 #include "src/core/lib/surface/wait_for_cq_end_op.h"
 #include "src/core/lib/transport/batch_builder.h"
@@ -588,6 +588,12 @@ class FilterStackCall final : public Call {
   }
 
  private:
+  class ScopedContext : public promise_detail::Context<Arena> {
+   public:
+    explicit ScopedContext(FilterStackCall* call)
+        : promise_detail::Context<Arena>(call->arena()) {}
+  };
+
   static constexpr gpr_atm kRecvNone = 0;
   static constexpr gpr_atm kRecvInitialMetadataFirst = 1;
 
@@ -648,31 +654,12 @@ class FilterStackCall final : public Call {
     }
     bool completed_batch_step(PendingOp op) {
       auto mask = PendingOpMask(op);
-      // Acquire call tracer before ops_pending_.fetch_sub to avoid races with
-      // call_ being set to nullptr in PostCompletion method. Store the
-      // call_tracer_ and call_ variables locally as well because they could be
-      // modified by another thread after the fetch_sub operation.
-      CallTracerAnnotationInterface* call_tracer = call_tracer_;
-      FilterStackCall* call = call_;
-      bool is_call_trace_enabled = grpc_call_trace.enabled();
-      bool is_call_ops_annotate_enabled =
-          (IsTraceRecordCallopsEnabled() && call_tracer != nullptr);
-      if (is_call_ops_annotate_enabled) {
-        call->InternalRef("Call ops annotate");
-      }
       auto r = ops_pending_.fetch_sub(mask, std::memory_order_acq_rel);
-      if (is_call_trace_enabled || is_call_ops_annotate_enabled) {
-        std::string trace_string = absl::StrFormat(
-            "BATCH:%p COMPLETE:%s REMAINING:%s (tag:%p)", this,
-            PendingOpString(mask).c_str(), PendingOpString(r & ~mask).c_str(),
-            completion_data_.notify_tag.tag);
-        if (is_call_trace_enabled) {
-          gpr_log(GPR_DEBUG, "%s", trace_string.c_str());
-        }
-        if (is_call_ops_annotate_enabled) {
-          call_tracer->RecordAnnotation(trace_string);
-          call->InternalUnref("Call ops annotate");
-        }
+      if (grpc_call_trace.enabled()) {
+        gpr_log(GPR_DEBUG, "BATCH:%p COMPLETE:%s REMAINING:%s (tag:%p)", this,
+                PendingOpString(mask).c_str(),
+                PendingOpString(r & ~mask).c_str(),
+                completion_data_.notify_tag.tag);
       }
       GPR_ASSERT((r & mask) != 0);
       return r == mask;
@@ -776,7 +763,7 @@ class FilterStackCall final : public Call {
     struct {
       int* cancelled;
       // backpointer to owning server if this is a server side call.
-      Server* core_server;
+      ServerInterface* core_server;
     } server;
   } final_op_;
   AtomicError status_error_;
@@ -826,6 +813,7 @@ grpc_error_handle FilterStackCall::Create(grpc_call_create_args* args,
   GPR_DEBUG_ASSERT(FromCallStack(call->call_stack()) == call);
   *out_call = call->c_ptr();
   grpc_slice path = grpc_empty_slice();
+  ScopedContext ctx(call);
   if (call->is_client()) {
     call->final_op_.client.status_details = nullptr;
     call->final_op_.client.status = nullptr;
@@ -841,6 +829,8 @@ grpc_error_handle FilterStackCall::Create(grpc_call_create_args* args,
     call->send_initial_metadata_.Set(
         GrpcRegisteredMethod(), reinterpret_cast<void*>(static_cast<uintptr_t>(
                                     args->registered_method)));
+    channel_stack->stats_plugin_group->AddClientCallTracers(
+        Slice(CSliceRef(path)), args->registered_method, call->context_);
   } else {
     global_stats().IncrementServerCallsCreated();
     call->final_op_.server.cancelled = nullptr;
@@ -849,6 +839,9 @@ grpc_error_handle FilterStackCall::Create(grpc_call_create_args* args,
     // collecting from when the call is created at the transport. The idea is
     // that the transport would create the call tracer and pass it in as part of
     // the metadata.
+    // TODO(yijiem): OpenCensus and internal Census is still using this way to
+    // set server call tracer. We need to refactor them to stats plugins
+    // (including removing the client channel filters).
     if (args->server != nullptr &&
         args->server->server_call_tracer_factory() != nullptr) {
       auto* server_call_tracer =
@@ -865,6 +858,7 @@ grpc_error_handle FilterStackCall::Create(grpc_call_create_args* args,
         call->ContextSet(GRPC_CONTEXT_CALL_TRACER, server_call_tracer, nullptr);
       }
     }
+    channel_stack->stats_plugin_group->AddServerCallTracers(call->context_);
   }
 
   Call* parent = Call::FromC(args->parent);
@@ -1538,7 +1532,6 @@ grpc_call_error FilterStackCall::StartBatch(const grpc_op* ops, size_t nops,
   grpc_transport_stream_op_batch_payload* stream_op_payload;
   uint32_t seen_ops = 0;
   intptr_t pending_ops = 0;
-  CallTracerAnnotationInterface* call_tracer = nullptr;
 
   for (i = 0; i < nops; i++) {
     if (seen_ops & (1u << ops[i].op)) {
@@ -1899,15 +1892,6 @@ grpc_call_error FilterStackCall::StartBatch(const grpc_op* ops, size_t nops,
     stream_op->on_complete = &bctl->finish_batch_;
   }
 
-  call_tracer = static_cast<CallTracerAnnotationInterface*>(
-      ContextGet(GRPC_CONTEXT_CALL_TRACER_ANNOTATION_INTERFACE));
-  if ((IsTraceRecordCallopsEnabled() && call_tracer != nullptr)) {
-    call_tracer->RecordAnnotation(absl::StrFormat(
-        "BATCH:%p START:%s BATCH:%s (tag:%p)", bctl,
-        PendingOpString(pending_ops).c_str(),
-        grpc_transport_stream_op_batch_string(stream_op, true).c_str(),
-        bctl->completion_data_.notify_tag.tag));
-  }
   if (grpc_call_trace.enabled()) {
     gpr_log(GPR_DEBUG, "BATCH:%p START:%s BATCH:%s (tag:%p)", bctl,
             PendingOpString(pending_ops).c_str(),
@@ -2754,6 +2738,8 @@ class ClientPromiseBasedCall final : public PromiseBasedCall {
                  "non-nullptr.");
     }
     ScopedContext context(this);
+    args->channel->channel_stack()->stats_plugin_group->AddClientCallTracers(
+        *args->path, args->registered_method, this->context());
     send_initial_metadata_ =
         GetContext<Arena>()->MakePooled<ClientMetadata>(GetContext<Arena>());
     send_initial_metadata_->Set(HttpPathMetadata(), std::move(*args->path));
@@ -3397,7 +3383,7 @@ class ServerPromiseBasedCall final : public PromiseBasedCall,
                    const Completion& completion);
   void Finish(ServerMetadataHandle result);
 
-  Server* const server_;
+  ServerInterface* const server_;
   const void* const server_transport_data_;
   PipeSender<ServerMetadataHandle>* server_initial_metadata_ = nullptr;
   PipeSender<MessageHandle>* server_to_client_messages_ = nullptr;
@@ -3419,11 +3405,16 @@ ServerPromiseBasedCall::ServerPromiseBasedCall(Arena* arena,
   if (channelz_node != nullptr) {
     channelz_node->RecordCallStarted();
   }
+  ScopedContext activity_context(this);
   // TODO(yashykt): In the future, we want to also enable stats and trace
   // collecting from when the call is created at the transport. The idea is that
   // the transport would create the call tracer and pass it in as part of the
   // metadata.
-  if (args->server->server_call_tracer_factory() != nullptr) {
+  // TODO(yijiem): OpenCensus and internal Census is still using this way to
+  // set server call tracer. We need to refactor them to stats plugins
+  // (including removing the client channel filters).
+  if (args->server != nullptr &&
+      args->server->server_call_tracer_factory() != nullptr) {
     auto* server_call_tracer =
         args->server->server_call_tracer_factory()->CreateNewServerCallTracer(
             arena, args->server->channel_args());
@@ -3438,7 +3429,8 @@ ServerPromiseBasedCall::ServerPromiseBasedCall(Arena* arena,
       ContextSet(GRPC_CONTEXT_CALL_TRACER, server_call_tracer, nullptr);
     }
   }
-  ScopedContext activity_context(this);
+  args->channel->channel_stack()->stats_plugin_group->AddServerCallTracers(
+      context());
   Spawn("server_promise",
         channel()->channel_stack()->MakeServerCallPromise(
             CallArgs{nullptr, ClientInitialMetadataOutstandingToken::Empty(),
@@ -3713,7 +3705,7 @@ class ServerCallSpine final : public CallSpineInterface,
                               public ServerCallContext,
                               public BasicPromiseBasedCall {
  public:
-  ServerCallSpine(Server* server, Channel* channel, Arena* arena);
+  ServerCallSpine(ServerInterface* server, Channel* channel, Arena* arena);
 
   // CallSpineInterface
   Pipe<ClientMetadataHandle>& client_initial_metadata() override {
@@ -3800,7 +3792,8 @@ class ServerCallSpine final : public CallSpineInterface,
   ClientMetadataHandle client_initial_metadata_stored_;
 };
 
-ServerCallSpine::ServerCallSpine(Server* server, Channel* channel, Arena* arena)
+ServerCallSpine::ServerCallSpine(ServerInterface* server, Channel* channel,
+                                 Arena* arena)
     : BasicPromiseBasedCall(arena, 0, 1,
                             [channel, server]() -> grpc_call_create_args {
                               grpc_call_create_args args;
@@ -4148,14 +4141,15 @@ void ServerCallSpine::CommitBatch(const grpc_op* ops, size_t nops,
   }
 }
 
-RefCountedPtr<CallSpineInterface> MakeServerCall(Server* server,
+RefCountedPtr<CallSpineInterface> MakeServerCall(ServerInterface* server,
                                                  Channel* channel,
                                                  Arena* arena) {
   return RefCountedPtr<ServerCallSpine>(
       arena->New<ServerCallSpine>(server, channel, arena));
 }
 #else
-RefCountedPtr<CallSpineInterface> MakeServerCall(Server*, Channel*, Arena*) {
+RefCountedPtr<CallSpineInterface> MakeServerCall(ServerInterface*, Channel*,
+                                                 Arena*) {
   Crash("not implemented");
 }
 #endif

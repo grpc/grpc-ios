@@ -25,11 +25,11 @@
 cmake_minimum_required(VERSION 3.13)
 
 set(PACKAGE_NAME          "grpc")
-set(PACKAGE_VERSION       "1.62.0-dev")
+set(PACKAGE_VERSION       "1.63.0-dev")
 set(gRPC_CORE_VERSION     "39.0.0")
 set(gRPC_CORE_SOVERSION   "39")
-set(gRPC_CPP_VERSION      "1.62.0-dev")
-set(gRPC_CPP_SOVERSION    "1.62")
+set(gRPC_CPP_VERSION      "1.63.0-dev")
+set(gRPC_CPP_SOVERSION    "1.63")
 set(PACKAGE_STRING        "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_TARNAME       "${PACKAGE_NAME}-${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT     "https://github.com/grpc/grpc/issues/")
@@ -97,6 +97,7 @@ set(gRPC_ABSL_PROVIDER "module" CACHE STRING "Provider of absl library")
 set_property(CACHE gRPC_ABSL_PROVIDER PROPERTY STRINGS "module" "package")
 
 set(gRPC_ABSL_USED_TARGETS
+  absl_absl_vlog_is_on
   absl_algorithm
   absl_algorithm_container
   absl_any_invocable
@@ -135,6 +136,7 @@ set(gRPC_ABSL_USED_TARGETS
   absl_dynamic_annotations
   absl_endian
   absl_errno_saver
+  absl_examine_stack
   absl_exponential_biased
   absl_fast_type_id
   absl_fixed_array
@@ -163,7 +165,26 @@ set(gRPC_ABSL_USED_TARGETS
   absl_int128
   absl_kernel_timeout_internal
   absl_layout
+  absl_log
+  absl_log_entry
+  absl_log_globals
+  absl_log_internal_append_truncated
+  absl_log_internal_conditions
+  absl_log_internal_config
+  absl_log_internal_fnmatch
+  absl_log_internal_format
+  absl_log_internal_globals
+  absl_log_internal_log_impl
+  absl_log_internal_log_sink_set
+  absl_log_internal_message
+  absl_log_internal_nullguard
+  absl_log_internal_nullstream
+  absl_log_internal_proto
+  absl_log_internal_strip
+  absl_log_internal_voidify
   absl_log_severity
+  absl_log_sink
+  absl_log_sink_registry
   absl_low_level_hash
   absl_malloc_internal
   absl_memory
@@ -221,14 +242,25 @@ set(gRPC_ABSL_USED_TARGETS
   absl_type_traits
   absl_utility
   absl_variant
+  absl_vlog_config_internal
+  absl_vlog_is_on
   absl_meta
 )
+
+# The OpenTelemetry plugin supports "package" build only at present.
+set(gRPC_OPENTELEMETRY_PROVIDER "package")
+#  set(gRPC_OPENTELEMETRY_PROVIDER "module" CACHE STRING "Provider of opentelemetry library")
+#  set_property(CACHE gRPC_OPENTELEMETRY_PROVIDER PROPERTY STRINGS "module" "package")
 
 set(gRPC_USE_PROTO_LITE OFF CACHE BOOL "Use the protobuf-lite library")
 
 if(UNIX)
   if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set(_gRPC_PLATFORM_LINUX ON)
+    if(NOT CMAKE_CROSSCOMPILING AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+      message("+++ Enabling SSE2 for ${CMAKE_SYSTEM_PROCESSOR}")
+      set(_gRPC_C_CXX_FLAGS "${_gRPC_C_CXX_FLAGS} -msse2")
+    endif()
   elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(_gRPC_PLATFORM_MAC ON)
   elseif(${CMAKE_SYSTEM_NAME} MATCHES "iOS")
@@ -346,6 +378,11 @@ include(cmake/download_archive.cmake)
 if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_POSIX)
   include(cmake/systemd.cmake)
   set(_gRPC_ALLTARGETS_LIBRARIES ${_gRPC_ALLTARGETS_LIBRARIES} ${_gRPC_SYSTEMD_LIBRARIES})
+endif()
+
+option(gRPC_BUILD_GRPCPP_OTEL_PLUGIN "Build grpcpp_otel_plugin" OFF)
+if(gRPC_BUILD_GRPCPP_OTEL_PLUGIN)
+  include(cmake/opentelemetry-cpp.cmake)
 endif()
 
 # Setup external proto library at third_party/envoy-api with 2 download URLs
@@ -893,7 +930,6 @@ if(gRPC_BUILD_TESTS)
   add_dependencies(buildtests_cxx authorization_policy_provider_test)
   add_dependencies(buildtests_cxx avl_test)
   add_dependencies(buildtests_cxx aws_request_signer_test)
-  add_dependencies(buildtests_cxx b64_test)
   add_dependencies(buildtests_cxx backend_metrics_lb_policy_test)
   add_dependencies(buildtests_cxx backoff_test)
   add_dependencies(buildtests_cxx bad_ping_test)
@@ -953,9 +989,6 @@ if(gRPC_BUILD_TESTS)
   add_dependencies(buildtests_cxx channel_trace_test)
   add_dependencies(buildtests_cxx channelz_registry_test)
   add_dependencies(buildtests_cxx channelz_service_test)
-  if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_POSIX)
-    add_dependencies(buildtests_cxx chaotic_good_test)
-  endif()
   add_dependencies(buildtests_cxx check_gcp_environment_linux_test)
   add_dependencies(buildtests_cxx check_gcp_environment_windows_test)
   add_dependencies(buildtests_cxx chunked_vector_test)
@@ -1180,6 +1213,7 @@ if(gRPC_BUILD_TESTS)
   add_dependencies(buildtests_cxx message_compress_test)
   add_dependencies(buildtests_cxx message_size_service_config_test)
   add_dependencies(buildtests_cxx metadata_map_test)
+  add_dependencies(buildtests_cxx metrics_test)
   add_dependencies(buildtests_cxx minimal_stack_is_minimal_test)
   add_dependencies(buildtests_cxx miscompile_with_no_unique_address_test)
   add_dependencies(buildtests_cxx mock_stream_test)
@@ -1424,8 +1458,12 @@ if(gRPC_BUILD_TESTS)
   add_dependencies(buildtests_cxx test_core_security_ssl_credentials_test)
   add_dependencies(buildtests_cxx test_core_slice_slice_buffer_test)
   add_dependencies(buildtests_cxx test_core_slice_slice_test)
+  if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_POSIX)
+    add_dependencies(buildtests_cxx test_core_transport_test_suite_chaotic_good_test)
+  endif()
   add_dependencies(buildtests_cxx test_cpp_client_credentials_test)
   add_dependencies(buildtests_cxx test_cpp_end2end_ssl_credentials_test)
+  add_dependencies(buildtests_cxx test_cpp_ext_chaotic_good_test)
   add_dependencies(buildtests_cxx test_cpp_server_credentials_test)
   add_dependencies(buildtests_cxx test_cpp_util_slice_test)
   add_dependencies(buildtests_cxx test_cpp_util_time_test)
@@ -1608,7 +1646,6 @@ if(gRPC_INSTALL)
 endif()
 
 
-
 add_library(gpr
   src/core/lib/config/config_vars.cc
   src/core/lib/config/config_vars_non_generated.cc
@@ -1640,7 +1677,6 @@ add_library(gpr
   src/core/lib/gpr/windows/sync.cc
   src/core/lib/gpr/windows/time.cc
   src/core/lib/gpr/windows/tmpfile.cc
-  src/core/lib/gpr/wrap_memcpy.cc
   src/core/lib/gprpp/crash.cc
   src/core/lib/gprpp/examine_stack.cc
   src/core/lib/gprpp/fork.cc
@@ -1699,9 +1735,11 @@ target_link_libraries(gpr
   ${_gRPC_ALLTARGETS_LIBRARIES}
   absl::base
   absl::core_headers
+  absl::log_severity
   absl::flags
   absl::flags_marshalling
   absl::any_invocable
+  absl::log
   absl::memory
   absl::random_random
   absl::status
@@ -1774,11 +1812,8 @@ if(gRPC_INSTALL)
 endif()
 
 
-
 add_library(grpc
-  src/core/client_channel/backend_metric.cc
   src/core/client_channel/backup_poller.cc
-  src/core/client_channel/channel_connectivity.cc
   src/core/client_channel/client_channel_channelz.cc
   src/core/client_channel/client_channel_factory.cc
   src/core/client_channel/client_channel_filter.cc
@@ -1793,7 +1828,6 @@ add_library(grpc
   src/core/client_channel/retry_filter_legacy_call_data.cc
   src/core/client_channel/retry_service_config.cc
   src/core/client_channel/retry_throttle.cc
-  src/core/client_channel/service_config_channel_arg_filter.cc
   src/core/client_channel/subchannel.cc
   src/core/client_channel/subchannel_pool_interface.cc
   src/core/client_channel/subchannel_stream_client.cc
@@ -1809,7 +1843,6 @@ add_library(grpc
   src/core/ext/filters/http/client_authority_filter.cc
   src/core/ext/filters/http/http_filters_plugin.cc
   src/core/ext/filters/http/message_compress/compression_filter.cc
-  src/core/ext/filters/http/message_compress/legacy_compression_filter.cc
   src/core/ext/filters/http/server/http_server_filter.cc
   src/core/ext/filters/message_size/message_size_filter.cc
   src/core/ext/filters/rbac/rbac_filter.cc
@@ -2211,6 +2244,7 @@ add_library(grpc
   src/core/lib/channel/channelz.cc
   src/core/lib/channel/channelz_registry.cc
   src/core/lib/channel/connected_channel.cc
+  src/core/lib/channel/metrics.cc
   src/core/lib/channel/promise_based_filter.cc
   src/core/lib/channel/server_call_tracer_filter.cc
   src/core/lib/channel/status_util.cc
@@ -2279,6 +2313,7 @@ add_library(grpc
   src/core/lib/gprpp/status_helper.cc
   src/core/lib/gprpp/time.cc
   src/core/lib/gprpp/time_averaged_stats.cc
+  src/core/lib/gprpp/uuid_v4.cc
   src/core/lib/gprpp/validation_errors.cc
   src/core/lib/gprpp/windows/directory_reader.cc
   src/core/lib/gprpp/work_serializer.cc
@@ -2375,6 +2410,7 @@ add_library(grpc
   src/core/lib/promise/trace.cc
   src/core/lib/resource_quota/api.cc
   src/core/lib/resource_quota/arena.cc
+  src/core/lib/resource_quota/connection_quota.cc
   src/core/lib/resource_quota/memory_quota.cc
   src/core/lib/resource_quota/periodic_update.cc
   src/core/lib/resource_quota/resource_quota.cc
@@ -2433,35 +2469,32 @@ add_library(grpc
   src/core/lib/security/security_connector/insecure/insecure_security_connector.cc
   src/core/lib/security/security_connector/load_system_roots_fallback.cc
   src/core/lib/security/security_connector/load_system_roots_supported.cc
+  src/core/lib/security/security_connector/load_system_roots_windows.cc
   src/core/lib/security/security_connector/local/local_security_connector.cc
   src/core/lib/security/security_connector/security_connector.cc
   src/core/lib/security/security_connector/ssl/ssl_security_connector.cc
   src/core/lib/security/security_connector/ssl_utils.cc
   src/core/lib/security/security_connector/tls/tls_security_connector.cc
   src/core/lib/security/transport/client_auth_filter.cc
-  src/core/lib/security/transport/legacy_server_auth_filter.cc
   src/core/lib/security/transport/secure_endpoint.cc
   src/core/lib/security/transport/security_handshaker.cc
   src/core/lib/security/transport/server_auth_filter.cc
   src/core/lib/security/transport/tsi_error.cc
   src/core/lib/security/util/json_util.cc
-  src/core/lib/slice/b64.cc
   src/core/lib/slice/percent_encoding.cc
   src/core/lib/slice/slice.cc
   src/core/lib/slice/slice_buffer.cc
   src/core/lib/slice/slice_refcount.cc
   src/core/lib/slice/slice_string_helpers.cc
   src/core/lib/surface/api_trace.cc
-  src/core/lib/surface/builtins.cc
   src/core/lib/surface/byte_buffer.cc
   src/core/lib/surface/byte_buffer_reader.cc
   src/core/lib/surface/call.cc
   src/core/lib/surface/call_details.cc
   src/core/lib/surface/call_log_batch.cc
-  src/core/lib/surface/call_trace.cc
   src/core/lib/surface/channel.cc
+  src/core/lib/surface/channel_create.cc
   src/core/lib/surface/channel_init.cc
-  src/core/lib/surface/channel_ping.cc
   src/core/lib/surface/channel_stack_type.cc
   src/core/lib/surface/completion_queue.cc
   src/core/lib/surface/completion_queue_factory.cc
@@ -2469,6 +2502,7 @@ add_library(grpc
   src/core/lib/surface/init.cc
   src/core/lib/surface/init_internally.cc
   src/core/lib/surface/lame_client.cc
+  src/core/lib/surface/legacy_channel.cc
   src/core/lib/surface/metadata_array.cc
   src/core/lib/surface/server.cc
   src/core/lib/surface/validate_metadata.cc
@@ -2489,6 +2523,7 @@ add_library(grpc
   src/core/lib/transport/message.cc
   src/core/lib/transport/metadata.cc
   src/core/lib/transport/metadata_batch.cc
+  src/core/lib/transport/metadata_info.cc
   src/core/lib/transport/parsed_metadata.cc
   src/core/lib/transport/status_conversion.cc
   src/core/lib/transport/tcp_connect_handshaker.cc
@@ -2497,6 +2532,7 @@ add_library(grpc
   src/core/lib/transport/transport_op_string.cc
   src/core/lib/uri/uri_parser.cc
   src/core/load_balancing/address_filtering.cc
+  src/core/load_balancing/backend_metric_parser.cc
   src/core/load_balancing/child_policy_handler.cc
   src/core/load_balancing/endpoint_list.cc
   src/core/load_balancing/grpclb/client_load_reporting_filter.cc
@@ -2545,6 +2581,7 @@ add_library(grpc
   src/core/resolver/xds/xds_dependency_manager.cc
   src/core/resolver/xds/xds_resolver.cc
   src/core/resolver/xds/xds_resolver_trace.cc
+  src/core/service_config/service_config_channel_arg_filter.cc
   src/core/service_config/service_config_impl.cc
   src/core/service_config/service_config_parser.cc
   src/core/tsi/alts/crypt/aes_gcm.cc
@@ -2624,6 +2661,7 @@ target_link_libraries(grpc
   ${_gRPC_ZLIB_LIBRARIES}
   absl::algorithm_container
   absl::config
+  absl::no_destructor
   absl::cleanup
   absl::flat_hash_map
   absl::flat_hash_set
@@ -2740,7 +2778,6 @@ endif()
 
 if(gRPC_BUILD_TESTS)
 
-
 add_library(grpc_test_util
   test/core/event_engine/test_init.cc
   test/core/util/build.cc
@@ -2807,7 +2844,6 @@ endif()
 endif()
 if(gRPC_BUILD_TESTS)
 
-
 add_library(grpc_test_util_unsecure
   test/core/event_engine/test_init.cc
   test/core/util/build.cc
@@ -2872,11 +2908,8 @@ endif()
 
 endif()
 
-
 add_library(grpc_unsecure
-  src/core/client_channel/backend_metric.cc
   src/core/client_channel/backup_poller.cc
-  src/core/client_channel/channel_connectivity.cc
   src/core/client_channel/client_channel_channelz.cc
   src/core/client_channel/client_channel_factory.cc
   src/core/client_channel/client_channel_filter.cc
@@ -2891,7 +2924,6 @@ add_library(grpc_unsecure
   src/core/client_channel/retry_filter_legacy_call_data.cc
   src/core/client_channel/retry_service_config.cc
   src/core/client_channel/retry_throttle.cc
-  src/core/client_channel/service_config_channel_arg_filter.cc
   src/core/client_channel/subchannel.cc
   src/core/client_channel/subchannel_pool_interface.cc
   src/core/client_channel/subchannel_stream_client.cc
@@ -2907,7 +2939,6 @@ add_library(grpc_unsecure
   src/core/ext/filters/http/client_authority_filter.cc
   src/core/ext/filters/http/http_filters_plugin.cc
   src/core/ext/filters/http/message_compress/compression_filter.cc
-  src/core/ext/filters/http/message_compress/legacy_compression_filter.cc
   src/core/ext/filters/http/server/http_server_filter.cc
   src/core/ext/filters/message_size/message_size_filter.cc
   src/core/ext/transport/chttp2/client/chttp2_connector.cc
@@ -2978,6 +3009,7 @@ add_library(grpc_unsecure
   src/core/lib/channel/channelz.cc
   src/core/lib/channel/channelz_registry.cc
   src/core/lib/channel/connected_channel.cc
+  src/core/lib/channel/metrics.cc
   src/core/lib/channel/promise_based_filter.cc
   src/core/lib/channel/server_call_tracer_filter.cc
   src/core/lib/channel/status_util.cc
@@ -3045,6 +3077,7 @@ add_library(grpc_unsecure
   src/core/lib/gprpp/status_helper.cc
   src/core/lib/gprpp/time.cc
   src/core/lib/gprpp/time_averaged_stats.cc
+  src/core/lib/gprpp/uuid_v4.cc
   src/core/lib/gprpp/validation_errors.cc
   src/core/lib/gprpp/work_serializer.cc
   src/core/lib/handshaker/proxy_mapper_registry.cc
@@ -3137,6 +3170,7 @@ add_library(grpc_unsecure
   src/core/lib/promise/trace.cc
   src/core/lib/resource_quota/api.cc
   src/core/lib/resource_quota/arena.cc
+  src/core/lib/resource_quota/connection_quota.cc
   src/core/lib/resource_quota/memory_quota.cc
   src/core/lib/resource_quota/periodic_update.cc
   src/core/lib/resource_quota/resource_quota.cc
@@ -3165,31 +3199,28 @@ add_library(grpc_unsecure
   src/core/lib/security/security_connector/insecure/insecure_security_connector.cc
   src/core/lib/security/security_connector/load_system_roots_fallback.cc
   src/core/lib/security/security_connector/load_system_roots_supported.cc
+  src/core/lib/security/security_connector/load_system_roots_windows.cc
   src/core/lib/security/security_connector/security_connector.cc
   src/core/lib/security/transport/client_auth_filter.cc
-  src/core/lib/security/transport/legacy_server_auth_filter.cc
   src/core/lib/security/transport/secure_endpoint.cc
   src/core/lib/security/transport/security_handshaker.cc
   src/core/lib/security/transport/server_auth_filter.cc
   src/core/lib/security/transport/tsi_error.cc
   src/core/lib/security/util/json_util.cc
-  src/core/lib/slice/b64.cc
   src/core/lib/slice/percent_encoding.cc
   src/core/lib/slice/slice.cc
   src/core/lib/slice/slice_buffer.cc
   src/core/lib/slice/slice_refcount.cc
   src/core/lib/slice/slice_string_helpers.cc
   src/core/lib/surface/api_trace.cc
-  src/core/lib/surface/builtins.cc
   src/core/lib/surface/byte_buffer.cc
   src/core/lib/surface/byte_buffer_reader.cc
   src/core/lib/surface/call.cc
   src/core/lib/surface/call_details.cc
   src/core/lib/surface/call_log_batch.cc
-  src/core/lib/surface/call_trace.cc
   src/core/lib/surface/channel.cc
+  src/core/lib/surface/channel_create.cc
   src/core/lib/surface/channel_init.cc
-  src/core/lib/surface/channel_ping.cc
   src/core/lib/surface/channel_stack_type.cc
   src/core/lib/surface/completion_queue.cc
   src/core/lib/surface/completion_queue_factory.cc
@@ -3197,6 +3228,7 @@ add_library(grpc_unsecure
   src/core/lib/surface/init.cc
   src/core/lib/surface/init_internally.cc
   src/core/lib/surface/lame_client.cc
+  src/core/lib/surface/legacy_channel.cc
   src/core/lib/surface/metadata_array.cc
   src/core/lib/surface/server.cc
   src/core/lib/surface/validate_metadata.cc
@@ -3217,6 +3249,7 @@ add_library(grpc_unsecure
   src/core/lib/transport/message.cc
   src/core/lib/transport/metadata.cc
   src/core/lib/transport/metadata_batch.cc
+  src/core/lib/transport/metadata_info.cc
   src/core/lib/transport/parsed_metadata.cc
   src/core/lib/transport/status_conversion.cc
   src/core/lib/transport/tcp_connect_handshaker.cc
@@ -3225,6 +3258,7 @@ add_library(grpc_unsecure
   src/core/lib/transport/transport_op_string.cc
   src/core/lib/uri/uri_parser.cc
   src/core/load_balancing/address_filtering.cc
+  src/core/load_balancing/backend_metric_parser.cc
   src/core/load_balancing/child_policy_handler.cc
   src/core/load_balancing/endpoint_list.cc
   src/core/load_balancing/grpclb/client_load_reporting_filter.cc
@@ -3263,6 +3297,7 @@ add_library(grpc_unsecure
   src/core/resolver/resolver.cc
   src/core/resolver/resolver_registry.cc
   src/core/resolver/sockaddr/sockaddr_resolver.cc
+  src/core/service_config/service_config_channel_arg_filter.cc
   src/core/service_config/service_config_impl.cc
   src/core/service_config/service_config_parser.cc
   src/core/tsi/alts/handshaker/transport_security_common_api.cc
@@ -3329,6 +3364,7 @@ target_link_libraries(grpc_unsecure
   ${_gRPC_ZLIB_LIBRARIES}
   absl::algorithm_container
   absl::config
+  absl::no_destructor
   absl::cleanup
   absl::flat_hash_map
   absl::flat_hash_set
@@ -3444,7 +3480,6 @@ endif()
 
 if(gRPC_BUILD_TESTS)
 
-
 add_library(gtest
   third_party/googletest/googlemock/src/gmock-cardinalities.cc
   third_party/googletest/googlemock/src/gmock-internal-utils.cc
@@ -3517,7 +3552,6 @@ target_link_libraries(gtest
 
 endif()
 
-
 add_library(upb_base_lib
   third_party/upb/upb/base/status.c
 )
@@ -3567,7 +3601,6 @@ if(gRPC_INSTALL)
     ARCHIVE DESTINATION ${gRPC_INSTALL_LIBDIR}
   )
 endif()
-
 
 
 add_library(upb_json_lib ${_gRPC_STATIC_WIN32}
@@ -3657,7 +3690,6 @@ if(gRPC_INSTALL)
 endif()
 
 
-
 add_library(upb_mem_lib
   third_party/upb/upb/mem/alloc.c
   third_party/upb/upb/mem/arena.c
@@ -3708,7 +3740,6 @@ if(gRPC_INSTALL)
     ARCHIVE DESTINATION ${gRPC_INSTALL_LIBDIR}
   )
 endif()
-
 
 
 add_library(upb_message_lib
@@ -3769,7 +3800,6 @@ if(gRPC_INSTALL)
     ARCHIVE DESTINATION ${gRPC_INSTALL_LIBDIR}
   )
 endif()
-
 
 
 add_library(upb_textformat_lib ${_gRPC_STATIC_WIN32}
@@ -3858,7 +3888,6 @@ if(gRPC_INSTALL)
 endif()
 
 
-
 add_library(utf8_range_lib
   third_party/utf8_range/naive.c
   third_party/utf8_range/range2-neon.c
@@ -3914,7 +3943,6 @@ endif()
 if(gRPC_BUILD_TESTS)
 
 if(gRPC_BUILD_CODEGEN)
-
 add_library(benchmark_helpers ${_gRPC_STATIC_WIN32}
   ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/echo.pb.cc
   ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/echo.grpc.pb.cc
@@ -3939,7 +3967,6 @@ add_library(benchmark_helpers ${_gRPC_STATIC_WIN32}
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -3997,7 +4024,6 @@ target_link_libraries(benchmark_helpers
 endif()
 
 endif()
-
 
 add_library(grpc++
   src/core/ext/transport/binder/client/binder_connector.cc
@@ -4339,7 +4365,6 @@ if(gRPC_INSTALL)
 endif()
 
 
-
 add_library(grpc++_alts
   src/cpp/common/alts_context.cc
   src/cpp/common/alts_util.cc
@@ -4411,7 +4436,6 @@ if(gRPC_INSTALL)
     ARCHIVE DESTINATION ${gRPC_INSTALL_LIBDIR}
   )
 endif()
-
 
 
 add_library(grpc++_error_details
@@ -4486,7 +4510,6 @@ endif()
 
 
 if(gRPC_BUILD_CODEGEN)
-
 add_library(grpc++_reflection ${_gRPC_STATIC_WIN32}
   ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/reflection/v1/reflection.pb.cc
   ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/reflection/v1/reflection.grpc.pb.cc
@@ -4571,7 +4594,6 @@ endif()
 endif()
 if(gRPC_BUILD_TESTS)
 
-
 add_library(grpc++_test
   src/cpp/client/channel_test_peer.cc
 )
@@ -4645,7 +4667,6 @@ endforeach()
 endif()
 if(gRPC_BUILD_TESTS)
 
-
 add_library(grpc++_test_config
   test/cpp/util/test_config_cc.cc
 )
@@ -4698,7 +4719,6 @@ target_link_libraries(grpc++_test_config
 endif()
 if(gRPC_BUILD_TESTS)
 
-
 add_library(grpc++_test_util
   src/core/lib/gpr/subprocess_posix.cc
   src/core/lib/gpr/subprocess_windows.cc
@@ -4712,7 +4732,6 @@ add_library(grpc++_test_util
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -4771,7 +4790,6 @@ target_link_libraries(grpc++_test_util
 
 
 endif()
-
 
 add_library(grpc++_unsecure
   src/cpp/client/channel_cc.cc
@@ -5081,7 +5099,6 @@ if(gRPC_INSTALL)
 endif()
 
 
-
 add_library(grpc_authorization_provider
   src/core/ext/upb-gen/google/protobuf/any.upb_minitable.c
   src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
@@ -5092,7 +5109,6 @@ add_library(grpc_authorization_provider
   src/core/lib/address_utils/parse_address.cc
   src/core/lib/address_utils/sockaddr_utils.cc
   src/core/lib/backoff/backoff.cc
-  src/core/lib/backoff/random_early_detection.cc
   src/core/lib/channel/call_tracer.cc
   src/core/lib/channel/channel_args.cc
   src/core/lib/channel/channel_args_preconditioning.cc
@@ -5104,8 +5120,8 @@ add_library(grpc_authorization_provider
   src/core/lib/channel/channelz.cc
   src/core/lib/channel/channelz_registry.cc
   src/core/lib/channel/connected_channel.cc
+  src/core/lib/channel/metrics.cc
   src/core/lib/channel/promise_based_filter.cc
-  src/core/lib/channel/server_call_tracer_filter.cc
   src/core/lib/channel/status_util.cc
   src/core/lib/compression/compression.cc
   src/core/lib/compression/compression_internal.cc
@@ -5259,6 +5275,7 @@ add_library(grpc_authorization_provider
   src/core/lib/promise/trace.cc
   src/core/lib/resource_quota/api.cc
   src/core/lib/resource_quota/arena.cc
+  src/core/lib/resource_quota/connection_quota.cc
   src/core/lib/resource_quota/memory_quota.cc
   src/core/lib/resource_quota/periodic_update.cc
   src/core/lib/resource_quota/resource_quota.cc
@@ -5290,31 +5307,27 @@ add_library(grpc_authorization_provider
   src/core/lib/security/credentials/tls/tls_utils.cc
   src/core/lib/security/security_connector/load_system_roots_fallback.cc
   src/core/lib/security/security_connector/load_system_roots_supported.cc
+  src/core/lib/security/security_connector/load_system_roots_windows.cc
   src/core/lib/security/security_connector/security_connector.cc
   src/core/lib/security/transport/client_auth_filter.cc
-  src/core/lib/security/transport/legacy_server_auth_filter.cc
   src/core/lib/security/transport/secure_endpoint.cc
   src/core/lib/security/transport/security_handshaker.cc
   src/core/lib/security/transport/server_auth_filter.cc
   src/core/lib/security/transport/tsi_error.cc
   src/core/lib/security/util/json_util.cc
-  src/core/lib/slice/b64.cc
   src/core/lib/slice/percent_encoding.cc
   src/core/lib/slice/slice.cc
   src/core/lib/slice/slice_buffer.cc
   src/core/lib/slice/slice_refcount.cc
   src/core/lib/slice/slice_string_helpers.cc
   src/core/lib/surface/api_trace.cc
-  src/core/lib/surface/builtins.cc
   src/core/lib/surface/byte_buffer.cc
   src/core/lib/surface/byte_buffer_reader.cc
   src/core/lib/surface/call.cc
   src/core/lib/surface/call_details.cc
   src/core/lib/surface/call_log_batch.cc
-  src/core/lib/surface/call_trace.cc
   src/core/lib/surface/channel.cc
   src/core/lib/surface/channel_init.cc
-  src/core/lib/surface/channel_ping.cc
   src/core/lib/surface/channel_stack_type.cc
   src/core/lib/surface/completion_queue.cc
   src/core/lib/surface/completion_queue_factory.cc
@@ -5322,15 +5335,12 @@ add_library(grpc_authorization_provider
   src/core/lib/surface/init_internally.cc
   src/core/lib/surface/lame_client.cc
   src/core/lib/surface/metadata_array.cc
-  src/core/lib/surface/server.cc
   src/core/lib/surface/validate_metadata.cc
   src/core/lib/surface/version.cc
   src/core/lib/surface/wait_for_cq_end_op.cc
   src/core/lib/transport/batch_builder.cc
-  src/core/lib/transport/call_factory.cc
   src/core/lib/transport/call_filters.cc
   src/core/lib/transport/call_final_info.cc
-  src/core/lib/transport/call_size_estimator.cc
   src/core/lib/transport/call_spine.cc
   src/core/lib/transport/connectivity_state.cc
   src/core/lib/transport/error_utils.cc
@@ -5412,6 +5422,7 @@ target_link_libraries(grpc_authorization_provider
   utf8_range_lib
   ${_gRPC_ZLIB_LIBRARIES}
   absl::config
+  absl::no_destructor
   absl::cleanup
   absl::flat_hash_map
   absl::flat_hash_set
@@ -5419,8 +5430,6 @@ target_link_libraries(grpc_authorization_provider
   absl::function_ref
   absl::hash
   absl::type_traits
-  absl::random_bit_gen_ref
-  absl::random_distributions
   absl::statusor
   absl::span
   absl::utility
@@ -5521,7 +5530,6 @@ if(gRPC_INSTALL)
 endif()
 
 
-
 add_library(grpc_plugin_support
   src/compiler/cpp_generator.cc
   src/compiler/csharp_generator.cc
@@ -5596,7 +5604,6 @@ endif()
 # grpcpp_channelz doesn't build with protobuf-lite
 # See https://github.com/grpc/grpc/issues/19473
 if(gRPC_BUILD_CODEGEN AND NOT gRPC_USE_PROTO_LITE)
-
 add_library(grpcpp_channelz ${_gRPC_STATIC_WIN32}
   ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/channelz/channelz.pb.cc
   ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/channelz/channelz.grpc.pb.cc
@@ -5676,6 +5683,81 @@ if(gRPC_INSTALL AND NOT gRPC_USE_PROTO_LITE)
 endif()
 
 endif()
+if(gRPC_BUILD_GRPCPP_OTEL_PLUGIN)
+
+add_library(grpcpp_otel_plugin
+  src/cpp/ext/otel/otel_client_call_tracer.cc
+  src/cpp/ext/otel/otel_plugin.cc
+  src/cpp/ext/otel/otel_server_call_tracer.cc
+)
+
+target_compile_features(grpcpp_otel_plugin PUBLIC cxx_std_14)
+
+set_target_properties(grpcpp_otel_plugin PROPERTIES
+  VERSION ${gRPC_CPP_VERSION}
+  SOVERSION ${gRPC_CPP_SOVERSION}
+)
+
+if(WIN32 AND MSVC)
+  set_target_properties(grpcpp_otel_plugin PROPERTIES COMPILE_PDB_NAME "grpcpp_otel_plugin"
+    COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+  )
+  if(BUILD_SHARED_LIBS)
+    target_compile_definitions(grpcpp_otel_plugin
+    PRIVATE
+      "GPR_DLL_IMPORTS"
+      "GRPC_DLL_IMPORTS"
+      "GRPCXX_DLL_IMPORTS"
+    )
+  endif()
+  if(gRPC_INSTALL)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/grpcpp_otel_plugin.pdb
+      DESTINATION ${gRPC_INSTALL_LIBDIR} OPTIONAL
+    )
+  endif()
+endif()
+
+target_include_directories(grpcpp_otel_plugin
+  PUBLIC $<INSTALL_INTERFACE:${gRPC_INSTALL_INCLUDEDIR}> $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${_gRPC_ADDRESS_SORTING_INCLUDE_DIR}
+    ${_gRPC_RE2_INCLUDE_DIR}
+    ${_gRPC_SSL_INCLUDE_DIR}
+    ${_gRPC_UPB_GENERATED_DIR}
+    ${_gRPC_UPB_GRPC_GENERATED_DIR}
+    ${_gRPC_UPB_INCLUDE_DIR}
+    ${_gRPC_XXHASH_INCLUDE_DIR}
+    ${_gRPC_ZLIB_INCLUDE_DIR}
+    ${_gRPC_PROTO_GENS_DIR}
+)
+target_link_libraries(grpcpp_otel_plugin
+  ${_gRPC_ALLTARGETS_LIBRARIES}
+  grpc++
+  opentelemetry-cpp::api
+)
+
+foreach(_hdr
+  include/grpcpp/ext/otel_plugin.h
+)
+  string(REPLACE "include/" "" _path ${_hdr})
+  get_filename_component(_path ${_path} PATH)
+  install(FILES ${_hdr}
+    DESTINATION "${gRPC_INSTALL_INCLUDEDIR}/${_path}"
+  )
+endforeach()
+
+
+if(gRPC_INSTALL)
+  install(TARGETS grpcpp_otel_plugin EXPORT gRPCTargets
+    RUNTIME DESTINATION ${gRPC_INSTALL_BINDIR}
+    BUNDLE DESTINATION  ${gRPC_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${gRPC_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${gRPC_INSTALL_LIBDIR}
+  )
+endif()
+
+endif()
 
 if(gRPC_BUILD_TESTS)
 if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
@@ -5688,7 +5770,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -5850,7 +5931,6 @@ add_executable(test_core_iomgr_timer_list_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -5992,7 +6072,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -6115,7 +6194,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -6660,7 +6738,6 @@ add_executable(alts_security_connector_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -7036,7 +7113,6 @@ add_executable(auth_context_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -7131,7 +7207,6 @@ add_executable(authorization_matchers_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -7271,7 +7346,6 @@ add_executable(aws_request_signer_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -7306,48 +7380,6 @@ target_include_directories(aws_request_signer_test
 )
 
 target_link_libraries(aws_request_signer_test
-  ${_gRPC_ALLTARGETS_LIBRARIES}
-  gtest
-  grpc_test_util
-)
-
-
-endif()
-if(gRPC_BUILD_TESTS)
-
-add_executable(b64_test
-  test/core/slice/b64_test.cc
-)
-if(WIN32 AND MSVC)
-  if(BUILD_SHARED_LIBS)
-    target_compile_definitions(b64_test
-    PRIVATE
-      "GPR_DLL_IMPORTS"
-      "GRPC_DLL_IMPORTS"
-    )
-  endif()
-endif()
-target_compile_features(b64_test PUBLIC cxx_std_14)
-target_include_directories(b64_test
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${_gRPC_ADDRESS_SORTING_INCLUDE_DIR}
-    ${_gRPC_RE2_INCLUDE_DIR}
-    ${_gRPC_SSL_INCLUDE_DIR}
-    ${_gRPC_UPB_GENERATED_DIR}
-    ${_gRPC_UPB_GRPC_GENERATED_DIR}
-    ${_gRPC_UPB_INCLUDE_DIR}
-    ${_gRPC_XXHASH_INCLUDE_DIR}
-    ${_gRPC_ZLIB_INCLUDE_DIR}
-    third_party/googletest/googletest/include
-    third_party/googletest/googletest
-    third_party/googletest/googlemock/include
-    third_party/googletest/googlemock
-    ${_gRPC_PROTO_GENS_DIR}
-)
-
-target_link_libraries(b64_test
   ${_gRPC_ALLTARGETS_LIBRARIES}
   gtest
   grpc_test_util
@@ -7477,6 +7509,7 @@ add_executable(bad_ping_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/bad_ping.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -7575,7 +7608,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -7632,7 +7664,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -7954,6 +7985,7 @@ add_executable(binary_metadata_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/binary_metadata.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -8246,7 +8278,6 @@ add_executable(buffer_list_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -8394,6 +8425,7 @@ add_executable(call_creds_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/call_creds.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -8442,6 +8474,7 @@ add_executable(call_filters_test
   src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
   src/core/ext/upb-gen/google/rpc/status.upb_minitable.c
   src/core/lib/channel/channel_args.cc
+  src/core/lib/compression/compression.cc
   src/core/lib/compression/compression_internal.cc
   src/core/lib/debug/trace.cc
   src/core/lib/experiments/config.cc
@@ -8466,6 +8499,7 @@ add_executable(call_filters_test
   src/core/lib/slice/slice_buffer.cc
   src/core/lib/slice/slice_refcount.cc
   src/core/lib/slice/slice_string_helpers.cc
+  src/core/lib/surface/api_trace.cc
   src/core/lib/surface/channel_stack_type.cc
   src/core/lib/transport/call_filters.cc
   src/core/lib/transport/call_final_info.cc
@@ -8523,6 +8557,7 @@ target_link_libraries(call_filters_test
   upb_message_lib
   utf8_range_lib
   absl::config
+  absl::no_destructor
   absl::inlined_vector
   absl::function_ref
   absl::hash
@@ -8597,6 +8632,7 @@ add_executable(call_host_override_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/call_host_override.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -8702,6 +8738,7 @@ add_executable(cancel_after_accept_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/cancel_after_accept.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -8764,6 +8801,7 @@ add_executable(cancel_after_client_done_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/cancel_after_client_done.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -8826,6 +8864,7 @@ add_executable(cancel_after_invoke_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/cancel_after_invoke.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -8888,6 +8927,7 @@ add_executable(cancel_after_round_trip_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/cancel_after_round_trip.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -8997,6 +9037,7 @@ add_executable(cancel_before_invoke_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/cancel_before_invoke.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -9101,6 +9142,7 @@ add_executable(cancel_in_a_vacuum_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/cancel_in_a_vacuum.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -9163,6 +9205,7 @@ add_executable(cancel_with_status_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/cancel_with_status.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -9303,7 +9346,6 @@ add_executable(cel_authorization_engine_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -9678,7 +9720,6 @@ add_executable(channel_creds_registry_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -10002,69 +10043,6 @@ target_link_libraries(channelz_service_test
 
 endif()
 if(gRPC_BUILD_TESTS)
-if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_POSIX)
-
-  add_executable(chaotic_good_test
-    ${_gRPC_PROTO_GENS_DIR}/test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.pb.cc
-    ${_gRPC_PROTO_GENS_DIR}/test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.grpc.pb.cc
-    ${_gRPC_PROTO_GENS_DIR}/test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.pb.h
-    ${_gRPC_PROTO_GENS_DIR}/test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.grpc.pb.h
-    src/core/ext/transport/chaotic_good/chaotic_good_transport.cc
-    src/core/ext/transport/chaotic_good/client_transport.cc
-    src/core/ext/transport/chaotic_good/frame.cc
-    src/core/ext/transport/chaotic_good/frame_header.cc
-    src/core/ext/transport/chaotic_good/server_transport.cc
-    src/core/lib/transport/promise_endpoint.cc
-    test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.cc
-    test/core/transport/test_suite/call_content.cc
-    test/core/transport/test_suite/call_shapes.cc
-    test/core/transport/test_suite/chaotic_good_fixture.cc
-    test/core/transport/test_suite/fixture.cc
-    test/core/transport/test_suite/no_op.cc
-    test/core/transport/test_suite/stress.cc
-    test/core/transport/test_suite/test.cc
-    test/core/transport/test_suite/test_main.cc
-  )
-  if(WIN32 AND MSVC)
-    if(BUILD_SHARED_LIBS)
-      target_compile_definitions(chaotic_good_test
-      PRIVATE
-        "GPR_DLL_IMPORTS"
-        "GRPC_DLL_IMPORTS"
-      )
-    endif()
-  endif()
-  target_compile_features(chaotic_good_test PUBLIC cxx_std_14)
-  target_include_directories(chaotic_good_test
-    PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}
-      ${CMAKE_CURRENT_SOURCE_DIR}/include
-      ${_gRPC_ADDRESS_SORTING_INCLUDE_DIR}
-      ${_gRPC_RE2_INCLUDE_DIR}
-      ${_gRPC_SSL_INCLUDE_DIR}
-      ${_gRPC_UPB_GENERATED_DIR}
-      ${_gRPC_UPB_GRPC_GENERATED_DIR}
-      ${_gRPC_UPB_INCLUDE_DIR}
-      ${_gRPC_XXHASH_INCLUDE_DIR}
-      ${_gRPC_ZLIB_INCLUDE_DIR}
-      third_party/googletest/googletest/include
-      third_party/googletest/googletest
-      third_party/googletest/googlemock/include
-      third_party/googletest/googlemock
-      ${_gRPC_PROTO_GENS_DIR}
-  )
-
-  target_link_libraries(chaotic_good_test
-    ${_gRPC_ALLTARGETS_LIBRARIES}
-    gtest
-    ${_gRPC_PROTOBUF_LIBRARIES}
-    grpc_test_util
-  )
-
-
-endif()
-endif()
-if(gRPC_BUILD_TESTS)
 
 add_executable(check_gcp_environment_linux_test
   test/core/security/check_gcp_environment_linux_test.cc
@@ -10074,7 +10052,6 @@ add_executable(check_gcp_environment_linux_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -10126,7 +10103,6 @@ add_executable(check_gcp_environment_windows_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -10188,6 +10164,7 @@ add_executable(chunked_vector_test
   src/core/lib/promise/activity.cc
   src/core/lib/promise/trace.cc
   src/core/lib/resource_quota/arena.cc
+  src/core/lib/resource_quota/connection_quota.cc
   src/core/lib/resource_quota/memory_quota.cc
   src/core/lib/resource_quota/periodic_update.cc
   src/core/lib/resource_quota/resource_quota.cc
@@ -10875,6 +10852,7 @@ add_executable(client_streaming_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/client_streaming.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -10926,7 +10904,6 @@ add_executable(cmdline_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -11067,7 +11044,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -11215,6 +11191,7 @@ add_executable(compressed_payload_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/compressed_payload.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -11437,7 +11414,6 @@ add_executable(connectivity_state_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -11500,6 +11476,7 @@ add_executable(connectivity_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/connectivity.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -11928,6 +11905,7 @@ add_executable(default_host_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/default_host.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -12135,6 +12113,7 @@ add_executable(disappearing_server_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/disappearing_server.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -12454,6 +12433,7 @@ add_executable(empty_batch_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/empty_batch.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -12832,7 +12812,6 @@ add_executable(endpoint_pair_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -12983,7 +12962,6 @@ add_executable(error_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -13035,7 +13013,6 @@ add_executable(error_utils_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -13087,7 +13064,6 @@ add_executable(evaluate_args_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -13729,7 +13705,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -13835,6 +13810,7 @@ add_executable(filter_causes_close_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/filter_causes_close.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -13897,6 +13873,7 @@ add_executable(filter_context_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/filter_context.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -13959,6 +13936,7 @@ add_executable(filter_init_fails_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/filter_init_fails.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -14071,6 +14049,7 @@ add_executable(filtered_metadata_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/filtered_metadata.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -14194,6 +14173,7 @@ add_executable(flow_control_test
   src/core/lib/iomgr/iomgr_internal.cc
   src/core/lib/promise/activity.cc
   src/core/lib/promise/trace.cc
+  src/core/lib/resource_quota/connection_quota.cc
   src/core/lib/resource_quota/memory_quota.cc
   src/core/lib/resource_quota/periodic_update.cc
   src/core/lib/resource_quota/resource_quota.cc
@@ -14282,6 +14262,7 @@ add_executable(for_each_test
   src/core/lib/promise/activity.cc
   src/core/lib/promise/trace.cc
   src/core/lib/resource_quota/arena.cc
+  src/core/lib/resource_quota/connection_quota.cc
   src/core/lib/resource_quota/memory_quota.cc
   src/core/lib/resource_quota/periodic_update.cc
   src/core/lib/resource_quota/resource_quota.cc
@@ -14449,7 +14430,6 @@ add_executable(format_request_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -14858,6 +14838,7 @@ add_executable(graceful_server_shutdown_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/graceful_server_shutdown.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -14952,7 +14933,6 @@ add_executable(grpc_alts_credentials_options_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -15047,7 +15027,6 @@ add_executable(grpc_authorization_engine_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -15099,7 +15078,6 @@ add_executable(grpc_authorization_policy_provider_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -15226,6 +15204,7 @@ add_executable(grpc_authz_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/grpc_authz.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -15487,7 +15466,6 @@ add_executable(grpc_ipv6_loopback_available_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -15729,7 +15707,6 @@ add_executable(grpc_tls_certificate_distributor_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -15781,7 +15758,6 @@ add_executable(grpc_tls_certificate_provider_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -15833,7 +15809,6 @@ add_executable(grpc_tls_certificate_verifier_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -15885,7 +15860,6 @@ add_executable(grpc_tls_credentials_options_comparator_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -15937,7 +15911,6 @@ add_executable(grpc_tls_credentials_options_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -15993,6 +15966,7 @@ add_executable(grpc_tls_crl_provider_test
   test/core/event_engine/event_engine_test_utils.cc
   test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.cc
   test/core/security/grpc_tls_crl_provider_test.cc
+  test/core/tsi/transport_security_test_lib.cc
 )
 if(WIN32 AND MSVC)
   if(BUILD_SHARED_LIBS)
@@ -16621,6 +16595,7 @@ add_executable(high_initial_seqno_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/high_initial_seqno.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -16672,7 +16647,6 @@ add_executable(histogram_test
   test/core/util/histogram_test.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -16766,7 +16740,6 @@ add_executable(hpack_encoder_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -16818,7 +16791,6 @@ add_executable(hpack_parser_table_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -16870,7 +16842,6 @@ add_executable(hpack_parser_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -16933,6 +16904,7 @@ add_executable(hpack_size_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/hpack_size.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -17088,6 +17060,7 @@ add_executable(http2_stats_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/http2_stats.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -17590,7 +17563,6 @@ add_executable(insecure_security_connector_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -17742,6 +17714,7 @@ add_executable(interceptor_list_test
   src/core/lib/promise/activity.cc
   src/core/lib/promise/trace.cc
   src/core/lib/resource_quota/arena.cc
+  src/core/lib/resource_quota/connection_quota.cc
   src/core/lib/resource_quota/memory_quota.cc
   src/core/lib/resource_quota/periodic_update.cc
   src/core/lib/resource_quota/resource_quota.cc
@@ -17980,6 +17953,7 @@ add_executable(invoke_large_request_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/invoke_large_request.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -18255,7 +18229,6 @@ add_executable(json_token_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -18307,7 +18280,6 @@ add_executable(jwt_verifier_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -18370,6 +18342,7 @@ add_executable(keepalive_timeout_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/keepalive_timeout.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -18475,6 +18448,7 @@ add_executable(large_metadata_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/large_metadata.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -18935,6 +18909,7 @@ add_executable(map_pipe_test
   src/core/lib/promise/activity.cc
   src/core/lib/promise/trace.cc
   src/core/lib/resource_quota/arena.cc
+  src/core/lib/resource_quota/connection_quota.cc
   src/core/lib/resource_quota/memory_quota.cc
   src/core/lib/resource_quota/periodic_update.cc
   src/core/lib/resource_quota/resource_quota.cc
@@ -19042,7 +19017,6 @@ add_executable(matchers_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -19147,6 +19121,7 @@ add_executable(max_concurrent_streams_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/max_concurrent_streams.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -19209,6 +19184,7 @@ add_executable(max_connection_age_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/max_connection_age.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -19271,6 +19247,7 @@ add_executable(max_connection_idle_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/max_connection_idle.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -19333,6 +19310,7 @@ add_executable(max_message_length_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/max_message_length.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -19530,7 +19508,6 @@ add_executable(message_compress_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -19624,7 +19601,6 @@ add_executable(metadata_map_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -19659,6 +19635,49 @@ target_include_directories(metadata_map_test
 )
 
 target_link_libraries(metadata_map_test
+  ${_gRPC_ALLTARGETS_LIBRARIES}
+  gtest
+  grpc_test_util
+)
+
+
+endif()
+if(gRPC_BUILD_TESTS)
+
+add_executable(metrics_test
+  test/core/channel/metrics_test.cc
+  test/core/util/fake_stats_plugin.cc
+)
+if(WIN32 AND MSVC)
+  if(BUILD_SHARED_LIBS)
+    target_compile_definitions(metrics_test
+    PRIVATE
+      "GPR_DLL_IMPORTS"
+      "GRPC_DLL_IMPORTS"
+    )
+  endif()
+endif()
+target_compile_features(metrics_test PUBLIC cxx_std_14)
+target_include_directories(metrics_test
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${_gRPC_ADDRESS_SORTING_INCLUDE_DIR}
+    ${_gRPC_RE2_INCLUDE_DIR}
+    ${_gRPC_SSL_INCLUDE_DIR}
+    ${_gRPC_UPB_GENERATED_DIR}
+    ${_gRPC_UPB_GRPC_GENERATED_DIR}
+    ${_gRPC_UPB_INCLUDE_DIR}
+    ${_gRPC_XXHASH_INCLUDE_DIR}
+    ${_gRPC_ZLIB_INCLUDE_DIR}
+    third_party/googletest/googletest/include
+    third_party/googletest/googletest
+    third_party/googletest/googlemock/include
+    third_party/googletest/googlemock
+    ${_gRPC_PROTO_GENS_DIR}
+)
+
+target_link_libraries(metrics_test
   ${_gRPC_ALLTARGETS_LIBRARIES}
   gtest
   grpc_test_util
@@ -19973,6 +19992,7 @@ add_executable(negative_deadline_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/negative_deadline.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -20067,6 +20087,7 @@ add_executable(no_logging_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/no_logging.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -20129,6 +20150,7 @@ add_executable(no_op_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/no_op.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -20577,6 +20599,73 @@ target_link_libraries(osa_distance_test
 
 
 endif()
+if(gRPC_BUILD_TESTS AND gRPC_BUILD_GRPCPP_OTEL_PLUGIN)
+
+add_executable(otel_plugin_test
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/echo.pb.cc
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/echo.grpc.pb.cc
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/echo.pb.h
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/echo.grpc.pb.h
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/echo_messages.pb.cc
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/echo_messages.grpc.pb.cc
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/echo_messages.pb.h
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/echo_messages.grpc.pb.h
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/simple_messages.pb.cc
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/simple_messages.grpc.pb.cc
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/simple_messages.pb.h
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/simple_messages.grpc.pb.h
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/orca_load_report.pb.cc
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/orca_load_report.grpc.pb.cc
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/orca_load_report.pb.h
+  ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/orca_load_report.grpc.pb.h
+  src/cpp/ext/otel/otel_client_call_tracer.cc
+  src/cpp/ext/otel/otel_plugin.cc
+  src/cpp/ext/otel/otel_server_call_tracer.cc
+  test/core/util/fake_stats_plugin.cc
+  test/cpp/end2end/test_service_impl.cc
+  test/cpp/ext/otel/otel_plugin_test.cc
+  test/cpp/ext/otel/otel_test_library.cc
+)
+if(WIN32 AND MSVC)
+  if(BUILD_SHARED_LIBS)
+    target_compile_definitions(otel_plugin_test
+    PRIVATE
+      "GPR_DLL_IMPORTS"
+      "GRPC_DLL_IMPORTS"
+      "GRPCXX_DLL_IMPORTS"
+    )
+  endif()
+endif()
+target_compile_features(otel_plugin_test PUBLIC cxx_std_14)
+target_include_directories(otel_plugin_test
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${_gRPC_ADDRESS_SORTING_INCLUDE_DIR}
+    ${_gRPC_RE2_INCLUDE_DIR}
+    ${_gRPC_SSL_INCLUDE_DIR}
+    ${_gRPC_UPB_GENERATED_DIR}
+    ${_gRPC_UPB_GRPC_GENERATED_DIR}
+    ${_gRPC_UPB_INCLUDE_DIR}
+    ${_gRPC_XXHASH_INCLUDE_DIR}
+    ${_gRPC_ZLIB_INCLUDE_DIR}
+    third_party/googletest/googletest/include
+    third_party/googletest/googletest
+    third_party/googletest/googlemock/include
+    third_party/googletest/googlemock
+    ${_gRPC_PROTO_GENS_DIR}
+)
+
+target_link_libraries(otel_plugin_test
+  ${_gRPC_ALLTARGETS_LIBRARIES}
+  gtest
+  opentelemetry-cpp::api
+  opentelemetry-cpp::metrics
+  grpc++_test_util
+)
+
+
+endif()
 if(gRPC_BUILD_TESTS)
 
 add_executable(out_of_bounds_bad_client_test
@@ -20886,7 +20975,6 @@ add_executable(parser_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -20991,6 +21079,7 @@ add_executable(payload_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/payload.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -21160,6 +21249,7 @@ add_executable(pick_first_test
   test/core/client_channel/lb_policy/pick_first_test.cc
   test/core/event_engine/event_engine_test_utils.cc
   test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.cc
+  test/core/util/fake_stats_plugin.cc
 )
 if(WIN32 AND MSVC)
   if(BUILD_SHARED_LIBS)
@@ -21209,7 +21299,6 @@ add_executable(ping_abuse_policy_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -21303,7 +21392,6 @@ add_executable(ping_configuration_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -21366,6 +21454,7 @@ add_executable(ping_pong_streaming_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/ping_pong_streaming.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -21417,7 +21506,6 @@ add_executable(ping_rate_policy_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -21480,6 +21568,7 @@ add_executable(ping_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/ping.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -22473,6 +22562,7 @@ add_executable(proxy_auth_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/proxy_auth.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -22901,7 +22991,6 @@ add_executable(rbac_translator_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -23049,6 +23138,7 @@ add_executable(registered_call_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/registered_call.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -23155,6 +23245,7 @@ add_executable(request_with_flags_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/request_with_flags.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -23217,6 +23308,7 @@ add_executable(request_with_payload_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/request_with_payload.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -23269,7 +23361,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -23323,7 +23414,6 @@ add_executable(resolve_address_using_ares_resolver_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -23377,7 +23467,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -23431,7 +23520,6 @@ add_executable(resolve_address_using_native_resolver_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -23554,6 +23642,7 @@ add_executable(resource_quota_server_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/resource_quota_server.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -23658,6 +23747,7 @@ add_executable(retry_cancel_after_first_attempt_starts_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_cancel_after_first_attempt_starts.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -23720,6 +23810,7 @@ add_executable(retry_cancel_during_delay_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_cancel_during_delay.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -23782,6 +23873,7 @@ add_executable(retry_cancel_with_multiple_send_batches_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_cancel_with_multiple_send_batches.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -23844,6 +23936,7 @@ add_executable(retry_cancellation_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_cancellation.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -23906,6 +23999,7 @@ add_executable(retry_disabled_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_disabled.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -23968,6 +24062,7 @@ add_executable(retry_exceeds_buffer_size_in_delay_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_exceeds_buffer_size_in_delay.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24030,6 +24125,7 @@ add_executable(retry_exceeds_buffer_size_in_initial_batch_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_exceeds_buffer_size_in_initial_batch.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24092,6 +24188,7 @@ add_executable(retry_exceeds_buffer_size_in_subsequent_batch_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_exceeds_buffer_size_in_subsequent_batch.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24154,6 +24251,7 @@ add_executable(retry_lb_drop_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_lb_drop.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24216,6 +24314,7 @@ add_executable(retry_lb_fail_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_lb_fail.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24278,6 +24377,7 @@ add_executable(retry_non_retriable_status_before_trailers_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_non_retriable_status_before_trailers.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24340,6 +24440,7 @@ add_executable(retry_non_retriable_status_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_non_retriable_status.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24402,6 +24503,7 @@ add_executable(retry_per_attempt_recv_timeout_on_last_attempt_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_per_attempt_recv_timeout_on_last_attempt.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24464,6 +24566,7 @@ add_executable(retry_per_attempt_recv_timeout_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_per_attempt_recv_timeout.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24526,6 +24629,7 @@ add_executable(retry_recv_initial_metadata_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_recv_initial_metadata.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24588,6 +24692,7 @@ add_executable(retry_recv_message_replay_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_recv_message_replay.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24650,6 +24755,7 @@ add_executable(retry_recv_message_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_recv_message.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24712,6 +24818,7 @@ add_executable(retry_recv_trailing_metadata_error_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_recv_trailing_metadata_error.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24774,6 +24881,7 @@ add_executable(retry_send_initial_metadata_refs_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_send_initial_metadata_refs.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24836,6 +24944,7 @@ add_executable(retry_send_op_fails_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_send_op_fails.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24898,6 +25007,7 @@ add_executable(retry_send_recv_batch_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_send_recv_batch.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -24960,6 +25070,7 @@ add_executable(retry_server_pushback_delay_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_server_pushback_delay.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25022,6 +25133,7 @@ add_executable(retry_server_pushback_disabled_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_server_pushback_disabled.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25126,6 +25238,7 @@ add_executable(retry_streaming_after_commit_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_streaming_after_commit.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25188,6 +25301,7 @@ add_executable(retry_streaming_succeeds_before_replay_finished_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_streaming_succeeds_before_replay_finished.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25250,6 +25364,7 @@ add_executable(retry_streaming_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_streaming.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25312,6 +25427,7 @@ add_executable(retry_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25416,6 +25532,7 @@ add_executable(retry_throttled_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_throttled.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25478,6 +25595,7 @@ add_executable(retry_too_many_attempts_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_too_many_attempts.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25540,6 +25658,7 @@ add_executable(retry_transparent_goaway_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_transparent_goaway.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25602,6 +25721,7 @@ add_executable(retry_transparent_max_concurrent_streams_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_transparent_max_concurrent_streams.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25664,6 +25784,7 @@ add_executable(retry_transparent_not_sent_on_wire_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_transparent_not_sent_on_wire.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25726,6 +25847,7 @@ add_executable(retry_unref_before_finish_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_unref_before_finish.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25788,6 +25910,7 @@ add_executable(retry_unref_before_recv_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/retry_unref_before_recv.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -25905,6 +26028,7 @@ add_executable(rls_end2end_test
   ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/orca_load_report.grpc.pb.cc
   ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/orca_load_report.pb.h
   ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/orca_load_report.grpc.pb.h
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
   test/cpp/end2end/rls_end2end_test.cc
   test/cpp/end2end/rls_server.cc
@@ -26136,7 +26260,6 @@ add_executable(secure_endpoint_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -26188,7 +26311,6 @@ add_executable(security_connector_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -26407,7 +26529,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -26479,7 +26600,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -26774,6 +26894,7 @@ add_executable(server_finishes_request_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/server_finishes_request.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -26946,7 +27067,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -27058,6 +27178,7 @@ add_executable(server_streaming_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/server_streaming.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -27257,7 +27378,6 @@ add_executable(settings_timeout_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -27320,6 +27440,7 @@ add_executable(shutdown_finishes_calls_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/shutdown_finishes_calls.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -27382,6 +27503,7 @@ add_executable(shutdown_finishes_tags_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/shutdown_finishes_tags.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -27507,6 +27629,7 @@ add_executable(simple_delayed_request_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/simple_delayed_request.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -27569,6 +27692,7 @@ add_executable(simple_metadata_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/simple_metadata.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -27675,6 +27799,7 @@ add_executable(simple_request_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/simple_request.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -27983,7 +28108,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -28150,6 +28274,7 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
 
   add_executable(ssl_transport_security_utils_test
     test/core/tsi/ssl_transport_security_utils_test.cc
+    test/core/tsi/transport_security_test_lib.cc
   )
   if(WIN32 AND MSVC)
     if(BUILD_SHARED_LIBS)
@@ -28370,7 +28495,6 @@ add_executable(status_conversion_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -28601,6 +28725,7 @@ add_executable(streaming_error_response_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/streaming_error_response.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -28718,7 +28843,6 @@ add_executable(streams_not_seen_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -28941,7 +29065,6 @@ add_executable(system_roots_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -29028,7 +29151,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -29127,7 +29249,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -29181,7 +29302,6 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -29337,6 +29457,7 @@ add_executable(test_core_end2end_channelz_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/channelz.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -29618,7 +29739,6 @@ add_executable(test_core_iomgr_timer_heap_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -29670,7 +29790,6 @@ add_executable(test_core_security_credentials_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -29722,7 +29841,6 @@ add_executable(test_core_security_ssl_credentials_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -29850,6 +29968,69 @@ target_link_libraries(test_core_slice_slice_test
 
 endif()
 if(gRPC_BUILD_TESTS)
+if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_POSIX)
+
+  add_executable(test_core_transport_test_suite_chaotic_good_test
+    ${_gRPC_PROTO_GENS_DIR}/test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.pb.cc
+    ${_gRPC_PROTO_GENS_DIR}/test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.grpc.pb.cc
+    ${_gRPC_PROTO_GENS_DIR}/test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.pb.h
+    ${_gRPC_PROTO_GENS_DIR}/test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.grpc.pb.h
+    src/core/ext/transport/chaotic_good/chaotic_good_transport.cc
+    src/core/ext/transport/chaotic_good/client_transport.cc
+    src/core/ext/transport/chaotic_good/frame.cc
+    src/core/ext/transport/chaotic_good/frame_header.cc
+    src/core/ext/transport/chaotic_good/server_transport.cc
+    src/core/lib/transport/promise_endpoint.cc
+    test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.cc
+    test/core/transport/test_suite/call_content.cc
+    test/core/transport/test_suite/call_shapes.cc
+    test/core/transport/test_suite/chaotic_good_fixture.cc
+    test/core/transport/test_suite/fixture.cc
+    test/core/transport/test_suite/no_op.cc
+    test/core/transport/test_suite/stress.cc
+    test/core/transport/test_suite/test.cc
+    test/core/transport/test_suite/test_main.cc
+  )
+  if(WIN32 AND MSVC)
+    if(BUILD_SHARED_LIBS)
+      target_compile_definitions(test_core_transport_test_suite_chaotic_good_test
+      PRIVATE
+        "GPR_DLL_IMPORTS"
+        "GRPC_DLL_IMPORTS"
+      )
+    endif()
+  endif()
+  target_compile_features(test_core_transport_test_suite_chaotic_good_test PUBLIC cxx_std_14)
+  target_include_directories(test_core_transport_test_suite_chaotic_good_test
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}
+      ${CMAKE_CURRENT_SOURCE_DIR}/include
+      ${_gRPC_ADDRESS_SORTING_INCLUDE_DIR}
+      ${_gRPC_RE2_INCLUDE_DIR}
+      ${_gRPC_SSL_INCLUDE_DIR}
+      ${_gRPC_UPB_GENERATED_DIR}
+      ${_gRPC_UPB_GRPC_GENERATED_DIR}
+      ${_gRPC_UPB_INCLUDE_DIR}
+      ${_gRPC_XXHASH_INCLUDE_DIR}
+      ${_gRPC_ZLIB_INCLUDE_DIR}
+      third_party/googletest/googletest/include
+      third_party/googletest/googletest
+      third_party/googletest/googlemock/include
+      third_party/googletest/googlemock
+      ${_gRPC_PROTO_GENS_DIR}
+  )
+
+  target_link_libraries(test_core_transport_test_suite_chaotic_good_test
+    ${_gRPC_ALLTARGETS_LIBRARIES}
+    gtest
+    ${_gRPC_PROTOBUF_LIBRARIES}
+    grpc_test_util
+  )
+
+
+endif()
+endif()
+if(gRPC_BUILD_TESTS)
 
 add_executable(test_cpp_client_credentials_test
   test/cpp/client/credentials_test.cc
@@ -29950,6 +30131,60 @@ target_link_libraries(test_cpp_end2end_ssl_credentials_test
   ${_gRPC_ALLTARGETS_LIBRARIES}
   gtest
   grpc++_test_util
+)
+
+
+endif()
+if(gRPC_BUILD_TESTS)
+
+add_executable(test_cpp_ext_chaotic_good_test
+  src/core/ext/transport/chaotic_good/chaotic_good_transport.cc
+  src/core/ext/transport/chaotic_good/client/chaotic_good_connector.cc
+  src/core/ext/transport/chaotic_good/client_transport.cc
+  src/core/ext/transport/chaotic_good/frame.cc
+  src/core/ext/transport/chaotic_good/frame_header.cc
+  src/core/ext/transport/chaotic_good/server/chaotic_good_server.cc
+  src/core/ext/transport/chaotic_good/server_transport.cc
+  src/core/ext/transport/chaotic_good/settings_metadata.cc
+  src/core/lib/transport/promise_endpoint.cc
+  src/cpp/ext/chaotic_good.cc
+  test/cpp/ext/chaotic_good_test.cc
+)
+if(WIN32 AND MSVC)
+  if(BUILD_SHARED_LIBS)
+    target_compile_definitions(test_cpp_ext_chaotic_good_test
+    PRIVATE
+      "GPR_DLL_IMPORTS"
+      "GRPC_DLL_IMPORTS"
+      "GRPCXX_DLL_IMPORTS"
+    )
+  endif()
+endif()
+target_compile_features(test_cpp_ext_chaotic_good_test PUBLIC cxx_std_14)
+target_include_directories(test_cpp_ext_chaotic_good_test
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${_gRPC_ADDRESS_SORTING_INCLUDE_DIR}
+    ${_gRPC_RE2_INCLUDE_DIR}
+    ${_gRPC_SSL_INCLUDE_DIR}
+    ${_gRPC_UPB_GENERATED_DIR}
+    ${_gRPC_UPB_GRPC_GENERATED_DIR}
+    ${_gRPC_UPB_INCLUDE_DIR}
+    ${_gRPC_XXHASH_INCLUDE_DIR}
+    ${_gRPC_ZLIB_INCLUDE_DIR}
+    third_party/googletest/googletest/include
+    third_party/googletest/googletest
+    third_party/googletest/googlemock/include
+    third_party/googletest/googlemock
+    ${_gRPC_PROTO_GENS_DIR}
+)
+
+target_link_libraries(test_cpp_ext_chaotic_good_test
+  ${_gRPC_ALLTARGETS_LIBRARIES}
+  gtest
+  grpc++
+  grpc_test_util
 )
 
 
@@ -30481,6 +30716,7 @@ add_executable(timeout_before_request_call_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/timeout_before_request_call.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -30532,7 +30768,6 @@ add_executable(timeout_encoding_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -30834,7 +31069,6 @@ add_executable(tls_security_connector_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -30986,6 +31220,7 @@ add_executable(trailing_metadata_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/trailing_metadata.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -31503,7 +31738,6 @@ endif()
 if(gRPC_BUILD_TESTS)
 
 add_executable(uuid_v4_test
-  src/core/lib/gprpp/uuid_v4.cc
   test/core/gprpp/uuid_v4_test.cc
 )
 if(WIN32 AND MSVC)
@@ -31721,6 +31955,7 @@ if(gRPC_BUILD_TESTS)
 
 add_executable(weighted_round_robin_config_test
   test/core/client_channel/lb_policy/weighted_round_robin_config_test.cc
+  test/core/util/fake_stats_plugin.cc
 )
 if(WIN32 AND MSVC)
   if(BUILD_SHARED_LIBS)
@@ -31769,6 +32004,7 @@ add_executable(weighted_round_robin_test
   test/core/client_channel/lb_policy/weighted_round_robin_test.cc
   test/core/event_engine/event_engine_test_utils.cc
   test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.cc
+  test/core/util/fake_stats_plugin.cc
 )
 if(WIN32 AND MSVC)
   if(BUILD_SHARED_LIBS)
@@ -32220,6 +32456,7 @@ add_executable(write_buffering_at_end_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/write_buffering_at_end.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -32282,6 +32519,7 @@ add_executable(write_buffering_test
   test/core/end2end/fixtures/proxy.cc
   test/core/end2end/tests/write_buffering.cc
   test/core/event_engine/event_engine_test_utils.cc
+  test/core/util/fake_stats_plugin.cc
   test/core/util/test_lb_policies.cc
 )
 if(WIN32 AND MSVC)
@@ -32387,13 +32625,18 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/orca_load_report.grpc.pb.cc
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/orca_load_report.pb.h
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/orca_load_report.grpc.pb.h
+    ${_gRPC_PROTO_GENS_DIR}/test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.pb.cc
+    ${_gRPC_PROTO_GENS_DIR}/test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.grpc.pb.cc
+    ${_gRPC_PROTO_GENS_DIR}/test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.pb.h
+    ${_gRPC_PROTO_GENS_DIR}/test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.grpc.pb.h
+    test/core/event_engine/event_engine_test_utils.cc
+    test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.cc
     test/core/util/cmdline.cc
     test/core/util/fuzzer_util.cc
     test/core/util/grpc_profiler.cc
     test/core/util/histogram.cc
     test/core/util/mock_endpoint.cc
     test/core/util/parse_hexstring.cc
-    test/core/util/passthru_endpoint.cc
     test/core/util/resolve_localhost_ip46.cc
     test/core/util/slice_splitter.cc
     test/core/util/tracer_util.cc
@@ -33375,6 +33618,7 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/string.grpc.pb.cc
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/string.pb.h
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/string.grpc.pb.h
+    test/core/util/fake_stats_plugin.cc
     test/cpp/end2end/test_service_impl.cc
     test/cpp/end2end/xds/xds_core_end2end_test.cc
     test/cpp/end2end/xds/xds_end2end_test_lib.cc
@@ -33491,7 +33735,6 @@ add_executable(xds_credentials_test
   test/core/util/histogram.cc
   test/core/util/mock_endpoint.cc
   test/core/util/parse_hexstring.cc
-  test/core/util/passthru_endpoint.cc
   test/core/util/resolve_localhost_ip46.cc
   test/core/util/slice_splitter.cc
   test/core/util/tracer_util.cc
@@ -36074,6 +36317,7 @@ if(_gRPC_PLATFORM_LINUX OR _gRPC_PLATFORM_MAC OR _gRPC_PLATFORM_POSIX)
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/wrr_locality.grpc.pb.cc
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/wrr_locality.pb.h
     ${_gRPC_PROTO_GENS_DIR}/src/proto/grpc/testing/xds/v3/wrr_locality.grpc.pb.h
+    test/core/util/fake_stats_plugin.cc
     test/cpp/end2end/test_service_impl.cc
     test/cpp/end2end/xds/xds_end2end_test_lib.cc
     test/cpp/end2end/xds/xds_server.cc
@@ -36186,7 +36430,7 @@ generate_pkgconfig(
   "gpr"
   "gRPC platform support library"
   "${gRPC_CORE_VERSION}"
-  "absl_any_invocable absl_base absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_memory absl_optional absl_random_random absl_status absl_str_format absl_strings absl_synchronization absl_time absl_variant"
+  "absl_any_invocable absl_base absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_log absl_log_severity absl_memory absl_optional absl_random_random absl_status absl_str_format absl_strings absl_synchronization absl_time absl_variant"
   ""
   "-lgpr"
   ""
@@ -36197,7 +36441,7 @@ generate_pkgconfig(
   "gRPC"
   "high performance general RPC framework"
   "${gRPC_CORE_VERSION}"
-  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_config absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_memory absl_optional absl_random_bit_gen_ref absl_random_distributions absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr"
+  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_config absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_log absl_log_severity absl_memory absl_no_destructor absl_optional absl_random_bit_gen_ref absl_random_distributions absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr"
   "libcares openssl re2 zlib"
   "-lgrpc"
   "-laddress_sorting -lupb_textformat_lib -lupb_json_lib -lutf8_range_lib -lupb_message_lib -lupb_mem_lib -lupb_base_lib"
@@ -36208,7 +36452,7 @@ generate_pkgconfig(
   "gRPC unsecure"
   "high performance general RPC framework without SSL"
   "${gRPC_CORE_VERSION}"
-  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_config absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_memory absl_optional absl_random_bit_gen_ref absl_random_distributions absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr"
+  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_config absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_log absl_log_severity absl_memory absl_no_destructor absl_optional absl_random_bit_gen_ref absl_random_distributions absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr"
   "libcares zlib"
   "-lgrpc_unsecure"
   "-laddress_sorting -lutf8_range_lib -lupb_message_lib -lupb_mem_lib -lupb_base_lib"
@@ -36219,7 +36463,7 @@ generate_pkgconfig(
   "gRPC++"
   "C++ wrapper for gRPC"
   "${gRPC_CPP_VERSION}"
-  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_config absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_memory absl_optional absl_random_bit_gen_ref absl_random_distributions absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr grpc"
+  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_config absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_log absl_log_severity absl_memory absl_no_destructor absl_optional absl_random_bit_gen_ref absl_random_distributions absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr grpc"
   "libcares openssl re2 zlib"
   "-lgrpc++"
   "-laddress_sorting -lupb_textformat_lib -lupb_json_lib -lutf8_range_lib -lupb_message_lib -lupb_mem_lib -lupb_base_lib"
@@ -36230,7 +36474,7 @@ generate_pkgconfig(
   "gRPC++ unsecure"
   "C++ wrapper for gRPC without SSL"
   "${gRPC_CPP_VERSION}"
-  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_config absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_memory absl_optional absl_random_bit_gen_ref absl_random_distributions absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr grpc_unsecure"
+  "absl_algorithm_container absl_any_invocable absl_base absl_bind_front absl_cleanup absl_config absl_cord absl_core_headers absl_flags absl_flags_marshalling absl_flat_hash_map absl_flat_hash_set absl_function_ref absl_hash absl_inlined_vector absl_log absl_log_severity absl_memory absl_no_destructor absl_optional absl_random_bit_gen_ref absl_random_distributions absl_random_random absl_span absl_status absl_statusor absl_str_format absl_strings absl_synchronization absl_time absl_type_traits absl_utility absl_variant gpr grpc_unsecure"
   "libcares zlib"
   "-lgrpc++_unsecure"
   "-laddress_sorting -lutf8_range_lib -lupb_message_lib -lupb_mem_lib -lupb_base_lib"
