@@ -41,6 +41,7 @@ import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.OneofDescriptor;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.LegacyDescriptorsUtil.LegacyFileDescriptor;
 import com.google.protobuf.Message;
 import com.google.protobuf.UnknownFieldSet;
 import com.google.protobuf.util.JsonFormat;
@@ -72,6 +73,8 @@ public class RubyMessage extends RubyObject {
     this.builder = DynamicMessage.newBuilder(descriptor);
     this.fields = new HashMap<FieldDescriptor, IRubyObject>();
     this.oneofCases = new HashMap<OneofDescriptor, FieldDescriptor>();
+    this.proto3 =
+        LegacyFileDescriptor.getSyntax(descriptor.getFile()) == LegacyFileDescriptor.Syntax.PROTO3;
   }
 
   /*
@@ -199,7 +202,7 @@ public class RubyMessage extends RubyObject {
     sb.append(cname).append(colon);
 
     for (FieldDescriptor fd : descriptor.getFields()) {
-      if (fd.hasPresence() && !(fields.containsKey(fd) || builder.hasField(fd))) {
+      if (fd.hasPresence() && !fields.containsKey(fd)) {
         continue;
       }
       if (addComma) {
@@ -547,8 +550,7 @@ public class RubyMessage extends RubyObject {
       } else if (fields.containsKey(fieldDescriptor)) {
         dup.setFieldInternal(context, fieldDescriptor, fields.get(fieldDescriptor));
       } else if (this.builder.hasField(fieldDescriptor)) {
-        dup.setFieldInternal(
-            context,
+        dup.fields.put(
             fieldDescriptor,
             wrapField(context, fieldDescriptor, this.builder.getField(fieldDescriptor)));
       }
@@ -640,15 +642,15 @@ public class RubyMessage extends RubyObject {
           e.getMessage());
     }
 
-    ret.builder
-        .getUnknownFields()
-        .asMap()
-        .forEach(
-            (i, values) -> {
-              FieldDescriptor fd = ret.builder.getDescriptorForType().findFieldByNumber(i);
-              if (fd != null && fd.isRepeated() && fd.getType() == FieldDescriptor.Type.ENUM) {
-                // Need to reset unknown values in repeated enum fields
-                if (fd.legacyEnumFieldTreatedAsClosed()) {
+    if (!ret.proto3) {
+      // Need to reset unknown values in repeated enum fields
+      ret.builder
+          .getUnknownFields()
+          .asMap()
+          .forEach(
+              (i, values) -> {
+                FieldDescriptor fd = ret.builder.getDescriptorForType().findFieldByNumber(i);
+                if (fd != null && fd.isRepeated() && fd.getType() == FieldDescriptor.Type.ENUM) {
                   EnumDescriptor ed = fd.getEnumType();
                   values
                       .getVarintList()
@@ -658,10 +660,10 @@ public class RubyMessage extends RubyObject {
                                 fd, ed.findValueByNumberCreatingIfUnknown(value.intValue()));
                           });
                 }
-              }
-            });
+              });
+    }
     if (freeze) {
-      ret.freeze(context);
+      ret.deepFreeze(context);
     }
     return ret;
   }
@@ -700,7 +702,7 @@ public class RubyMessage extends RubyObject {
           options.fastARef(runtime.newSymbol("format_enums_as_integers"));
 
       if (emitDefaults != null && emitDefaults.isTrue()) {
-        printer = printer.alwaysPrintFieldsWithNoPresence();
+        printer = printer.includingDefaultValueFields();
       }
 
       if (preserveNames != null && preserveNames.isTrue()) {
@@ -784,47 +786,47 @@ public class RubyMessage extends RubyObject {
   public IRubyObject toHash(ThreadContext context) {
     Ruby runtime = context.runtime;
     RubyHash ret = RubyHash.newHash(runtime);
-    build(context, 0, SINK_MAXIMUM_NESTING); // Sync Ruby data to the Builder object.
-    for (Map.Entry<FieldDescriptor, Object> field : builder.getAllFields().entrySet()) {
-      FieldDescriptor fdef = field.getKey();
-      IRubyObject value = getFieldInternal(context, fdef, !fdef.hasPresence());
+    for (FieldDescriptor fdef : this.descriptor.getFields()) {
+      IRubyObject value = getFieldInternal(context, fdef, proto3);
 
-      if (fdef.isRepeated() && !fdef.isMapField()) {
-        if (fdef.getType() != FieldDescriptor.Type.MESSAGE) {
-          value = Helpers.invoke(context, value, "to_a");
-        } else {
-          RubyArray ary = value.convertToArray();
-          for (int i = 0; i < ary.size(); i++) {
-            IRubyObject submsg = Helpers.invoke(context, ary.eltInternal(i), "to_h");
-            ary.eltInternalSet(i, submsg);
+      if (!value.isNil()) {
+        if (fdef.isRepeated() && !fdef.isMapField()) {
+          if (!proto3 && ((RubyRepeatedField) value).size() == 0)
+            continue; // Don't output empty repeated fields for proto2
+          if (fdef.getType() != FieldDescriptor.Type.MESSAGE) {
+            value = Helpers.invoke(context, value, "to_a");
+          } else {
+            RubyArray ary = value.convertToArray();
+            for (int i = 0; i < ary.size(); i++) {
+              IRubyObject submsg = Helpers.invoke(context, ary.eltInternal(i), "to_h");
+              ary.eltInternalSet(i, submsg);
+            }
+
+            value = ary.to_ary();
           }
-
-          value = ary.to_ary();
+        } else if (value.respondsTo("to_h")) {
+          value = Helpers.invoke(context, value, "to_h");
+        } else if (value.respondsTo("to_a")) {
+          value = Helpers.invoke(context, value, "to_a");
         }
-      } else if (value.respondsTo("to_h")) {
-        value = Helpers.invoke(context, value, "to_h");
-      } else if (value.respondsTo("to_a")) {
-        value = Helpers.invoke(context, value, "to_a");
       }
-      ret.fastASet(runtime.newSymbol(fdef.getName()), value);
+      if (proto3 || !value.isNil()) {
+        ret.fastASet(runtime.newSymbol(fdef.getName()), value);
+      }
     }
     return ret;
   }
 
-  @JRubyMethod
-  public IRubyObject freeze(ThreadContext context) {
-    if (isFrozen()) {
-      return this;
-    }
+  protected IRubyObject deepFreeze(ThreadContext context) {
     setFrozen(true);
     for (FieldDescriptor fdef : descriptor.getFields()) {
       if (fdef.isMapField()) {
-        ((RubyMap) fields.get(fdef)).freeze(context);
+        ((RubyMap) fields.get(fdef)).deepFreeze(context);
       } else if (fdef.isRepeated()) {
-        this.getRepeatedField(context, fdef).freeze(context);
+        this.getRepeatedField(context, fdef).deepFreeze(context);
       } else if (fields.containsKey(fdef)) {
         if (fdef.getType() == FieldDescriptor.Type.MESSAGE) {
-          ((RubyMessage) fields.get(fdef)).freeze(context);
+          ((RubyMessage) fields.get(fdef)).deepFreeze(context);
         }
       }
     }
@@ -1338,7 +1340,7 @@ public class RubyMessage extends RubyObject {
         // Keep track of what Oneofs are set
         if (value.isNil()) {
           oneofCases.remove(oneofDescriptor);
-          if (fieldDescriptor.getRealContainingOneof() != null) {
+          if (!oneofDescriptor.isSynthetic()) {
             addValue = false;
           }
         } else {
@@ -1502,4 +1504,5 @@ public class RubyMessage extends RubyObject {
   private RubyClass cRepeatedField;
   private RubyClass cMap;
   private boolean ignoreUnknownFieldsOnInit = false;
+  private boolean proto3;
 }

@@ -372,15 +372,11 @@ public class RubyMap extends RubyObject {
     return RubyHash.newHash(context.runtime, mapForHash, context.nil);
   }
 
-  @JRubyMethod
-  public IRubyObject freeze(ThreadContext context) {
-    if (isFrozen()) {
-      return this;
-    }
+  protected IRubyObject deepFreeze(ThreadContext context) {
     setFrozen(true);
     if (valueType == FieldDescriptor.Type.MESSAGE) {
       for (IRubyObject key : table.keySet()) {
-        ((RubyMessage) table.get(key)).freeze(context);
+        ((RubyMessage) table.get(key)).deepFreeze(context);
       }
     }
     return this;

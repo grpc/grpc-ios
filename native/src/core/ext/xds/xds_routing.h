@@ -19,6 +19,8 @@
 #ifndef GRPC_SRC_CORE_EXT_XDS_XDS_ROUTING_H
 #define GRPC_SRC_CORE_EXT_XDS_XDS_ROUTING_H
 
+#include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 
 #include <map>
@@ -28,8 +30,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-
-#include <grpc/support/port_platform.h>
 
 #include "src/core/ext/xds/xds_http_filters.h"
 #include "src/core/ext/xds/xds_listener.h"

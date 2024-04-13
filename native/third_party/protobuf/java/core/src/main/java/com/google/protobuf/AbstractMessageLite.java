@@ -113,6 +113,12 @@ public abstract class AbstractMessageLite<
     }
   }
 
+  // For binary compatibility
+  @Deprecated
+  protected static <T> void addAll(final Iterable<T> values, final Collection<? super T> list) {
+    Builder.addAll(values, (List) list);
+  }
+
   protected static <T> void addAll(final Iterable<T> values, final List<? super T> list) {
     Builder.addAll(values, list);
   }

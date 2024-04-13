@@ -14,6 +14,8 @@
 // limitations under the License.
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/ext/xds/xds_bootstrap_grpc.h"
 
 #include <stdlib.h>
@@ -34,7 +36,6 @@
 #include "absl/types/optional.h"
 
 #include <grpc/support/json.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/config/core_configuration.h"
 #include "src/core/lib/gpr/string.h"

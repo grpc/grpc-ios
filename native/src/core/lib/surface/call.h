@@ -19,6 +19,8 @@
 #ifndef GRPC_SRC_CORE_LIB_SURFACE_CALL_H
 #define GRPC_SRC_CORE_LIB_SURFACE_CALL_H
 
+#include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -31,7 +33,6 @@
 #include <grpc/impl/compression_types.h>
 #include <grpc/support/atm.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/channel_fwd.h"
 #include "src/core/lib/channel/channel_stack.h"

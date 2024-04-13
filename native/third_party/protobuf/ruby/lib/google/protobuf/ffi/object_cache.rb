@@ -18,9 +18,9 @@ module Google
 
     def self.cache_implementation
       if interpreter_supports_non_finalized_keys_in_weak_map? and SIZEOF_LONG >= SIZEOF_VALUE
-        Google::Protobuf::Internal::ObjectCache
+        Google::Protobuf::ObjectCache
       else
-        Google::Protobuf::Internal::LegacyObjectCache
+        Google::Protobuf::LegacyObjectCache
       end
     end
 

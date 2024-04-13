@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "absl/flags/flag.h"
-#include "absl/log/check.h"
 
 #include <grpc/support/log.h>
 #include <grpc/support/time.h>
@@ -325,7 +324,7 @@ int main(int argc, char** argv) {
             metrics_service.CreateQpsGauge(buffer, &is_already_created)));
 
         // The QpsGauge should not have been already created
-        CHECK(!is_already_created);
+        GPR_ASSERT(!is_already_created);
       }
     }
   }

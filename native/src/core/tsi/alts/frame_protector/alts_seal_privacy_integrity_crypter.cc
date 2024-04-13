@@ -16,8 +16,9 @@
 //
 //
 
-#include <grpc/support/alloc.h>
 #include <grpc/support/port_platform.h>
+
+#include <grpc/support/alloc.h>
 
 #include "src/core/tsi/alts/frame_protector/alts_counter.h"
 #include "src/core/tsi/alts/frame_protector/alts_crypter.h"

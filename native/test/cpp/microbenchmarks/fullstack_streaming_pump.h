@@ -25,8 +25,6 @@
 
 #include <benchmark/benchmark.h>
 
-#include "absl/log/check.h"
-
 #include "src/proto/grpc/testing/echo.grpc.pb.h"
 #include "test/cpp/microbenchmarks/fullstack_context_mutators.h"
 #include "test/cpp/microbenchmarks/fullstack_fixtures.h"
@@ -63,17 +61,17 @@ static void BM_PumpStreamClientToServer(benchmark::State& state) {
     void* t;
     bool ok;
     while (need_tags) {
-      CHECK(fixture->cq()->Next(&t, &ok));
-      CHECK(ok);
+      GPR_ASSERT(fixture->cq()->Next(&t, &ok));
+      GPR_ASSERT(ok);
       int i = static_cast<int>(reinterpret_cast<intptr_t>(t));
-      CHECK(need_tags & (1 << i));
+      GPR_ASSERT(need_tags & (1 << i));
       need_tags &= ~(1 << i);
     }
     response_rw.Read(&recv_request, tag(0));
     for (auto _ : state) {
       request_rw->Write(send_request, tag(1));
       while (true) {
-        CHECK(fixture->cq()->Next(&t, &ok));
+        GPR_ASSERT(fixture->cq()->Next(&t, &ok));
         if (t == tag(0)) {
           response_rw.Read(&recv_request, tag(0));
         } else if (t == tag(1)) {
@@ -86,9 +84,9 @@ static void BM_PumpStreamClientToServer(benchmark::State& state) {
     request_rw->WritesDone(tag(1));
     need_tags = (1 << 0) | (1 << 1);
     while (need_tags) {
-      CHECK(fixture->cq()->Next(&t, &ok));
+      GPR_ASSERT(fixture->cq()->Next(&t, &ok));
       int i = static_cast<int>(reinterpret_cast<intptr_t>(t));
-      CHECK(need_tags & (1 << i));
+      GPR_ASSERT(need_tags & (1 << i));
       need_tags &= ~(1 << i);
     }
     response_rw.Finish(Status::OK, tag(0));
@@ -96,12 +94,12 @@ static void BM_PumpStreamClientToServer(benchmark::State& state) {
     request_rw->Finish(&final_status, tag(1));
     need_tags = (1 << 0) | (1 << 1);
     while (need_tags) {
-      CHECK(fixture->cq()->Next(&t, &ok));
+      GPR_ASSERT(fixture->cq()->Next(&t, &ok));
       int i = static_cast<int>(reinterpret_cast<intptr_t>(t));
-      CHECK(need_tags & (1 << i));
+      GPR_ASSERT(need_tags & (1 << i));
       need_tags &= ~(1 << i);
     }
-    CHECK(final_status.ok());
+    GPR_ASSERT(final_status.ok());
   }
   fixture.reset();
   state.SetBytesProcessed(state.range(0) * state.iterations());
@@ -130,17 +128,17 @@ static void BM_PumpStreamServerToClient(benchmark::State& state) {
     void* t;
     bool ok;
     while (need_tags) {
-      CHECK(fixture->cq()->Next(&t, &ok));
-      CHECK(ok);
+      GPR_ASSERT(fixture->cq()->Next(&t, &ok));
+      GPR_ASSERT(ok);
       int i = static_cast<int>(reinterpret_cast<intptr_t>(t));
-      CHECK(need_tags & (1 << i));
+      GPR_ASSERT(need_tags & (1 << i));
       need_tags &= ~(1 << i);
     }
     request_rw->Read(&recv_response, tag(0));
     for (auto _ : state) {
       response_rw.Write(send_response, tag(1));
       while (true) {
-        CHECK(fixture->cq()->Next(&t, &ok));
+        GPR_ASSERT(fixture->cq()->Next(&t, &ok));
         if (t == tag(0)) {
           request_rw->Read(&recv_response, tag(0));
         } else if (t == tag(1)) {
@@ -153,9 +151,9 @@ static void BM_PumpStreamServerToClient(benchmark::State& state) {
     response_rw.Finish(Status::OK, tag(1));
     need_tags = (1 << 0) | (1 << 1);
     while (need_tags) {
-      CHECK(fixture->cq()->Next(&t, &ok));
+      GPR_ASSERT(fixture->cq()->Next(&t, &ok));
       int i = static_cast<int>(reinterpret_cast<intptr_t>(t));
-      CHECK(need_tags & (1 << i));
+      GPR_ASSERT(need_tags & (1 << i));
       need_tags &= ~(1 << i);
     }
   }

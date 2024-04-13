@@ -10,6 +10,7 @@ module Google
     class FFI
       # FileDescriptor
       attach_function :file_def_name,   :upb_FileDef_Name,   [:FileDef], :string
+      attach_function :file_def_syntax, :upb_FileDef_Syntax, [:FileDef], Syntax
       attach_function :file_def_pool,   :upb_FileDef_Pool,   [:FileDef], :DefPool
       attach_function :file_options,    :FileDescriptor_serialized_options,  [:FileDef, :pointer, Internal::Arena], :pointer
     end
@@ -30,6 +31,17 @@ module Google
         "#{self.class.name}: #{name}"
       end
 
+      def syntax
+        case Google::Protobuf::FFI.file_def_syntax(@file_def)
+        when :Proto3
+          :proto3
+        when :Proto2
+          :proto2
+        else
+          nil
+        end
+      end
+
       def name
         Google::Protobuf::FFI.file_def_name(@file_def)
       end
@@ -39,7 +51,7 @@ module Google
           size_ptr = ::FFI::MemoryPointer.new(:size_t, 1)
           temporary_arena = Google::Protobuf::FFI.create_arena
           buffer = Google::Protobuf::FFI.file_options(@file_def, size_ptr, temporary_arena)
-          Google::Protobuf::FileOptions.decode(buffer.read_string_length(size_ptr.read(:size_t)).force_encoding("ASCII-8BIT").freeze).freeze
+          Google::Protobuf::FileOptions.decode(buffer.read_string_length(size_ptr.read(:size_t)).force_encoding("ASCII-8BIT").freeze).send(:internal_deep_freeze)
         end
       end
     end

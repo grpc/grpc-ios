@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/security/authorization/rbac_translator.h"
 
 #include <stddef.h>
@@ -34,7 +36,6 @@
 #include <grpc/grpc_audit_logging.h>
 #include <grpc/support/json.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/gpr/useful.h"
 #include "src/core/lib/json/json.h"

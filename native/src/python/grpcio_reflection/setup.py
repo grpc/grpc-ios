@@ -61,7 +61,7 @@ PACKAGE_DIRECTORIES = {
 }
 
 INSTALL_REQUIRES = (
-    "protobuf>=5.26.1,<6.0dev",
+    "protobuf>=4.21.6",
     "grpcio>={version}".format(version=grpc_version.VERSION),
 )
 

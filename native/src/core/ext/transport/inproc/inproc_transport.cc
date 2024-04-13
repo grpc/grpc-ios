@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/ext/transport/inproc/inproc_transport.h"
 
 #include <atomic>
 
 #include <grpc/grpc.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/ext/transport/inproc/legacy_inproc_transport.h"
 #include "src/core/lib/config/core_configuration.h"

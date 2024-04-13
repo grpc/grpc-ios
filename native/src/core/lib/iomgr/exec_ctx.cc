@@ -16,12 +16,13 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/iomgr/exec_ctx.h"
 
 #include "absl/strings/str_format.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/sync.h>
 
 #include "src/core/lib/gprpp/crash.h"

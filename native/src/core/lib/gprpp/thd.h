@@ -21,6 +21,8 @@
 
 /// Internal thread interface.
 
+#include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 
 #include <memory>
@@ -29,7 +31,6 @@
 #include "absl/functional/any_invocable.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/thd_id.h>
 
 namespace grpc_core {

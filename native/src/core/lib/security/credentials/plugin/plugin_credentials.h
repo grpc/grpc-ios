@@ -19,6 +19,8 @@
 #ifndef GRPC_SRC_CORE_LIB_SECURITY_CREDENTIALS_PLUGIN_PLUGIN_CREDENTIALS_H
 #define GRPC_SRC_CORE_LIB_SECURITY_CREDENTIALS_PLUGIN_PLUGIN_CREDENTIALS_H
 
+#include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 
 #include <atomic>
@@ -32,7 +34,6 @@
 #include <grpc/grpc_security.h>
 #include <grpc/grpc_security_constants.h>
 #include <grpc/status.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/gpr/useful.h"

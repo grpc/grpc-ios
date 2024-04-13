@@ -16,10 +16,11 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/iomgr/buffer_list.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/time.h>
 
 #include "src/core/lib/gprpp/crash.h"

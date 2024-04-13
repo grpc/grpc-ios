@@ -128,11 +128,15 @@ impl ProxiedWithPresence for [u8] {
     type PresentMutData<'msg> = BytesPresentMutData<'msg>;
     type AbsentMutData<'msg> = BytesAbsentMutData<'msg>;
 
-    fn clear_present_field(present_mutator: Self::PresentMutData<'_>) -> Self::AbsentMutData<'_> {
+    fn clear_present_field<'a>(
+        present_mutator: Self::PresentMutData<'a>,
+    ) -> Self::AbsentMutData<'a> {
         present_mutator.clear()
     }
 
-    fn set_absent_to_default(absent_mutator: Self::AbsentMutData<'_>) -> Self::PresentMutData<'_> {
+    fn set_absent_to_default<'a>(
+        absent_mutator: Self::AbsentMutData<'a>,
+    ) -> Self::PresentMutData<'a> {
         absent_mutator.set_absent_to_default()
     }
 }
@@ -181,10 +185,7 @@ impl<'msg> MutProxy<'msg> for BytesMut<'msg> {
 }
 
 impl SettableValue<[u8]> for &'_ [u8] {
-    fn set_on<'msg>(self, _private: Private, mutator: Mut<'msg, [u8]>)
-    where
-        [u8]: 'msg,
-    {
+    fn set_on(self, _private: Private, mutator: BytesMut<'_>) {
         // SAFETY: this is a `bytes` field with no restriction on UTF-8.
         unsafe { mutator.inner.set(self) }
     }
@@ -344,7 +345,7 @@ impl ProtoStr {
     /// [`U+FFFD REPLACEMENT CHARACTER`].
     ///
     /// [`U+FFFD REPLACEMENT CHARACTER`]: std::char::REPLACEMENT_CHARACTER
-    pub fn chars(&self) -> impl Iterator<Item = char> + '_ + fmt::Debug {
+    pub fn chars(&self) -> impl Iterator<Item = char> + '_ {
         Utf8Chunks::new(self.as_bytes()).flat_map(|chunk| {
             let mut yield_replacement_char = !chunk.invalid().is_empty();
             chunk.valid().chars().chain(iter::from_fn(move || {
@@ -694,10 +695,7 @@ impl<'msg> MutProxy<'msg> for ProtoStrMut<'msg> {
 }
 
 impl SettableValue<ProtoStr> for &'_ ProtoStr {
-    fn set_on<'b>(self, _private: Private, mutator: Mut<'b, ProtoStr>)
-    where
-        ProtoStr: 'b,
-    {
+    fn set_on(self, _private: Private, mutator: ProtoStrMut<'_>) {
         // SAFETY: A `ProtoStr` has the same UTF-8 validity requirement as the runtime.
         unsafe { mutator.bytes.inner.set(self.as_bytes()) }
     }

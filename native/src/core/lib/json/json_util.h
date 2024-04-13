@@ -19,6 +19,8 @@
 #ifndef GRPC_SRC_CORE_LIB_JSON_JSON_UTIL_H
 #define GRPC_SRC_CORE_LIB_JSON_JSON_UTIL_H
 
+#include <grpc/support/port_platform.h>
+
 #include <algorithm>
 #include <map>
 #include <string>
@@ -29,8 +31,6 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/iomgr/error.h"

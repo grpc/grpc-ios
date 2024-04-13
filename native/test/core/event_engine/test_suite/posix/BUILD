@@ -23,7 +23,6 @@ grpc_cc_library(
     testonly = True,
     srcs = ["oracle_event_engine_posix.cc"],
     hdrs = ["oracle_event_engine_posix.h"],
-    external_deps = ["absl/log:check"],
     tags = [
         "cpu:10",
         "no_windows",

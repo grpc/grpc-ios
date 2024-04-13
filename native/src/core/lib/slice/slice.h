@@ -15,6 +15,8 @@
 #ifndef GRPC_SRC_CORE_LIB_SLICE_SLICE_H
 #define GRPC_SRC_CORE_LIB_SLICE_SLICE_H
 
+#include <grpc/support/port_platform.h>
+
 #include <string.h>
 
 #include <cstdint>
@@ -27,7 +29,6 @@
 #include <grpc/event_engine/slice.h>
 #include <grpc/slice.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/gpr/string.h"
 #include "src/core/lib/gprpp/debug_location.h"

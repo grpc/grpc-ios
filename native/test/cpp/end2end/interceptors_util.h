@@ -23,7 +23,6 @@
 
 #include <gtest/gtest.h>
 
-#include "absl/log/check.h"
 #include "absl/strings/str_format.h"
 
 #include <grpcpp/channel.h>
@@ -294,7 +293,7 @@ class Verifier {
   // This version of Verify allows optionally ignoring the
   // outcome of the expectation
   void Verify(CompletionQueue* cq, bool ignore_ok) {
-    CHECK(!expectations_.empty() || !maybe_expectations_.empty());
+    GPR_ASSERT(!expectations_.empty() || !maybe_expectations_.empty());
     while (!expectations_.empty()) {
       Next(cq, ignore_ok);
     }

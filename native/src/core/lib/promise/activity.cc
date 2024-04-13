@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/promise/activity.h"
 
 #include <stddef.h>
@@ -21,8 +23,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
-
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/gprpp/atomic_utils.h"
 

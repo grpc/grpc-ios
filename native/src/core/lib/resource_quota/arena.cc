@@ -16,13 +16,14 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/resource_quota/arena.h"
 
 #include <atomic>
 #include <new>
 
 #include <grpc/support/alloc.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/gpr/alloc.h"
 

@@ -2681,6 +2681,8 @@ libs:
   - src/core/tsi/transport_security_grpc.h
   - src/core/tsi/transport_security_interface.h
   - third_party/upb/upb/generated_code_support.h
+  - third_party/upb/upb/message/accessors.h
+  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/mini_descriptor/build_enum.h
   - third_party/upb/upb/mini_descriptor/decode.h
   - third_party/upb/upb/mini_descriptor/internal/base92.h
@@ -2691,12 +2693,12 @@ libs:
   - third_party/upb/upb/mini_descriptor/internal/wire_constants.h
   - third_party/upb/upb/mini_descriptor/link.h
   - third_party/upb/upb/wire/decode.h
+  - third_party/upb/upb/wire/decode_fast.h
   - third_party/upb/upb/wire/encode.h
   - third_party/upb/upb/wire/eps_copy_input_stream.h
   - third_party/upb/upb/wire/internal/constants.h
-  - third_party/upb/upb/wire/internal/decode_fast.h
-  - third_party/upb/upb/wire/internal/decoder.h
-  - third_party/upb/upb/wire/internal/reader.h
+  - third_party/upb/upb/wire/internal/decode.h
+  - third_party/upb/upb/wire/internal/swap.h
   - third_party/upb/upb/wire/reader.h
   - third_party/upb/upb/wire/types.h
   src:
@@ -3095,19 +3097,20 @@ libs:
   - src/core/tsi/local_transport_security.cc
   - src/core/tsi/transport_security.cc
   - src/core/tsi/transport_security_grpc.cc
+  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/mini_descriptor/build_enum.c
   - third_party/upb/upb/mini_descriptor/decode.c
   - third_party/upb/upb/mini_descriptor/internal/base92.c
   - third_party/upb/upb/mini_descriptor/internal/encode.c
   - third_party/upb/upb/mini_descriptor/link.c
   - third_party/upb/upb/wire/decode.c
+  - third_party/upb/upb/wire/decode_fast.c
   - third_party/upb/upb/wire/encode.c
   - third_party/upb/upb/wire/eps_copy_input_stream.c
-  - third_party/upb/upb/wire/internal/decode_fast.c
   - third_party/upb/upb/wire/reader.c
   deps:
-  - utf8_range_lib
   - upb_message_lib
+  - utf8_range_lib
   - z
   - absl/algorithm:container
   - absl/base:config
@@ -3262,7 +3265,6 @@ libs:
   - third_party/upb/upb/base/status.h
   - third_party/upb/upb/base/status.hpp
   - third_party/upb/upb/base/string_view.h
-  - third_party/upb/upb/base/upcast.h
   - third_party/upb/upb/port/atomic.h
   - third_party/upb/upb/port/def.inc
   - third_party/upb/upb/port/undef.inc
@@ -3275,13 +3277,15 @@ libs:
   language: c
   public_headers: []
   headers:
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb.h
   - third_party/upb/upb/json/decode.h
   - third_party/upb/upb/json/encode.h
   - third_party/upb/upb/lex/atoi.h
   - third_party/upb/upb/lex/round_trip.h
   - third_party/upb/upb/lex/strtod.h
   - third_party/upb/upb/lex/unicode.h
-  - third_party/upb/upb/message/copy.h
+  - third_party/upb/upb/message/accessors.h
+  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/mini_descriptor/build_enum.h
   - third_party/upb/upb/mini_descriptor/decode.h
   - third_party/upb/upb/mini_descriptor/internal/base92.h
@@ -3317,7 +3321,6 @@ libs:
   - third_party/upb/upb/reflection/internal/oneof_def.h
   - third_party/upb/upb/reflection/internal/service_def.h
   - third_party/upb/upb/reflection/internal/strdup2.h
-  - third_party/upb/upb/reflection/internal/upb_edition_defaults.h
   - third_party/upb/upb/reflection/message.h
   - third_party/upb/upb/reflection/message.hpp
   - third_party/upb/upb/reflection/message_def.h
@@ -3326,22 +3329,23 @@ libs:
   - third_party/upb/upb/reflection/oneof_def.h
   - third_party/upb/upb/reflection/service_def.h
   - third_party/upb/upb/wire/decode.h
+  - third_party/upb/upb/wire/decode_fast.h
   - third_party/upb/upb/wire/encode.h
   - third_party/upb/upb/wire/eps_copy_input_stream.h
   - third_party/upb/upb/wire/internal/constants.h
-  - third_party/upb/upb/wire/internal/decode_fast.h
-  - third_party/upb/upb/wire/internal/decoder.h
-  - third_party/upb/upb/wire/internal/reader.h
+  - third_party/upb/upb/wire/internal/decode.h
+  - third_party/upb/upb/wire/internal/swap.h
   - third_party/upb/upb/wire/reader.h
   - third_party/upb/upb/wire/types.h
   src:
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
   - third_party/upb/upb/json/decode.c
   - third_party/upb/upb/json/encode.c
   - third_party/upb/upb/lex/atoi.c
   - third_party/upb/upb/lex/round_trip.c
   - third_party/upb/upb/lex/strtod.c
   - third_party/upb/upb/lex/unicode.c
-  - third_party/upb/upb/message/copy.c
+  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/mini_descriptor/build_enum.c
   - third_party/upb/upb/mini_descriptor/decode.c
   - third_party/upb/upb/mini_descriptor/internal/base92.c
@@ -3365,13 +3369,13 @@ libs:
   - third_party/upb/upb/reflection/oneof_def.c
   - third_party/upb/upb/reflection/service_def.c
   - third_party/upb/upb/wire/decode.c
+  - third_party/upb/upb/wire/decode_fast.c
   - third_party/upb/upb/wire/encode.c
   - third_party/upb/upb/wire/eps_copy_input_stream.c
-  - third_party/upb/upb/wire/internal/decode_fast.c
   - third_party/upb/upb/wire/reader.c
   deps:
-  - utf8_range_lib
   - upb_message_lib
+  - utf8_range_lib
 - name: upb_mem_lib
   build: all
   language: c
@@ -3394,27 +3398,23 @@ libs:
   language: c
   public_headers: []
   headers:
-  - third_party/upb/upb/base/internal/endian.h
   - third_party/upb/upb/base/internal/log2.h
   - third_party/upb/upb/hash/common.h
   - third_party/upb/upb/hash/int_table.h
   - third_party/upb/upb/hash/str_table.h
-  - third_party/upb/upb/message/accessors.h
   - third_party/upb/upb/message/array.h
-  - third_party/upb/upb/message/compat.h
-  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/message/internal/array.h
   - third_party/upb/upb/message/internal/extension.h
   - third_party/upb/upb/message/internal/map.h
   - third_party/upb/upb/message/internal/map_entry.h
   - third_party/upb/upb/message/internal/map_sorter.h
   - third_party/upb/upb/message/internal/message.h
-  - third_party/upb/upb/message/internal/tagged_ptr.h
   - third_party/upb/upb/message/internal/types.h
   - third_party/upb/upb/message/map.h
   - third_party/upb/upb/message/map_gencode_util.h
   - third_party/upb/upb/message/message.h
   - third_party/upb/upb/message/tagged_ptr.h
+  - third_party/upb/upb/message/types.h
   - third_party/upb/upb/message/value.h
   - third_party/upb/upb/mini_table/enum.h
   - third_party/upb/upb/mini_table/extension.h
@@ -3426,17 +3426,12 @@ libs:
   - third_party/upb/upb/mini_table/internal/field.h
   - third_party/upb/upb/mini_table/internal/file.h
   - third_party/upb/upb/mini_table/internal/message.h
-  - third_party/upb/upb/mini_table/internal/size_log2.h
   - third_party/upb/upb/mini_table/internal/sub.h
   - third_party/upb/upb/mini_table/message.h
   - third_party/upb/upb/mini_table/sub.h
   src:
   - third_party/upb/upb/hash/common.c
-  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/message/array.c
-  - third_party/upb/upb/message/compat.c
-  - third_party/upb/upb/message/internal/extension.c
-  - third_party/upb/upb/message/internal/message.c
   - third_party/upb/upb/message/map.c
   - third_party/upb/upb/message/map_sorter.c
   - third_party/upb/upb/message/message.c
@@ -3451,11 +3446,13 @@ libs:
   language: c
   public_headers: []
   headers:
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb.h
   - third_party/upb/upb/lex/atoi.h
   - third_party/upb/upb/lex/round_trip.h
   - third_party/upb/upb/lex/strtod.h
   - third_party/upb/upb/lex/unicode.h
-  - third_party/upb/upb/message/copy.h
+  - third_party/upb/upb/message/accessors.h
+  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/mini_descriptor/build_enum.h
   - third_party/upb/upb/mini_descriptor/decode.h
   - third_party/upb/upb/mini_descriptor/internal/base92.h
@@ -3491,7 +3488,6 @@ libs:
   - third_party/upb/upb/reflection/internal/oneof_def.h
   - third_party/upb/upb/reflection/internal/service_def.h
   - third_party/upb/upb/reflection/internal/strdup2.h
-  - third_party/upb/upb/reflection/internal/upb_edition_defaults.h
   - third_party/upb/upb/reflection/message.h
   - third_party/upb/upb/reflection/message.hpp
   - third_party/upb/upb/reflection/message_def.h
@@ -3501,20 +3497,21 @@ libs:
   - third_party/upb/upb/reflection/service_def.h
   - third_party/upb/upb/text/encode.h
   - third_party/upb/upb/wire/decode.h
+  - third_party/upb/upb/wire/decode_fast.h
   - third_party/upb/upb/wire/encode.h
   - third_party/upb/upb/wire/eps_copy_input_stream.h
   - third_party/upb/upb/wire/internal/constants.h
-  - third_party/upb/upb/wire/internal/decode_fast.h
-  - third_party/upb/upb/wire/internal/decoder.h
-  - third_party/upb/upb/wire/internal/reader.h
+  - third_party/upb/upb/wire/internal/decode.h
+  - third_party/upb/upb/wire/internal/swap.h
   - third_party/upb/upb/wire/reader.h
   - third_party/upb/upb/wire/types.h
   src:
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
   - third_party/upb/upb/lex/atoi.c
   - third_party/upb/upb/lex/round_trip.c
   - third_party/upb/upb/lex/strtod.c
   - third_party/upb/upb/lex/unicode.c
-  - third_party/upb/upb/message/copy.c
+  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/mini_descriptor/build_enum.c
   - third_party/upb/upb/mini_descriptor/decode.c
   - third_party/upb/upb/mini_descriptor/internal/base92.c
@@ -3539,13 +3536,13 @@ libs:
   - third_party/upb/upb/reflection/service_def.c
   - third_party/upb/upb/text/encode.c
   - third_party/upb/upb/wire/decode.c
+  - third_party/upb/upb/wire/decode_fast.c
   - third_party/upb/upb/wire/encode.c
   - third_party/upb/upb/wire/eps_copy_input_stream.c
-  - third_party/upb/upb/wire/internal/decode_fast.c
   - third_party/upb/upb/wire/reader.c
   deps:
-  - utf8_range_lib
   - upb_message_lib
+  - utf8_range_lib
 - name: utf8_range_lib
   build: all
   language: c
@@ -3553,7 +3550,9 @@ libs:
   headers:
   - third_party/utf8_range/utf8_range.h
   src:
-  - third_party/utf8_range/utf8_range.c
+  - third_party/utf8_range/naive.c
+  - third_party/utf8_range/range2-neon.c
+  - third_party/utf8_range/range2-sse.c
   deps: []
 - name: z
   build: private
@@ -3621,7 +3620,6 @@ libs:
   - test/core/util/tracer_util.cc
   - test/cpp/microbenchmarks/helpers.cc
   deps:
-  - absl/log:check
   - benchmark
   - grpc++_unsecure
   - grpc_test_util_unsecure
@@ -4394,6 +4392,7 @@ libs:
   headers:
   - src/core/ext/upb-gen/google/protobuf/any.upb.h
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.h
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.h
   - src/core/ext/upb-gen/src/proto/grpc/gcp/altscontext.upb.h
@@ -4725,6 +4724,8 @@ libs:
   - src/core/tsi/transport_security_grpc.h
   - src/core/tsi/transport_security_interface.h
   - third_party/upb/upb/generated_code_support.h
+  - third_party/upb/upb/message/accessors.h
+  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/mini_descriptor/build_enum.h
   - third_party/upb/upb/mini_descriptor/decode.h
   - third_party/upb/upb/mini_descriptor/internal/base92.h
@@ -4735,16 +4736,17 @@ libs:
   - third_party/upb/upb/mini_descriptor/internal/wire_constants.h
   - third_party/upb/upb/mini_descriptor/link.h
   - third_party/upb/upb/wire/decode.h
+  - third_party/upb/upb/wire/decode_fast.h
   - third_party/upb/upb/wire/encode.h
   - third_party/upb/upb/wire/eps_copy_input_stream.h
   - third_party/upb/upb/wire/internal/constants.h
-  - third_party/upb/upb/wire/internal/decode_fast.h
-  - third_party/upb/upb/wire/internal/decoder.h
-  - third_party/upb/upb/wire/internal/reader.h
+  - third_party/upb/upb/wire/internal/decode.h
+  - third_party/upb/upb/wire/internal/swap.h
   - third_party/upb/upb/wire/reader.h
   - third_party/upb/upb/wire/types.h
   src:
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.c
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.c
   - src/core/ext/upb-gen/src/proto/grpc/gcp/altscontext.upb_minitable.c
   - src/core/ext/upb-gen/src/proto/grpc/gcp/handshaker.upb_minitable.c
@@ -5008,20 +5010,21 @@ libs:
   - src/core/tsi/alts/handshaker/transport_security_common_api.cc
   - src/core/tsi/transport_security.cc
   - src/core/tsi/transport_security_grpc.cc
+  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/mini_descriptor/build_enum.c
   - third_party/upb/upb/mini_descriptor/decode.c
   - third_party/upb/upb/mini_descriptor/internal/base92.c
   - third_party/upb/upb/mini_descriptor/internal/encode.c
   - third_party/upb/upb/mini_descriptor/link.c
   - third_party/upb/upb/wire/decode.c
+  - third_party/upb/upb/wire/decode_fast.c
   - third_party/upb/upb/wire/encode.c
   - third_party/upb/upb/wire/eps_copy_input_stream.c
-  - third_party/upb/upb/wire/internal/decode_fast.c
   - third_party/upb/upb/wire/reader.c
   deps:
-  - utf8_range_lib
   - upb_message_lib
   - re2
+  - utf8_range_lib
   - z
   - absl/base:config
   - absl/base:no_destructor
@@ -5641,7 +5644,6 @@ targets:
   - test/cpp/end2end/async_end2end_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: auth_context_test
   gtest: true
@@ -5791,7 +5793,6 @@ targets:
   - test/cpp/interop/backend_metrics_lb_policy_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++
   - grpc_test_util
   - grpc++_test_config
@@ -5866,7 +5867,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -6095,7 +6095,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -6126,7 +6125,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: binder_transport_test
   gtest: true
@@ -6361,7 +6359,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -6372,6 +6369,7 @@ targets:
   headers:
   - src/core/ext/upb-gen/google/protobuf/any.upb.h
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.h
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.h
   - src/core/lib/avl/avl.h
@@ -6448,6 +6446,8 @@ targets:
   - src/core/lib/transport/status_conversion.h
   - src/core/lib/transport/timeout_encoding.h
   - third_party/upb/upb/generated_code_support.h
+  - third_party/upb/upb/message/accessors.h
+  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/mini_descriptor/build_enum.h
   - third_party/upb/upb/mini_descriptor/decode.h
   - third_party/upb/upb/mini_descriptor/internal/base92.h
@@ -6458,16 +6458,17 @@ targets:
   - third_party/upb/upb/mini_descriptor/internal/wire_constants.h
   - third_party/upb/upb/mini_descriptor/link.h
   - third_party/upb/upb/wire/decode.h
+  - third_party/upb/upb/wire/decode_fast.h
   - third_party/upb/upb/wire/encode.h
   - third_party/upb/upb/wire/eps_copy_input_stream.h
   - third_party/upb/upb/wire/internal/constants.h
-  - third_party/upb/upb/wire/internal/decode_fast.h
-  - third_party/upb/upb/wire/internal/decoder.h
-  - third_party/upb/upb/wire/internal/reader.h
+  - third_party/upb/upb/wire/internal/decode.h
+  - third_party/upb/upb/wire/internal/swap.h
   - third_party/upb/upb/wire/reader.h
   - third_party/upb/upb/wire/types.h
   src:
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.c
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.c
   - src/core/lib/channel/channel_args.cc
   - src/core/lib/compression/compression.cc
@@ -6507,20 +6508,21 @@ targets:
   - src/core/lib/transport/status_conversion.cc
   - src/core/lib/transport/timeout_encoding.cc
   - test/core/transport/call_filters_test.cc
+  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/mini_descriptor/build_enum.c
   - third_party/upb/upb/mini_descriptor/decode.c
   - third_party/upb/upb/mini_descriptor/internal/base92.c
   - third_party/upb/upb/mini_descriptor/internal/encode.c
   - third_party/upb/upb/mini_descriptor/link.c
   - third_party/upb/upb/wire/decode.c
+  - third_party/upb/upb/wire/decode_fast.c
   - third_party/upb/upb/wire/encode.c
   - third_party/upb/upb/wire/eps_copy_input_stream.c
-  - third_party/upb/upb/wire/internal/decode_fast.c
   - third_party/upb/upb/wire/reader.c
   deps:
   - gtest
-  - utf8_range_lib
   - upb_message_lib
+  - utf8_range_lib
   - absl/base:config
   - absl/base:no_destructor
   - absl/container:inlined_vector
@@ -6602,7 +6604,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -6679,7 +6680,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -6743,7 +6743,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -6807,7 +6806,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -6871,7 +6869,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -6952,7 +6949,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -7031,7 +7027,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -7095,7 +7090,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -7431,7 +7425,6 @@ targets:
   - test/core/event_engine/cf/cf_engine_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
   platforms:
   - linux
@@ -7456,7 +7449,6 @@ targets:
   - test/core/event_engine/test_suite/tests/timer_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
   platforms:
   - linux
@@ -7478,7 +7470,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: channel_args_test
   gtest: true
@@ -7608,7 +7599,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpcpp_channelz
   - grpc++_test_util
 - name: check_gcp_environment_linux_test
@@ -7678,6 +7668,7 @@ targets:
   headers:
   - src/core/ext/upb-gen/google/protobuf/any.upb.h
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.h
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.h
   - src/core/lib/debug/trace.h
@@ -7729,6 +7720,8 @@ targets:
   - src/core/lib/slice/slice_refcount.h
   - src/core/lib/slice/slice_string_helpers.h
   - third_party/upb/upb/generated_code_support.h
+  - third_party/upb/upb/message/accessors.h
+  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/mini_descriptor/build_enum.h
   - third_party/upb/upb/mini_descriptor/decode.h
   - third_party/upb/upb/mini_descriptor/internal/base92.h
@@ -7739,16 +7732,17 @@ targets:
   - third_party/upb/upb/mini_descriptor/internal/wire_constants.h
   - third_party/upb/upb/mini_descriptor/link.h
   - third_party/upb/upb/wire/decode.h
+  - third_party/upb/upb/wire/decode_fast.h
   - third_party/upb/upb/wire/encode.h
   - third_party/upb/upb/wire/eps_copy_input_stream.h
   - third_party/upb/upb/wire/internal/constants.h
-  - third_party/upb/upb/wire/internal/decode_fast.h
-  - third_party/upb/upb/wire/internal/decoder.h
-  - third_party/upb/upb/wire/internal/reader.h
+  - third_party/upb/upb/wire/internal/decode.h
+  - third_party/upb/upb/wire/internal/swap.h
   - third_party/upb/upb/wire/reader.h
   - third_party/upb/upb/wire/types.h
   src:
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.c
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.c
   - src/core/lib/debug/trace.cc
   - src/core/lib/experiments/config.cc
@@ -7775,20 +7769,21 @@ targets:
   - src/core/lib/slice/slice_refcount.cc
   - src/core/lib/slice/slice_string_helpers.cc
   - test/core/gprpp/chunked_vector_test.cc
+  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/mini_descriptor/build_enum.c
   - third_party/upb/upb/mini_descriptor/decode.c
   - third_party/upb/upb/mini_descriptor/internal/base92.c
   - third_party/upb/upb/mini_descriptor/internal/encode.c
   - third_party/upb/upb/mini_descriptor/link.c
   - third_party/upb/upb/wire/decode.c
+  - third_party/upb/upb/wire/decode_fast.c
   - third_party/upb/upb/wire/encode.c
   - third_party/upb/upb/wire/eps_copy_input_stream.c
-  - third_party/upb/upb/wire/internal/decode_fast.c
   - third_party/upb/upb/wire/reader.c
   deps:
   - gtest
-  - utf8_range_lib
   - upb_message_lib
+  - utf8_range_lib
   - absl/base:config
   - absl/functional:function_ref
   - absl/hash:hash
@@ -7839,7 +7834,6 @@ targets:
   - test/core/filters/filter_test.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
   uses_polling: false
@@ -7857,7 +7851,6 @@ targets:
   - test/core/filters/filter_test.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
   uses_polling: false
@@ -7878,7 +7871,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: client_channel_service_config_test
   gtest: true
@@ -7950,7 +7942,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: client_lb_end2end_test
   gtest: true
@@ -7975,7 +7966,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -8055,7 +8045,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -8232,7 +8221,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -8373,7 +8361,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -8392,7 +8379,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: context_test
   gtest: true
@@ -8457,7 +8443,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: crl_ssl_transport_security_test
   gtest: true
@@ -8545,7 +8530,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -8564,7 +8548,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: destroy_grpclb_channel_with_active_connect_stress_test
   gtest: true
@@ -8647,7 +8630,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -8784,7 +8766,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -8808,7 +8789,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -8831,7 +8811,6 @@ targets:
   - test/cpp/end2end/interceptors_util.cc
   - test/cpp/end2end/test_service_impl.cc
   deps:
-  - absl/log:check
   - grpc++_test
   - grpc++_test_util
 - name: endpoint_addresses_test
@@ -9200,6 +9179,7 @@ targets:
   headers:
   - src/core/ext/upb-gen/google/protobuf/any.upb.h
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.h
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.h
   - src/core/lib/debug/trace.h
@@ -9235,6 +9215,8 @@ targets:
   - src/core/lib/slice/slice_refcount.h
   - src/core/lib/slice/slice_string_helpers.h
   - third_party/upb/upb/generated_code_support.h
+  - third_party/upb/upb/message/accessors.h
+  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/mini_descriptor/build_enum.h
   - third_party/upb/upb/mini_descriptor/decode.h
   - third_party/upb/upb/mini_descriptor/internal/base92.h
@@ -9245,16 +9227,17 @@ targets:
   - third_party/upb/upb/mini_descriptor/internal/wire_constants.h
   - third_party/upb/upb/mini_descriptor/link.h
   - third_party/upb/upb/wire/decode.h
+  - third_party/upb/upb/wire/decode_fast.h
   - third_party/upb/upb/wire/encode.h
   - third_party/upb/upb/wire/eps_copy_input_stream.h
   - third_party/upb/upb/wire/internal/constants.h
-  - third_party/upb/upb/wire/internal/decode_fast.h
-  - third_party/upb/upb/wire/internal/decoder.h
-  - third_party/upb/upb/wire/internal/reader.h
+  - third_party/upb/upb/wire/internal/decode.h
+  - third_party/upb/upb/wire/internal/swap.h
   - third_party/upb/upb/wire/reader.h
   - third_party/upb/upb/wire/types.h
   src:
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.c
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.c
   - src/core/lib/debug/trace.cc
   - src/core/lib/experiments/config.cc
@@ -9273,20 +9256,21 @@ targets:
   - src/core/lib/slice/slice_refcount.cc
   - src/core/lib/slice/slice_string_helpers.cc
   - test/core/promise/exec_ctx_wakeup_scheduler_test.cc
+  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/mini_descriptor/build_enum.c
   - third_party/upb/upb/mini_descriptor/decode.c
   - third_party/upb/upb/mini_descriptor/internal/base92.c
   - third_party/upb/upb/mini_descriptor/internal/encode.c
   - third_party/upb/upb/mini_descriptor/link.c
   - third_party/upb/upb/wire/decode.c
+  - third_party/upb/upb/wire/decode_fast.c
   - third_party/upb/upb/wire/encode.c
   - third_party/upb/upb/wire/eps_copy_input_stream.c
-  - third_party/upb/upb/wire/internal/decode_fast.c
   - third_party/upb/upb/wire/reader.c
   deps:
   - gtest
-  - utf8_range_lib
   - upb_message_lib
+  - utf8_range_lib
   - absl/base:config
   - absl/hash:hash
   - absl/meta:type_traits
@@ -9575,7 +9559,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -9639,7 +9622,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -9703,7 +9685,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -9721,7 +9702,6 @@ targets:
   - test/core/filters/filter_test_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_unsecure
   - protobuf
   - grpc_test_util
@@ -9786,7 +9766,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -9806,7 +9785,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: flow_control_test
   gtest: true
@@ -9818,6 +9796,7 @@ targets:
   - src/core/ext/transport/chttp2/transport/http2_settings.h
   - src/core/ext/upb-gen/google/protobuf/any.upb.h
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.h
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.h
   - src/core/lib/debug/trace.h
@@ -9870,6 +9849,8 @@ targets:
   - src/core/lib/transport/bdp_estimator.h
   - src/core/lib/transport/http2_errors.h
   - third_party/upb/upb/generated_code_support.h
+  - third_party/upb/upb/message/accessors.h
+  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/mini_descriptor/build_enum.h
   - third_party/upb/upb/mini_descriptor/decode.h
   - third_party/upb/upb/mini_descriptor/internal/base92.h
@@ -9880,12 +9861,12 @@ targets:
   - third_party/upb/upb/mini_descriptor/internal/wire_constants.h
   - third_party/upb/upb/mini_descriptor/link.h
   - third_party/upb/upb/wire/decode.h
+  - third_party/upb/upb/wire/decode_fast.h
   - third_party/upb/upb/wire/encode.h
   - third_party/upb/upb/wire/eps_copy_input_stream.h
   - third_party/upb/upb/wire/internal/constants.h
-  - third_party/upb/upb/wire/internal/decode_fast.h
-  - third_party/upb/upb/wire/internal/decoder.h
-  - third_party/upb/upb/wire/internal/reader.h
+  - third_party/upb/upb/wire/internal/decode.h
+  - third_party/upb/upb/wire/internal/swap.h
   - third_party/upb/upb/wire/reader.h
   - third_party/upb/upb/wire/types.h
   src:
@@ -9893,6 +9874,7 @@ targets:
   - src/core/ext/transport/chttp2/transport/frame.cc
   - src/core/ext/transport/chttp2/transport/http2_settings.cc
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.c
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.c
   - src/core/lib/debug/trace.cc
   - src/core/lib/experiments/config.cc
@@ -9920,24 +9902,24 @@ targets:
   - src/core/lib/slice/slice_string_helpers.cc
   - src/core/lib/transport/bdp_estimator.cc
   - test/core/transport/chttp2/flow_control_test.cc
+  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/mini_descriptor/build_enum.c
   - third_party/upb/upb/mini_descriptor/decode.c
   - third_party/upb/upb/mini_descriptor/internal/base92.c
   - third_party/upb/upb/mini_descriptor/internal/encode.c
   - third_party/upb/upb/mini_descriptor/link.c
   - third_party/upb/upb/wire/decode.c
+  - third_party/upb/upb/wire/decode_fast.c
   - third_party/upb/upb/wire/encode.c
   - third_party/upb/upb/wire/eps_copy_input_stream.c
-  - third_party/upb/upb/wire/internal/decode_fast.c
   - third_party/upb/upb/wire/reader.c
   deps:
   - gtest
-  - utf8_range_lib
   - upb_message_lib
+  - utf8_range_lib
   - absl/base:config
   - absl/functional:function_ref
   - absl/hash:hash
-  - absl/log:check
   - absl/meta:type_traits
   - absl/status:statusor
   - absl/types:span
@@ -9950,6 +9932,7 @@ targets:
   headers:
   - src/core/ext/upb-gen/google/protobuf/any.upb.h
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.h
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.h
   - src/core/lib/debug/trace.h
@@ -10010,6 +9993,8 @@ targets:
   - src/core/lib/slice/slice_string_helpers.h
   - test/core/promise/test_wakeup_schedulers.h
   - third_party/upb/upb/generated_code_support.h
+  - third_party/upb/upb/message/accessors.h
+  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/mini_descriptor/build_enum.h
   - third_party/upb/upb/mini_descriptor/decode.h
   - third_party/upb/upb/mini_descriptor/internal/base92.h
@@ -10020,16 +10005,17 @@ targets:
   - third_party/upb/upb/mini_descriptor/internal/wire_constants.h
   - third_party/upb/upb/mini_descriptor/link.h
   - third_party/upb/upb/wire/decode.h
+  - third_party/upb/upb/wire/decode_fast.h
   - third_party/upb/upb/wire/encode.h
   - third_party/upb/upb/wire/eps_copy_input_stream.h
   - third_party/upb/upb/wire/internal/constants.h
-  - third_party/upb/upb/wire/internal/decode_fast.h
-  - third_party/upb/upb/wire/internal/decoder.h
-  - third_party/upb/upb/wire/internal/reader.h
+  - third_party/upb/upb/wire/internal/decode.h
+  - third_party/upb/upb/wire/internal/swap.h
   - third_party/upb/upb/wire/reader.h
   - third_party/upb/upb/wire/types.h
   src:
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.c
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.c
   - src/core/lib/debug/trace.cc
   - src/core/lib/experiments/config.cc
@@ -10056,20 +10042,21 @@ targets:
   - src/core/lib/slice/slice_refcount.cc
   - src/core/lib/slice/slice_string_helpers.cc
   - test/core/promise/for_each_test.cc
+  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/mini_descriptor/build_enum.c
   - third_party/upb/upb/mini_descriptor/decode.c
   - third_party/upb/upb/mini_descriptor/internal/base92.c
   - third_party/upb/upb/mini_descriptor/internal/encode.c
   - third_party/upb/upb/mini_descriptor/link.c
   - third_party/upb/upb/wire/decode.c
+  - third_party/upb/upb/wire/decode_fast.c
   - third_party/upb/upb/wire/encode.c
   - third_party/upb/upb/wire/eps_copy_input_stream.c
-  - third_party/upb/upb/wire/internal/decode_fast.c
   - third_party/upb/upb/wire/reader.c
   deps:
   - gtest
-  - utf8_range_lib
   - upb_message_lib
+  - utf8_range_lib
   - absl/base:config
   - absl/functional:function_ref
   - absl/hash:hash
@@ -10204,7 +10191,6 @@ targets:
   - test/core/event_engine/test_suite/tests/timer_test.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
   platforms:
@@ -10223,7 +10209,6 @@ targets:
   - test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine_unittest.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
 - name: generic_end2end_test
@@ -10325,7 +10310,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -10340,7 +10324,6 @@ targets:
   - test/core/transport/chttp2/graceful_shutdown_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
 - name: grpc_alts_credentials_options_test
   gtest: true
@@ -10463,7 +10446,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc++_test_util
 - name: grpc_authz_test
@@ -10526,7 +10508,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -10829,7 +10810,6 @@ targets:
   - test/core/tsi/transport_security_test_lib.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
 - name: grpc_tool_test
@@ -10896,7 +10876,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_config
   - grpc++_test_util
   platforms:
@@ -10933,7 +10912,6 @@ targets:
   - test/core/event_engine/event_engine_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
 - name: h2_ssl_session_reuse_test
   gtest: true
@@ -11033,7 +11011,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: high_initial_seqno_test
   gtest: true
@@ -11095,7 +11072,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -11294,7 +11270,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -11310,7 +11285,6 @@ targets:
   - src/proto/grpc/testing/test.proto
   - test/cpp/interop/http2_client.cc
   deps:
-  - absl/log:check
   - grpc++_test_config
   - grpc++_test_util
 - name: http2_settings_test
@@ -11383,7 +11357,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -11451,7 +11424,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: idle_filter_state_test
   gtest: true
@@ -11539,7 +11511,6 @@ targets:
   - test/core/transport/test_suite/test_main.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
   platforms:
@@ -11634,6 +11605,7 @@ targets:
   headers:
   - src/core/ext/upb-gen/google/protobuf/any.upb.h
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.h
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.h
   - src/core/lib/debug/trace.h
@@ -11686,6 +11658,8 @@ targets:
   - src/core/lib/slice/slice_string_helpers.h
   - test/core/promise/test_context.h
   - third_party/upb/upb/generated_code_support.h
+  - third_party/upb/upb/message/accessors.h
+  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/mini_descriptor/build_enum.h
   - third_party/upb/upb/mini_descriptor/decode.h
   - third_party/upb/upb/mini_descriptor/internal/base92.h
@@ -11696,16 +11670,17 @@ targets:
   - third_party/upb/upb/mini_descriptor/internal/wire_constants.h
   - third_party/upb/upb/mini_descriptor/link.h
   - third_party/upb/upb/wire/decode.h
+  - third_party/upb/upb/wire/decode_fast.h
   - third_party/upb/upb/wire/encode.h
   - third_party/upb/upb/wire/eps_copy_input_stream.h
   - third_party/upb/upb/wire/internal/constants.h
-  - third_party/upb/upb/wire/internal/decode_fast.h
-  - third_party/upb/upb/wire/internal/decoder.h
-  - third_party/upb/upb/wire/internal/reader.h
+  - third_party/upb/upb/wire/internal/decode.h
+  - third_party/upb/upb/wire/internal/swap.h
   - third_party/upb/upb/wire/reader.h
   - third_party/upb/upb/wire/types.h
   src:
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.c
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.c
   - src/core/lib/debug/trace.cc
   - src/core/lib/experiments/config.cc
@@ -11732,20 +11707,21 @@ targets:
   - src/core/lib/slice/slice_refcount.cc
   - src/core/lib/slice/slice_string_helpers.cc
   - test/core/promise/interceptor_list_test.cc
+  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/mini_descriptor/build_enum.c
   - third_party/upb/upb/mini_descriptor/decode.c
   - third_party/upb/upb/mini_descriptor/internal/base92.c
   - third_party/upb/upb/mini_descriptor/internal/encode.c
   - third_party/upb/upb/mini_descriptor/link.c
   - third_party/upb/upb/wire/decode.c
+  - third_party/upb/upb/wire/decode_fast.c
   - third_party/upb/upb/wire/encode.c
   - third_party/upb/upb/wire/eps_copy_input_stream.c
-  - third_party/upb/upb/wire/internal/decode_fast.c
   - third_party/upb/upb/wire/reader.c
   deps:
   - gtest
-  - utf8_range_lib
   - upb_message_lib
+  - utf8_range_lib
   - absl/base:config
   - absl/functional:function_ref
   - absl/hash:hash
@@ -11772,7 +11748,6 @@ targets:
   - test/cpp/interop/client_helper.cc
   - test/cpp/interop/interop_client.cc
   deps:
-  - absl/log:check
   - grpc++_test_config
   - grpc++_test_util
 - name: interop_server
@@ -11790,7 +11765,6 @@ targets:
   - test/cpp/interop/interop_server_bootstrap.cc
   - test/cpp/interop/server_helper.cc
   deps:
-  - absl/log:check
   - grpc++_test_config
   - grpc++_test_util
 - name: invalid_call_argument_test
@@ -11865,7 +11839,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -11880,7 +11853,6 @@ targets:
   - test/core/event_engine/windows/iocp_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
   platforms:
   - linux
@@ -12069,7 +12041,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -12145,7 +12116,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -12315,6 +12285,7 @@ targets:
   headers:
   - src/core/ext/upb-gen/google/protobuf/any.upb.h
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.h
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.h
   - src/core/lib/debug/trace.h
@@ -12375,6 +12346,8 @@ targets:
   - src/core/lib/slice/slice_string_helpers.h
   - test/core/promise/test_wakeup_schedulers.h
   - third_party/upb/upb/generated_code_support.h
+  - third_party/upb/upb/message/accessors.h
+  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/mini_descriptor/build_enum.h
   - third_party/upb/upb/mini_descriptor/decode.h
   - third_party/upb/upb/mini_descriptor/internal/base92.h
@@ -12385,16 +12358,17 @@ targets:
   - third_party/upb/upb/mini_descriptor/internal/wire_constants.h
   - third_party/upb/upb/mini_descriptor/link.h
   - third_party/upb/upb/wire/decode.h
+  - third_party/upb/upb/wire/decode_fast.h
   - third_party/upb/upb/wire/encode.h
   - third_party/upb/upb/wire/eps_copy_input_stream.h
   - third_party/upb/upb/wire/internal/constants.h
-  - third_party/upb/upb/wire/internal/decode_fast.h
-  - third_party/upb/upb/wire/internal/decoder.h
-  - third_party/upb/upb/wire/internal/reader.h
+  - third_party/upb/upb/wire/internal/decode.h
+  - third_party/upb/upb/wire/internal/swap.h
   - third_party/upb/upb/wire/reader.h
   - third_party/upb/upb/wire/types.h
   src:
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.c
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.c
   - src/core/lib/debug/trace.cc
   - src/core/lib/experiments/config.cc
@@ -12421,20 +12395,21 @@ targets:
   - src/core/lib/slice/slice_refcount.cc
   - src/core/lib/slice/slice_string_helpers.cc
   - test/core/promise/map_pipe_test.cc
+  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/mini_descriptor/build_enum.c
   - third_party/upb/upb/mini_descriptor/decode.c
   - third_party/upb/upb/mini_descriptor/internal/base92.c
   - third_party/upb/upb/mini_descriptor/internal/encode.c
   - third_party/upb/upb/mini_descriptor/link.c
   - third_party/upb/upb/wire/decode.c
+  - third_party/upb/upb/wire/decode_fast.c
   - third_party/upb/upb/wire/encode.c
   - third_party/upb/upb/wire/eps_copy_input_stream.c
-  - third_party/upb/upb/wire/internal/decode_fast.c
   - third_party/upb/upb/wire/reader.c
   deps:
   - gtest
-  - utf8_range_lib
   - upb_message_lib
+  - utf8_range_lib
   - absl/base:config
   - absl/functional:function_ref
   - absl/hash:hash
@@ -12556,7 +12531,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -12620,7 +12594,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -12684,7 +12657,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -12748,7 +12720,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -12793,7 +12764,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: message_compress_test
   gtest: true
@@ -13035,7 +13005,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -13111,7 +13080,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -13175,7 +13143,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -13204,7 +13171,6 @@ targets:
   - test/cpp/end2end/nonblocking_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: notification_test
   gtest: true
@@ -13279,7 +13245,6 @@ targets:
   - test/core/event_engine/test_suite/tests/server_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
   platforms:
   - linux
@@ -13346,7 +13311,6 @@ targets:
   - test/cpp/ext/otel/otel_test_library.cc
   deps:
   - gtest
-  - absl/log:check
   - opentelemetry-cpp::api
   - opentelemetry-cpp::metrics
   - grpc++_test_util
@@ -13391,7 +13355,6 @@ targets:
   - test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
   uses_polling: false
@@ -13550,7 +13513,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -13573,6 +13535,7 @@ targets:
   headers:
   - src/core/ext/upb-gen/google/protobuf/any.upb.h
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.h
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb.h
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.h
   - src/core/lib/debug/trace.h
@@ -13596,6 +13559,8 @@ targets:
   - src/core/lib/slice/slice_refcount.h
   - src/core/lib/slice/slice_string_helpers.h
   - third_party/upb/upb/generated_code_support.h
+  - third_party/upb/upb/message/accessors.h
+  - third_party/upb/upb/message/internal/accessors.h
   - third_party/upb/upb/mini_descriptor/build_enum.h
   - third_party/upb/upb/mini_descriptor/decode.h
   - third_party/upb/upb/mini_descriptor/internal/base92.h
@@ -13606,16 +13571,17 @@ targets:
   - third_party/upb/upb/mini_descriptor/internal/wire_constants.h
   - third_party/upb/upb/mini_descriptor/link.h
   - third_party/upb/upb/wire/decode.h
+  - third_party/upb/upb/wire/decode_fast.h
   - third_party/upb/upb/wire/encode.h
   - third_party/upb/upb/wire/eps_copy_input_stream.h
   - third_party/upb/upb/wire/internal/constants.h
-  - third_party/upb/upb/wire/internal/decode_fast.h
-  - third_party/upb/upb/wire/internal/decoder.h
-  - third_party/upb/upb/wire/internal/reader.h
+  - third_party/upb/upb/wire/internal/decode.h
+  - third_party/upb/upb/wire/internal/swap.h
   - third_party/upb/upb/wire/reader.h
   - third_party/upb/upb/wire/types.h
   src:
   - src/core/ext/upb-gen/google/protobuf/any.upb_minitable.c
+  - src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c
   - src/core/ext/upb-gen/google/rpc/status.upb_minitable.c
   - src/core/lib/debug/trace.cc
   - src/core/lib/experiments/config.cc
@@ -13634,20 +13600,21 @@ targets:
   - src/core/lib/slice/slice_refcount.cc
   - src/core/lib/slice/slice_string_helpers.cc
   - test/core/resource_quota/periodic_update_test.cc
+  - third_party/upb/upb/message/accessors.c
   - third_party/upb/upb/mini_descriptor/build_enum.c
   - third_party/upb/upb/mini_descriptor/decode.c
   - third_party/upb/upb/mini_descriptor/internal/base92.c
   - third_party/upb/upb/mini_descriptor/internal/encode.c
   - third_party/upb/upb/mini_descriptor/link.c
   - third_party/upb/upb/wire/decode.c
+  - third_party/upb/upb/wire/decode_fast.c
   - third_party/upb/upb/wire/encode.c
   - third_party/upb/upb/wire/eps_copy_input_stream.c
-  - third_party/upb/upb/wire/internal/decode_fast.c
   - third_party/upb/upb/wire/reader.c
   deps:
   - gtest
-  - utf8_range_lib
   - upb_message_lib
+  - utf8_range_lib
   - absl/functional:function_ref
   - absl/hash:hash
   - absl/status:statusor
@@ -13671,7 +13638,6 @@ targets:
   - test/core/util/fake_stats_plugin.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
   uses_polling: false
@@ -13809,7 +13775,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -13904,7 +13869,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -13948,7 +13912,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: posix_endpoint_test
   gtest: true
@@ -13967,7 +13930,6 @@ targets:
   - test/core/event_engine/test_suite/posix/oracle_event_engine_posix.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
   platforms:
   - linux
@@ -14002,7 +13964,6 @@ targets:
   - test/core/event_engine/test_suite/posix/oracle_event_engine_posix.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
   platforms:
   - linux
@@ -14030,7 +13991,6 @@ targets:
   - test/cpp/util/windows/manifest_file.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -14064,7 +14024,6 @@ targets:
   - test/cpp/util/windows/manifest_file.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -14255,7 +14214,6 @@ targets:
   - test/cpp/util/proto_reflection_descriptor_database.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_reflection
   - grpc++_test_util
 - name: proto_utils_test
@@ -14330,7 +14288,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -14374,7 +14331,6 @@ targets:
   - test/cpp/qps/server_sync.cc
   - test/cpp/qps/usage_timer.cc
   deps:
-  - absl/log:check
   - grpc++_test_config
   - grpc++_test_util
 - name: qps_worker
@@ -14408,7 +14364,6 @@ targets:
   - test/cpp/qps/usage_timer.cc
   - test/cpp/qps/worker.cc
   deps:
-  - absl/log:check
   - grpc++_test_config
   - grpc++_test_util
 - name: query_extensions_test
@@ -14468,7 +14423,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: rbac_service_config_parser_test
   gtest: true
@@ -14592,7 +14546,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -14605,7 +14558,6 @@ targets:
   - test/core/transport/chttp2/remove_stream_from_stalled_lists_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
   platforms:
   - linux
@@ -14671,7 +14623,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -14735,7 +14686,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -14951,7 +14901,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15026,7 +14975,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15090,7 +15038,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15154,7 +15101,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15218,7 +15164,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15282,7 +15227,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15346,7 +15290,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15410,7 +15353,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15474,7 +15416,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15538,7 +15479,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15602,7 +15542,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15666,7 +15605,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15730,7 +15668,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15794,7 +15731,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15858,7 +15794,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15922,7 +15857,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -15986,7 +15920,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16050,7 +15983,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16114,7 +16046,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16178,7 +16109,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16242,7 +16172,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16306,7 +16235,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16370,7 +16298,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16434,7 +16361,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16509,7 +16435,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16573,7 +16498,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16637,7 +16561,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16701,7 +16624,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16776,7 +16698,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16840,7 +16761,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16904,7 +16824,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -16968,7 +16887,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -17032,7 +16950,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -17096,7 +17013,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -17160,7 +17076,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -17179,7 +17094,6 @@ targets:
   - test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
   uses_polling: false
@@ -17208,7 +17122,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_config
   - grpc++_test_util
 - name: rls_lb_config_parser_test
@@ -17237,7 +17150,6 @@ targets:
   - test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
   uses_polling: false
@@ -17373,7 +17285,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: server_builder_test
   gtest: true
@@ -17569,7 +17480,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -17590,7 +17500,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: server_registered_method_bad_client_test
   gtest: true
@@ -17721,7 +17630,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -17751,7 +17659,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: service_config_test
   gtest: true
@@ -17792,7 +17699,6 @@ targets:
   - test/core/util/tracer_util.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
 - name: shutdown_finishes_calls_test
   gtest: true
@@ -17854,7 +17760,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -17918,7 +17823,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -17936,7 +17840,6 @@ targets:
   - test/cpp/end2end/shutdown_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: simple_delayed_request_test
   gtest: true
@@ -17998,7 +17901,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -18062,7 +17964,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -18140,7 +18041,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -18437,7 +18337,6 @@ targets:
   - test/core/transport/chttp2/stream_leak_with_queued_flow_control_update_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
 - name: streaming_error_response_test
   gtest: true
@@ -18499,7 +18398,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -18553,7 +18451,6 @@ targets:
   - test/core/util/tracer_util.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
 - name: string_ref_test
   gtest: true
@@ -18779,7 +18676,6 @@ targets:
   - test/core/event_engine/tcp_socket_utils_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc
   uses_polling: false
 - name: test_core_channel_channelz_test
@@ -18796,7 +18692,6 @@ targets:
   - test/cpp/util/channel_trace_proto_helper.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++
   - grpc_test_util
 - name: test_core_end2end_channelz_test
@@ -18859,7 +18754,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -18881,7 +18775,6 @@ targets:
   - test/core/event_engine/posix/timer_heap_test.cc
   deps:
   - gtest
-  - absl/log:check
   - absl/status:statusor
   - gpr
   uses_polling: false
@@ -18935,7 +18828,6 @@ targets:
   deps:
   - gtest
   - absl/hash:hash
-  - absl/log:check
   - absl/status:statusor
   - absl/utility:utility
   - gpr
@@ -19118,7 +19010,6 @@ targets:
   - test/core/transport/test_suite/test_main.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
   platforms:
@@ -19153,7 +19044,6 @@ targets:
   - test/cpp/end2end/test_service_impl.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: test_cpp_ext_chaotic_good_test
   gtest: true
@@ -19320,7 +19210,6 @@ targets:
   - test/core/event_engine/test_suite/thready_posix_event_engine_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
   platforms:
   - linux
@@ -19413,7 +19302,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -19499,7 +19387,6 @@ targets:
   - test/cpp/end2end/tls_credentials_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: tls_key_export_test
   gtest: true
@@ -19514,7 +19401,6 @@ targets:
   - test/cpp/end2end/tls_key_export_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: tls_security_connector_test
   gtest: true
@@ -19558,7 +19444,6 @@ targets:
   - test/core/transport/chttp2/too_many_pings_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_config
   - grpc++_test_util
 - name: traced_buffer_list_test
@@ -19570,7 +19455,6 @@ targets:
   - test/core/event_engine/posix/traced_buffer_list_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
   platforms:
   - linux
@@ -19637,7 +19521,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -19986,7 +19869,6 @@ targets:
   - test/core/util/fake_stats_plugin.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
   uses_polling: false
@@ -20001,7 +19883,6 @@ targets:
   - test/core/event_engine/windows/win_socket_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
   platforms:
   - linux
@@ -20033,7 +19914,6 @@ targets:
   - test/core/event_engine/windows/windows_endpoint_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
   platforms:
   - linux
@@ -20270,7 +20150,6 @@ targets:
   - test/core/gprpp/work_serializer_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_test_util
   platforms:
   - linux
@@ -20336,7 +20215,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -20400,7 +20278,6 @@ targets:
   - test/core/util/test_lb_policies.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc_authorization_provider
   - grpc_unsecure
   - grpc_test_util
@@ -20458,7 +20335,6 @@ targets:
   - test/cpp/performance/writes_per_rpc_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++
   - grpc_test_util
   platforms:
@@ -20604,7 +20480,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -20697,7 +20572,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -20791,7 +20665,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -20812,7 +20685,6 @@ targets:
   - test/cpp/end2end/xds/xds_credentials_end2end_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
 - name: xds_credentials_test
   gtest: true
@@ -20899,7 +20771,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -20965,7 +20836,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_config
   - grpc++_test_util
   platforms:
@@ -21043,7 +20913,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -21103,7 +20972,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -21298,7 +21166,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -21359,7 +21226,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -21391,7 +21257,6 @@ targets:
   - test/core/event_engine/fuzzing_event_engine/fuzzing_event_engine.cc
   deps:
   - gtest
-  - absl/log:check
   - protobuf
   - grpc_test_util
   uses_polling: false
@@ -21451,7 +21316,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -21512,7 +21376,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -21574,7 +21437,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -21677,7 +21539,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux
@@ -21706,7 +21567,6 @@ targets:
   - test/cpp/interop/xds_stats_watcher_test.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_reflection
   - grpcpp_channelz
   - grpc_test_util
@@ -21767,7 +21627,6 @@ targets:
   - test/cpp/util/tls_test_utils.cc
   deps:
   - gtest
-  - absl/log:check
   - grpc++_test_util
   platforms:
   - linux

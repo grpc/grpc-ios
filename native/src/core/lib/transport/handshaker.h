@@ -19,6 +19,8 @@
 #ifndef GRPC_SRC_CORE_LIB_TRANSPORT_HANDSHAKER_H
 #define GRPC_SRC_CORE_LIB_TRANSPORT_HANDSHAKER_H
 
+#include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 
 #include <memory>
@@ -28,7 +30,6 @@
 
 #include <grpc/event_engine/event_engine.h>
 #include <grpc/slice.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/gprpp/ref_counted.h"

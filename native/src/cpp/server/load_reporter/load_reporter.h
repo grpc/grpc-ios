@@ -19,6 +19,8 @@
 #ifndef GRPC_SRC_CPP_SERVER_LOAD_REPORTER_LOAD_REPORTER_H
 #define GRPC_SRC_CPP_SERVER_LOAD_REPORTER_LOAD_REPORTER_H
 
+#include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 
 #include <atomic>
@@ -35,8 +37,6 @@
 
 #include "opencensus/stats/stats.h"
 #include "opencensus/tags/tag_key.h"
-
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/gprpp/sync.h"
 #include "src/cpp/server/load_reporter/load_data_store.h"

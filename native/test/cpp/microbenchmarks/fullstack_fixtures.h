@@ -19,8 +19,6 @@
 #ifndef GRPC_TEST_CPP_MICROBENCHMARKS_FULLSTACK_FIXTURES_H
 #define GRPC_TEST_CPP_MICROBENCHMARKS_FULLSTACK_FIXTURES_H
 
-#include "absl/log/check.h"
-
 #include <grpc/grpc.h>
 #include <grpc/support/atm.h>
 #include <grpc/support/log.h>
@@ -185,9 +183,10 @@ class EndpointPairFixture : public BaseFixture {
         grpc_endpoint_add_to_pollset(endpoints.server, pollset);
       }
 
-      CHECK(GRPC_LOG_IF_ERROR("SetupTransport", core_server->SetupTransport(
-                                                    server_transport_, nullptr,
-                                                    server_args, nullptr)));
+      GPR_ASSERT(GRPC_LOG_IF_ERROR(
+          "SetupTransport",
+          core_server->SetupTransport(server_transport_, nullptr, server_args,
+                                      nullptr)));
       grpc_chttp2_transport_start_reading(server_transport_, nullptr, nullptr,
                                           nullptr);
     }
@@ -208,7 +207,7 @@ class EndpointPairFixture : public BaseFixture {
       }
       client_transport_ =
           grpc_create_chttp2_transport(c_args, endpoints.client, true);
-      CHECK(client_transport_);
+      GPR_ASSERT(client_transport_);
       grpc_channel* channel =
           grpc_core::ChannelCreate("target", c_args, GRPC_CLIENT_DIRECT_CHANNEL,
                                    client_transport_)

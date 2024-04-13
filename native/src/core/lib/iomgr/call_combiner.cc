@@ -16,12 +16,13 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/iomgr/call_combiner.h"
 
 #include <inttypes.h>
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/debug/stats.h"
 #include "src/core/lib/debug/stats_data.h"

@@ -187,10 +187,12 @@ void ImmutableMessageGenerator::GenerateFieldAccessorTable(
   } else {
     vars["final"] = "";
   }
-  printer->Print(vars,
-                 "$private$static $final$\n"
-                 "  com.google.protobuf.GeneratedMessage.FieldAccessorTable\n"
-                 "    internal_$identifier$_fieldAccessorTable;\n");
+  vars["ver"] = GeneratedCodeVersionSuffix();
+  printer->Print(
+      vars,
+      "$private$static $final$\n"
+      "  com.google.protobuf.GeneratedMessage$ver$.FieldAccessorTable\n"
+      "    internal_$identifier$_fieldAccessorTable;\n");
 
   // The following bytecode_estimate calculation logic must stay in sync with
   // the similar logic in the GenerateFieldAccessorTableInitializer method below
@@ -207,10 +209,11 @@ int ImmutableMessageGenerator::GenerateFieldAccessorTableInitializer(
   int bytecode_estimate = 10;
   printer->Print(
       "internal_$identifier$_fieldAccessorTable = new\n"
-      "  com.google.protobuf.GeneratedMessage.FieldAccessorTable(\n"
+      "  com.google.protobuf.GeneratedMessage$ver$.FieldAccessorTable(\n"
       "    internal_$identifier$_descriptor,\n"
       "    new java.lang.String[] { ",
-      "identifier", UniqueFileScopeIdentifier(descriptor_));
+      "identifier", UniqueFileScopeIdentifier(descriptor_), "ver",
+      GeneratedCodeVersionSuffix());
   // All the bytecode_estimate calculation logic in this method must stay in
   // sync with the similar logic in the GenerateFieldAccessorTable method
   // above. See the corresponding comment in GenerateFieldAccessorTable for
@@ -244,12 +247,13 @@ void ImmutableMessageGenerator::GenerateInterface(io::Printer* printer) {
     printer->Print(
         "$deprecation$public interface ${$$classname$OrBuilder$}$ extends\n"
         "    $extra_interfaces$\n"
-        "    com.google.protobuf.GeneratedMessage.\n"
+        "    com.google.protobuf.GeneratedMessage$ver$.\n"
         "        ExtendableMessageOrBuilder<$classname$> {\n",
         "deprecation",
         descriptor_->options().deprecated() ? "@java.lang.Deprecated " : "",
         "extra_interfaces", ExtraMessageOrBuilderInterfaces(descriptor_),
-        "classname", descriptor_->name(), "{", "", "}", "");
+        "classname", descriptor_->name(), "{", "", "}", "", "ver",
+        GeneratedCodeVersionSuffix());
   } else {
     printer->Print(
         "$deprecation$public interface ${$$classname$OrBuilder$}$ extends\n"
@@ -292,6 +296,7 @@ void ImmutableMessageGenerator::Generate(io::Printer* printer) {
   variables["static"] = is_own_file ? "" : "static ";
   variables["classname"] = descriptor_->name();
   variables["extra_interfaces"] = ExtraMessageInterfaces(descriptor_);
+  variables["ver"] = GeneratedCodeVersionSuffix();
   variables["deprecation"] =
       descriptor_->options().deprecated() ? "@java.lang.Deprecated " : "";
 
@@ -311,35 +316,30 @@ void ImmutableMessageGenerator::Generate(io::Printer* printer) {
     printer->Annotate("classname", descriptor_);
     printer->Print(
         variables,
-        "    com.google.protobuf.GeneratedMessage.ExtendableMessage<\n"
+        "    com.google.protobuf.GeneratedMessage$ver$.ExtendableMessage<\n"
         "      $classname$> implements\n"
         "    $extra_interfaces$\n"
         "    $classname$OrBuilder {\n");
     builder_type = absl::Substitute(
-        "com.google.protobuf.GeneratedMessage.ExtendableBuilder<$0, ?>",
-        name_resolver_->GetImmutableClassName(descriptor_));
+        "com.google.protobuf.GeneratedMessage$1.ExtendableBuilder<$0, ?>",
+        name_resolver_->GetImmutableClassName(descriptor_),
+        GeneratedCodeVersionSuffix());
   } else {
     printer->Print(
         variables,
         "$deprecation$public $static$final class $classname$ extends\n");
     printer->Annotate("classname", descriptor_);
     printer->Print(variables,
-                   "    com.google.protobuf.GeneratedMessage implements\n"
+                   "    com.google.protobuf.GeneratedMessage$ver$ implements\n"
                    "    $extra_interfaces$\n"
                    "    $classname$OrBuilder {\n");
-    builder_type = "com.google.protobuf.GeneratedMessage.Builder<?>";
+    builder_type =
+        absl::Substitute("com.google.protobuf.GeneratedMessage$0.Builder<?>",
+                         GeneratedCodeVersionSuffix());
   }
   printer->Print("private static final long serialVersionUID = 0L;\n");
 
   printer->Indent();
-
-  printer->Print("static {\n");
-  printer->Indent();
-  PrintGencodeVersionValidator(printer, context_->options().opensource_runtime,
-                               descriptor_->name());
-  printer->Outdent();
-  printer->Print("}\n");
-
   // Using builder_type, instead of Builder, prevents the Builder class from
   // being loaded into PermGen space when the default instance is created.
   // This optimizes the PermGen space usage for clients that do not modify
@@ -357,6 +357,15 @@ void ImmutableMessageGenerator::Generate(io::Printer* printer) {
   printer->Print(
       "}\n"
       "\n");
+
+  printer->Print(variables,
+                 "@java.lang.Override\n"
+                 "@SuppressWarnings({\"unused\"})\n"
+                 "protected java.lang.Object newInstance(\n"
+                 "    UnusedPrivateParameter unused) {\n"
+                 "  return new $classname$();\n"
+                 "}\n"
+                 "\n");
 
   GenerateDescriptorMethods(printer);
 
@@ -580,16 +589,18 @@ void ImmutableMessageGenerator::GenerateMessageSerializationMethods(
   if (descriptor_->extension_range_count() > 0) {
     if (descriptor_->options().message_set_wire_format()) {
       printer->Print(
-          "com.google.protobuf.GeneratedMessage\n"
+          "com.google.protobuf.GeneratedMessage$ver$\n"
           "  .ExtendableMessage<$classname$>.ExtensionWriter\n"
           "    extensionWriter = newMessageSetExtensionWriter();\n",
-          "classname", name_resolver_->GetImmutableClassName(descriptor_));
+          "classname", name_resolver_->GetImmutableClassName(descriptor_),
+          "ver", GeneratedCodeVersionSuffix());
     } else {
       printer->Print(
-          "com.google.protobuf.GeneratedMessage\n"
+          "com.google.protobuf.GeneratedMessage$ver$\n"
           "  .ExtendableMessage<$classname$>.ExtensionWriter\n"
           "    extensionWriter = newExtensionWriter();\n",
-          "classname", name_resolver_->GetImmutableClassName(descriptor_));
+          "classname", name_resolver_->GetImmutableClassName(descriptor_),
+          "ver", GeneratedCodeVersionSuffix());
     }
   }
 
@@ -683,21 +694,21 @@ void ImmutableMessageGenerator::GenerateParseFromMethods(io::Printer* printer) {
       "}\n"
       "public static $classname$ parseFrom(java.io.InputStream input)\n"
       "    throws java.io.IOException {\n"
-      "  return com.google.protobuf.GeneratedMessage\n"
+      "  return com.google.protobuf.GeneratedMessage$ver$\n"
       "      .parseWithIOException(PARSER, input);\n"
       "}\n"
       "public static $classname$ parseFrom(\n"
       "    java.io.InputStream input,\n"
       "    com.google.protobuf.ExtensionRegistryLite extensionRegistry)\n"
       "    throws java.io.IOException {\n"
-      "  return com.google.protobuf.GeneratedMessage\n"
+      "  return com.google.protobuf.GeneratedMessage$ver$\n"
       "      .parseWithIOException(PARSER, input, extensionRegistry);\n"
       "}\n"
       "$parsedelimitedreturnannotation$\n"
       "public static $classname$ parseDelimitedFrom(java.io.InputStream "
       "input)\n"
       "    throws java.io.IOException {\n"
-      "  return com.google.protobuf.GeneratedMessage\n"
+      "  return com.google.protobuf.GeneratedMessage$ver$\n"
       "      .parseDelimitedWithIOException(PARSER, input);\n"
       "}\n"
       "$parsedelimitedreturnannotation$\n"
@@ -705,26 +716,26 @@ void ImmutableMessageGenerator::GenerateParseFromMethods(io::Printer* printer) {
       "    java.io.InputStream input,\n"
       "    com.google.protobuf.ExtensionRegistryLite extensionRegistry)\n"
       "    throws java.io.IOException {\n"
-      "  return com.google.protobuf.GeneratedMessage\n"
+      "  return com.google.protobuf.GeneratedMessage$ver$\n"
       "      .parseDelimitedWithIOException(PARSER, input, "
       "extensionRegistry);\n"
       "}\n"
       "public static $classname$ parseFrom(\n"
       "    com.google.protobuf.CodedInputStream input)\n"
       "    throws java.io.IOException {\n"
-      "  return com.google.protobuf.GeneratedMessage\n"
+      "  return com.google.protobuf.GeneratedMessage$ver$\n"
       "      .parseWithIOException(PARSER, input);\n"
       "}\n"
       "public static $classname$ parseFrom(\n"
       "    com.google.protobuf.CodedInputStream input,\n"
       "    com.google.protobuf.ExtensionRegistryLite extensionRegistry)\n"
       "    throws java.io.IOException {\n"
-      "  return com.google.protobuf.GeneratedMessage\n"
+      "  return com.google.protobuf.GeneratedMessage$ver$\n"
       "      .parseWithIOException(PARSER, input, extensionRegistry);\n"
       "}\n"
       "\n",
-      "classname", name_resolver_->GetImmutableClassName(descriptor_),
-      "parsedelimitedreturnannotation",
+      "classname", name_resolver_->GetImmutableClassName(descriptor_), "ver",
+      GeneratedCodeVersionSuffix(), "parsedelimitedreturnannotation",
       context_->options().opensource_runtime
           ? ""
           : "@com.google.protobuf.Internal.ProtoMethodMayReturnNull");
@@ -756,10 +767,11 @@ void ImmutableMessageGenerator::GenerateBuilder(io::Printer* printer) {
   printer->Print(
       "@java.lang.Override\n"
       "protected Builder newBuilderForType(\n"
-      "    com.google.protobuf.GeneratedMessage.BuilderParent parent) {\n"
+      "    com.google.protobuf.GeneratedMessage$ver$.BuilderParent parent) {\n"
       "  Builder builder = new Builder(parent);\n"
       "  return builder;\n"
-      "}\n");
+      "}\n",
+      "ver", GeneratedCodeVersionSuffix());
 
   MessageBuilderGenerator builderGenerator(descriptor_, context_);
   builderGenerator.Generate(printer);
@@ -816,7 +828,7 @@ void ImmutableMessageGenerator::GenerateDescriptorMethods(
   }
   printer->Print(
       "@java.lang.Override\n"
-      "protected com.google.protobuf.GeneratedMessage.FieldAccessorTable\n"
+      "protected com.google.protobuf.GeneratedMessage$ver$.FieldAccessorTable\n"
       "    internalGetFieldAccessorTable() {\n"
       "  return $fileclass$.internal_$identifier$_fieldAccessorTable\n"
       "      .ensureFieldAccessorsInitialized(\n"
@@ -825,7 +837,8 @@ void ImmutableMessageGenerator::GenerateDescriptorMethods(
       "\n",
       "classname", name_resolver_->GetImmutableClassName(descriptor_),
       "fileclass", name_resolver_->GetImmutableClassName(descriptor_->file()),
-      "identifier", UniqueFileScopeIdentifier(descriptor_));
+      "identifier", UniqueFileScopeIdentifier(descriptor_), "ver",
+      GeneratedCodeVersionSuffix());
 }
 
 // ===================================================================
@@ -1118,7 +1131,7 @@ void ImmutableMessageGenerator::GenerateExtensionRegistrationCode(
 // ===================================================================
 void ImmutableMessageGenerator::GenerateParser(io::Printer* printer) {
   printer->Print(
-      "private static final com.google.protobuf.Parser<$classname$>\n"
+      "$visibility$ static final com.google.protobuf.Parser<$classname$>\n"
       "    PARSER = new com.google.protobuf.AbstractParser<$classname$>() {\n"
       "  @java.lang.Override\n"
       "  public $classname$ parsePartialFrom(\n"
@@ -1151,6 +1164,9 @@ void ImmutableMessageGenerator::GenerateParser(io::Printer* printer) {
       "  return PARSER;\n"
       "}\n"
       "\n",
+      "visibility",
+      ExposePublicParser(descriptor_->file()) ? "@java.lang.Deprecated public"
+                                              : "private",
       "classname", descriptor_->name());
 }
 
@@ -1274,25 +1290,16 @@ void ImmutableMessageGenerator::GenerateKotlinMembers(
       EscapeKotlinKeywords(name_resolver_->GetClassName(descriptor_, true)));
 
   WriteMessageDocComment(printer, descriptor_, /* kdoc */ true);
-  printer->Emit(
-      {
-          io::Printer::Sub{"name_kt", absl::StrCat(descriptor_->name(), "Kt")}
-              .AnnotatedAs(descriptor_),
-          {"body",
-           [&]() {
-             GenerateKotlinDsl(printer);
-             for (int i = 0; i < descriptor_->nested_type_count(); i++) {
-               if (IsMapEntry(descriptor_->nested_type(i))) continue;
-               ImmutableMessageGenerator(descriptor_->nested_type(i), context_)
-                   .GenerateKotlinMembers(printer);
-             }
-           }},
-      },
-      R"kt(
-    public object $name_kt$ {
-      $body$;
-    }
-  )kt");
+  printer->Print("public object $name$Kt {\n", "name", descriptor_->name());
+  printer->Indent();
+  GenerateKotlinDsl(printer);
+  for (int i = 0; i < descriptor_->nested_type_count(); i++) {
+    if (IsMapEntry(descriptor_->nested_type(i))) continue;
+    ImmutableMessageGenerator(descriptor_->nested_type(i), context_)
+        .GenerateKotlinMembers(printer);
+  }
+  printer->Outdent();
+  printer->Print("}\n");
 }
 
 void ImmutableMessageGenerator::GenerateTopLevelKotlinMembers(

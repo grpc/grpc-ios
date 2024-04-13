@@ -16,9 +16,9 @@
 //
 //
 
-#include "src/core/lib/iomgr/tcp_client.h"
-
 #include <grpc/support/port_platform.h>
+
+#include "src/core/lib/iomgr/tcp_client.h"
 
 grpc_tcp_client_vtable* grpc_tcp_client_impl;
 

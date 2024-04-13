@@ -25,7 +25,6 @@
 
 #include <gtest/gtest.h>
 
-#include "absl/log/check.h"
 #include "absl/memory/memory.h"
 
 #include <grpcpp/channel.h>
@@ -197,7 +196,7 @@ class ClientCallbackEnd2endTest
           &cli_ctx, &request, &response,
           [&cli_ctx, &request, &response, &done, &mu, &cv, val,
            with_binary_metadata](Status s) {
-            CHECK(s.ok());
+            GPR_ASSERT(s.ok());
 
             EXPECT_EQ(request.message(), response.message());
             if (with_binary_metadata) {
@@ -239,7 +238,7 @@ class ClientCallbackEnd2endTest
       generic_stub_->UnaryCall(
           &cli_ctx, kMethodName, options, send_buf.get(), &recv_buf,
           [&request, &recv_buf, &done, &mu, &cv, maybe_except](Status s) {
-            CHECK(s.ok());
+            GPR_ASSERT(s.ok());
 
             EchoResponse response;
             EXPECT_TRUE(ParseFromByteBuffer(&recv_buf, &response));
@@ -252,7 +251,7 @@ class ClientCallbackEnd2endTest
               throw -1;
             }
 #else
-            CHECK(!maybe_except);
+            GPR_ASSERT(!maybe_except);
 #endif
           });
       std::unique_lock<std::mutex> l(mu);
@@ -487,7 +486,7 @@ TEST_P(ClientCallbackEnd2endTest, SendClientInitialMetadata) {
   bool done = false;
   stub_->async()->CheckClientInitialMetadata(
       &cli_ctx, &request, &response, [&done, &mu, &cv](Status s) {
-        CHECK(s.ok());
+        GPR_ASSERT(s.ok());
 
         std::lock_guard<std::mutex> l(mu);
         done = true;
@@ -1540,7 +1539,7 @@ std::vector<TestScenario> CreateTestScenarios(bool test_insecure) {
   if (test_insecure && insec_ok()) {
     credentials_types.push_back(kInsecureCredentialsType);
   }
-  CHECK(!credentials_types.empty());
+  GPR_ASSERT(!credentials_types.empty());
 
   bool barr[]{false, true};
   Protocol parr[]{Protocol::INPROC, Protocol::TCP};

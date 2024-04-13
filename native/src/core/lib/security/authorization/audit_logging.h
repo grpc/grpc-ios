@@ -19,6 +19,8 @@
 #ifndef GRPC_SRC_CORE_LIB_SECURITY_AUTHORIZATION_AUDIT_LOGGING_H
 #define GRPC_SRC_CORE_LIB_SECURITY_AUTHORIZATION_AUDIT_LOGGING_H
 
+#include <grpc/support/port_platform.h>
+
 #include <map>
 #include <memory>
 
@@ -28,7 +30,6 @@
 
 #include <grpc/grpc_audit_logging.h>
 #include <grpc/support/json.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/gprpp/sync.h"
 

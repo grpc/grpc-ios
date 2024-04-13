@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/resource_quota/api.h"
 
 #include <stdint.h>
@@ -25,7 +27,6 @@
 
 #include <grpc/grpc.h>
 #include <grpc/impl/channel_arg_names.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/gprpp/ref_counted_ptr.h"

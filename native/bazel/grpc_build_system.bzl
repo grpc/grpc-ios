@@ -58,9 +58,7 @@ def if_windows(a):
 def _get_external_deps(external_deps):
     ret = []
     for dep in external_deps:
-        if dep.startswith("@"):
-            ret.append(dep)
-        elif dep == "address_sorting":
+        if dep == "address_sorting":
             ret.append("//third_party/address_sorting")
         elif dep == "xxhash":
             ret.append("//third_party/xxhash")

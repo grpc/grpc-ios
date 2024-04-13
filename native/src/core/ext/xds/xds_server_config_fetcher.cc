@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include <string.h>
 
 #include <algorithm>
@@ -43,7 +45,6 @@
 #include <grpc/slice.h>
 #include <grpc/status.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/ext/filters/server_config_selector/server_config_selector.h"
 #include "src/core/ext/filters/server_config_selector/server_config_selector_filter.h"

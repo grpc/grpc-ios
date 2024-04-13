@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/security/authorization/rbac_policy.h"
 
 #include <utility>
@@ -19,8 +21,6 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
-
-#include <grpc/support/port_platform.h>
 
 namespace grpc_core {
 

@@ -15,6 +15,8 @@
 #ifndef GRPC_SRC_CORE_LIB_JSON_JSON_OBJECT_LOADER_H
 #define GRPC_SRC_CORE_LIB_JSON_JSON_OBJECT_LOADER_H
 
+#include <grpc/support/port_platform.h>
+
 #include <cstdint>
 #include <cstring>
 #include <map>
@@ -29,8 +31,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/gprpp/no_destruct.h"
 #include "src/core/lib/gprpp/ref_counted_ptr.h"

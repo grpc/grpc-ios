@@ -15,6 +15,8 @@
 #ifndef GRPC_SRC_CORE_LIB_SECURITY_AUTHORIZATION_EVALUATE_ARGS_H
 #define GRPC_SRC_CORE_LIB_SECURITY_AUTHORIZATION_EVALUATE_ARGS_H
 
+#include <grpc/support/port_platform.h>
+
 #include <string>
 #include <vector>
 
@@ -22,7 +24,6 @@
 #include "absl/types/optional.h"
 
 #include <grpc/grpc_security.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/iomgr/resolved_address.h"

@@ -17,6 +17,8 @@
 #ifndef GRPC_SRC_CORE_EXT_XDS_XDS_HTTP_FILTERS_H
 #define GRPC_SRC_CORE_EXT_XDS_XDS_HTTP_FILTERS_H
 
+#include <grpc/support/port_platform.h>
+
 #include <map>
 #include <memory>
 #include <string>
@@ -29,8 +31,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "upb/reflection/def.h"
-
-#include <grpc/support/port_platform.h>
 
 #include "src/core/ext/xds/xds_common_types.h"
 #include "src/core/ext/xds/xds_resource_type.h"

@@ -358,15 +358,11 @@ public class RubyRepeatedField extends RubyObject {
     return storage.inspect();
   }
 
-  @JRubyMethod
-  public IRubyObject freeze(ThreadContext context) {
-    if (isFrozen()) {
-      return this;
-    }
+  protected IRubyObject deepFreeze(ThreadContext context) {
     setFrozen(true);
     if (fieldType == FieldDescriptor.Type.MESSAGE) {
       for (int i = 0; i < size(); i++) {
-        ((RubyMessage) storage.eltInternal(i)).freeze(context);
+        ((RubyMessage) storage.eltInternal(i)).deepFreeze(context);
       }
     }
     return this;
@@ -400,30 +396,35 @@ public class RubyRepeatedField extends RubyObject {
   }
 
   private IRubyObject defaultValue(ThreadContext context) {
+    SentinelOuterClass.Sentinel sentinel = SentinelOuterClass.Sentinel.getDefaultInstance();
     Object value;
     switch (fieldType) {
       case INT32:
-      case UINT32:
-        value = 0;
+        value = sentinel.getDefaultInt32();
         break;
       case INT64:
+        value = sentinel.getDefaultInt64();
+        break;
+      case UINT32:
+        value = sentinel.getDefaultUnit32();
+        break;
       case UINT64:
-        value = 0L;
+        value = sentinel.getDefaultUint64();
         break;
       case FLOAT:
-        value = 0F;
+        value = sentinel.getDefaultFloat();
         break;
       case DOUBLE:
-        value = 0D;
+        value = sentinel.getDefaultDouble();
         break;
       case BOOL:
-        value = false;
+        value = sentinel.getDefaultBool();
         break;
       case BYTES:
-        value = com.google.protobuf.ByteString.EMPTY;
+        value = sentinel.getDefaultBytes();
         break;
       case STRING:
-        value = "";
+        value = sentinel.getDefaultString();
         break;
       case ENUM:
         IRubyObject defaultEnumLoc = context.runtime.newFixnum(0);

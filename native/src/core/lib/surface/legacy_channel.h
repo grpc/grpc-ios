@@ -19,6 +19,8 @@
 #ifndef GRPC_SRC_CORE_LIB_SURFACE_LEGACY_CHANNEL_H
 #define GRPC_SRC_CORE_LIB_SURFACE_LEGACY_CHANNEL_H
 
+#include <grpc/support/port_platform.h>
+
 #include <string>
 
 #include "absl/status/statusor.h"
@@ -26,7 +28,6 @@
 
 #include <grpc/event_engine/event_engine.h>
 #include <grpc/grpc.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/client_channel/client_channel_filter.h"
 #include "src/core/lib/channel/channel_args.h"

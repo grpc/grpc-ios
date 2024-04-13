@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/channel/call_tracer.h"
 
 #include <memory>
@@ -23,7 +25,6 @@
 #include <vector>
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/tcp_tracer.h"
 #include "src/core/lib/promise/context.h"

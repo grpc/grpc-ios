@@ -19,6 +19,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "google/protobuf/stubs/common.h"
+
 namespace google {
 namespace protobuf {
 
@@ -227,6 +229,10 @@ int InitAttributes(CMessage* self, PyObject* args, PyObject* kwargs);
 
 PyObject* MergeFrom(CMessage* self, PyObject* arg);
 
+// This method does not do anything beyond checking that no other extension
+// has been registered with the same field number on this class.
+PyObject* RegisterExtension(PyObject* cls, PyObject* extension_handle);
+
 // Get a field from a message.
 PyObject* GetFieldValue(CMessage* self,
                         const FieldDescriptor* field_descriptor);
@@ -336,10 +342,10 @@ bool InitProto2MessageModule(PyObject *m);
 
 // These are referenced by repeated_scalar_container, and must
 // be explicitly instantiated.
-extern template bool CheckAndGetInteger<int32_t>(PyObject*, int32_t*);
-extern template bool CheckAndGetInteger<int64_t>(PyObject*, int64_t*);
-extern template bool CheckAndGetInteger<uint32_t>(PyObject*, uint32_t*);
-extern template bool CheckAndGetInteger<uint64_t>(PyObject*, uint64_t*);
+extern template bool CheckAndGetInteger<int32>(PyObject*, int32*);
+extern template bool CheckAndGetInteger<int64>(PyObject*, int64*);
+extern template bool CheckAndGetInteger<uint32>(PyObject*, uint32*);
+extern template bool CheckAndGetInteger<uint64>(PyObject*, uint64*);
 
 }  // namespace python
 }  // namespace protobuf

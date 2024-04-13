@@ -19,7 +19,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 
@@ -70,9 +69,9 @@ class RingHashTest : public XdsEnd2endTest {
     for (int port : ports) {
       absl::StatusOr<grpc_core::URI> lb_uri =
           grpc_core::URI::Parse(grpc_core::LocalIpUri(port));
-      CHECK(lb_uri.ok());
+      GPR_ASSERT(lb_uri.ok());
       grpc_resolved_address address;
-      CHECK(grpc_parse_uri(*lb_uri, &address));
+      GPR_ASSERT(grpc_parse_uri(*lb_uri, &address));
       addresses.emplace_back(address, grpc_core::ChannelArgs());
     }
     return addresses;

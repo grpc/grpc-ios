@@ -15,6 +15,8 @@
 #ifndef GRPC_SRC_CORE_LIB_PROMISE_INTER_ACTIVITY_LATCH_H
 #define GRPC_SRC_CORE_LIB_PROMISE_INTER_ACTIVITY_LATCH_H
 
+#include <grpc/support/port_platform.h>
+
 #include <stdint.h>
 
 #include <string>
@@ -23,7 +25,6 @@
 #include "absl/strings/str_cat.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/promise/activity.h"

@@ -16,10 +16,11 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/ext/xds/xds_client_stats.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/ext/xds/xds_client.h"
 #include "src/core/lib/debug/trace.h"

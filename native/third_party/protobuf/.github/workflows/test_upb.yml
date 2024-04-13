@@ -17,17 +17,16 @@ jobs:
       fail-fast: false   # Don't cancel all jobs if one fails.
       matrix:
         config:
-          - { name: "Bazel 7", bazel_version: "7.0.0" }
           - { name: "Fastbuild" }
           - { name: "Optimized", flags: "-c opt" }
-          - { name: "ASAN", flags: "--config=asan -c dbg", exclude-targets: "-//benchmarks:benchmark -//python/...", runner: ubuntu-20-large }
+          - { name: "FastTable", flags: "--//upb:fasttable_enabled=true" }
+          - { name: "ASAN", flags: "--config=asan -c dbg", exclude-targets: "-//benchmarks:benchmark -//python/..." }
           - { name: "UBSAN", flags: "--config=ubsan -c dbg", exclude-targets: "-//benchmarks:benchmark -//python/... -//lua/..." }
           - { name: "32-bit", flags: "--copt=-m32 --linkopt=-m32", exclude-targets: "-//benchmarks:benchmark -//python/..." }
-          # TODO: Add 32-bit ASAN test
-          # TODO: Restore the FastTable tests
+          # TODO: b/297027295 - Add 32-bit ASAN test
 
     name: ${{ matrix.config.name }}
-    runs-on: ${{ matrix.config.runner || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout pending changes
@@ -37,7 +36,7 @@ jobs:
       - name: Run tests
         uses: protocolbuffers/protobuf-ci/bazel-docker@v2
         with:
-          image: us-docker.pkg.dev/protobuf-build/containers/test/linux/sanitize:${{ matrix.config.bazel_version || '6.3.0' }}-d07b7d649401d147e71e7182d2832cc8344f1f35
+          image: us-docker.pkg.dev/protobuf-build/containers/test/linux/sanitize@sha256:04cd765285bc52cbbf51d66c8c66d8603579cf0f19cc42df26b09d2c270541fb
           credentials: ${{ secrets.GAR_SERVICE_ACCOUNT }}
           bazel-cache: upb-bazel
           bazel: test --cxxopt=-std=c++17 --host_cxxopt=-std=c++17 //bazel/... //benchmarks/... //lua/... //protos/... //protos_generator/... //python/... //upb/... //upb_generator/... ${{ matrix.config.flags }}
@@ -81,8 +80,7 @@ jobs:
           credentials: ${{ secrets.GAR_SERVICE_ACCOUNT }}
           bazel-cache: "upb-bazel-windows"
           bazel: test --cxxopt=/std:c++17 --host_cxxopt=/std:c++17 //upb/... //upb_generator/... //python/... //protos/... //protos_generator/...
-          version: 6.3.0
-          exclude-targets: -//python:conformance_test -//upb/reflection:def_builder_test
+          exclude-targets: -//python:conformance_test -//upb:def_builder_test
 
   macos:
     strategy:
@@ -102,13 +100,13 @@ jobs:
         with:
           cache: pip
           cache-dependency-path: 'python/requirements.txt'
+          python-version: '3.11' # 3.12 doesn't have setuptools
       - name: Run tests
         uses: protocolbuffers/protobuf-ci/bazel@v2
         with:
           credentials: ${{ secrets.GAR_SERVICE_ACCOUNT }}
           bazel-cache: "upb-bazel-macos"
           bazel: ${{ matrix.config.bazel-command }} --cxxopt=-std=c++17 --host_cxxopt=-std=c++17 ${{ matrix.config.flags }} //bazel/... //benchmarks/... //lua/... //protos/... //protos_generator/... //python/... //upb/... //upb_generator/...
-          version: 6.3.0
 
   no-python:
     strategy:
@@ -173,24 +171,23 @@ jobs:
           # coverage.
           - { os: ubuntu-latest, python-version: "3.8", architecture: x64, type: 'binary' }
           - { os: macos-11, python-version: "3.8", architecture: x64, type: 'binary' }
-          - { os: ubuntu-latest, python-version: "3.12", architecture: x64, type: 'binary' }
-          - { os: macos-12, python-version: "3.12", architecture: x64, type: 'binary' }
+          - { os: ubuntu-latest, python-version: "3.11", architecture: x64, type: 'binary' }
+          - { os: macos-12, python-version: "3.11", architecture: x64, type: 'binary' }
           - { os: ubuntu-latest, python-version: "3.8", architecture: x64, type: 'source' }
           - { os: macos-11, python-version: "3.8", architecture: x64, type: 'source' }
-          - { os: ubuntu-latest, python-version: "3.12", architecture: x64, type: 'source' }
-          - { os: macos-12, python-version: "3.12", architecture: x64, type: 'source' }
+          - { os: ubuntu-latest, python-version: "3.11", architecture: x64, type: 'source' }
+          - { os: macos-12, python-version: "3.11", architecture: x64, type: 'source' }
 
-          # Windows uses the full API up until Python 3.10.
+          # Windows uses the full API up until Python 3.10, so each of these
+          # jobs tests a distinct binary wheel.
           - { os: windows-2019, python-version: "3.8", architecture: x86, type: 'binary' }
           - { os: windows-2019, python-version: "3.9", architecture: x86, type: 'binary' }
           - { os: windows-2019, python-version: "3.10", architecture: x86, type: 'binary' }
           - { os: windows-2019, python-version: "3.11", architecture: x86, type: 'binary' }
-          - { os: windows-2019, python-version: "3.12", architecture: x86, type: 'binary' }
           - { os: windows-2019, python-version: "3.8", architecture: x64, type: 'binary' }
           - { os: windows-2019, python-version: "3.9", architecture: x64, type: 'binary' }
           - { os: windows-2019, python-version: "3.10", architecture: x64, type: 'binary' }
           - { os: windows-2019, python-version: "3.11", architecture: x64, type: 'binary' }
-          - { os: windows-2019, python-version: "3.12", architecture: x64, type: 'binary' }
     runs-on: ${{ matrix.os }}
     if: ${{ github.event_name != 'pull_request_target' }}
     defaults:
@@ -251,7 +248,7 @@ jobs:
     strategy:
       fail-fast: false   # Don't cancel all jobs if one fails.
       matrix:
-        python-version: ["3.8", "3.12"]
+        python-version: ["3.8", "3.11"]
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request_target' }}
     steps:

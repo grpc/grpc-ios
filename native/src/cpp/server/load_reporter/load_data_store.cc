@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/cpp/server/load_reporter/load_data_store.h"
 
 #include <stdint.h>
@@ -27,7 +29,6 @@
 #include <unordered_map>
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/iomgr/socket_utils.h"
 #include "src/cpp/server/load_reporter/constants.h"

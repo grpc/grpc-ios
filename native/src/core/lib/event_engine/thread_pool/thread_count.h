@@ -14,6 +14,8 @@
 #ifndef GRPC_SRC_CORE_LIB_EVENT_ENGINE_THREAD_POOL_THREAD_COUNT_H
 #define GRPC_SRC_CORE_LIB_EVENT_ENGINE_THREAD_POOL_THREAD_COUNT_H
 
+#include <grpc/support/port_platform.h>
+
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -24,7 +26,6 @@
 #include "absl/base/thread_annotations.h"
 
 #include <grpc/support/cpu.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/gpr/useful.h"
 #include "src/core/lib/gprpp/sync.h"

@@ -40,10 +40,7 @@ grpc_cc_library(
 grpc_cc_test(
     name = "timer_heap_test",
     srcs = ["timer_heap_test.cc"],
-    external_deps = [
-        "absl/log:check",
-        "gtest",
-    ],
+    external_deps = ["gtest"],
     language = "C++",
     uses_event_engine = False,
     uses_polling = False,
@@ -145,10 +142,7 @@ grpc_cc_test(
 grpc_cc_test(
     name = "traced_buffer_list_test",
     srcs = ["traced_buffer_list_test.cc"],
-    external_deps = [
-        "absl/log:check",
-        "gtest",
-    ],
+    external_deps = ["gtest"],
     language = "C++",
     tags = [
         "no_windows",
@@ -182,10 +176,7 @@ grpc_cc_test(
 grpc_cc_test(
     name = "posix_endpoint_test",
     srcs = ["posix_endpoint_test.cc"],
-    external_deps = [
-        "absl/log:check",
-        "gtest",
-    ],
+    external_deps = ["gtest"],
     language = "C++",
     tags = [
         "no_windows",
@@ -230,10 +221,7 @@ grpc_cc_test(
 grpc_cc_test(
     name = "posix_event_engine_connect_test",
     srcs = ["posix_event_engine_connect_test.cc"],
-    external_deps = [
-        "absl/log:check",
-        "gtest",
-    ],
+    external_deps = ["gtest"],
     language = "C++",
     tags = [
         "no_mac",

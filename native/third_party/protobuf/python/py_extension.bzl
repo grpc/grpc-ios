@@ -54,8 +54,5 @@ def py_extension(name, srcs, copts, deps = [], **kwargs):
         name = name,
         data = [output_file],
         imports = ["."],
-        visibility = [
-            "//python:__subpackages__",
-            "//conformance:__pkg__",
-        ],
+        visibility = ["//python:__subpackages__"],
     )

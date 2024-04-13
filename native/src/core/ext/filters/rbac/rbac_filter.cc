@@ -88,7 +88,9 @@ absl::StatusOr<RbacFilter> RbacFilter::Create(const ChannelArgs& args,
   if (auth_context == nullptr) {
     return GRPC_ERROR_CREATE("No auth context found");
   }
-  return RbacFilter(filter_args.instance_id(),
+  return RbacFilter(grpc_channel_stack_filter_instance_number(
+                        filter_args.channel_stack(),
+                        filter_args.uninitialized_channel_element()),
                     EvaluateArgs::PerChannelArgs(auth_context, args));
 }
 

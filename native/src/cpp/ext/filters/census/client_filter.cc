@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/cpp/ext/filters/census/client_filter.h"
 
 #include <stddef.h>
@@ -44,7 +46,6 @@
 
 #include <grpc/slice.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/time.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/opencensus.h>

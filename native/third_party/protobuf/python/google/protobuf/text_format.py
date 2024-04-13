@@ -46,8 +46,6 @@ _QUOTES = frozenset(("'", '"'))
 _ANY_FULL_TYPE_NAME = 'google.protobuf.Any'
 _DEBUG_STRING_SILENT_MARKER = '\t '
 
-_as_utf8_default = True
-
 
 class Error(Exception):
   """Top-level module error for text_format."""
@@ -93,7 +91,7 @@ class TextWriter(object):
 
 def MessageToString(
     message,
-    as_utf8=_as_utf8_default,
+    as_utf8=False,
     as_one_line=False,
     use_short_repeated_primitives=False,
     pointy_brackets=False,
@@ -188,7 +186,7 @@ def _IsMapEntry(field):
 def PrintMessage(message,
                  out,
                  indent=0,
-                 as_utf8=_as_utf8_default,
+                 as_utf8=False,
                  as_one_line=False,
                  use_short_repeated_primitives=False,
                  pointy_brackets=False,
@@ -250,7 +248,7 @@ def PrintField(field,
                value,
                out,
                indent=0,
-               as_utf8=_as_utf8_default,
+               as_utf8=False,
                as_one_line=False,
                use_short_repeated_primitives=False,
                pointy_brackets=False,
@@ -274,7 +272,7 @@ def PrintFieldValue(field,
                     value,
                     out,
                     indent=0,
-                    as_utf8=_as_utf8_default,
+                    as_utf8=False,
                     as_one_line=False,
                     use_short_repeated_primitives=False,
                     pointy_brackets=False,
@@ -330,7 +328,7 @@ class _Printer(object):
       self,
       out,
       indent=0,
-      as_utf8=_as_utf8_default,
+      as_utf8=False,
       as_one_line=False,
       use_short_repeated_primitives=False,
       pointy_brackets=False,

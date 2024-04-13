@@ -444,7 +444,8 @@ class DescriptorPoolTypeResolverSyntaxTest : public testing::Test {
 
 TEST_F(DescriptorPoolTypeResolverSyntaxTest, SyntaxProto2) {
   const FileDescriptor* file = BuildFile("proto2");
-  ASSERT_EQ(FileDescriptorLegacy(file).edition(), Edition::EDITION_PROTO2);
+  ASSERT_EQ(FileDescriptorLegacy::Syntax::SYNTAX_PROTO2,
+            FileDescriptorLegacy(file).syntax());
 
   Type type;
   ASSERT_TRUE(
@@ -455,12 +456,14 @@ TEST_F(DescriptorPoolTypeResolverSyntaxTest, SyntaxProto2) {
 
 TEST_F(DescriptorPoolTypeResolverSyntaxTest, SyntaxProto3) {
   const FileDescriptor* file = BuildFile("proto3");
-  ASSERT_EQ(FileDescriptorLegacy(file).edition(), Edition::EDITION_PROTO3);
+  ASSERT_EQ(FileDescriptorLegacy::Syntax::SYNTAX_PROTO3,
+            FileDescriptorLegacy(file).syntax());
 
   Type type;
   ASSERT_TRUE(
       resolver_->ResolveMessageType(GetTypeUrl("test.MyMessage"), &type).ok());
-  EXPECT_EQ(type.syntax(), Syntax::SYNTAX_PROTO3);
+  // TODO This should be proto3.
+  EXPECT_EQ(type.syntax(), Syntax::SYNTAX_PROTO2);
   EXPECT_EQ(type.edition(), "");
 }
 

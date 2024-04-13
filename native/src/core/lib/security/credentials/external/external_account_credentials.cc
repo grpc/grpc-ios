@@ -13,6 +13,8 @@
 // limitations under the License.
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/security/credentials/external/external_account_credentials.h"
 
 #include <stdint.h>
@@ -40,7 +42,6 @@
 #include <grpc/support/alloc.h>
 #include <grpc/support/json.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/string_util.h>
 
 #include "src/core/lib/gprpp/status_helper.h"

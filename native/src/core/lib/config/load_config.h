@@ -15,6 +15,8 @@
 #ifndef GRPC_SRC_CORE_LIB_CONFIG_LOAD_CONFIG_H
 #define GRPC_SRC_CORE_LIB_CONFIG_LOAD_CONFIG_H
 
+#include <grpc/support/port_platform.h>
+
 #include <stdint.h>
 
 #include <string>
@@ -23,8 +25,6 @@
 #include "absl/flags/flag.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-
-#include <grpc/support/port_platform.h>
 
 namespace grpc_core {
 

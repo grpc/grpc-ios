@@ -19,8 +19,9 @@
 #ifndef GRPC_SRC_CORE_LIB_HTTP_FORMAT_REQUEST_H
 #define GRPC_SRC_CORE_LIB_HTTP_FORMAT_REQUEST_H
 
-#include <grpc/slice.h>
 #include <grpc/support/port_platform.h>
+
+#include <grpc/slice.h>
 
 #include "src/core/lib/http/parser.h"
 

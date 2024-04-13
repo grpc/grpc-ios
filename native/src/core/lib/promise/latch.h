@@ -15,6 +15,8 @@
 #ifndef GRPC_SRC_CORE_LIB_PROMISE_LATCH_H
 #define GRPC_SRC_CORE_LIB_PROMISE_LATCH_H
 
+#include <grpc/support/port_platform.h>
+
 #include <stdint.h>
 
 #include <atomic>
@@ -24,7 +26,6 @@
 #include "absl/strings/str_cat.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/promise/activity.h"
 #include "src/core/lib/promise/poll.h"

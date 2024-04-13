@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "src/core/lib/gprpp/tchar.h"
-
 #include <grpc/support/port_platform.h>
+
+#include "src/core/lib/gprpp/tchar.h"
 
 #ifdef GPR_WINDOWS
 

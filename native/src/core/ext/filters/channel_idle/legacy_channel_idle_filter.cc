@@ -128,11 +128,6 @@ struct LegacyMaxAgeFilter::Config {
   }
 };
 
-// We need access to the channel stack here to send a goaway - but that access
-// is deprecated and will be removed when call-v3 is fully enabled. This filter
-// will be removed at that time also, so just disable the deprecation warning
-// for now.
-ABSL_INTERNAL_DISABLE_DEPRECATED_DECLARATION_WARNING
 absl::StatusOr<LegacyClientIdleFilter> LegacyClientIdleFilter::Create(
     const ChannelArgs& args, ChannelFilter::Args filter_args) {
   LegacyClientIdleFilter filter(filter_args.channel_stack(),
@@ -146,7 +141,6 @@ absl::StatusOr<LegacyMaxAgeFilter> LegacyMaxAgeFilter::Create(
                             Config::FromChannelArgs(args));
   return absl::StatusOr<LegacyMaxAgeFilter>(std::move(filter));
 }
-ABSL_INTERNAL_RESTORE_DEPRECATED_DECLARATION_WARNING
 
 void LegacyMaxAgeFilter::Shutdown() {
   max_age_activity_.Reset();

@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/channel/channel_stack.h"
 
 #include <stdint.h>
@@ -24,7 +26,6 @@
 #include <utility>
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/channel_fwd.h"

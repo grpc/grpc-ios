@@ -20,7 +20,6 @@
 #include <sstream>
 
 #include "absl/flags/flag.h"
-#include "absl/log/check.h"
 
 #include <grpc/grpc.h>
 #include <grpc/support/log.h>
@@ -58,8 +57,8 @@ using grpc::testing::TLS;
 
 int main(int argc, char** argv) {
   grpc::testing::InitTest(&argc, &argv, true);
-  CHECK(absl::GetFlag(FLAGS_server_control_port));
-  CHECK(absl::GetFlag(FLAGS_server_retry_port));
+  GPR_ASSERT(absl::GetFlag(FLAGS_server_control_port));
+  GPR_ASSERT(absl::GetFlag(FLAGS_server_retry_port));
 
   std::ostringstream server_address;
   server_address << absl::GetFlag(FLAGS_server_host) << ':'
@@ -74,7 +73,7 @@ int main(int argc, char** argv) {
   Empty empty_response;
   Status start_status =
       control_stub->Start(&start_context, reconnect_params, &empty_response);
-  CHECK(start_status.ok());
+  GPR_ASSERT(start_status.ok());
 
   gpr_log(GPR_INFO, "Starting connections with retries.");
   server_address.str("");
@@ -99,14 +98,14 @@ int main(int argc, char** argv) {
                              std::chrono::seconds(kDeadlineSeconds));
   Status retry_status =
       retry_stub->Start(&retry_context, reconnect_params, &empty_response);
-  CHECK(retry_status.error_code() == grpc::StatusCode::DEADLINE_EXCEEDED);
+  GPR_ASSERT(retry_status.error_code() == grpc::StatusCode::DEADLINE_EXCEEDED);
   gpr_log(GPR_INFO, "Done retrying, getting final data from server");
 
   ClientContext stop_context;
   ReconnectInfo response;
   Status stop_status = control_stub->Stop(&stop_context, Empty(), &response);
-  CHECK(stop_status.ok());
-  CHECK(response.passed() == true);
+  GPR_ASSERT(stop_status.ok());
+  GPR_ASSERT(response.passed() == true);
   gpr_log(GPR_INFO, "Passed");
   return 0;
 }

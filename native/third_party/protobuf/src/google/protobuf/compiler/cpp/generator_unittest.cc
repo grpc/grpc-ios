@@ -148,6 +148,7 @@ TEST_F(CppGeneratorTest, LegacyClosedEnumImplicit) {
       "Field Foo.bar has a closed enum type with implicit presence.");
 }
 
+#ifdef PROTOBUF_FUTURE_REMOVE_WRONG_CTYPE
 TEST_F(CppGeneratorTest, CtypeOnNoneStringFieldTest) {
   CreateTempFile("foo.proto",
                  R"schema(
@@ -180,6 +181,7 @@ TEST_F(CppGeneratorTest, CtypeOnExtensionTest) {
       "Extension bar specifies ctype=CORD which is "
       "not supported for extensions.");
 }
+#endif  // !PROTOBUF_FUTURE_REMOVE_WRONG_CTYPE
 }  // namespace
 }  // namespace cpp
 }  // namespace compiler

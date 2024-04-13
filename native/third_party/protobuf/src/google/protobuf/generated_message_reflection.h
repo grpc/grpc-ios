@@ -15,13 +15,12 @@
 #ifndef GOOGLE_PROTOBUF_GENERATED_MESSAGE_REFLECTION_H__
 #define GOOGLE_PROTOBUF_GENERATED_MESSAGE_REFLECTION_H__
 
-#include <atomic>
-#include <cstddef>
-#include <cstdint>
 #include <string>
 
+#include "google/protobuf/stubs/common.h"
 #include "absl/base/call_once.h"
-#include "absl/log/absl_check.h"
+#include "absl/base/casts.h"
+#include "absl/strings/string_view.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/port.h"
@@ -41,10 +40,6 @@ class MapValueRef;
 class MessageLayoutInspector;
 class Message;
 struct Metadata;
-
-namespace io {
-class CodedOutputStream;
-}
 }  // namespace protobuf
 }  // namespace google
 
@@ -338,16 +333,9 @@ PROTOBUF_EXPORT void UnknownFieldSetSerializer(const uint8_t* base,
 
 PROTOBUF_EXPORT void InitializeFileDescriptorDefaultInstances();
 
-PROTOBUF_EXPORT void AddDescriptors(const DescriptorTable* table);
-
 struct PROTOBUF_EXPORT AddDescriptorsRunner {
   explicit AddDescriptorsRunner(const DescriptorTable* table);
 };
-
-// Retrieves the existing prototype out of a descriptor table.
-// If it doesn't exist, asks the generated message factory for one.
-const Message* GetPrototypeForWeakDescriptor(const DescriptorTable* table,
-                                             int index);
 
 struct DenseEnumCacheInfo {
   std::atomic<const std::string**> cache;

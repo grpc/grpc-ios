@@ -6,7 +6,6 @@
 # https://developers.google.com/open-source/licenses/bsd
 
 load(":pyproto_test_wrapper.bzl", "pyproto_test_wrapper")
-
 # begin:github_only
 load("@pip_deps//:requirements.bzl", "requirement")
 # end:github_only
@@ -40,15 +39,15 @@ py_test(
     name = "numpy_test",
     srcs = ["numpy_test_wrapper.py"],
     main = "numpy_test_wrapper.py",
-    target_compatible_with = select({
-        "@system_python//:supported": [],
-        "//conditions:default": ["@platforms//:incompatible"],
-    }),
     deps = [
-        requirement("numpy"),
-        "//python:_message",
-        "//python/google/protobuf/internal/numpy:numpy_test",
+      requirement("numpy"),
+      "//python/google/protobuf/internal/numpy:numpy_test",
+      "//python:_message",
     ],
+    target_compatible_with = select({
+      "@system_python//:supported": [],
+      "//conditions:default": ["@platforms//:incompatible"],
+    }),
 )
 # end:github_only
 

@@ -7,20 +7,12 @@
 
 package com.google.protobuf;
 
-import static com.google.protobuf.Internal.checkNotNull;
-
 import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.EnumDescriptor;
 import com.google.protobuf.Descriptors.EnumValueDescriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.Descriptors.OneofDescriptor;
-import com.google.protobuf.Internal.BooleanList;
-import com.google.protobuf.Internal.DoubleList;
-import com.google.protobuf.Internal.FloatList;
-import com.google.protobuf.Internal.IntList;
-import com.google.protobuf.Internal.LongList;
-import com.google.protobuf.Internal.ProtobufList;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectStreamException;
@@ -28,7 +20,6 @@ import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -52,11 +43,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
    */
   protected static boolean alwaysUseFieldBuilders = false;
 
-  /**
-   * For use by generated code only.
-   *
-   * <p>TODO: mark this private and final (breaking change)
-   */
+  /** For use by generated code only. */
   protected UnknownFieldSet unknownFields;
 
   protected GeneratedMessage() {
@@ -67,31 +54,19 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     unknownFields = builder.getUnknownFields();
   }
 
-  /** TODO: Remove this unnecessary intermediate implementation of this method. */
   @Override
   public Parser<? extends GeneratedMessage> getParserForType() {
     throw new UnsupportedOperationException("This is supposed to be overridden by subclasses.");
   }
 
   /**
-   * TODO: Stop using SingleFieldBuilder and remove this setting
-   *
-   * @see #setAlwaysUseFieldBuildersForTesting(boolean)
+   * For testing. Allows a test to disable the optimization that avoids using field builders for
+   * nested messages until they are requested. By disabling this optimization, existing tests can be
+   * reused to test the field builders. See {@link RepeatedFieldBuilder} and {@link
+   * SingleFieldBuilder}.
    */
   static void enableAlwaysUseFieldBuildersForTesting() {
-    setAlwaysUseFieldBuildersForTesting(true);
-  }
-
-  /**
-   * For testing. Allows a test to disable/re-enable the optimization that avoids using field
-   * builders for nested messages until they are requested. By disabling this optimization, existing
-   * tests can be reused to test the field builders. See {@link RepeatedFieldBuilder} and {@link
-   * SingleFieldBuilder}.
-   *
-   * <p>TODO: Stop using SingleFieldBuilder and remove this setting
-   */
-  static void setAlwaysUseFieldBuildersForTesting(boolean useBuilders) {
-    alwaysUseFieldBuilders = useBuilders;
+    alwaysUseFieldBuilders = true;
   }
 
   /**
@@ -106,35 +81,14 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
   }
 
   /**
-   * TODO: This method should be removed. It enables parsing directly into an
-   * "immutable" message. Have to leave it for now to support old gencode.
-   *
-   * @deprecated use newBuilder().mergeFrom() instead
-   */
-  @Deprecated
-  protected void mergeFromAndMakeImmutableInternal(
-      CodedInputStream input, ExtensionRegistryLite extensionRegistry)
-      throws InvalidProtocolBufferException {
-    Schema<GeneratedMessage> schema = Protobuf.getInstance().schemaFor(this);
-    try {
-      schema.mergeFrom(this, CodedInputStreamReader.forCodedInput(input), extensionRegistry);
-    } catch (InvalidProtocolBufferException e) {
-      throw e.setUnfinishedMessage(this);
-    } catch (IOException e) {
-      throw new InvalidProtocolBufferException(e).setUnfinishedMessage(this);
-    }
-    schema.makeImmutable(this);
-  }
-
-  /**
    * Internal helper to return a modifiable map containing all the fields. The returned Map is
-   * modifiable so that the caller can add additional extension fields to implement {@link
+   * modifialbe so that the caller can add additional extension fields to implement {@link
    * #getAllFields()}.
    *
    * @param getBytesForString whether to generate ByteString for string fields
    */
   private Map<FieldDescriptor, Object> getAllFieldsMutable(boolean getBytesForString) {
-    final TreeMap<FieldDescriptor, Object> result = new TreeMap<>();
+    final TreeMap<FieldDescriptor, Object> result = new TreeMap<FieldDescriptor, Object>();
     final Descriptor descriptor = internalGetFieldAccessorTable().descriptor;
     final List<FieldDescriptor> fields = descriptor.getFields();
 
@@ -178,7 +132,6 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     return result;
   }
 
-  // TODO: compute this at {@code build()} time in the Builder class.
   @Override
   public boolean isInitialized() {
     for (final FieldDescriptor field : getDescriptorForType().getFields()) {
@@ -211,7 +164,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
 
   @Override
   public Map<FieldDescriptor, Object> getAllFields() {
-    return Collections.unmodifiableMap(getAllFieldsMutable(/* getBytesForString= */ false));
+    return Collections.unmodifiableMap(getAllFieldsMutable(/* getBytesForString = */ false));
   }
 
   /**
@@ -223,7 +176,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
    * fields in order by field number.
    */
   Map<FieldDescriptor, Object> getAllFieldsRaw() {
-    return Collections.unmodifiableMap(getAllFieldsMutable(/* getBytesForString= */ true));
+    return Collections.unmodifiableMap(getAllFieldsMutable(/* getBytesForString = */ true));
   }
 
   @Override
@@ -267,22 +220,13 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     return internalGetFieldAccessorTable().getField(field).getRepeated(this, index);
   }
 
-  // TODO: This method should be final.
   @Override
   public UnknownFieldSet getUnknownFields() {
-    return unknownFields;
-  }
-
-  // TODO: This should go away when Schema classes cannot modify immutable
-  // GeneratedMessage objects anymore.
-  void setUnknownFields(UnknownFieldSet unknownFields) {
-    this.unknownFields = unknownFields;
+    throw new UnsupportedOperationException("This is supposed to be overridden by subclasses.");
   }
 
   /**
    * Called by subclasses to parse an unknown field.
-   *
-   * <p>TODO remove this method
    *
    * @return {@code true} unless the tag is an end-group tag.
    */
@@ -292,29 +236,9 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       ExtensionRegistryLite extensionRegistry,
       int tag)
       throws IOException {
-    if (input.shouldDiscardUnknownFields()) {
-      return input.skipField(tag);
-    }
     return unknownFields.mergeFieldFrom(tag, input);
   }
 
-  /**
-   * Delegates to parseUnknownField. This method is obsolete, but we must retain it for
-   * compatibility with older generated code.
-   *
-   * <p>TODO remove this method
-   */
-  protected boolean parseUnknownFieldProto3(
-      CodedInputStream input,
-      UnknownFieldSet.Builder unknownFields,
-      ExtensionRegistryLite extensionRegistry,
-      int tag)
-      throws IOException {
-    return parseUnknownField(input, unknownFields, extensionRegistry, tag);
-  }
-
-  /** Used by generated code. */
-  @SuppressWarnings("ProtoParseWithRegistry")
   protected static <M extends Message> M parseWithIOException(Parser<M> parser, InputStream input)
       throws IOException {
     try {
@@ -324,7 +248,6 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     }
   }
 
-  /** Used by generated code. */
   protected static <M extends Message> M parseWithIOException(
       Parser<M> parser, InputStream input, ExtensionRegistryLite extensions) throws IOException {
     try {
@@ -334,8 +257,6 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     }
   }
 
-  /** Used by generated code. */
-  @SuppressWarnings("ProtoParseWithRegistry")
   protected static <M extends Message> M parseWithIOException(
       Parser<M> parser, CodedInputStream input) throws IOException {
     try {
@@ -345,7 +266,6 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     }
   }
 
-  /** Used by generated code. */
   protected static <M extends Message> M parseWithIOException(
       Parser<M> parser, CodedInputStream input, ExtensionRegistryLite extensions)
       throws IOException {
@@ -356,8 +276,6 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     }
   }
 
-  /** Used by generated code. */
-  @SuppressWarnings("ProtoParseWithRegistry")
   protected static <M extends Message> M parseDelimitedWithIOException(
       Parser<M> parser, InputStream input) throws IOException {
     try {
@@ -367,7 +285,6 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     }
   }
 
-  /** Used by generated code. */
   protected static <M extends Message> M parseDelimitedWithIOException(
       Parser<M> parser, InputStream input, ExtensionRegistryLite extensions) throws IOException {
     try {
@@ -375,53 +292,6 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     } catch (InvalidProtocolBufferException e) {
       throw e.unwrapIOException();
     }
-  }
-
-  protected static boolean canUseUnsafe() {
-    return UnsafeUtil.hasUnsafeArrayOperations() && UnsafeUtil.hasUnsafeByteBufferOperations();
-  }
-
-  protected static IntList emptyIntList() {
-    return IntArrayList.emptyList();
-  }
-
-  protected static LongList emptyLongList() {
-    return LongArrayList.emptyList();
-  }
-
-  protected static FloatList emptyFloatList() {
-    return FloatArrayList.emptyList();
-  }
-
-  protected static DoubleList emptyDoubleList() {
-    return DoubleArrayList.emptyList();
-  }
-
-  protected static BooleanList emptyBooleanList() {
-    return BooleanArrayList.emptyList();
-  }
-
-  protected static <ListT extends ProtobufList<?>> ListT makeMutableCopy(ListT list) {
-    return makeMutableCopy(list, 0);
-  }
-
-  @SuppressWarnings("unchecked") // Guaranteed by proto runtime.
-  protected static <ListT extends ProtobufList<?>> ListT makeMutableCopy(
-      ListT list, int minCapacity) {
-    int size = list.size();
-    if (minCapacity <= size) {
-      minCapacity = size * 2;
-    }
-    if (minCapacity <= 0) {
-      minCapacity = AbstractProtobufList.DEFAULT_CAPACITY;
-    }
-
-    return (ListT) list.mutableCopyWithCapacity(minCapacity);
-  }
-
-  @SuppressWarnings("unchecked") // The empty list can be safely cast
-  protected static <T> ProtobufList<T> emptyList(Class<T> elementType) {
-    return (ProtobufList<T>) ProtobufArrayList.emptyList();
   }
 
   @Override
@@ -436,34 +306,39 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       return size;
     }
 
-    memoizedSize = MessageReflection.getSerializedSize(
-        this, getAllFieldsRaw());
+    memoizedSize = MessageReflection.getSerializedSize(this, getAllFieldsRaw());
     return memoizedSize;
   }
 
+  /** Used by parsing constructors in generated classes. */
+  protected void makeExtensionsImmutable() {
+    // Noop for messages without extensions.
+  }
+
   /**
-   * This class is used to make a generated protected method inaccessible from user's code (e.g.,
-   * the {@link #newInstance} method below). When this class is used as a parameter's type in a
-   * generated protected method, the method is visible to user's code in the same package, but since
-   * the constructor of this class is private to protobuf runtime, user's code can't obtain an
-   * instance of this class and as such can't actually make a method call on the protected method.
+   * TODO: remove this after b/29368482 is fixed. We need to move this interface to
+   * AbstractMessage in order to versioning GeneratedMessage but this move breaks binary
+   * compatibility for AppEngine. After AppEngine is fixed we can exclude this from google3.
    */
-  protected static final class UnusedPrivateParameter {
-    static final UnusedPrivateParameter INSTANCE = new UnusedPrivateParameter();
+  protected interface BuilderParent extends AbstractMessage.BuilderParent {}
 
-    private UnusedPrivateParameter() {}
+  /** TODO: remove this together with GeneratedMessage.BuilderParent. */
+  protected abstract Message.Builder newBuilderForType(BuilderParent parent);
+
+  @Override
+  protected Message.Builder newBuilderForType(final AbstractMessage.BuilderParent parent) {
+    return newBuilderForType(
+        new BuilderParent() {
+          @Override
+          public void markDirty() {
+            parent.markDirty();
+          }
+        });
   }
 
-  /** Creates a new instance of this message type. Overridden in the generated code. */
-  @SuppressWarnings({"unused"})
-  protected Object newInstance(UnusedPrivateParameter unused) {
-    throw new UnsupportedOperationException("This method must be overridden by the subclass.");
-  }
-
-  /** Builder class for {@link GeneratedMessage}. */
   @SuppressWarnings("unchecked")
-  public abstract static class Builder<BuilderT extends Builder<BuilderT>>
-      extends AbstractMessage.Builder<BuilderT> {
+  public abstract static class Builder<BuilderType extends Builder<BuilderType>>
+      extends AbstractMessage.Builder<BuilderType> {
 
     private BuilderParent builderParent;
 
@@ -473,18 +348,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     // to dispatch dirty invalidations. See GeneratedMessage.BuilderListener.
     private boolean isClean;
 
-    /**
-     * This field holds either an {@link UnknownFieldSet} or {@link UnknownFieldSet.Builder}.
-     *
-     * <p>We use an object because it should only be one or the other of those things at a time and
-     * Object is the only common base. This also saves space.
-     *
-     * <p>Conversions are lazy: if {@link #setUnknownFields} is called, this will contain {@link
-     * UnknownFieldSet}. If unknown fields are merged into this builder, the current {@link
-     * UnknownFieldSet} will be converted to a {@link UnknownFieldSet.Builder} and left that way
-     * until either {@link #setUnknownFields} or {@link #buildPartial} or {@link #build} is called.
-     */
-    private Object unknownFieldsOrBuilder = UnknownFieldSet.getDefaultInstance();
+    private UnknownFieldSet unknownFields = UnknownFieldSet.getDefaultInstance();
 
     protected Builder() {
       this(null);
@@ -525,8 +389,8 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     }
 
     @Override
-    public BuilderT clone() {
-      BuilderT builder = (BuilderT) getDefaultInstanceForType().newBuilderForType();
+    public BuilderType clone() {
+      BuilderType builder = (BuilderType) getDefaultInstanceForType().newBuilderForType();
       builder.mergeFrom(buildPartial());
       return builder;
     }
@@ -536,10 +400,10 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
      * builtin fields back to the initial values.
      */
     @Override
-    public BuilderT clear() {
-      unknownFieldsOrBuilder = UnknownFieldSet.getDefaultInstance();
+    public BuilderType clear() {
+      unknownFields = UnknownFieldSet.getDefaultInstance();
       onChanged();
-      return (BuilderT) this;
+      return (BuilderType) this;
     }
 
     /**
@@ -560,7 +424,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
 
     /** Internal helper which returns a mutable map. */
     private Map<FieldDescriptor, Object> getAllFieldsMutable() {
-      final TreeMap<FieldDescriptor, Object> result = new TreeMap<>();
+      final TreeMap<FieldDescriptor, Object> result = new TreeMap<FieldDescriptor, Object>();
       final Descriptor descriptor = internalGetFieldAccessorTable().descriptor;
       final List<FieldDescriptor> fields = descriptor.getFields();
 
@@ -636,28 +500,28 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       if (field.isRepeated()) {
         // The underlying list object is still modifiable at this point.
         // Make sure not to expose the modifiable list to the caller.
-        return Collections.unmodifiableList((List<?>) object);
+        return Collections.unmodifiableList((List) object);
       } else {
         return object;
       }
     }
 
     @Override
-    public BuilderT setField(final FieldDescriptor field, final Object value) {
+    public BuilderType setField(final FieldDescriptor field, final Object value) {
       internalGetFieldAccessorTable().getField(field).set(this, value);
-      return (BuilderT) this;
+      return (BuilderType) this;
     }
 
     @Override
-    public BuilderT clearField(final FieldDescriptor field) {
+    public BuilderType clearField(final FieldDescriptor field) {
       internalGetFieldAccessorTable().getField(field).clear(this);
-      return (BuilderT) this;
+      return (BuilderType) this;
     }
 
     @Override
-    public BuilderT clearOneof(final OneofDescriptor oneof) {
+    public BuilderType clearOneof(final OneofDescriptor oneof) {
       internalGetFieldAccessorTable().getOneof(oneof).clear(this);
-      return (BuilderT) this;
+      return (BuilderType) this;
     }
 
     @Override
@@ -671,51 +535,31 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     }
 
     @Override
-    public BuilderT setRepeatedField(
+    public BuilderType setRepeatedField(
         final FieldDescriptor field, final int index, final Object value) {
       internalGetFieldAccessorTable().getField(field).setRepeated(this, index, value);
-      return (BuilderT) this;
+      return (BuilderType) this;
     }
 
     @Override
-    public BuilderT addRepeatedField(final FieldDescriptor field, final Object value) {
+    public BuilderType addRepeatedField(final FieldDescriptor field, final Object value) {
       internalGetFieldAccessorTable().getField(field).addRepeated(this, value);
-      return (BuilderT) this;
-    }
-
-    private BuilderT setUnknownFieldsInternal(final UnknownFieldSet unknownFields) {
-      unknownFieldsOrBuilder = unknownFields;
-      onChanged();
-      return (BuilderT) this;
+      return (BuilderType) this;
     }
 
     @Override
-    public BuilderT setUnknownFields(final UnknownFieldSet unknownFields) {
-      return setUnknownFieldsInternal(unknownFields);
-    }
-
-    /**
-     * This method is obsolete, but we must retain it for compatibility with older generated code.
-     */
-    protected BuilderT setUnknownFieldsProto3(final UnknownFieldSet unknownFields) {
-      return setUnknownFieldsInternal(unknownFields);
+    public BuilderType setUnknownFields(final UnknownFieldSet unknownFields) {
+      this.unknownFields = unknownFields;
+      onChanged();
+      return (BuilderType) this;
     }
 
     @Override
-    public BuilderT mergeUnknownFields(final UnknownFieldSet unknownFields) {
-      if (UnknownFieldSet.getDefaultInstance().equals(unknownFields)) {
-        return (BuilderT) this;
-      }
-
-      if (UnknownFieldSet.getDefaultInstance().equals(unknownFieldsOrBuilder)) {
-        unknownFieldsOrBuilder = unknownFields;
-        onChanged();
-        return (BuilderT) this;
-      }
-
-      getUnknownFieldSetBuilder().mergeFrom(unknownFields);
+    public BuilderType mergeUnknownFields(final UnknownFieldSet unknownFields) {
+      this.unknownFields =
+          UnknownFieldSet.newBuilder(this.unknownFields).mergeFrom(unknownFields).build();
       onChanged();
-      return (BuilderT) this;
+      return (BuilderType) this;
     }
 
     @Override
@@ -749,50 +593,21 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
 
     @Override
     public final UnknownFieldSet getUnknownFields() {
-      if (unknownFieldsOrBuilder instanceof UnknownFieldSet) {
-        return (UnknownFieldSet) unknownFieldsOrBuilder;
-      } else {
-        return ((UnknownFieldSet.Builder) unknownFieldsOrBuilder).buildPartial();
-      }
+      return unknownFields;
     }
 
     /**
-     * Called by generated subclasses to parse an unknown field.
+     * Called by subclasses to parse an unknown field.
      *
      * @return {@code true} unless the tag is an end-group tag.
      */
     protected boolean parseUnknownField(
-        CodedInputStream input, ExtensionRegistryLite extensionRegistry, int tag)
+        final CodedInputStream input,
+        final UnknownFieldSet.Builder unknownFields,
+        final ExtensionRegistryLite extensionRegistry,
+        final int tag)
         throws IOException {
-      if (input.shouldDiscardUnknownFields()) {
-        return input.skipField(tag);
-      }
-      return getUnknownFieldSetBuilder().mergeFieldFrom(tag, input);
-    }
-
-    /** Called by generated subclasses to add to the unknown field set. */
-    protected final void mergeUnknownLengthDelimitedField(int number, ByteString bytes) {
-      getUnknownFieldSetBuilder().mergeLengthDelimitedField(number, bytes);
-    }
-
-    /** Called by generated subclasses to add to the unknown field set. */
-    protected final void mergeUnknownVarintField(int number, int value) {
-      getUnknownFieldSetBuilder().mergeVarintField(number, value);
-    }
-
-    @Override
-    protected UnknownFieldSet.Builder getUnknownFieldSetBuilder() {
-      if (unknownFieldsOrBuilder instanceof UnknownFieldSet) {
-        unknownFieldsOrBuilder = ((UnknownFieldSet) unknownFieldsOrBuilder).toBuilder();
-      }
-      onChanged();
-      return (UnknownFieldSet.Builder) unknownFieldsOrBuilder;
-    }
-
-    @Override
-    protected void setUnknownFieldSetBuilder(UnknownFieldSet.Builder builder) {
-      unknownFieldsOrBuilder = builder;
-      onChanged();
+      return unknownFields.mergeFieldFrom(tag, input);
     }
 
     /**
@@ -820,7 +635,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     }
 
     /**
-     * Called when a builder or one of its nested children has changed and any parent should be
+     * Called when a the builder or one of its nested children has changed and any parent should be
      * notified of its invalidation.
      */
     protected final void onChanged() {
@@ -842,56 +657,58 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
      * map field directly and thus enables us to access the map field as a list.
      */
     @SuppressWarnings({"unused", "rawtypes"})
-    protected MapFieldReflectionAccessor internalGetMapFieldReflection(int fieldNumber) {
-      return internalGetMapField(fieldNumber);
-    }
-
-    /** TODO: Remove, exists for compatibility with generated code. */
-    @Deprecated
-    @SuppressWarnings({"unused", "rawtypes"})
     protected MapField internalGetMapField(int fieldNumber) {
       // Note that we can't use descriptor names here because this method will
       // be called when descriptor is being initialized.
-      throw new IllegalArgumentException("No map fields found in " + getClass().getName());
+      throw new RuntimeException("No map fields found in " + getClass().getName());
     }
 
-    /** Like {@link #internalGetMapFieldReflection} but return a mutable version. */
-    @SuppressWarnings({"unused", "rawtypes"})
-    protected MapFieldReflectionAccessor internalGetMutableMapFieldReflection(int fieldNumber) {
-      return internalGetMutableMapField(fieldNumber);
-    }
-
-    /** TODO: Remove, exists for compatibility with generated code. */
-    @Deprecated
+    /** Like {@link #internalGetMapField} but return a mutable version. */
     @SuppressWarnings({"unused", "rawtypes"})
     protected MapField internalGetMutableMapField(int fieldNumber) {
       // Note that we can't use descriptor names here because this method will
       // be called when descriptor is being initialized.
-      throw new IllegalArgumentException("No map fields found in " + getClass().getName());
+      throw new RuntimeException("No map fields found in " + getClass().getName());
     }
   }
 
   // =================================================================
   // Extensions-related stuff
 
-  /** Extends {@link MessageOrBuilder} with extension-related functions. */
-  public interface ExtendableMessageOrBuilder<MessageT extends ExtendableMessage<MessageT>>
+  public interface ExtendableMessageOrBuilder<MessageType extends ExtendableMessage>
       extends MessageOrBuilder {
     // Re-define for return type covariance.
     @Override
     Message getDefaultInstanceForType();
 
     /** Check if a singular extension is present. */
-    <T> boolean hasExtension(ExtensionLite<MessageT, T> extension);
+    <Type> boolean hasExtension(ExtensionLite<MessageType, Type> extension);
 
     /** Get the number of elements in a repeated extension. */
-    <T> int getExtensionCount(ExtensionLite<MessageT, List<T>> extension);
+    <Type> int getExtensionCount(ExtensionLite<MessageType, List<Type>> extension);
 
     /** Get the value of an extension. */
-    <T> T getExtension(ExtensionLite<MessageT, T> extension);
+    <Type> Type getExtension(ExtensionLite<MessageType, Type> extension);
 
     /** Get one element of a repeated extension. */
-    <T> T getExtension(ExtensionLite<MessageT, List<T>> extension, int index);
+    <Type> Type getExtension(ExtensionLite<MessageType, List<Type>> extension, int index);
+
+    /** Check if a singular extension is present. */
+    <Type> boolean hasExtension(Extension<MessageType, Type> extension);
+    /** Check if a singular extension is present. */
+    <Type> boolean hasExtension(GeneratedExtension<MessageType, Type> extension);
+    /** Get the number of elements in a repeated extension. */
+    <Type> int getExtensionCount(Extension<MessageType, List<Type>> extension);
+    /** Get the number of elements in a repeated extension. */
+    <Type> int getExtensionCount(GeneratedExtension<MessageType, List<Type>> extension);
+    /** Get the value of an extension. */
+    <Type> Type getExtension(Extension<MessageType, Type> extension);
+    /** Get the value of an extension. */
+    <Type> Type getExtension(GeneratedExtension<MessageType, Type> extension);
+    /** Get one element of a repeated extension. */
+    <Type> Type getExtension(Extension<MessageType, List<Type>> extension, int index);
+    /** Get one element of a repeated extension. */
+    <Type> Type getExtension(GeneratedExtension<MessageType, List<Type>> extension, int index);
   }
 
   /**
@@ -926,8 +743,8 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
    *
    * <p>See also {@link ExtendableBuilder}.
    */
-  public abstract static class ExtendableMessage<MessageT extends ExtendableMessage<MessageT>>
-      extends GeneratedMessage implements ExtendableMessageOrBuilder<MessageT> {
+  public abstract static class ExtendableMessage<MessageType extends ExtendableMessage>
+      extends GeneratedMessage implements ExtendableMessageOrBuilder<MessageType> {
 
     private static final long serialVersionUID = 1L;
 
@@ -937,12 +754,12 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       this.extensions = FieldSet.newFieldSet();
     }
 
-    protected ExtendableMessage(ExtendableBuilder<MessageT, ?> builder) {
+    protected ExtendableMessage(ExtendableBuilder<MessageType, ?> builder) {
       super(builder);
       this.extensions = builder.buildExtensions();
     }
 
-    private void verifyExtensionContainingType(final Extension<MessageT, ?> extension) {
+    private void verifyExtensionContainingType(final Extension<MessageType, ?> extension) {
       if (extension.getDescriptor().getContainingType() != getDescriptorForType()) {
         // This can only happen if someone uses unchecked operations.
         throw new IllegalArgumentException(
@@ -956,8 +773,9 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
 
     /** Check if a singular extension is present. */
     @Override
-    public final <T> boolean hasExtension(final ExtensionLite<MessageT, T> extensionLite) {
-      Extension<MessageT, T> extension = checkNotLite(extensionLite);
+    @SuppressWarnings("unchecked")
+    public final <Type> boolean hasExtension(final ExtensionLite<MessageType, Type> extensionLite) {
+      Extension<MessageType, Type> extension = checkNotLite(extensionLite);
 
       verifyExtensionContainingType(extension);
       return extensions.hasField(extension.getDescriptor());
@@ -965,8 +783,10 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
 
     /** Get the number of elements in a repeated extension. */
     @Override
-    public final <T> int getExtensionCount(final ExtensionLite<MessageT, List<T>> extensionLite) {
-      Extension<MessageT, List<T>> extension = checkNotLite(extensionLite);
+    @SuppressWarnings("unchecked")
+    public final <Type> int getExtensionCount(
+        final ExtensionLite<MessageType, List<Type>> extensionLite) {
+      Extension<MessageType, List<Type>> extension = checkNotLite(extensionLite);
 
       verifyExtensionContainingType(extension);
       final FieldDescriptor descriptor = extension.getDescriptor();
@@ -976,36 +796,81 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     /** Get the value of an extension. */
     @Override
     @SuppressWarnings("unchecked")
-    public final <T> T getExtension(final ExtensionLite<MessageT, T> extensionLite) {
-      Extension<MessageT, T> extension = checkNotLite(extensionLite);
+    public final <Type> Type getExtension(final ExtensionLite<MessageType, Type> extensionLite) {
+      Extension<MessageType, Type> extension = checkNotLite(extensionLite);
 
       verifyExtensionContainingType(extension);
       FieldDescriptor descriptor = extension.getDescriptor();
       final Object value = extensions.getField(descriptor);
       if (value == null) {
         if (descriptor.isRepeated()) {
-          return (T) Collections.emptyList();
+          return (Type) Collections.emptyList();
         } else if (descriptor.getJavaType() == FieldDescriptor.JavaType.MESSAGE) {
-          return (T) extension.getMessageDefaultInstance();
+          return (Type) extension.getMessageDefaultInstance();
         } else {
-          return (T) extension.fromReflectionType(descriptor.getDefaultValue());
+          return (Type) extension.fromReflectionType(descriptor.getDefaultValue());
         }
       } else {
-        return (T) extension.fromReflectionType(value);
+        return (Type) extension.fromReflectionType(value);
       }
     }
 
     /** Get one element of a repeated extension. */
     @Override
     @SuppressWarnings("unchecked")
-    public final <T> T getExtension(
-        final ExtensionLite<MessageT, List<T>> extensionLite, final int index) {
-      Extension<MessageT, List<T>> extension = checkNotLite(extensionLite);
+    public final <Type> Type getExtension(
+        final ExtensionLite<MessageType, List<Type>> extensionLite, final int index) {
+      Extension<MessageType, List<Type>> extension = checkNotLite(extensionLite);
 
       verifyExtensionContainingType(extension);
       FieldDescriptor descriptor = extension.getDescriptor();
-      return (T)
+      return (Type)
           extension.singularFromReflectionType(extensions.getRepeatedField(descriptor, index));
+    }
+
+    /** Check if a singular extension is present. */
+    @Override
+    public final <Type> boolean hasExtension(final Extension<MessageType, Type> extension) {
+      return hasExtension((ExtensionLite<MessageType, Type>) extension);
+    }
+    /** Check if a singular extension is present. */
+    @Override
+    public final <Type> boolean hasExtension(
+        final GeneratedExtension<MessageType, Type> extension) {
+      return hasExtension((ExtensionLite<MessageType, Type>) extension);
+    }
+    /** Get the number of elements in a repeated extension. */
+    @Override
+    public final <Type> int getExtensionCount(final Extension<MessageType, List<Type>> extension) {
+      return getExtensionCount((ExtensionLite<MessageType, List<Type>>) extension);
+    }
+    /** Get the number of elements in a repeated extension. */
+    @Override
+    public final <Type> int getExtensionCount(
+        final GeneratedExtension<MessageType, List<Type>> extension) {
+      return getExtensionCount((ExtensionLite<MessageType, List<Type>>) extension);
+    }
+    /** Get the value of an extension. */
+    @Override
+    public final <Type> Type getExtension(final Extension<MessageType, Type> extension) {
+      return getExtension((ExtensionLite<MessageType, Type>) extension);
+    }
+    /** Get the value of an extension. */
+    @Override
+    public final <Type> Type getExtension(final GeneratedExtension<MessageType, Type> extension) {
+      return getExtension((ExtensionLite<MessageType, Type>) extension);
+    }
+    /** Get one element of a repeated extension. */
+    @Override
+    public final <Type> Type getExtension(
+        final Extension<MessageType, List<Type>> extension, final int index) {
+      return getExtension((ExtensionLite<MessageType, List<Type>>) extension, index);
+    }
+    /** Get one element of a repeated extension. */
+    @Override
+    public final <Type> Type getExtension(
+        final GeneratedExtension<MessageType, List<Type>> extension, final int index) {
+      return getExtension((ExtensionLite<MessageType, List<Type>>) extension, index);
     }
 
     /** Called by subclasses to check if all extensions are initialized. */
@@ -1013,10 +878,31 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       return extensions.isInitialized();
     }
 
-    // TODO: compute this in the builder at {@code build()} time.
     @Override
     public boolean isInitialized() {
       return super.isInitialized() && extensionsAreInitialized();
+    }
+
+    @Override
+    protected boolean parseUnknownField(
+        CodedInputStream input,
+        UnknownFieldSet.Builder unknownFields,
+        ExtensionRegistryLite extensionRegistry,
+        int tag)
+        throws IOException {
+      return MessageReflection.mergeFieldFrom(
+          input,
+          unknownFields,
+          extensionRegistry,
+          getDescriptorForType(),
+          new MessageReflection.ExtensionAdapter(extensions),
+          tag);
+    }
+
+    /** Used by parsing constructors in generated classes. */
+    @Override
+    protected void makeExtensionsImmutable() {
+      extensions.makeImmutable();
     }
 
     /**
@@ -1098,7 +984,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     @Override
     public Map<FieldDescriptor, Object> getAllFields() {
       final Map<FieldDescriptor, Object> result =
-          super.getAllFieldsMutable(/* getBytesForString= */ false);
+          super.getAllFieldsMutable(/* getBytesForString = */ false);
       result.putAll(getExtensionFields());
       return Collections.unmodifiableMap(result);
     }
@@ -1106,7 +992,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     @Override
     public Map<FieldDescriptor, Object> getAllFieldsRaw() {
       final Map<FieldDescriptor, Object> result =
-          super.getAllFieldsMutable(/* getBytesForString= */ false);
+          super.getAllFieldsMutable(/* getBytesForString = */ false);
       result.putAll(getExtensionFields());
       return Collections.unmodifiableMap(result);
     }
@@ -1207,11 +1093,11 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
    */
   @SuppressWarnings("unchecked")
   public abstract static class ExtendableBuilder<
-          MessageT extends ExtendableMessage<MessageT>,
-          BuilderT extends ExtendableBuilder<MessageT, BuilderT>>
-      extends Builder<BuilderT> implements ExtendableMessageOrBuilder<MessageT> {
+          MessageType extends ExtendableMessage,
+          BuilderType extends ExtendableBuilder<MessageType, BuilderType>>
+      extends Builder<BuilderType> implements ExtendableMessageOrBuilder<MessageType> {
 
-    private FieldSet.Builder<FieldDescriptor> extensions;
+    private FieldSet<FieldDescriptor> extensions = FieldSet.emptySet();
 
     protected ExtendableBuilder() {}
 
@@ -1221,22 +1107,30 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
 
     // For immutable message conversion.
     void internalSetExtensionSet(FieldSet<FieldDescriptor> extensions) {
-      this.extensions = FieldSet.Builder.fromFieldSet(extensions);
+      this.extensions = extensions;
     }
 
     @Override
-    public BuilderT clear() {
-      extensions = null;
+    public BuilderType clear() {
+      extensions = FieldSet.emptySet();
       return super.clear();
     }
 
+    // This is implemented here only to work around an apparent bug in the
+    // Java compiler and/or build system.  See bug #1898463.  The mere presence
+    // of this clone() implementation makes it go away.
+    @Override
+    public BuilderType clone() {
+      return super.clone();
+    }
+
     private void ensureExtensionsIsMutable() {
-      if (extensions == null) {
-        extensions = FieldSet.newBuilder();
+      if (extensions.isImmutable()) {
+        extensions = extensions.clone();
       }
     }
 
-    private void verifyExtensionContainingType(final Extension<MessageT, ?> extension) {
+    private void verifyExtensionContainingType(final Extension<MessageType, ?> extension) {
       if (extension.getDescriptor().getContainingType() != getDescriptorForType()) {
         // This can only happen if someone uses unchecked operations.
         throw new IllegalArgumentException(
@@ -1250,126 +1144,232 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
 
     /** Check if a singular extension is present. */
     @Override
-    public final <T> boolean hasExtension(final ExtensionLite<MessageT, T> extensionLite) {
-      Extension<MessageT, T> extension = checkNotLite(extensionLite);
+    public final <Type> boolean hasExtension(final ExtensionLite<MessageType, Type> extensionLite) {
+      Extension<MessageType, Type> extension = checkNotLite(extensionLite);
 
       verifyExtensionContainingType(extension);
-      return extensions != null && extensions.hasField(extension.getDescriptor());
+      return extensions.hasField(extension.getDescriptor());
     }
 
     /** Get the number of elements in a repeated extension. */
     @Override
-    public final <T> int getExtensionCount(final ExtensionLite<MessageT, List<T>> extensionLite) {
-      Extension<MessageT, List<T>> extension = checkNotLite(extensionLite);
+    public final <Type> int getExtensionCount(
+        final ExtensionLite<MessageType, List<Type>> extensionLite) {
+      Extension<MessageType, List<Type>> extension = checkNotLite(extensionLite);
 
       verifyExtensionContainingType(extension);
       final FieldDescriptor descriptor = extension.getDescriptor();
-      return extensions == null ? 0 : extensions.getRepeatedFieldCount(descriptor);
+      return extensions.getRepeatedFieldCount(descriptor);
     }
 
     /** Get the value of an extension. */
     @Override
-    public final <T> T getExtension(final ExtensionLite<MessageT, T> extensionLite) {
-      Extension<MessageT, T> extension = checkNotLite(extensionLite);
+    public final <Type> Type getExtension(final ExtensionLite<MessageType, Type> extensionLite) {
+      Extension<MessageType, Type> extension = checkNotLite(extensionLite);
 
       verifyExtensionContainingType(extension);
       FieldDescriptor descriptor = extension.getDescriptor();
-      final Object value = extensions == null ? null : extensions.getField(descriptor);
+      final Object value = extensions.getField(descriptor);
       if (value == null) {
         if (descriptor.isRepeated()) {
-          return (T) Collections.emptyList();
+          return (Type) Collections.emptyList();
         } else if (descriptor.getJavaType() == FieldDescriptor.JavaType.MESSAGE) {
-          return (T) extension.getMessageDefaultInstance();
+          return (Type) extension.getMessageDefaultInstance();
         } else {
-          return (T) extension.fromReflectionType(descriptor.getDefaultValue());
+          return (Type) extension.fromReflectionType(descriptor.getDefaultValue());
         }
       } else {
-        return (T) extension.fromReflectionType(value);
+        return (Type) extension.fromReflectionType(value);
       }
     }
 
     /** Get one element of a repeated extension. */
     @Override
-    public final <T> T getExtension(
-        final ExtensionLite<MessageT, List<T>> extensionLite, final int index) {
-      Extension<MessageT, List<T>> extension = checkNotLite(extensionLite);
+    public final <Type> Type getExtension(
+        final ExtensionLite<MessageType, List<Type>> extensionLite, final int index) {
+      Extension<MessageType, List<Type>> extension = checkNotLite(extensionLite);
 
       verifyExtensionContainingType(extension);
       FieldDescriptor descriptor = extension.getDescriptor();
-      if (extensions == null) {
-        throw new IndexOutOfBoundsException();
-      }
-      return (T)
+      return (Type)
           extension.singularFromReflectionType(extensions.getRepeatedField(descriptor, index));
     }
 
     /** Set the value of an extension. */
-    public final <T> BuilderT setExtension(
-        final ExtensionLite<MessageT, T> extensionLite, final T value) {
-      Extension<MessageT, T> extension = checkNotLite(extensionLite);
+    public final <Type> BuilderType setExtension(
+        final ExtensionLite<MessageType, Type> extensionLite, final Type value) {
+      Extension<MessageType, Type> extension = checkNotLite(extensionLite);
 
       verifyExtensionContainingType(extension);
       ensureExtensionsIsMutable();
       final FieldDescriptor descriptor = extension.getDescriptor();
       extensions.setField(descriptor, extension.toReflectionType(value));
       onChanged();
-      return (BuilderT) this;
+      return (BuilderType) this;
     }
 
     /** Set the value of one element of a repeated extension. */
-    public final <T> BuilderT setExtension(
-        final ExtensionLite<MessageT, List<T>> extensionLite, final int index, final T value) {
-      Extension<MessageT, List<T>> extension = checkNotLite(extensionLite);
+    public final <Type> BuilderType setExtension(
+        final ExtensionLite<MessageType, List<Type>> extensionLite,
+        final int index,
+        final Type value) {
+      Extension<MessageType, List<Type>> extension = checkNotLite(extensionLite);
 
       verifyExtensionContainingType(extension);
       ensureExtensionsIsMutable();
       final FieldDescriptor descriptor = extension.getDescriptor();
       extensions.setRepeatedField(descriptor, index, extension.singularToReflectionType(value));
       onChanged();
-      return (BuilderT) this;
+      return (BuilderType) this;
     }
 
     /** Append a value to a repeated extension. */
-    public final <T> BuilderT addExtension(
-        final ExtensionLite<MessageT, List<T>> extensionLite, final T value) {
-      Extension<MessageT, List<T>> extension = checkNotLite(extensionLite);
+    public final <Type> BuilderType addExtension(
+        final ExtensionLite<MessageType, List<Type>> extensionLite, final Type value) {
+      Extension<MessageType, List<Type>> extension = checkNotLite(extensionLite);
 
       verifyExtensionContainingType(extension);
       ensureExtensionsIsMutable();
       final FieldDescriptor descriptor = extension.getDescriptor();
       extensions.addRepeatedField(descriptor, extension.singularToReflectionType(value));
       onChanged();
-      return (BuilderT) this;
+      return (BuilderType) this;
     }
 
     /** Clear an extension. */
-    public final <T> BuilderT clearExtension(final ExtensionLite<MessageT, T> extensionLite) {
-      Extension<MessageT, T> extension = checkNotLite(extensionLite);
+    public final <Type> BuilderType clearExtension(
+        final ExtensionLite<MessageType, ?> extensionLite) {
+      Extension<MessageType, ?> extension = checkNotLite(extensionLite);
 
       verifyExtensionContainingType(extension);
       ensureExtensionsIsMutable();
       extensions.clearField(extension.getDescriptor());
       onChanged();
-      return (BuilderT) this;
+      return (BuilderType) this;
+    }
+
+    /** Check if a singular extension is present. */
+    @Override
+    public final <Type> boolean hasExtension(final Extension<MessageType, Type> extension) {
+      return hasExtension((ExtensionLite<MessageType, Type>) extension);
+    }
+    /** Check if a singular extension is present. */
+    @Override
+    public final <Type> boolean hasExtension(
+        final GeneratedExtension<MessageType, Type> extension) {
+      return hasExtension((ExtensionLite<MessageType, Type>) extension);
+    }
+    /** Get the number of elements in a repeated extension. */
+    @Override
+    public final <Type> int getExtensionCount(final Extension<MessageType, List<Type>> extension) {
+      return getExtensionCount((ExtensionLite<MessageType, List<Type>>) extension);
+    }
+    /** Get the number of elements in a repeated extension. */
+    @Override
+    public final <Type> int getExtensionCount(
+        final GeneratedExtension<MessageType, List<Type>> extension) {
+      return getExtensionCount((ExtensionLite<MessageType, List<Type>>) extension);
+    }
+    /** Get the value of an extension. */
+    @Override
+    public final <Type> Type getExtension(final Extension<MessageType, Type> extension) {
+      return getExtension((ExtensionLite<MessageType, Type>) extension);
+    }
+    /** Get the value of an extension. */
+    @Override
+    public final <Type> Type getExtension(final GeneratedExtension<MessageType, Type> extension) {
+      return getExtension((ExtensionLite<MessageType, Type>) extension);
+    }
+    /** Get the value of an extension. */
+    @Override
+    public final <Type> Type getExtension(
+        final Extension<MessageType, List<Type>> extension, final int index) {
+      return getExtension((ExtensionLite<MessageType, List<Type>>) extension, index);
+    }
+    /** Get the value of an extension. */
+    @Override
+    public final <Type> Type getExtension(
+        final GeneratedExtension<MessageType, List<Type>> extension, final int index) {
+      return getExtension((ExtensionLite<MessageType, List<Type>>) extension, index);
+    }
+    /** Set the value of an extension. */
+    public final <Type> BuilderType setExtension(
+        final Extension<MessageType, Type> extension, final Type value) {
+      return setExtension((ExtensionLite<MessageType, Type>) extension, value);
+    }
+    /** Set the value of an extension. */
+    public <Type> BuilderType setExtension(
+        final GeneratedExtension<MessageType, Type> extension, final Type value) {
+      return setExtension((ExtensionLite<MessageType, Type>) extension, value);
+    }
+    /** Set the value of one element of a repeated extension. */
+    public final <Type> BuilderType setExtension(
+        final Extension<MessageType, List<Type>> extension, final int index, final Type value) {
+      return setExtension((ExtensionLite<MessageType, List<Type>>) extension, index, value);
+    }
+    /** Set the value of one element of a repeated extension. */
+    public <Type> BuilderType setExtension(
+        final GeneratedExtension<MessageType, List<Type>> extension,
+        final int index,
+        final Type value) {
+      return setExtension((ExtensionLite<MessageType, List<Type>>) extension, index, value);
+    }
+    /** Append a value to a repeated extension. */
+    public final <Type> BuilderType addExtension(
+        final Extension<MessageType, List<Type>> extension, final Type value) {
+      return addExtension((ExtensionLite<MessageType, List<Type>>) extension, value);
+    }
+    /** Append a value to a repeated extension. */
+    public <Type> BuilderType addExtension(
+        final GeneratedExtension<MessageType, List<Type>> extension, final Type value) {
+      return addExtension((ExtensionLite<MessageType, List<Type>>) extension, value);
+    }
+    /** Clear an extension. */
+    public final <Type> BuilderType clearExtension(final Extension<MessageType, ?> extension) {
+      return clearExtension((ExtensionLite<MessageType, ?>) extension);
+    }
+    /** Clear an extension. */
+    public <Type> BuilderType clearExtension(final GeneratedExtension<MessageType, ?> extension) {
+      return clearExtension((ExtensionLite<MessageType, ?>) extension);
     }
 
     /** Called by subclasses to check if all extensions are initialized. */
     protected boolean extensionsAreInitialized() {
-      return extensions == null || extensions.isInitialized();
+      return extensions.isInitialized();
     }
 
     /**
      * Called by the build code path to create a copy of the extensions for building the message.
      */
     private FieldSet<FieldDescriptor> buildExtensions() {
-      return extensions == null
-          ? (FieldSet<FieldDescriptor>) FieldSet.emptySet()
-          : extensions.buildPartial();
+      extensions.makeImmutable();
+      return extensions;
     }
 
     @Override
     public boolean isInitialized() {
       return super.isInitialized() && extensionsAreInitialized();
+    }
+
+    /**
+     * Called by subclasses to parse an unknown field or an extension.
+     *
+     * @return {@code true} unless the tag is an end-group tag.
+     */
+    @Override
+    protected boolean parseUnknownField(
+        final CodedInputStream input,
+        final UnknownFieldSet.Builder unknownFields,
+        final ExtensionRegistryLite extensionRegistry,
+        final int tag)
+        throws IOException {
+      return MessageReflection.mergeFieldFrom(
+          input,
+          unknownFields,
+          extensionRegistry,
+          getDescriptorForType(),
+          new MessageReflection.BuilderAdapter(this),
+          tag);
     }
 
     // ---------------------------------------------------------------
@@ -1378,9 +1378,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     @Override
     public Map<FieldDescriptor, Object> getAllFields() {
       final Map<FieldDescriptor, Object> result = super.getAllFieldsMutable();
-      if (extensions != null) {
-        result.putAll(extensions.getAllFields());
-      }
+      result.putAll(extensions.getAllFields());
       return Collections.unmodifiableMap(result);
     }
 
@@ -1388,7 +1386,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     public Object getField(final FieldDescriptor field) {
       if (field.isExtension()) {
         verifyContainingType(field);
-        final Object value = extensions == null ? null : extensions.getField(field);
+        final Object value = extensions.getField(field);
         if (value == null) {
           if (field.getJavaType() == FieldDescriptor.JavaType.MESSAGE) {
             // Lacking an ExtensionRegistry, we have no way to determine the
@@ -1406,43 +1404,10 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     }
 
     @Override
-    public Message.Builder getFieldBuilder(final FieldDescriptor field) {
-      if (field.isExtension()) {
-        verifyContainingType(field);
-        if (field.getJavaType() != FieldDescriptor.JavaType.MESSAGE) {
-          throw new UnsupportedOperationException(
-              "getFieldBuilder() called on a non-Message type.");
-        }
-        ensureExtensionsIsMutable();
-        final Object value = extensions.getFieldAllowBuilders(field);
-        if (value == null) {
-          Message.Builder builder = DynamicMessage.newBuilder(field.getMessageType());
-          extensions.setField(field, builder);
-          onChanged();
-          return builder;
-        } else {
-          if (value instanceof Message.Builder) {
-            return (Message.Builder) value;
-          } else if (value instanceof Message) {
-            Message.Builder builder = ((Message) value).toBuilder();
-            extensions.setField(field, builder);
-            onChanged();
-            return builder;
-          } else {
-            throw new UnsupportedOperationException(
-                "getRepeatedFieldBuilder() called on a non-Message type.");
-          }
-        }
-      } else {
-        return super.getFieldBuilder(field);
-      }
-    }
-
-    @Override
     public int getRepeatedFieldCount(final FieldDescriptor field) {
       if (field.isExtension()) {
         verifyContainingType(field);
-        return extensions == null ? 0 : extensions.getRepeatedFieldCount(field);
+        return extensions.getRepeatedFieldCount(field);
       } else {
         return super.getRepeatedFieldCount(field);
       }
@@ -1452,9 +1417,6 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     public Object getRepeatedField(final FieldDescriptor field, final int index) {
       if (field.isExtension()) {
         verifyContainingType(field);
-        if (extensions == null) {
-          throw new IndexOutOfBoundsException();
-        }
         return extensions.getRepeatedField(field, index);
       } else {
         return super.getRepeatedField(field, index);
@@ -1462,123 +1424,72 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     }
 
     @Override
-    public Message.Builder getRepeatedFieldBuilder(final FieldDescriptor field, final int index) {
-      if (field.isExtension()) {
-        verifyContainingType(field);
-        ensureExtensionsIsMutable();
-        if (field.getJavaType() != FieldDescriptor.JavaType.MESSAGE) {
-          throw new UnsupportedOperationException(
-              "getRepeatedFieldBuilder() called on a non-Message type.");
-        }
-        final Object value = extensions.getRepeatedFieldAllowBuilders(field, index);
-        if (value instanceof Message.Builder) {
-          return (Message.Builder) value;
-        } else if (value instanceof Message) {
-          Message.Builder builder = ((Message) value).toBuilder();
-          extensions.setRepeatedField(field, index, builder);
-          onChanged();
-          return builder;
-        } else {
-          throw new UnsupportedOperationException(
-              "getRepeatedFieldBuilder() called on a non-Message type.");
-        }
-      } else {
-        return super.getRepeatedFieldBuilder(field, index);
-      }
-    }
-
-    @Override
     public boolean hasField(final FieldDescriptor field) {
       if (field.isExtension()) {
         verifyContainingType(field);
-        return extensions != null && extensions.hasField(field);
+        return extensions.hasField(field);
       } else {
         return super.hasField(field);
       }
     }
 
     @Override
-    public BuilderT setField(final FieldDescriptor field, final Object value) {
+    public BuilderType setField(final FieldDescriptor field, final Object value) {
       if (field.isExtension()) {
         verifyContainingType(field);
         ensureExtensionsIsMutable();
         extensions.setField(field, value);
         onChanged();
-        return (BuilderT) this;
+        return (BuilderType) this;
       } else {
         return super.setField(field, value);
       }
     }
 
     @Override
-    public BuilderT clearField(final FieldDescriptor field) {
+    public BuilderType clearField(final FieldDescriptor field) {
       if (field.isExtension()) {
         verifyContainingType(field);
         ensureExtensionsIsMutable();
         extensions.clearField(field);
         onChanged();
-        return (BuilderT) this;
+        return (BuilderType) this;
       } else {
         return super.clearField(field);
       }
     }
 
     @Override
-    public BuilderT setRepeatedField(
+    public BuilderType setRepeatedField(
         final FieldDescriptor field, final int index, final Object value) {
       if (field.isExtension()) {
         verifyContainingType(field);
         ensureExtensionsIsMutable();
         extensions.setRepeatedField(field, index, value);
         onChanged();
-        return (BuilderT) this;
+        return (BuilderType) this;
       } else {
         return super.setRepeatedField(field, index, value);
       }
     }
 
     @Override
-    public BuilderT addRepeatedField(final FieldDescriptor field, final Object value) {
+    public BuilderType addRepeatedField(final FieldDescriptor field, final Object value) {
       if (field.isExtension()) {
         verifyContainingType(field);
         ensureExtensionsIsMutable();
         extensions.addRepeatedField(field, value);
         onChanged();
-        return (BuilderT) this;
+        return (BuilderType) this;
       } else {
         return super.addRepeatedField(field, value);
       }
     }
 
-    @Override
-    public Message.Builder newBuilderForField(final FieldDescriptor field) {
-      if (field.isExtension()) {
-        return DynamicMessage.newBuilder(field.getMessageType());
-      } else {
-        return super.newBuilderForField(field);
-      }
-    }
-
-    protected final void mergeExtensionFields(final ExtendableMessage<?> other) {
-      if (other.extensions != null) {
-        ensureExtensionsIsMutable();
-        extensions.mergeFrom(other.extensions);
-        onChanged();
-      }
-    }
-
-    @Override
-    protected boolean parseUnknownField(
-        CodedInputStream input, ExtensionRegistryLite extensionRegistry, int tag)
-        throws IOException {
+    protected final void mergeExtensionFields(final ExtendableMessage other) {
       ensureExtensionsIsMutable();
-      return MessageReflection.mergeFieldFrom(
-          input,
-          input.shouldDiscardUnknownFields() ? null : getUnknownFieldSetBuilder(),
-          extensionRegistry,
-          getDescriptorForType(),
-          new MessageReflection.ExtensionBuilderAdapter(extensions),
-          tag);
+      extensions.mergeFrom(other.extensions);
+      onChanged();
     }
 
     private void verifyContainingType(final FieldDescriptor field) {
@@ -1594,21 +1505,21 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
    * Gets the descriptor for an extension. The implementation depends on whether the extension is
    * scoped in the top level of a file or scoped in a Message.
    */
-  interface ExtensionDescriptorRetriever {
+  static interface ExtensionDescriptorRetriever {
     FieldDescriptor getDescriptor();
   }
 
   /** For use by generated code only. */
-  public static <ContainingT extends Message, T>
-      GeneratedExtension<ContainingT, T> newMessageScopedGeneratedExtension(
+  public static <ContainingType extends Message, Type>
+      GeneratedExtension<ContainingType, Type> newMessageScopedGeneratedExtension(
           final Message scope,
           final int descriptorIndex,
-          final Class<?> singularType,
+          final Class singularType,
           final Message defaultInstance) {
     // For extensions scoped within a Message, we use the Message to resolve
     // the outer class's descriptor, from which the extension descriptor is
     // obtained.
-    return new GeneratedExtension<>(
+    return new GeneratedExtension<ContainingType, Type>(
         new CachedDescriptorRetriever() {
           @Override
           public FieldDescriptor loadDescriptor() {
@@ -1621,13 +1532,13 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
   }
 
   /** For use by generated code only. */
-  public static <ContainingT extends Message, T>
-      GeneratedExtension<ContainingT, T> newFileScopedGeneratedExtension(
-          final Class<?> singularType, final Message defaultInstance) {
+  public static <ContainingType extends Message, Type>
+      GeneratedExtension<ContainingType, Type> newFileScopedGeneratedExtension(
+          final Class singularType, final Message defaultInstance) {
     // For extensions scoped within a file, we rely on the outer class's
     // static initializer to call internalInit() on the extension when the
     // descriptor is available.
-    return new GeneratedExtension<>(
+    return new GeneratedExtension<ContainingType, Type>(
         null, // ExtensionDescriptorRetriever is initialized in internalInit();
         singularType,
         defaultInstance,
@@ -1642,15 +1553,80 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     @Override
     public FieldDescriptor getDescriptor() {
       if (descriptor == null) {
-        FieldDescriptor tmpDescriptor = loadDescriptor();
         synchronized (this) {
           if (descriptor == null) {
-            descriptor = tmpDescriptor;
+            descriptor = loadDescriptor();
           }
         }
       }
       return descriptor;
     }
+  }
+
+  /**
+   * Used in proto1 generated code only.
+   *
+   * <p>After enabling bridge, we can define proto2 extensions (the extended type is a proto2
+   * mutable message) in a proto1 .proto file. For these extensions we should generate proto2
+   * GeneratedExtensions.
+   */
+  public static <ContainingType extends Message, Type>
+      GeneratedExtension<ContainingType, Type> newMessageScopedGeneratedExtension(
+          final Message scope,
+          final String name,
+          final Class singularType,
+          final Message defaultInstance) {
+    // For extensions scoped within a Message, we use the Message to resolve
+    // the outer class's descriptor, from which the extension descriptor is
+    // obtained.
+    return new GeneratedExtension<ContainingType, Type>(
+        new CachedDescriptorRetriever() {
+          @Override
+          protected FieldDescriptor loadDescriptor() {
+            return scope.getDescriptorForType().findFieldByName(name);
+          }
+        },
+        singularType,
+        defaultInstance,
+        Extension.ExtensionType.MUTABLE);
+  }
+
+  /**
+   * Used in proto1 generated code only.
+   *
+   * <p>After enabling bridge, we can define proto2 extensions (the extended type is a proto2
+   * mutable message) in a proto1 .proto file. For these extensions we should generate proto2
+   * GeneratedExtensions.
+   */
+  public static <ContainingType extends Message, Type>
+      GeneratedExtension<ContainingType, Type> newFileScopedGeneratedExtension(
+          final Class singularType,
+          final Message defaultInstance,
+          final String descriptorOuterClass,
+          final String extensionName) {
+    // For extensions scoped within a file, we load the descriptor outer
+    // class and rely on it to get the FileDescriptor which then can be
+    // used to obtain the extension's FieldDescriptor.
+    return new GeneratedExtension<ContainingType, Type>(
+        new CachedDescriptorRetriever() {
+          @Override
+          protected FieldDescriptor loadDescriptor() {
+            try {
+              Class clazz = singularType.getClassLoader().loadClass(descriptorOuterClass);
+              FileDescriptor file = (FileDescriptor) clazz.getField("descriptor").get(null);
+              return file.findExtensionByName(extensionName);
+            } catch (Exception e) {
+              throw new RuntimeException(
+                  "Cannot load descriptors: "
+                      + descriptorOuterClass
+                      + " is not a valid descriptor class name",
+                  e);
+            }
+          }
+        },
+        singularType,
+        defaultInstance,
+        Extension.ExtensionType.MUTABLE);
   }
 
   /**
@@ -1677,8 +1653,10 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
    * singletons as parameters to the extension accessors defined in {@link ExtendableMessage} and
    * {@link ExtendableBuilder}.
    */
-  public static class GeneratedExtension<ContainingT extends Message, T>
-      extends Extension<ContainingT, T> {
+  public static class GeneratedExtension<ContainingType extends Message, Type>
+      extends Extension<ContainingType, Type> {
+    // TODO:  Find ways to avoid using Java reflection within this
+    //   class.  Also try to avoid suppressing unchecked warnings.
 
     // We can't always initialize the descriptor of a GeneratedExtension when
     // we first construct it due to initialization order difficulties (namely,
@@ -1694,7 +1672,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     // initializer to call internalInit() after the descriptor has been parsed.
     GeneratedExtension(
         ExtensionDescriptorRetriever descriptorRetriever,
-        Class<?> singularType,
+        Class singularType,
         Message messageDefaultInstance,
         ExtensionType extensionType) {
       if (Message.class.isAssignableFrom(singularType)
@@ -1731,7 +1709,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     }
 
     private ExtensionDescriptorRetriever descriptorRetriever;
-    private final Class<?> singularType;
+    private final Class singularType;
     private final Message messageDefaultInstance;
     private final Method enumValueOf;
     private final Method enumGetValueDescriptor;
@@ -1765,14 +1743,15 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
      * use the generated enum type.
      */
     @Override
+    @SuppressWarnings("unchecked")
     protected Object fromReflectionType(final Object value) {
       FieldDescriptor descriptor = getDescriptor();
       if (descriptor.isRepeated()) {
         if (descriptor.getJavaType() == FieldDescriptor.JavaType.MESSAGE
             || descriptor.getJavaType() == FieldDescriptor.JavaType.ENUM) {
           // Must convert the whole list.
-          final List<Object> result = new ArrayList<>();
-          for (final Object element : (List<?>) value) {
+          final List result = new ArrayList();
+          for (final Object element : (List) value) {
             result.add(singularFromReflectionType(element));
           }
           return result;
@@ -1799,7 +1778,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
             return messageDefaultInstance.newBuilderForType().mergeFrom((Message) value).build();
           }
         case ENUM:
-          return invokeOrDie(enumValueOf, null, value);
+          return invokeOrDie(enumValueOf, null, (EnumValueDescriptor) value);
         default:
           return value;
       }
@@ -1811,13 +1790,14 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
      * use the generated enum type.
      */
     @Override
+    @SuppressWarnings("unchecked")
     protected Object toReflectionType(final Object value) {
       FieldDescriptor descriptor = getDescriptor();
       if (descriptor.isRepeated()) {
         if (descriptor.getJavaType() == FieldDescriptor.JavaType.ENUM) {
           // Must convert the whole list.
-          final List<Object> result = new ArrayList<>();
-          for (final Object element : (List<?>) value) {
+          final List result = new ArrayList();
+          for (final Object element : (List) value) {
             result.add(singularToReflectionType(element));
           }
           return result;
@@ -1861,40 +1841,40 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
 
     @Override
     @SuppressWarnings("unchecked")
-    public T getDefaultValue() {
+    public Type getDefaultValue() {
       if (isRepeated()) {
-        return (T) Collections.emptyList();
+        return (Type) Collections.emptyList();
       }
       if (getDescriptor().getJavaType() == FieldDescriptor.JavaType.MESSAGE) {
-        return (T) messageDefaultInstance;
+        return (Type) messageDefaultInstance;
       }
-      return (T) singularFromReflectionType(getDescriptor().getDefaultValue());
+      return (Type) singularFromReflectionType(getDescriptor().getDefaultValue());
     }
   }
 
   // =================================================================
 
   /** Calls Class.getMethod and throws a RuntimeException if it fails. */
+  @SuppressWarnings("unchecked")
   private static Method getMethodOrDie(
-      final Class<?> clazz, final String name, final Class<?>... params) {
+      final Class clazz, final String name, final Class... params) {
     try {
       return clazz.getMethod(name, params);
     } catch (NoSuchMethodException e) {
-      throw new IllegalStateException(
+      throw new RuntimeException(
           "Generated message class \"" + clazz.getName() + "\" missing method \"" + name + "\".",
           e);
     }
   }
 
   /** Calls invoke and throws a RuntimeException if it fails. */
-  @CanIgnoreReturnValue
   private static Object invokeOrDie(
       final Method method, final Object object, final Object... params) {
     try {
       return method.invoke(object, params);
     } catch (IllegalAccessException e) {
-      throw new IllegalStateException(
-          "Couldn't use Java reflection to implement protocol message reflection.", e);
+      throw new RuntimeException(
+          "Couldn't use Java reflection to implement protocol message " + "reflection.", e);
     } catch (InvocationTargetException e) {
       final Throwable cause = e.getCause();
       if (cause instanceof RuntimeException) {
@@ -1902,7 +1882,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       } else if (cause instanceof Error) {
         throw (Error) cause;
       } else {
-        throw new IllegalStateException(
+        throw new RuntimeException(
             "Unexpected exception thrown by generated accessor method.", cause);
       }
     }
@@ -1917,18 +1897,11 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
    * generated API only allows us to access it as a map. This method returns the underlying map
    * field directly and thus enables us to access the map field as a list.
    */
-  @SuppressWarnings("unused")
-  protected MapFieldReflectionAccessor internalGetMapFieldReflection(int fieldNumber) {
-    return internalGetMapField(fieldNumber);
-  }
-
-  /** TODO: Remove, exists for compatibility with generated code. */
-  @Deprecated
   @SuppressWarnings({"rawtypes", "unused"})
   protected MapField internalGetMapField(int fieldNumber) {
     // Note that we can't use descriptor names here because this method will
     // be called when descriptor is being initialized.
-    throw new IllegalArgumentException("No map fields found in " + getClass().getName());
+    throw new RuntimeException("No map fields found in " + getClass().getName());
   }
 
   /**
@@ -1951,7 +1924,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
         final Descriptor descriptor,
         final String[] camelCaseNames,
         final Class<? extends GeneratedMessage> messageClass,
-        final Class<? extends Builder<?>> builderClass) {
+        final Class<? extends Builder> builderClass) {
       this(descriptor, camelCaseNames);
       ensureFieldAccessorsInitialized(messageClass, builderClass);
     }
@@ -1968,6 +1941,11 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       initialized = false;
     }
 
+    private boolean isMapFieldEnabled(FieldDescriptor field) {
+      boolean result = true;
+      return result;
+    }
+
     /**
      * Ensures the field accessors are initialized. This method is thread-safe.
      *
@@ -1976,7 +1954,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
      * @return this
      */
     public FieldAccessorTable ensureFieldAccessorsInitialized(
-        Class<? extends GeneratedMessage> messageClass, Class<? extends Builder<?>> builderClass) {
+        Class<? extends GeneratedMessage> messageClass, Class<? extends Builder> builderClass) {
       if (initialized) {
         return this;
       }
@@ -1989,15 +1967,14 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
           FieldDescriptor field = descriptor.getFields().get(i);
           String containingOneofCamelCaseName = null;
           if (field.getContainingOneof() != null) {
-            int index = fieldsSize + field.getContainingOneof().getIndex();
-            if (index < camelCaseNames.length) {
-              containingOneofCamelCaseName = camelCaseNames[index];
-            }
+            containingOneofCamelCaseName =
+                camelCaseNames[fieldsSize + field.getContainingOneof().getIndex()];
           }
           if (field.isRepeated()) {
             if (field.getJavaType() == FieldDescriptor.JavaType.MESSAGE) {
-              if (field.isMapField()) {
-                fields[i] = new MapFieldAccessor(field, messageClass);
+              if (field.isMapField() && isMapFieldEnabled(field)) {
+                fields[i] =
+                    new MapFieldAccessor(field, camelCaseNames[i], messageClass, builderClass);
               } else {
                 fields[i] =
                     new RepeatedMessageFieldAccessor(
@@ -2048,16 +2025,12 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
           }
         }
 
-        for (int i = 0; i < descriptor.getOneofs().size(); i++) {
-          if (i < descriptor.getRealOneofs().size()) {
-            oneofs[i] =
-                new RealOneofAccessor(
-                    descriptor, i, camelCaseNames[i + fieldsSize], messageClass, builderClass);
-          } else {
-            oneofs[i] = new SyntheticOneofAccessor(descriptor, i);
-          }
+        int oneofsSize = oneofs.length;
+        for (int i = 0; i < oneofsSize; i++) {
+          oneofs[i] =
+              new OneofAccessor(
+                  descriptor, camelCaseNames[i + fieldsSize], messageClass, builderClass);
         }
-
         initialized = true;
         camelCaseNames = null;
         return this;
@@ -2097,58 +2070,50 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
     private interface FieldAccessor {
       Object get(GeneratedMessage message);
 
-      Object get(GeneratedMessage.Builder<?> builder);
+      Object get(GeneratedMessage.Builder builder);
 
       Object getRaw(GeneratedMessage message);
 
-      void set(Builder<?> builder, Object value);
+      Object getRaw(GeneratedMessage.Builder builder);
+
+      void set(Builder builder, Object value);
 
       Object getRepeated(GeneratedMessage message, int index);
 
-      Object getRepeated(GeneratedMessage.Builder<?> builder, int index);
+      Object getRepeated(GeneratedMessage.Builder builder, int index);
 
-      void setRepeated(Builder<?> builder, int index, Object value);
+      Object getRepeatedRaw(GeneratedMessage message, int index);
 
-      void addRepeated(Builder<?> builder, Object value);
+      Object getRepeatedRaw(GeneratedMessage.Builder builder, int index);
+
+      void setRepeated(Builder builder, int index, Object value);
+
+      void addRepeated(Builder builder, Object value);
 
       boolean has(GeneratedMessage message);
 
-      boolean has(GeneratedMessage.Builder<?> builder);
+      boolean has(GeneratedMessage.Builder builder);
 
       int getRepeatedCount(GeneratedMessage message);
 
-      int getRepeatedCount(GeneratedMessage.Builder<?> builder);
+      int getRepeatedCount(GeneratedMessage.Builder builder);
 
-      void clear(Builder<?> builder);
+      void clear(Builder builder);
 
       Message.Builder newBuilder();
 
-      Message.Builder getBuilder(GeneratedMessage.Builder<?> builder);
+      Message.Builder getBuilder(GeneratedMessage.Builder builder);
 
-      Message.Builder getRepeatedBuilder(GeneratedMessage.Builder<?> builder, int index);
+      Message.Builder getRepeatedBuilder(GeneratedMessage.Builder builder, int index);
     }
 
     /** OneofAccessor provides access to a single oneof. */
-    private static interface OneofAccessor {
-      public boolean has(final GeneratedMessage message);
-
-      public boolean has(GeneratedMessage.Builder<?> builder);
-
-      public FieldDescriptor get(final GeneratedMessage message);
-
-      public FieldDescriptor get(GeneratedMessage.Builder<?> builder);
-
-      public void clear(final Builder<?> builder);
-    }
-
-    /** RealOneofAccessor provides access to a single real oneof. */
-    private static class RealOneofAccessor implements OneofAccessor {
-      RealOneofAccessor(
+    private static class OneofAccessor {
+      OneofAccessor(
           final Descriptor descriptor,
-          final int oneofIndex,
           final String camelCaseName,
           final Class<? extends GeneratedMessage> messageClass,
-          final Class<? extends Builder<?>> builderClass) {
+          final Class<? extends Builder> builderClass) {
         this.descriptor = descriptor;
         caseMethod = getMethodOrDie(messageClass, "get" + camelCaseName + "Case");
         caseMethodBuilder = getMethodOrDie(builderClass, "get" + camelCaseName + "Case");
@@ -2160,17 +2125,20 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       private final Method caseMethodBuilder;
       private final Method clearMethod;
 
-      @Override
       public boolean has(final GeneratedMessage message) {
-        return ((Internal.EnumLite) invokeOrDie(caseMethod, message)).getNumber() != 0;
+        if (((Internal.EnumLite) invokeOrDie(caseMethod, message)).getNumber() == 0) {
+          return false;
+        }
+        return true;
       }
 
-      @Override
-      public boolean has(GeneratedMessage.Builder<?> builder) {
-        return ((Internal.EnumLite) invokeOrDie(caseMethodBuilder, builder)).getNumber() != 0;
+      public boolean has(GeneratedMessage.Builder builder) {
+        if (((Internal.EnumLite) invokeOrDie(caseMethodBuilder, builder)).getNumber() == 0) {
+          return false;
+        }
+        return true;
       }
 
-      @Override
       public FieldDescriptor get(final GeneratedMessage message) {
         int fieldNumber = ((Internal.EnumLite) invokeOrDie(caseMethod, message)).getNumber();
         if (fieldNumber > 0) {
@@ -2179,8 +2147,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
         return null;
       }
 
-      @Override
-      public FieldDescriptor get(GeneratedMessage.Builder<?> builder) {
+      public FieldDescriptor get(GeneratedMessage.Builder builder) {
         int fieldNumber = ((Internal.EnumLite) invokeOrDie(caseMethodBuilder, builder)).getNumber();
         if (fieldNumber > 0) {
           return descriptor.findFieldByNumber(fieldNumber);
@@ -2188,192 +2155,79 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
         return null;
       }
 
-      @Override
-      public void clear(final Builder<?> builder) {
-        // TODO: remove the unused variable
-        Object unused = invokeOrDie(clearMethod, builder);
+      public void clear(final Builder builder) {
+        invokeOrDie(clearMethod, builder);
       }
     }
 
-    /** SyntheticOneofAccessor provides access to a single synthetic oneof. */
-    private static class SyntheticOneofAccessor implements OneofAccessor {
-      SyntheticOneofAccessor(final Descriptor descriptor, final int oneofIndex) {
-        OneofDescriptor oneofDescriptor = descriptor.getOneofs().get(oneofIndex);
-        fieldDescriptor = oneofDescriptor.getFields().get(0);
-      }
-
-      private final FieldDescriptor fieldDescriptor;
-
-      @Override
-      public boolean has(final GeneratedMessage message) {
-        return message.hasField(fieldDescriptor);
-      }
-
-      @Override
-      public boolean has(GeneratedMessage.Builder<?> builder) {
-        return builder.hasField(fieldDescriptor);
-      }
-
-      @Override
-      public FieldDescriptor get(final GeneratedMessage message) {
-        return message.hasField(fieldDescriptor) ? fieldDescriptor : null;
-      }
-
-      public FieldDescriptor get(GeneratedMessage.Builder<?> builder) {
-        return builder.hasField(fieldDescriptor) ? fieldDescriptor : null;
-      }
-
-      @Override
-      public void clear(final Builder<?> builder) {
-        builder.clearField(fieldDescriptor);
-      }
+    private static boolean supportFieldPresence(FileDescriptor file) {
+      return file.getSyntax() == FileDescriptor.Syntax.PROTO2;
     }
 
     // ---------------------------------------------------------------
 
-    @SuppressWarnings("SameNameButDifferent")
     private static class SingularFieldAccessor implements FieldAccessor {
-      private interface MethodInvoker {
-        Object get(final GeneratedMessage message);
-
-        Object get(GeneratedMessage.Builder<?> builder);
-
-        int getOneofFieldNumber(final GeneratedMessage message);
-
-        int getOneofFieldNumber(final GeneratedMessage.Builder<?> builder);
-
-        void set(final GeneratedMessage.Builder<?> builder, final Object value);
-
-        boolean has(final GeneratedMessage message);
-
-        boolean has(GeneratedMessage.Builder<?> builder);
-
-        void clear(final GeneratedMessage.Builder<?> builder);
-      }
-
-      private static final class ReflectionInvoker implements MethodInvoker {
-        private final Method getMethod;
-        private final Method getMethodBuilder;
-        private final Method setMethod;
-        private final Method hasMethod;
-        private final Method hasMethodBuilder;
-        private final Method clearMethod;
-        private final Method caseMethod;
-        private final Method caseMethodBuilder;
-
-        ReflectionInvoker(
-            final FieldDescriptor descriptor,
-            final String camelCaseName,
-            final Class<? extends GeneratedMessage> messageClass,
-            final Class<? extends Builder<?>> builderClass,
-            final String containingOneofCamelCaseName,
-            boolean isOneofField,
-            boolean hasHasMethod) {
-          getMethod = getMethodOrDie(messageClass, "get" + camelCaseName);
-          getMethodBuilder = getMethodOrDie(builderClass, "get" + camelCaseName);
-          Class<?> type = getMethod.getReturnType();
-          setMethod = getMethodOrDie(builderClass, "set" + camelCaseName, type);
-          hasMethod = hasHasMethod ? getMethodOrDie(messageClass, "has" + camelCaseName) : null;
-          hasMethodBuilder =
-              hasHasMethod ? getMethodOrDie(builderClass, "has" + camelCaseName) : null;
-          clearMethod = getMethodOrDie(builderClass, "clear" + camelCaseName);
-          caseMethod =
-              isOneofField
-                  ? getMethodOrDie(messageClass, "get" + containingOneofCamelCaseName + "Case")
-                  : null;
-          caseMethodBuilder =
-              isOneofField
-                  ? getMethodOrDie(builderClass, "get" + containingOneofCamelCaseName + "Case")
-                  : null;
-        }
-
-        @Override
-        public Object get(final GeneratedMessage message) {
-          return invokeOrDie(getMethod, message);
-        }
-
-        @Override
-        public Object get(GeneratedMessage.Builder<?> builder) {
-          return invokeOrDie(getMethodBuilder, builder);
-        }
-
-        @Override
-        public int getOneofFieldNumber(final GeneratedMessage message) {
-          return ((Internal.EnumLite) invokeOrDie(caseMethod, message)).getNumber();
-        }
-
-        @Override
-        public int getOneofFieldNumber(final GeneratedMessage.Builder<?> builder) {
-          return ((Internal.EnumLite) invokeOrDie(caseMethodBuilder, builder)).getNumber();
-        }
-
-        @Override
-        public void set(final GeneratedMessage.Builder<?> builder, final Object value) {
-          // TODO: remove the unused variable
-          Object unused = invokeOrDie(setMethod, builder, value);
-        }
-
-        @Override
-        public boolean has(final GeneratedMessage message) {
-          return (Boolean) invokeOrDie(hasMethod, message);
-        }
-
-        @Override
-        public boolean has(GeneratedMessage.Builder<?> builder) {
-          return (Boolean) invokeOrDie(hasMethodBuilder, builder);
-        }
-
-        @Override
-        public void clear(final GeneratedMessage.Builder<?> builder) {
-          // TODO: remove the unused variable
-          Object unused = invokeOrDie(clearMethod, builder);
-        }
-      }
-
       SingularFieldAccessor(
           final FieldDescriptor descriptor,
           final String camelCaseName,
           final Class<? extends GeneratedMessage> messageClass,
-          final Class<? extends Builder<?>> builderClass,
+          final Class<? extends Builder> builderClass,
           final String containingOneofCamelCaseName) {
-        isOneofField =
-            descriptor.getRealContainingOneof() != null;
-        hasHasMethod = descriptor.hasPresence();
-        ReflectionInvoker reflectionInvoker =
-            new ReflectionInvoker(
-                descriptor,
-                camelCaseName,
-                messageClass,
-                builderClass,
-                containingOneofCamelCaseName,
-                isOneofField,
-                hasHasMethod);
         field = descriptor;
-        type = reflectionInvoker.getMethod.getReturnType();
-        invoker = getMethodInvoker(reflectionInvoker);
-      }
-
-      static MethodInvoker getMethodInvoker(ReflectionInvoker accessor) {
-        return accessor;
+        isOneofField = descriptor.getContainingOneof() != null;
+        hasHasMethod =
+            supportFieldPresence(descriptor.getFile())
+                || (!isOneofField && descriptor.getJavaType() == FieldDescriptor.JavaType.MESSAGE);
+        getMethod = getMethodOrDie(messageClass, "get" + camelCaseName);
+        getMethodBuilder = getMethodOrDie(builderClass, "get" + camelCaseName);
+        type = getMethod.getReturnType();
+        setMethod = getMethodOrDie(builderClass, "set" + camelCaseName, type);
+        hasMethod = hasHasMethod ? getMethodOrDie(messageClass, "has" + camelCaseName) : null;
+        hasMethodBuilder =
+            hasHasMethod ? getMethodOrDie(builderClass, "has" + camelCaseName) : null;
+        clearMethod = getMethodOrDie(builderClass, "clear" + camelCaseName);
+        caseMethod =
+            isOneofField
+                ? getMethodOrDie(messageClass, "get" + containingOneofCamelCaseName + "Case")
+                : null;
+        caseMethodBuilder =
+            isOneofField
+                ? getMethodOrDie(builderClass, "get" + containingOneofCamelCaseName + "Case")
+                : null;
       }
 
       // Note:  We use Java reflection to call public methods rather than
       //   access private fields directly as this avoids runtime security
       //   checks.
       protected final Class<?> type;
+      protected final Method getMethod;
+      protected final Method getMethodBuilder;
+      protected final Method setMethod;
+      protected final Method hasMethod;
+      protected final Method hasMethodBuilder;
+      protected final Method clearMethod;
+      protected final Method caseMethod;
+      protected final Method caseMethodBuilder;
       protected final FieldDescriptor field;
       protected final boolean isOneofField;
       protected final boolean hasHasMethod;
-      protected final MethodInvoker invoker;
 
-      @Override
-      public Object get(final GeneratedMessage message) {
-        return invoker.get(message);
+      private int getOneofFieldNumber(final GeneratedMessage message) {
+        return ((Internal.EnumLite) invokeOrDie(caseMethod, message)).getNumber();
+      }
+
+      private int getOneofFieldNumber(final GeneratedMessage.Builder builder) {
+        return ((Internal.EnumLite) invokeOrDie(caseMethodBuilder, builder)).getNumber();
       }
 
       @Override
-      public Object get(GeneratedMessage.Builder<?> builder) {
-        return invoker.get(builder);
+      public Object get(final GeneratedMessage message) {
+        return invokeOrDie(getMethod, message);
+      }
+
+      @Override
+      public Object get(GeneratedMessage.Builder builder) {
+        return invokeOrDie(getMethodBuilder, builder);
       }
 
       @Override
@@ -2382,8 +2236,13 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public void set(final Builder<?> builder, final Object value) {
-        invoker.set(builder, value);
+      public Object getRaw(GeneratedMessage.Builder builder) {
+        return get(builder);
+      }
+
+      @Override
+      public void set(final Builder builder, final Object value) {
+        invokeOrDie(setMethod, builder, value);
       }
 
       @Override
@@ -2392,17 +2251,29 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public Object getRepeated(GeneratedMessage.Builder<?> builder, int index) {
+      public Object getRepeatedRaw(final GeneratedMessage message, final int index) {
+        throw new UnsupportedOperationException(
+            "getRepeatedFieldRaw() called on a singular field.");
+      }
+
+      @Override
+      public Object getRepeated(GeneratedMessage.Builder builder, int index) {
         throw new UnsupportedOperationException("getRepeatedField() called on a singular field.");
       }
 
       @Override
-      public void setRepeated(final Builder<?> builder, final int index, final Object value) {
+      public Object getRepeatedRaw(GeneratedMessage.Builder builder, int index) {
+        throw new UnsupportedOperationException(
+            "getRepeatedFieldRaw() called on a singular field.");
+      }
+
+      @Override
+      public void setRepeated(final Builder builder, final int index, final Object value) {
         throw new UnsupportedOperationException("setRepeatedField() called on a singular field.");
       }
 
       @Override
-      public void addRepeated(final Builder<?> builder, final Object value) {
+      public void addRepeated(final Builder builder, final Object value) {
         throw new UnsupportedOperationException("addRepeatedField() called on a singular field.");
       }
 
@@ -2410,22 +2281,22 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       public boolean has(final GeneratedMessage message) {
         if (!hasHasMethod) {
           if (isOneofField) {
-            return invoker.getOneofFieldNumber(message) == field.getNumber();
+            return getOneofFieldNumber(message) == field.getNumber();
           }
           return !get(message).equals(field.getDefaultValue());
         }
-        return invoker.has(message);
+        return (Boolean) invokeOrDie(hasMethod, message);
       }
 
       @Override
-      public boolean has(GeneratedMessage.Builder<?> builder) {
+      public boolean has(GeneratedMessage.Builder builder) {
         if (!hasHasMethod) {
           if (isOneofField) {
-            return invoker.getOneofFieldNumber(builder) == field.getNumber();
+            return getOneofFieldNumber(builder) == field.getNumber();
           }
           return !get(builder).equals(field.getDefaultValue());
         }
-        return invoker.has(builder);
+        return (Boolean) invokeOrDie(hasMethodBuilder, builder);
       }
 
       @Override
@@ -2435,14 +2306,14 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public int getRepeatedCount(GeneratedMessage.Builder<?> builder) {
+      public int getRepeatedCount(GeneratedMessage.Builder builder) {
         throw new UnsupportedOperationException(
             "getRepeatedFieldSize() called on a singular field.");
       }
 
       @Override
-      public void clear(final Builder<?> builder) {
-        invoker.clear(builder);
+      public void clear(final Builder builder) {
+        invokeOrDie(clearMethod, builder);
       }
 
       @Override
@@ -2452,146 +2323,56 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public Message.Builder getBuilder(GeneratedMessage.Builder<?> builder) {
+      public Message.Builder getBuilder(GeneratedMessage.Builder builder) {
         throw new UnsupportedOperationException("getFieldBuilder() called on a non-Message type.");
       }
 
       @Override
-      public Message.Builder getRepeatedBuilder(GeneratedMessage.Builder<?> builder, int index) {
+      public Message.Builder getRepeatedBuilder(GeneratedMessage.Builder builder, int index) {
         throw new UnsupportedOperationException(
             "getRepeatedFieldBuilder() called on a non-Message type.");
       }
     }
 
-    @SuppressWarnings("SameNameButDifferent")
     private static class RepeatedFieldAccessor implements FieldAccessor {
-      interface MethodInvoker {
-        Object get(final GeneratedMessage message);
-
-        Object get(GeneratedMessage.Builder<?> builder);
-
-        Object getRepeated(final GeneratedMessage message, final int index);
-
-        Object getRepeated(GeneratedMessage.Builder<?> builder, int index);
-
-        void setRepeated(
-            final GeneratedMessage.Builder<?> builder, final int index, final Object value);
-
-        void addRepeated(final GeneratedMessage.Builder<?> builder, final Object value);
-
-        int getRepeatedCount(final GeneratedMessage message);
-
-        int getRepeatedCount(GeneratedMessage.Builder<?> builder);
-
-        void clear(final GeneratedMessage.Builder<?> builder);
-      }
-
-      private static final class ReflectionInvoker implements MethodInvoker {
-        private final Method getMethod;
-        private final Method getMethodBuilder;
-        private final Method getRepeatedMethod;
-        private final Method getRepeatedMethodBuilder;
-        private final Method setRepeatedMethod;
-        private final Method addRepeatedMethod;
-        private final Method getCountMethod;
-        private final Method getCountMethodBuilder;
-        private final Method clearMethod;
-
-        ReflectionInvoker(
-            final FieldDescriptor descriptor,
-            final String camelCaseName,
-            final Class<? extends GeneratedMessage> messageClass,
-            final Class<? extends Builder<?>> builderClass) {
-          getMethod = getMethodOrDie(messageClass, "get" + camelCaseName + "List");
-          getMethodBuilder = getMethodOrDie(builderClass, "get" + camelCaseName + "List");
-          getRepeatedMethod = getMethodOrDie(messageClass, "get" + camelCaseName, Integer.TYPE);
-          getRepeatedMethodBuilder =
-              getMethodOrDie(builderClass, "get" + camelCaseName, Integer.TYPE);
-          Class<?> type = getRepeatedMethod.getReturnType();
-          setRepeatedMethod =
-              getMethodOrDie(builderClass, "set" + camelCaseName, Integer.TYPE, type);
-          addRepeatedMethod = getMethodOrDie(builderClass, "add" + camelCaseName, type);
-          getCountMethod = getMethodOrDie(messageClass, "get" + camelCaseName + "Count");
-          getCountMethodBuilder = getMethodOrDie(builderClass, "get" + camelCaseName + "Count");
-          clearMethod = getMethodOrDie(builderClass, "clear" + camelCaseName);
-        }
-
-        @Override
-        public Object get(final GeneratedMessage message) {
-          return invokeOrDie(getMethod, message);
-        }
-
-        @Override
-        public Object get(GeneratedMessage.Builder<?> builder) {
-          return invokeOrDie(getMethodBuilder, builder);
-        }
-
-        @Override
-        public Object getRepeated(final GeneratedMessage message, final int index) {
-          return invokeOrDie(getRepeatedMethod, message, index);
-        }
-
-        @Override
-        public Object getRepeated(GeneratedMessage.Builder<?> builder, int index) {
-          return invokeOrDie(getRepeatedMethodBuilder, builder, index);
-        }
-
-        @Override
-        public void setRepeated(
-            final GeneratedMessage.Builder<?> builder, final int index, final Object value) {
-          // TODO: remove the unused variable
-          Object unused = invokeOrDie(setRepeatedMethod, builder, index, value);
-        }
-
-        @Override
-        public void addRepeated(final GeneratedMessage.Builder<?> builder, final Object value) {
-          // TODO: remove the unused variable
-          Object unused = invokeOrDie(addRepeatedMethod, builder, value);
-        }
-
-        @Override
-        public int getRepeatedCount(final GeneratedMessage message) {
-          return (Integer) invokeOrDie(getCountMethod, message);
-        }
-
-        @Override
-        public int getRepeatedCount(GeneratedMessage.Builder<?> builder) {
-          return (Integer) invokeOrDie(getCountMethodBuilder, builder);
-        }
-
-        @Override
-        public void clear(final GeneratedMessage.Builder<?> builder) {
-          // TODO: remove the unused variable
-          Object unused = invokeOrDie(clearMethod, builder);
-        }
-      }
-
-      protected final Class<?> type;
-      protected final MethodInvoker invoker;
+      protected final Class type;
+      protected final Method getMethod;
+      protected final Method getMethodBuilder;
+      protected final Method getRepeatedMethod;
+      protected final Method getRepeatedMethodBuilder;
+      protected final Method setRepeatedMethod;
+      protected final Method addRepeatedMethod;
+      protected final Method getCountMethod;
+      protected final Method getCountMethodBuilder;
+      protected final Method clearMethod;
 
       RepeatedFieldAccessor(
           final FieldDescriptor descriptor,
           final String camelCaseName,
           final Class<? extends GeneratedMessage> messageClass,
-          final Class<? extends Builder<?>> builderClass) {
-        ReflectionInvoker reflectionInvoker =
-            new ReflectionInvoker(descriptor, camelCaseName, messageClass, builderClass);
-        type = reflectionInvoker.getRepeatedMethod.getReturnType();
-        invoker = getMethodInvoker(reflectionInvoker);
-      }
+          final Class<? extends Builder> builderClass) {
+        getMethod = getMethodOrDie(messageClass, "get" + camelCaseName + "List");
+        getMethodBuilder = getMethodOrDie(builderClass, "get" + camelCaseName + "List");
+        getRepeatedMethod = getMethodOrDie(messageClass, "get" + camelCaseName, Integer.TYPE);
+        getRepeatedMethodBuilder =
+            getMethodOrDie(builderClass, "get" + camelCaseName, Integer.TYPE);
+        type = getRepeatedMethod.getReturnType();
+        setRepeatedMethod = getMethodOrDie(builderClass, "set" + camelCaseName, Integer.TYPE, type);
+        addRepeatedMethod = getMethodOrDie(builderClass, "add" + camelCaseName, type);
+        getCountMethod = getMethodOrDie(messageClass, "get" + camelCaseName + "Count");
+        getCountMethodBuilder = getMethodOrDie(builderClass, "get" + camelCaseName + "Count");
 
-      static MethodInvoker getMethodInvoker(ReflectionInvoker accessor) {
-        return accessor;
+        clearMethod = getMethodOrDie(builderClass, "clear" + camelCaseName);
       }
 
       @Override
       public Object get(final GeneratedMessage message) {
-        return invoker.get(message);
+        return invokeOrDie(getMethod, message);
       }
 
       @Override
-      public Object get(GeneratedMessage.Builder<?> builder) {
-        return invoker.get(builder);
+      public Object get(GeneratedMessage.Builder builder) {
+        return invokeOrDie(getMethodBuilder, builder);
       }
 
       @Override
@@ -2600,7 +2381,12 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public void set(final Builder<?> builder, final Object value) {
+      public Object getRaw(GeneratedMessage.Builder builder) {
+        return get(builder);
+      }
+
+      @Override
+      public void set(final Builder builder, final Object value) {
         // Add all the elements individually.  This serves two purposes:
         // 1) Verifies that each element has the correct type.
         // 2) Insures that the caller cannot modify the list later on and
@@ -2613,22 +2399,32 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
 
       @Override
       public Object getRepeated(final GeneratedMessage message, final int index) {
-        return invoker.getRepeated(message, index);
+        return invokeOrDie(getRepeatedMethod, message, index);
       }
 
       @Override
-      public Object getRepeated(GeneratedMessage.Builder<?> builder, int index) {
-        return invoker.getRepeated(builder, index);
+      public Object getRepeated(GeneratedMessage.Builder builder, int index) {
+        return invokeOrDie(getRepeatedMethodBuilder, builder, index);
       }
 
       @Override
-      public void setRepeated(final Builder<?> builder, final int index, final Object value) {
-        invoker.setRepeated(builder, index, value);
+      public Object getRepeatedRaw(GeneratedMessage message, int index) {
+        return getRepeated(message, index);
       }
 
       @Override
-      public void addRepeated(final Builder<?> builder, final Object value) {
-        invoker.addRepeated(builder, value);
+      public Object getRepeatedRaw(GeneratedMessage.Builder builder, int index) {
+        return getRepeated(builder, index);
+      }
+
+      @Override
+      public void setRepeated(final Builder builder, final int index, final Object value) {
+        invokeOrDie(setRepeatedMethod, builder, index, value);
+      }
+
+      @Override
+      public void addRepeated(final Builder builder, final Object value) {
+        invokeOrDie(addRepeatedMethod, builder, value);
       }
 
       @Override
@@ -2637,23 +2433,23 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public boolean has(GeneratedMessage.Builder<?> builder) {
+      public boolean has(GeneratedMessage.Builder builder) {
         throw new UnsupportedOperationException("hasField() called on a repeated field.");
       }
 
       @Override
       public int getRepeatedCount(final GeneratedMessage message) {
-        return invoker.getRepeatedCount(message);
+        return (Integer) invokeOrDie(getCountMethod, message);
       }
 
       @Override
-      public int getRepeatedCount(GeneratedMessage.Builder<?> builder) {
-        return invoker.getRepeatedCount(builder);
+      public int getRepeatedCount(GeneratedMessage.Builder builder) {
+        return (Integer) invokeOrDie(getCountMethodBuilder, builder);
       }
 
       @Override
-      public void clear(final Builder<?> builder) {
-        invoker.clear(builder);
+      public void clear(final Builder builder) {
+        invokeOrDie(clearMethod, builder);
       }
 
       @Override
@@ -2663,12 +2459,12 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public Message.Builder getBuilder(GeneratedMessage.Builder<?> builder) {
+      public Message.Builder getBuilder(GeneratedMessage.Builder builder) {
         throw new UnsupportedOperationException("getFieldBuilder() called on a non-Message type.");
       }
 
       @Override
-      public Message.Builder getRepeatedBuilder(GeneratedMessage.Builder<?> builder, int index) {
+      public Message.Builder getRepeatedBuilder(GeneratedMessage.Builder builder, int index) {
         throw new UnsupportedOperationException(
             "getRepeatedFieldBuilder() called on a non-Message type.");
       }
@@ -2676,10 +2472,13 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
 
     private static class MapFieldAccessor implements FieldAccessor {
       MapFieldAccessor(
-          final FieldDescriptor descriptor, final Class<? extends GeneratedMessage> messageClass) {
+          final FieldDescriptor descriptor,
+          final String camelCaseName,
+          final Class<? extends GeneratedMessage> messageClass,
+          final Class<? extends Builder> builderClass) {
         field = descriptor;
         Method getDefaultInstanceMethod = getMethodOrDie(messageClass, "getDefaultInstance");
-        MapFieldReflectionAccessor defaultMapField =
+        MapField defaultMapField =
             getMapField((GeneratedMessage) invokeOrDie(getDefaultInstanceMethod, null));
         mapEntryMessageDefaultInstance = defaultMapField.getMapEntryMessageDefaultInstance();
       }
@@ -2687,35 +2486,22 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       private final FieldDescriptor field;
       private final Message mapEntryMessageDefaultInstance;
 
-      private MapFieldReflectionAccessor getMapField(GeneratedMessage message) {
-        return message.internalGetMapFieldReflection(field.getNumber());
+      private MapField<?, ?> getMapField(GeneratedMessage message) {
+        return (MapField<?, ?>) message.internalGetMapField(field.getNumber());
       }
 
-      private MapFieldReflectionAccessor getMapField(GeneratedMessage.Builder<?> builder) {
-        return builder.internalGetMapFieldReflection(field.getNumber());
+      private MapField<?, ?> getMapField(GeneratedMessage.Builder builder) {
+        return (MapField<?, ?>) builder.internalGetMapField(field.getNumber());
       }
 
-      private MapFieldReflectionAccessor getMutableMapField(GeneratedMessage.Builder<?> builder) {
-        return builder.internalGetMutableMapFieldReflection(field.getNumber());
-      }
-
-      private Message coerceType(Message value) {
-        if (value == null) {
-          return null;
-        }
-        if (mapEntryMessageDefaultInstance.getClass().isInstance(value)) {
-          return value;
-        }
-        // The value is not the exact right message type.  However, if it
-        // is an alternative implementation of the same type -- e.g. a
-        // DynamicMessage -- we should accept it.  In this case we can make
-        // a copy of the message.
-        return mapEntryMessageDefaultInstance.toBuilder().mergeFrom(value).build();
+      private MapField<?, ?> getMutableMapField(GeneratedMessage.Builder builder) {
+        return (MapField<?, ?>) builder.internalGetMutableMapField(field.getNumber());
       }
 
       @Override
+      @SuppressWarnings("unchecked")
       public Object get(GeneratedMessage message) {
-        List<Object> result = new ArrayList<>();
+        List result = new ArrayList();
         for (int i = 0; i < getRepeatedCount(message); i++) {
           result.add(getRepeated(message, i));
         }
@@ -2723,8 +2509,9 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public Object get(Builder<?> builder) {
-        List<Object> result = new ArrayList<>();
+      @SuppressWarnings("unchecked")
+      public Object get(Builder builder) {
+        List result = new ArrayList();
         for (int i = 0; i < getRepeatedCount(builder); i++) {
           result.add(getRepeated(builder, i));
         }
@@ -2737,9 +2524,14 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public void set(Builder<?> builder, Object value) {
+      public Object getRaw(GeneratedMessage.Builder builder) {
+        return get(builder);
+      }
+
+      @Override
+      public void set(Builder builder, Object value) {
         clear(builder);
-        for (Object entry : (List<?>) value) {
+        for (Object entry : (List) value) {
           addRepeated(builder, entry);
         }
       }
@@ -2750,18 +2542,28 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public Object getRepeated(Builder<?> builder, int index) {
+      public Object getRepeated(Builder builder, int index) {
         return getMapField(builder).getList().get(index);
       }
 
       @Override
-      public void setRepeated(Builder<?> builder, int index, Object value) {
-        getMutableMapField(builder).getMutableList().set(index, coerceType((Message) value));
+      public Object getRepeatedRaw(GeneratedMessage message, int index) {
+        return getRepeated(message, index);
       }
 
       @Override
-      public void addRepeated(Builder<?> builder, Object value) {
-        getMutableMapField(builder).getMutableList().add(coerceType((Message) value));
+      public Object getRepeatedRaw(Builder builder, int index) {
+        return getRepeated(builder, index);
+      }
+
+      @Override
+      public void setRepeated(Builder builder, int index, Object value) {
+        getMutableMapField(builder).getMutableList().set(index, (Message) value);
+      }
+
+      @Override
+      public void addRepeated(Builder builder, Object value) {
+        getMutableMapField(builder).getMutableList().add((Message) value);
       }
 
       @Override
@@ -2770,7 +2572,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public boolean has(Builder<?> builder) {
+      public boolean has(Builder builder) {
         throw new UnsupportedOperationException("hasField() is not supported for repeated fields.");
       }
 
@@ -2780,28 +2582,28 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public int getRepeatedCount(Builder<?> builder) {
+      public int getRepeatedCount(Builder builder) {
         return getMapField(builder).getList().size();
       }
 
       @Override
-      public void clear(Builder<?> builder) {
+      public void clear(Builder builder) {
         getMutableMapField(builder).getMutableList().clear();
       }
 
       @Override
-      public Message.Builder newBuilder() {
+      public com.google.protobuf.Message.Builder newBuilder() {
         return mapEntryMessageDefaultInstance.newBuilderForType();
       }
 
       @Override
-      public Message.Builder getBuilder(Builder<?> builder) {
+      public com.google.protobuf.Message.Builder getBuilder(Builder builder) {
         throw new UnsupportedOperationException("Nested builder not supported for map fields.");
       }
 
       @Override
-      public Message.Builder getRepeatedBuilder(Builder<?> builder, int index) {
-        throw new UnsupportedOperationException("Map fields cannot be repeated");
+      public com.google.protobuf.Message.Builder getRepeatedBuilder(Builder builder, int index) {
+        throw new UnsupportedOperationException("Nested builder not supported for map fields.");
       }
     }
 
@@ -2812,7 +2614,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
           final FieldDescriptor descriptor,
           final String camelCaseName,
           final Class<? extends GeneratedMessage> messageClass,
-          final Class<? extends Builder<?>> builderClass,
+          final Class<? extends Builder> builderClass,
           final String containingOneofCamelCaseName) {
         super(descriptor, camelCaseName, messageClass, builderClass, containingOneofCamelCaseName);
 
@@ -2829,12 +2631,12 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
         }
       }
 
-      private final EnumDescriptor enumDescriptor;
+      private EnumDescriptor enumDescriptor;
 
-      private final Method valueOfMethod;
-      private final Method getValueDescriptorMethod;
+      private Method valueOfMethod;
+      private Method getValueDescriptorMethod;
 
-      private final boolean supportUnknownEnumValue;
+      private boolean supportUnknownEnumValue;
       private Method getValueMethod;
       private Method getValueMethodBuilder;
       private Method setValueMethod;
@@ -2849,7 +2651,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public Object get(final GeneratedMessage.Builder<?> builder) {
+      public Object get(final GeneratedMessage.Builder builder) {
         if (supportUnknownEnumValue) {
           int value = (Integer) invokeOrDie(getValueMethodBuilder, builder);
           return enumDescriptor.findValueByNumberCreatingIfUnknown(value);
@@ -2858,11 +2660,9 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public void set(final Builder<?> builder, final Object value) {
+      public void set(final Builder builder, final Object value) {
         if (supportUnknownEnumValue) {
-          // TODO: remove the unused variable
-          Object unused =
-              invokeOrDie(setValueMethod, builder, ((EnumValueDescriptor) value).getNumber());
+          invokeOrDie(setValueMethod, builder, ((EnumValueDescriptor) value).getNumber());
           return;
         }
         super.set(builder, invokeOrDie(valueOfMethod, null, value));
@@ -2874,7 +2674,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
           final FieldDescriptor descriptor,
           final String camelCaseName,
           final Class<? extends GeneratedMessage> messageClass,
-          final Class<? extends Builder<?>> builderClass) {
+          final Class<? extends Builder> builderClass) {
         super(descriptor, camelCaseName, messageClass, builderClass);
 
         enumDescriptor = descriptor.getEnumType();
@@ -2895,21 +2695,21 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
         }
       }
 
-      private final EnumDescriptor enumDescriptor;
+      private EnumDescriptor enumDescriptor;
 
       private final Method valueOfMethod;
       private final Method getValueDescriptorMethod;
 
-      private final boolean supportUnknownEnumValue;
-
+      private boolean supportUnknownEnumValue;
       private Method getRepeatedValueMethod;
       private Method getRepeatedValueMethodBuilder;
       private Method setRepeatedValueMethod;
       private Method addRepeatedValueMethod;
 
       @Override
+      @SuppressWarnings("unchecked")
       public Object get(final GeneratedMessage message) {
-        final List<Object> newList = new ArrayList<>();
+        final List newList = new ArrayList();
         final int size = getRepeatedCount(message);
         for (int i = 0; i < size; i++) {
           newList.add(getRepeated(message, i));
@@ -2918,8 +2718,9 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public Object get(final GeneratedMessage.Builder<?> builder) {
-        final List<Object> newList = new ArrayList<>();
+      @SuppressWarnings("unchecked")
+      public Object get(final GeneratedMessage.Builder builder) {
+        final List newList = new ArrayList();
         final int size = getRepeatedCount(builder);
         for (int i = 0; i < size; i++) {
           newList.add(getRepeated(builder, i));
@@ -2937,7 +2738,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public Object getRepeated(final GeneratedMessage.Builder<?> builder, final int index) {
+      public Object getRepeated(final GeneratedMessage.Builder builder, final int index) {
         if (supportUnknownEnumValue) {
           int value = (Integer) invokeOrDie(getRepeatedValueMethodBuilder, builder, index);
           return enumDescriptor.findValueByNumberCreatingIfUnknown(value);
@@ -2946,27 +2747,19 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public void setRepeated(final Builder<?> builder, final int index, final Object value) {
+      public void setRepeated(final Builder builder, final int index, final Object value) {
         if (supportUnknownEnumValue) {
-          // TODO: remove the unused variable
-          Object unused =
-              invokeOrDie(
-                  setRepeatedValueMethod,
-                  builder,
-                  index,
-                  ((EnumValueDescriptor) value).getNumber());
+          invokeOrDie(
+              setRepeatedValueMethod, builder, index, ((EnumValueDescriptor) value).getNumber());
           return;
         }
         super.setRepeated(builder, index, invokeOrDie(valueOfMethod, null, value));
       }
 
       @Override
-      public void addRepeated(final Builder<?> builder, final Object value) {
+      public void addRepeated(final Builder builder, final Object value) {
         if (supportUnknownEnumValue) {
-          // TODO: remove the unused variable
-          Object unused =
-              invokeOrDie(
-                  addRepeatedValueMethod, builder, ((EnumValueDescriptor) value).getNumber());
+          invokeOrDie(addRepeatedValueMethod, builder, ((EnumValueDescriptor) value).getNumber());
           return;
         }
         super.addRepeated(builder, invokeOrDie(valueOfMethod, null, value));
@@ -2990,15 +2783,17 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
           final FieldDescriptor descriptor,
           final String camelCaseName,
           final Class<? extends GeneratedMessage> messageClass,
-          final Class<? extends Builder<?>> builderClass,
+          final Class<? extends Builder> builderClass,
           final String containingOneofCamelCaseName) {
         super(descriptor, camelCaseName, messageClass, builderClass, containingOneofCamelCaseName);
         getBytesMethod = getMethodOrDie(messageClass, "get" + camelCaseName + "Bytes");
+        getBytesMethodBuilder = getMethodOrDie(builderClass, "get" + camelCaseName + "Bytes");
         setBytesMethodBuilder =
             getMethodOrDie(builderClass, "set" + camelCaseName + "Bytes", ByteString.class);
       }
 
       private final Method getBytesMethod;
+      private final Method getBytesMethodBuilder;
       private final Method setBytesMethodBuilder;
 
       @Override
@@ -3007,10 +2802,14 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public void set(GeneratedMessage.Builder<?> builder, Object value) {
+      public Object getRaw(GeneratedMessage.Builder builder) {
+        return invokeOrDie(getBytesMethodBuilder, builder);
+      }
+
+      @Override
+      public void set(GeneratedMessage.Builder builder, Object value) {
         if (value instanceof ByteString) {
-          // TODO: remove the unused variable
-          Object unused = invokeOrDie(setBytesMethodBuilder, builder, value);
+          invokeOrDie(setBytesMethodBuilder, builder, value);
         } else {
           super.set(builder, value);
         }
@@ -3024,7 +2823,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
           final FieldDescriptor descriptor,
           final String camelCaseName,
           final Class<? extends GeneratedMessage> messageClass,
-          final Class<? extends Builder<?>> builderClass,
+          final Class<? extends Builder> builderClass,
           final String containingOneofCamelCaseName) {
         super(descriptor, camelCaseName, messageClass, builderClass, containingOneofCamelCaseName);
 
@@ -3050,7 +2849,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public void set(final Builder<?> builder, final Object value) {
+      public void set(final Builder builder, final Object value) {
         super.set(builder, coerceType(value));
       }
 
@@ -3060,7 +2859,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public Message.Builder getBuilder(GeneratedMessage.Builder<?> builder) {
+      public Message.Builder getBuilder(GeneratedMessage.Builder builder) {
         return (Message.Builder) invokeOrDie(getBuilderMethodBuilder, builder);
       }
     }
@@ -3070,7 +2869,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
           final FieldDescriptor descriptor,
           final String camelCaseName,
           final Class<? extends GeneratedMessage> messageClass,
-          final Class<? extends Builder<?>> builderClass) {
+          final Class<? extends Builder> builderClass) {
         super(descriptor, camelCaseName, messageClass, builderClass);
 
         newBuilderMethod = getMethodOrDie(type, "newBuilder");
@@ -3096,12 +2895,12 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       }
 
       @Override
-      public void setRepeated(final Builder<?> builder, final int index, final Object value) {
+      public void setRepeated(final Builder builder, final int index, final Object value) {
         super.setRepeated(builder, index, coerceType(value));
       }
 
       @Override
-      public void addRepeated(final Builder<?> builder, final Object value) {
+      public void addRepeated(final Builder builder, final Object value) {
         super.addRepeated(builder, coerceType(value));
       }
 
@@ -3112,7 +2911,7 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
 
       @Override
       public Message.Builder getRepeatedBuilder(
-          final GeneratedMessage.Builder<?> builder, final int index) {
+          final GeneratedMessage.Builder builder, final int index) {
         return (Message.Builder) invokeOrDie(getBuilderMethodBuilder, builder, index);
       }
     }
@@ -3132,21 +2931,13 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
   /**
    * Checks that the {@link Extension} is non-Lite and returns it as a {@link GeneratedExtension}.
    */
-  private static <MessageT extends ExtendableMessage<MessageT>, T>
-      Extension<MessageT, T> checkNotLite(ExtensionLite<MessageT, T> extension) {
+  private static <MessageType extends ExtendableMessage<MessageType>, T>
+      Extension<MessageType, T> checkNotLite(ExtensionLite<MessageType, T> extension) {
     if (extension.isLite()) {
       throw new IllegalArgumentException("Expected non-lite extension.");
     }
 
-    return (Extension<MessageT, T>) extension;
-  }
-
-  protected static boolean isStringEmpty(final Object value) {
-    if (value instanceof String) {
-      return ((String) value).isEmpty();
-    } else {
-      return ((ByteString) value).isEmpty();
-    }
+    return (Extension<MessageType, T>) extension;
   }
 
   protected static int computeStringSize(final int fieldNumber, final Object value) {
@@ -3180,121 +2971,6 @@ public abstract class GeneratedMessage extends AbstractMessage implements Serial
       output.writeStringNoTag((String) value);
     } else {
       output.writeBytesNoTag((ByteString) value);
-    }
-  }
-
-  protected static <V> void serializeIntegerMapTo(
-      CodedOutputStream out,
-      MapField<Integer, V> field,
-      MapEntry<Integer, V> defaultEntry,
-      int fieldNumber)
-      throws IOException {
-    Map<Integer, V> m = field.getMap();
-    if (!out.isSerializationDeterministic()) {
-      serializeMapTo(out, m, defaultEntry, fieldNumber);
-      return;
-    }
-    // Sorting the unboxed keys and then look up the values during serialization is 2x faster
-    // than sorting map entries with a custom comparator directly.
-    int[] keys = new int[m.size()];
-    int index = 0;
-    for (int k : m.keySet()) {
-      keys[index++] = k;
-    }
-    Arrays.sort(keys);
-    for (int key : keys) {
-      out.writeMessage(
-          fieldNumber, defaultEntry.newBuilderForType().setKey(key).setValue(m.get(key)).build());
-    }
-  }
-
-  protected static <V> void serializeLongMapTo(
-      CodedOutputStream out,
-      MapField<Long, V> field,
-      MapEntry<Long, V> defaultEntry,
-      int fieldNumber)
-      throws IOException {
-    Map<Long, V> m = field.getMap();
-    if (!out.isSerializationDeterministic()) {
-      serializeMapTo(out, m, defaultEntry, fieldNumber);
-      return;
-    }
-
-    long[] keys = new long[m.size()];
-    int index = 0;
-    for (long k : m.keySet()) {
-      keys[index++] = k;
-    }
-    Arrays.sort(keys);
-    for (long key : keys) {
-      out.writeMessage(
-          fieldNumber, defaultEntry.newBuilderForType().setKey(key).setValue(m.get(key)).build());
-    }
-  }
-
-  protected static <V> void serializeStringMapTo(
-      CodedOutputStream out,
-      MapField<String, V> field,
-      MapEntry<String, V> defaultEntry,
-      int fieldNumber)
-      throws IOException {
-    Map<String, V> m = field.getMap();
-    if (!out.isSerializationDeterministic()) {
-      serializeMapTo(out, m, defaultEntry, fieldNumber);
-      return;
-    }
-
-    // Sorting the String keys and then look up the values during serialization is 25% faster than
-    // sorting map entries with a custom comparator directly.
-    String[] keys = new String[m.size()];
-    keys = m.keySet().toArray(keys);
-    Arrays.sort(keys);
-    for (String key : keys) {
-      out.writeMessage(
-          fieldNumber, defaultEntry.newBuilderForType().setKey(key).setValue(m.get(key)).build());
-    }
-  }
-
-  protected static <V> void serializeBooleanMapTo(
-      CodedOutputStream out,
-      MapField<Boolean, V> field,
-      MapEntry<Boolean, V> defaultEntry,
-      int fieldNumber)
-      throws IOException {
-    Map<Boolean, V> m = field.getMap();
-    if (!out.isSerializationDeterministic()) {
-      serializeMapTo(out, m, defaultEntry, fieldNumber);
-      return;
-    }
-    maybeSerializeBooleanEntryTo(out, m, defaultEntry, fieldNumber, false);
-    maybeSerializeBooleanEntryTo(out, m, defaultEntry, fieldNumber, true);
-  }
-
-  private static <V> void maybeSerializeBooleanEntryTo(
-      CodedOutputStream out,
-      Map<Boolean, V> m,
-      MapEntry<Boolean, V> defaultEntry,
-      int fieldNumber,
-      boolean key)
-      throws IOException {
-    if (m.containsKey(key)) {
-      out.writeMessage(
-          fieldNumber, defaultEntry.newBuilderForType().setKey(key).setValue(m.get(key)).build());
-    }
-  }
-
-  /** Serialize the map using the iteration order. */
-  private static <K, V> void serializeMapTo(
-      CodedOutputStream out, Map<K, V> m, MapEntry<K, V> defaultEntry, int fieldNumber)
-      throws IOException {
-    for (Map.Entry<K, V> entry : m.entrySet()) {
-      out.writeMessage(
-          fieldNumber,
-          defaultEntry
-              .newBuilderForType()
-              .setKey(entry.getKey())
-              .setValue(entry.getValue())
-              .build());
     }
   }
 }

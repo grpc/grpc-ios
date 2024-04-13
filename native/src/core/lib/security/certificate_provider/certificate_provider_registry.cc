@@ -16,13 +16,14 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/security/certificate_provider/certificate_provider_registry.h"
 
 #include <string>
 #include <utility>
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 namespace grpc_core {
 

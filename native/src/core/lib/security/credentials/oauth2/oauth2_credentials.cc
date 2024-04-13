@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/security/credentials/oauth2/oauth2_credentials.h"
 
 #include <stdlib.h>
@@ -39,7 +41,6 @@
 #include <grpc/support/alloc.h>
 #include <grpc/support/json.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/string_util.h>
 #include <grpc/support/time.h>
 

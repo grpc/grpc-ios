@@ -14,6 +14,8 @@
 // limitations under the License.
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/gprpp/work_serializer.h"
 
 #include <stdint.h>
@@ -30,7 +32,6 @@
 
 #include <grpc/event_engine/event_engine.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/debug/stats.h"
 #include "src/core/lib/debug/stats_data.h"

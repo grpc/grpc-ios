@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/ext/xds/xds_certificate_provider.h"
 
 #include <utility>
@@ -24,7 +26,6 @@
 #include "absl/types/optional.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/iomgr/error.h"

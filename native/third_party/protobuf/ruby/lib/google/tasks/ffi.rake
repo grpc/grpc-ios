@@ -74,7 +74,9 @@ begin
       FFI::Compiler::CompileTask.new 'protobuf_c_ffi' do |c|
         configure_common_compile_task c
         # Ruby UPB was already compiled with different flags.
-        c.exclude << "/utf8_range.c"
+        c.exclude << "/range2-neon.c"
+        c.exclude << "/range2-sse.c"
+        c.exclude << "/naive.c"
         c.exclude << "/ruby-upb.c"
       end
 

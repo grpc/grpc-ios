@@ -26,7 +26,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "absl/log/check.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
@@ -136,7 +135,7 @@ class XdsEnd2endTest::ServerThread::XdsChannelArgsServerBuilderOption
 
 void XdsEnd2endTest::ServerThread::Start() {
   gpr_log(GPR_INFO, "starting %s server on port %d", Type(), port_);
-  CHECK(!running_);
+  GPR_ASSERT(!running_);
   running_ = true;
   StartAllServices();
   grpc_core::Mutex mu;
@@ -851,7 +850,7 @@ XdsEnd2endTest::CreateTlsFallbackCredentials() {
   options.set_verify_server_certs(true);
   options.set_check_call_host(false);
   auto channel_creds = grpc::experimental::TlsCredentials(options);
-  CHECK_NE(channel_creds.get(), nullptr);
+  GPR_ASSERT(channel_creds.get() != nullptr);
   return channel_creds;
 }
 

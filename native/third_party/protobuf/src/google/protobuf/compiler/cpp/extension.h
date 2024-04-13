@@ -51,12 +51,10 @@ class PROTOC_EXPORT ExtensionGenerator {
   ~ExtensionGenerator();
 
   // Header stuff.
-  void GenerateDeclaration(io::Printer* p) const;
+  void GenerateDeclaration(io::Printer* printer) const;
 
   // Source file stuff.
-  void GenerateDefinition(io::Printer* p);
-
-  void GenerateRegistration(io::Printer* p);
+  void GenerateDefinition(io::Printer* printer);
 
   bool IsScoped() const;
 

@@ -19,6 +19,8 @@
 #ifndef GRPC_SRC_CORE_LIB_SLICE_SLICE_INTERNAL_H
 #define GRPC_SRC_CORE_LIB_SLICE_SLICE_INTERNAL_H
 
+#include <grpc/support/port_platform.h>
+
 #include <stdint.h>
 
 #include <cstddef>
@@ -29,7 +31,6 @@
 
 #include <grpc/slice.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/gprpp/memory.h"
 

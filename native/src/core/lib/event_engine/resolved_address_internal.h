@@ -13,8 +13,9 @@
 // limitations under the License.
 #ifndef GRPC_SRC_CORE_LIB_EVENT_ENGINE_RESOLVED_ADDRESS_INTERNAL_H
 #define GRPC_SRC_CORE_LIB_EVENT_ENGINE_RESOLVED_ADDRESS_INTERNAL_H
-#include <grpc/event_engine/event_engine.h>
 #include <grpc/support/port_platform.h>
+
+#include <grpc/event_engine/event_engine.h>
 
 #include "src/core/lib/iomgr/resolved_address.h"
 

@@ -52,13 +52,6 @@ class TestGenerator : public CodeGenerator {
     io::Printer printer(output.get(), '$');
     printer.Print("// inserted $name$\n", "name", insertion_point);
   }
-
-  uint64_t GetSupportedFeatures() const override {
-    return CodeGenerator::Feature::FEATURE_SUPPORTS_EDITIONS;
-  }
-
-  Edition GetMinimumEdition() const override { return Edition::EDITION_PROTO2; }
-  Edition GetMaximumEdition() const override { return Edition::EDITION_2023; }
 };
 
 // This test verifies that all the expected insertion points exist.  It does
@@ -67,17 +60,14 @@ class TestGenerator : public CodeGenerator {
 TEST(JavaPluginTest, PluginTest) {
   ABSL_CHECK_OK(
       File::SetContents(absl::StrCat(TestTempDir(), "/test.proto"),
-                        "edition = \"2023\";\n"
+                        "syntax = \"proto2\";\n"
                         "package foo;\n"
                         "option java_package = \"\";\n"
                         "option java_outer_classname = \"Test\";\n"
                         "message Bar {\n"
                         "  message Baz {}\n"
                         "}\n"
-                        "enum Qux {\n"
-                        "  option features.enum_type = CLOSED;\n"
-                        "  BLAH = 1;\n"
-                        "}\n",
+                        "enum Qux { BLAH = 1; }\n",
                         true));
 
   CommandLineInterface cli;
@@ -92,11 +82,10 @@ TEST(JavaPluginTest, PluginTest) {
   std::string java_out = absl::StrCat("--java_out=", TestTempDir());
   std::string test_out = absl::StrCat("--test_out=", TestTempDir());
 
-  const char* argv[] = {
-      "protoc",         proto_path.c_str(),        java_out.c_str(),
-      test_out.c_str(), "--experimental_editions", "test.proto"};
+  const char* argv[] = {"protoc", proto_path.c_str(), java_out.c_str(),
+                        test_out.c_str(), "test.proto"};
 
-  EXPECT_EQ(0, cli.Run(6, argv));
+  EXPECT_EQ(0, cli.Run(5, argv));
 
   // Loop over the lines of the generated code and verify that we find what we
   // expect

@@ -170,6 +170,7 @@ EXTERNAL_DEPS = {
     "upb/mem/arena.hpp": "upb_mem_lib",
     "upb/text/encode.h": "upb_textformat_lib",
     "upb/reflection/def.hpp": "upb_reflection",
+    "upb/upb.h": "upb_amalgamation_lib",
     "xxhash.h": "xxhash",
     "zlib.h": "madler_zlib",
 }

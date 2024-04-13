@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/ext/transport/chttp2/client/chttp2_connector.h"
 
 #include <stdint.h>
@@ -35,7 +37,6 @@
 #include <grpc/status.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/sync.h>
 
 #include "src/core/client_channel/client_channel_factory.h"

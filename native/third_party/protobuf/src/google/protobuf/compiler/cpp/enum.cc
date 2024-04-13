@@ -12,7 +12,6 @@
 #include "google/protobuf/compiler/cpp/enum.h"
 
 #include <algorithm>
-#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <string>
@@ -220,6 +219,10 @@ void EnumGenerator::GenerateDefinition(io::Printer* p) {
                                                          $kMin$, $kMax$>(
               static_cast<int>(value));
         }
+      )cc");
+    } else {
+      p->Emit(R"cc(
+        const std::string& $Msg_Enum$_Name($Msg_Enum$ value);
       )cc");
     }
   } else {

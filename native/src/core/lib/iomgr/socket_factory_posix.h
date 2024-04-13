@@ -19,8 +19,9 @@
 #ifndef GRPC_SRC_CORE_LIB_IOMGR_SOCKET_FACTORY_POSIX_H
 #define GRPC_SRC_CORE_LIB_IOMGR_SOCKET_FACTORY_POSIX_H
 
-#include <grpc/impl/grpc_types.h>
 #include <grpc/support/port_platform.h>
+
+#include <grpc/impl/grpc_types.h>
 #include <grpc/support/sync.h>
 
 #include "src/core/lib/iomgr/resolve_address.h"

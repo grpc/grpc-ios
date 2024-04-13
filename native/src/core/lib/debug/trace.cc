@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/debug/trace.h"
 
 #include <string>
@@ -28,7 +30,6 @@
 
 #include <grpc/grpc.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/config/config_vars.h"
 

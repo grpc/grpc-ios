@@ -9,14 +9,10 @@
 //! exposed to through the `protobuf` path but must be public for use by
 //! generated code.
 
-pub use crate::r#enum::Enum;
 pub use crate::vtable::{
-    new_vtable_field_entry, BytesMutVTable, BytesOptionalMutVTable, MessageVTable,
-    PrimitiveOptionalMutVTable, PrimitiveVTable, PrimitiveWithRawVTable,
-    ProxiedWithRawOptionalVTable, ProxiedWithRawVTable, RawVTableMutator,
-    RawVTableOptionalMutatorData,
+    new_vtable_field_entry, BytesMutVTable, BytesOptionalMutVTable, PrimitiveVTable,
+    RawVTableMutator,
 };
-pub use crate::ProtoStr;
 use std::ptr::NonNull;
 use std::slice;
 
@@ -55,28 +51,6 @@ mod _opaque_pointees {
         _data: [u8; 0],
         _marker: std::marker::PhantomData<(*mut u8, ::std::marker::PhantomPinned)>,
     }
-
-    /// Opaque pointee for [`RawRepeatedField`]
-    ///
-    /// This type is not meant to be dereferenced in Rust code.
-    /// It is only meant to provide type safety for raw pointers
-    /// which are manipulated behind FFI.
-    #[repr(C)]
-    pub struct RawRepeatedFieldData {
-        _data: [u8; 0],
-        _marker: std::marker::PhantomData<(*mut u8, ::std::marker::PhantomPinned)>,
-    }
-
-    /// Opaque pointee for [`RawMap`]
-    ///
-    /// This type is not meant to be dereferenced in Rust code.
-    /// It is only meant to provide type safety for raw pointers
-    /// which are manipulated behind FFI.
-    #[repr(C)]
-    pub struct RawMapData {
-        _data: [u8; 0],
-        _marker: std::marker::PhantomData<(*mut u8, ::std::marker::PhantomPinned)>,
-    }
 }
 
 /// A raw pointer to the underlying message for this runtime.
@@ -84,12 +58,6 @@ pub type RawMessage = NonNull<_opaque_pointees::RawMessageData>;
 
 /// A raw pointer to the underlying arena for this runtime.
 pub type RawArena = NonNull<_opaque_pointees::RawArenaData>;
-
-/// A raw pointer to the underlying repeated field container for this runtime.
-pub type RawRepeatedField = NonNull<_opaque_pointees::RawRepeatedFieldData>;
-
-/// A raw pointer to the underlying arena for this runtime.
-pub type RawMap = NonNull<_opaque_pointees::RawMapData>;
 
 /// Represents an ABI-stable version of `NonNull<[u8]>`/`string_view` (a
 /// borrowed slice of bytes) for FFI use only.
@@ -133,12 +101,5 @@ impl PtrAndLen {
 impl From<&[u8]> for PtrAndLen {
     fn from(slice: &[u8]) -> Self {
         Self { ptr: slice.as_ptr(), len: slice.len() }
-    }
-}
-
-impl From<&ProtoStr> for PtrAndLen {
-    fn from(s: &ProtoStr) -> Self {
-        let bytes = s.as_bytes();
-        Self { ptr: bytes.as_ptr(), len: bytes.len() }
     }
 }

@@ -16,4 +16,5 @@ else
   end
 end
 
+require 'google/protobuf/descriptor_dsl'
 require 'google/protobuf/repeated_field'

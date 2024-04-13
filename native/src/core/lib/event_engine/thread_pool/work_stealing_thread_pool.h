@@ -18,6 +18,8 @@
 #ifndef GRPC_SRC_CORE_LIB_EVENT_ENGINE_THREAD_POOL_WORK_STEALING_THREAD_POOL_H
 #define GRPC_SRC_CORE_LIB_EVENT_ENGINE_THREAD_POOL_WORK_STEALING_THREAD_POOL_H
 
+#include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -29,7 +31,6 @@
 #include "absl/functional/any_invocable.h"
 
 #include <grpc/event_engine/event_engine.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/thd_id.h>
 
 #include "src/core/lib/backoff/backoff.h"

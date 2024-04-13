@@ -341,8 +341,7 @@ bool ObjectiveCGenerator::GenerateAll(
 
   FileGenerator::CommonState state(!generation_options.strip_custom_options);
   for (const auto& file : files) {
-    const FileGenerator file_generator(GetEdition(*file), file,
-                                       generation_options, state);
+    const FileGenerator file_generator(file, generation_options, state);
     std::string filepath = FilePath(file);
 
     // Generate header.

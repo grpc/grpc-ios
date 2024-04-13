@@ -251,21 +251,17 @@ void ConvertFieldDescriptor(absl::string_view url_prefix,
   ConvertFieldOptions(descriptor.options(), *field->mutable_options());
 }
 
-Syntax ConvertSyntax(Edition edition) {
-  switch (edition) {
-    case Edition::EDITION_PROTO2:
-      return Syntax::SYNTAX_PROTO2;
-    case Edition::EDITION_PROTO3:
-      return Syntax::SYNTAX_PROTO3;
+Syntax ConvertSyntax(FileDescriptorLegacy::Syntax syntax) {
+  switch (syntax) {
     default:
-      return Syntax::SYNTAX_EDITIONS;
+      return Syntax::SYNTAX_PROTO2;
   }
 }
 
 void ConvertEnumDescriptor(const EnumDescriptor& descriptor, Enum* enum_type) {
   enum_type->Clear();
   enum_type->set_syntax(
-      ConvertSyntax(FileDescriptorLegacy(descriptor.file()).edition()));
+      ConvertSyntax(FileDescriptorLegacy(descriptor.file()).syntax()));
 
   enum_type->set_name(descriptor.full_name());
   enum_type->mutable_source_context()->set_file_name(descriptor.file()->name());
@@ -287,7 +283,7 @@ void ConvertDescriptor(absl::string_view url_prefix,
   type->Clear();
   type->set_name(descriptor.full_name());
   type->set_syntax(
-      ConvertSyntax(FileDescriptorLegacy(descriptor.file()).edition()));
+      ConvertSyntax(FileDescriptorLegacy(descriptor.file()).syntax()));
   for (int i = 0; i < descriptor.field_count(); ++i) {
     ConvertFieldDescriptor(url_prefix, *descriptor.field(i),
                            type->add_fields());

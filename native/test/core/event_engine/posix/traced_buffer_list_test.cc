@@ -18,7 +18,6 @@
 
 #include <memory>
 
-#include "absl/log/check.h"
 #include "gtest/gtest.h"
 
 #include <grpc/support/atm.h>
@@ -46,7 +45,7 @@ constexpr uint64_t kMaxAdvanceTimeMillis = 24ull * 365 * 3600 * 1000;
 
 gpr_timespec g_now;
 gpr_timespec now_impl(gpr_clock_type clock_type) {
-  CHECK(clock_type != GPR_TIMESPAN);
+  GPR_ASSERT(clock_type != GPR_TIMESPAN);
   gpr_timespec ts = g_now;
   ts.clock_type = clock_type;
   return ts;

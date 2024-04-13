@@ -22,7 +22,6 @@
 #include <typeinfo>
 
 
-#include "absl/base/config.h"
 #include "absl/meta/type_traits.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
@@ -37,16 +36,6 @@ namespace protobuf {
 class MessageLite;
 
 namespace internal {
-
-template <typename T>
-void StrongPointer(T* var) {
-#if defined(__GNUC__)
-  asm("" : : "r"(var));
-#else
-  auto volatile unused = var;
-  (void)&unused;  // Use address to avoid an extra load of "unused".
-#endif
-}
 
 
 // See comments on `AllocateAtLeast` for information on size returning new.
@@ -211,22 +200,6 @@ inline constexpr bool DebugHardenStringValues() {
   return false;
 #endif
 }
-
-#if defined(NDEBUG) && ABSL_HAVE_BUILTIN(__builtin_unreachable)
-[[noreturn]] ABSL_ATTRIBUTE_COLD PROTOBUF_ALWAYS_INLINE inline void
-Unreachable() {
-  __builtin_unreachable();
-}
-#elif ABSL_HAVE_BUILTIN(__builtin_FILE) && ABSL_HAVE_BUILTIN(__builtin_LINE)
-[[noreturn]] ABSL_ATTRIBUTE_COLD inline void Unreachable(
-    const char* file = __builtin_FILE(), int line = __builtin_LINE()) {
-  protobuf_assumption_failed("Unreachable", file, line);
-}
-#else
-[[noreturn]] ABSL_ATTRIBUTE_COLD inline void Unreachable() {
-  protobuf_assumption_failed("Unreachable", "", 0);
-}
-#endif
 
 }  // namespace internal
 }  // namespace protobuf

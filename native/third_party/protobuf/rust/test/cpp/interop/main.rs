@@ -5,20 +5,19 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-use googletest::prelude::*;
 use protobuf_cpp::__internal::PtrAndLen;
 use protobuf_cpp::__internal::RawMessage;
-use unittest_proto::TestAllExtensions;
-use unittest_proto::TestAllTypes;
+use unittest_proto::proto2_unittest::TestAllExtensions;
+use unittest_proto::proto2_unittest::TestAllTypes;
 
 macro_rules! proto_assert_eq {
     ($lhs:expr, $rhs:expr) => {{
         let lhs = &$lhs;
         let rhs = &$rhs;
 
-        assert_that!(lhs.optional_int64(), eq(rhs.optional_int64()));
-        assert_that!(lhs.optional_bytes(), eq(rhs.optional_bytes()));
-        assert_that!(lhs.optional_bool(), eq(rhs.optional_bool()));
+        assert_eq!(lhs.optional_int64(), rhs.optional_int64());
+        assert_eq!(lhs.optional_bytes(), rhs.optional_bytes());
+        assert_eq!(lhs.optional_bool(), rhs.optional_bool());
     }};
 }
 
@@ -41,9 +40,9 @@ fn mutate_message_in_cpp() {
     }
 
     let mut msg2 = TestAllTypes::new();
-    msg2.optional_int64_mut().set(42);
+    msg2.optional_int64_set(Some(42));
     msg2.optional_bytes_mut().set(b"something mysterious");
-    msg2.optional_bool_mut().set(false);
+    msg2.optional_bool_set(Some(false));
 
     proto_assert_eq!(msg1, msg2);
 }
@@ -51,7 +50,7 @@ fn mutate_message_in_cpp() {
 #[test]
 fn deserialize_in_rust() {
     let mut msg1 = TestAllTypes::new();
-    msg1.optional_int64_mut().set(-1);
+    msg1.optional_int64_set(Some(-1));
     msg1.optional_bytes_mut().set(b"some cool data I guess");
     let serialized =
         unsafe { SerializeTestAllTypes(msg1.__unstable_cpp_repr_grant_permission_to_break()) };
@@ -64,7 +63,7 @@ fn deserialize_in_rust() {
 #[test]
 fn deserialize_in_cpp() {
     let mut msg1 = TestAllTypes::new();
-    msg1.optional_int64_mut().set(-1);
+    msg1.optional_int64_set(Some(-1));
     msg1.optional_bytes_mut().set(b"some cool data I guess");
     let data = msg1.serialize();
 

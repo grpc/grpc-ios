@@ -6,16 +6,16 @@
 # https://developers.google.com/open-source/licenses/bsd
 
 load("@rules_python//python:defs.bzl", "py_binary")
-load(
-    "//bazel:upb_proto_library.bzl",
-    "upb_c_proto_library",
-    "upb_proto_reflection_library",
-)
 
 # begin:google_only
 # load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 # end:google_only
 
+load(
+    "//bazel:upb_proto_library.bzl",
+    "upb_proto_library",
+    "upb_proto_reflection_library",
+)
 load(
     ":build_defs.bzl",
     "cc_optimizefor_proto_library",
@@ -35,7 +35,7 @@ proto_library(
     srcs = ["descriptor.proto"],
 )
 
-upb_c_proto_library(
+upb_proto_library(
     name = "benchmark_descriptor_upb_proto",
     deps = [":descriptor_proto"],
 )
@@ -76,19 +76,14 @@ cc_test(
         ":benchmark_descriptor_upb_proto",
         ":benchmark_descriptor_upb_proto_reflection",
         "//:protobuf",
-        "//src/google/protobuf/json",
+        "@com_google_googletest//:gtest_main",
         "//upb:base",
+        "//upb:base_internal",
         "//upb:descriptor_upb_proto",
-        "//upb:json",
         "//upb:mem",
         "//upb:reflection",
-        "//upb:wire",
-        "//upb/base:internal",
         "@com_github_google_benchmark//:benchmark_main",
         "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/log:absl_check",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -159,7 +154,7 @@ proto_library(
 )
 
 [(
-    upb_c_proto_library(
+    upb_proto_library(
         name = k + "_upb_proto",
         deps = [":" + k + "_proto"],
     ),

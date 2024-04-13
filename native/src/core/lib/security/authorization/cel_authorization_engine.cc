@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/security/authorization/cel_authorization_engine.h"
 
 #include <stddef.h>
@@ -26,7 +28,6 @@
 #include "upb/message/map.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 namespace grpc_core {
 
