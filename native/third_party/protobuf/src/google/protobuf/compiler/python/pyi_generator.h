@@ -13,7 +13,6 @@
 #define GOOGLE_PROTOBUF_COMPILER_PYTHON_PYI_GENERATOR_H__
 
 #include <string>
-#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
@@ -48,18 +47,11 @@ class PROTOC_EXPORT PyiGenerator : public google::protobuf::compiler::CodeGenera
   // CodeGenerator methods.
   uint64_t GetSupportedFeatures() const override {
     // Code generators must explicitly support proto3 optional.
-    return Feature::FEATURE_PROTO3_OPTIONAL |
-           Feature::FEATURE_SUPPORTS_EDITIONS;
+    return CodeGenerator::FEATURE_PROTO3_OPTIONAL;
   }
   bool Generate(const FileDescriptor* file, const std::string& parameter,
                 GeneratorContext* generator_context,
                 std::string* error) const override;
-
-  Edition GetMinimumEdition() const override { return Edition::EDITION_PROTO2; }
-  Edition GetMaximumEdition() const override { return Edition::EDITION_2023; }
-  std::vector<const FieldDescriptor*> GetFeatureExtensions() const override {
-    return {};
-  }
 
  private:
   void PrintImportForDescriptor(const FileDescriptor& desc,
@@ -91,7 +83,6 @@ class PROTOC_EXPORT PyiGenerator : public google::protobuf::compiler::CodeGenera
   mutable absl::Mutex mutex_;
   mutable const FileDescriptor* file_;  // Set in Generate().  Under mutex_.
   mutable io::Printer* printer_;        // Set in Generate().  Under mutex_.
-  mutable bool strip_nonfunctional_codegen_ = false;  // Set in Generate().
   // import_map will be a mapping from filename to module alias, e.g.
   // "google3/foo/bar.py" -> "_bar"
   mutable absl::flat_hash_map<std::string, std::string> import_map_;

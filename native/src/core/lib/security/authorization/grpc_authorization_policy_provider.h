@@ -15,6 +15,8 @@
 #ifndef GRPC_SRC_CORE_LIB_SECURITY_AUTHORIZATION_GRPC_AUTHORIZATION_POLICY_PROVIDER_H
 #define GRPC_SRC_CORE_LIB_SECURITY_AUTHORIZATION_GRPC_AUTHORIZATION_POLICY_PROVIDER_H
 
+#include <grpc/support/port_platform.h>
+
 #include <functional>
 #include <memory>
 #include <string>
@@ -25,7 +27,6 @@
 #include "absl/strings/string_view.h"
 
 #include <grpc/grpc_security.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/sync.h>
 
 #include "src/core/lib/gprpp/ref_counted_ptr.h"

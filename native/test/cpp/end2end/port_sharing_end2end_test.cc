@@ -21,8 +21,6 @@
 
 #include <gtest/gtest.h>
 
-#include "absl/log/check.h"
-
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
@@ -327,7 +325,7 @@ std::vector<TestScenario> CreateTestScenarios() {
     credentials_types.push_back(kInsecureCredentialsType);
   }
 
-  CHECK(!credentials_types.empty());
+  GPR_ASSERT(!credentials_types.empty());
   for (const auto& cred : credentials_types) {
     for (auto server_has_port : {true, false}) {
       for (auto queue_pending_data : {true, false}) {

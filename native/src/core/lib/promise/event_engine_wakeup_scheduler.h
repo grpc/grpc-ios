@@ -15,11 +15,12 @@
 #ifndef GRPC_SRC_CORE_LIB_PROMISE_EVENT_ENGINE_WAKEUP_SCHEDULER_H
 #define GRPC_SRC_CORE_LIB_PROMISE_EVENT_ENGINE_WAKEUP_SCHEDULER_H
 
+#include <grpc/support/port_platform.h>
+
 #include <memory>
 #include <utility>
 
 #include <grpc/event_engine/event_engine.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/iomgr/exec_ctx.h"
 

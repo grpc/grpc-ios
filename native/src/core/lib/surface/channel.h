@@ -17,6 +17,8 @@
 #ifndef GRPC_SRC_CORE_LIB_SURFACE_CHANNEL_H
 #define GRPC_SRC_CORE_LIB_SURFACE_CHANNEL_H
 
+#include <grpc/support/port_platform.h>
+
 #include <map>
 #include <string>
 
@@ -28,7 +30,6 @@
 #include <grpc/event_engine/event_engine.h>
 #include <grpc/grpc.h>
 #include <grpc/impl/compression_types.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/time.h>
 
 #include "src/core/lib/channel/channel_args.h"

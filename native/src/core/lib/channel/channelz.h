@@ -19,6 +19,8 @@
 #ifndef GRPC_SRC_CORE_LIB_CHANNEL_CHANNELZ_H
 #define GRPC_SRC_CORE_LIB_CHANNEL_CHANNELZ_H
 
+#include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 
 #include <atomic>
@@ -34,7 +36,6 @@
 #include <grpc/grpc.h>
 #include <grpc/impl/connectivity_state.h>
 #include <grpc/slice.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/channel_trace.h"
 #include "src/core/lib/gpr/time_precise.h"

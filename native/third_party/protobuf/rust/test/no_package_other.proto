@@ -7,15 +7,6 @@
 
 syntax = "proto2";
 
-import "devtools/staticanalysis/pipeline/analyzers/proto_best_practices/proto/optouts.proto";
-
-option (proto_best_practices.file_optouts) = {
-  // package intentionally left unspecified.
-  categories: GLOBAL_PACKAGE
-};
+// package intentionally left unspecified.
 
 message OtherMsgWithoutPackage {}
-
-enum OtherEnumWithoutPackage {
-  OTHER_ENUM_WITHOUT_PACKAGE_UNSPECIFIED = 0;
-}

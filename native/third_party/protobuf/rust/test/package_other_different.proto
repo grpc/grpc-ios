@@ -10,7 +10,3 @@ syntax = "proto2";
 package testing_other_packages;
 
 message OtherMsgInDifferentPackage {}
-
-enum OtherEnumInDifferentPackage {
-  OTHER_ENUM_IN_DIFFERENT_PACKAGE_UNSPECIFIED = 0;
-}

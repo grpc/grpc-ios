@@ -18,7 +18,6 @@
 
 #include <gtest/gtest.h>
 
-#include "absl/log/check.h"
 #include "absl/memory/memory.h"
 
 #include <grpc/grpc.h>
@@ -58,7 +57,7 @@ class CrashTest : public ::testing::Test {
         g_root + "/client_crash_test_server",
         "--address=" + addr,
     }));
-    CHECK(server_);
+    GPR_ASSERT(server_);
     return grpc::testing::EchoTestService::NewStub(
         grpc::CreateChannel(addr, InsecureChannelCredentials()));
   }

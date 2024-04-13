@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include <memory>
 #include <string>
 
@@ -23,7 +25,6 @@
 #include "absl/strings/str_format.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/channel_fwd.h"
 #include "src/core/lib/gprpp/orphanable.h"

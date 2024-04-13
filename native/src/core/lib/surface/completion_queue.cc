@@ -15,6 +15,8 @@
 // limitations under the License.
 //
 //
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/surface/completion_queue.h"
 
 #include <inttypes.h>
@@ -35,7 +37,6 @@
 #include <grpc/support/alloc.h>
 #include <grpc/support/atm.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/sync.h>
 #include <grpc/support/time.h>
 

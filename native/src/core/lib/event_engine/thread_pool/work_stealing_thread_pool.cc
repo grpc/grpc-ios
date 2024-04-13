@@ -15,6 +15,8 @@
 // limitations under the License.
 //
 //
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/event_engine/thread_pool/work_stealing_thread_pool.h"
 
 #include <inttypes.h>
@@ -31,7 +33,6 @@
 #include "absl/types/optional.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/thd_id.h>
 
 #include "src/core/lib/backoff/backoff.h"

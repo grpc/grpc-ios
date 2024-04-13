@@ -16,9 +16,9 @@
 //
 //
 
-#include <inttypes.h>
-
 #include <grpc/support/port_platform.h>
+
+#include <inttypes.h>
 
 #include "src/core/lib/iomgr/port.h"
 

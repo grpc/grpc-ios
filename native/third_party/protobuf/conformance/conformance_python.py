@@ -19,8 +19,6 @@ from google.protobuf import text_format
 from google.protobuf import test_messages_proto2_pb2
 from google.protobuf import test_messages_proto3_pb2
 from conformance import conformance_pb2
-from google.protobuf.editions.golden import test_messages_proto2_editions_pb2
-from google.protobuf.editions.golden import test_messages_proto3_editions_pb2
 
 test_count = 0
 verbose = False
@@ -28,18 +26,6 @@ verbose = False
 
 class ProtocolError(Exception):
   pass
-
-
-def _create_test_message(type):
-  if type == "protobuf_test_messages.proto2.TestAllTypesProto2":
-    return test_messages_proto2_pb2.TestAllTypesProto2()
-  if type == "protobuf_test_messages.proto3.TestAllTypesProto3":
-    return test_messages_proto3_pb2.TestAllTypesProto3()
-  if type == "protobuf_test_messages.editions.proto2.TestAllTypesProto2":
-    return test_messages_proto2_editions_pb2.TestAllTypesProto2()
-  if type == "protobuf_test_messages.editions.proto3.TestAllTypesProto3":
-    return test_messages_proto3_editions_pb2.TestAllTypesProto3()
-  return None
 
 
 def do_test(request):
@@ -99,11 +85,15 @@ def do_test(request):
     response.protobuf_payload = failure_set.SerializeToString()
     return response
 
+  isProto3 = (request.message_type == "protobuf_test_messages.proto3.TestAllTypesProto3")
   isJson = (request.WhichOneof('payload') == 'json_payload')
-  test_message = _create_test_message(request.message_type)
+  isProto2 = (request.message_type == "protobuf_test_messages.proto2.TestAllTypesProto2")
 
-  if (not isJson) and (test_message is None):
+  if (not isProto3) and (not isJson) and (not isProto2):
     raise ProtocolError("Protobuf request doesn't have specific payload type")
+
+  test_message = test_messages_proto2_pb2.TestAllTypesProto2() if isProto2 else \
+    test_messages_proto3_pb2.TestAllTypesProto3()
 
   try:
     if request.WhichOneof('payload') == 'protobuf_payload':

@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/security/credentials/xds/xds_credentials.h"
 
 #include "absl/types/optional.h"
@@ -23,7 +25,6 @@
 #include <grpc/grpc_security_constants.h>
 #include <grpc/impl/channel_arg_names.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/ext/xds/xds_certificate_provider.h"
 #include "src/core/lib/channel/channel_args.h"

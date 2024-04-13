@@ -22,7 +22,6 @@
 #include <thread>
 
 #include "absl/flags/flag.h"
-#include "absl/log/check.h"
 
 #include <grpc/grpc.h>
 #include <grpc/support/log.h>
@@ -76,8 +75,8 @@ const char kEchoUserAgentKey[] = "x-grpc-test-echo-useragent";
 
 void MaybeEchoMetadata(ServerContext* context) {
   const auto& client_metadata = context->client_metadata();
-  CHECK(client_metadata.count(kEchoInitialMetadataKey) <= 1);
-  CHECK(client_metadata.count(kEchoTrailingBinMetadataKey) <= 1);
+  GPR_ASSERT(client_metadata.count(kEchoInitialMetadataKey) <= 1);
+  GPR_ASSERT(client_metadata.count(kEchoTrailingBinMetadataKey) <= 1);
 
   auto iter = client_metadata.find(kEchoInitialMetadataKey);
   if (iter != client_metadata.end()) {
@@ -420,7 +419,7 @@ void grpc::testing::interop::RunServer(
     ServerStartedCondition* server_started_condition,
     std::unique_ptr<std::vector<std::unique_ptr<ServerBuilderOption>>>
         server_options) {
-  CHECK(port != 0);
+  GPR_ASSERT(port != 0);
   std::ostringstream server_address;
   server_address << "0.0.0.0:" << port;
   auto server_metric_recorder =

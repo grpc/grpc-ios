@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/cpp/ext/filters/census/server_call_tracer.h"
 
 #include <stdint.h>
@@ -40,7 +42,6 @@
 #include "opencensus/trace/span_id.h"
 #include "opencensus/trace/trace_id.h"
 
-#include <grpc/support/port_platform.h>
 #include <grpcpp/opencensus.h>
 
 #include "src/core/lib/channel/call_tracer.h"

@@ -55,7 +55,7 @@ class FileGenerator {
     const bool include_custom_options;
   };
 
-  FileGenerator(Edition edition, const FileDescriptor* file,
+  FileGenerator(const FileDescriptor* file,
                 const GenerationOptions& generation_options,
                 CommonState& common_state);
   ~FileGenerator() = default;
@@ -114,7 +114,6 @@ class FileGenerator {
            generation_options_.headers_use_forward_declarations;
   }
 
-  const Edition edition_;
   const FileDescriptor* file_;
   const GenerationOptions& generation_options_;
   mutable CommonState* common_state_;

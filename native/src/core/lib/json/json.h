@@ -17,8 +17,9 @@
 #ifndef GRPC_SRC_CORE_LIB_JSON_JSON_H
 #define GRPC_SRC_CORE_LIB_JSON_JSON_H
 
-#include <grpc/support/json.h>
 #include <grpc/support/port_platform.h>
+
+#include <grpc/support/json.h>
 
 namespace grpc_core {
 

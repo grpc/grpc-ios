@@ -14,7 +14,6 @@
 #include "google/protobuf/descriptor.h"
 
 #include <cstdlib>
-#include <functional>
 #include <limits>
 #include <memory>
 #include <string>
@@ -31,18 +30,15 @@
 #include <gtest/gtest.h>
 #include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_set.h"
-#include "absl/functional/any_invocable.h"
 #include "absl/log/absl_check.h"
 #include "absl/log/absl_log.h"
 #include "absl/log/die_if_null.h"
 #include "absl/log/scoped_mock_log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
-#include "absl/synchronization/notification.h"
 #include "google/protobuf/compiler/importer.h"
 #include "google/protobuf/compiler/parser.h"
 #include "google/protobuf/cpp_features.pb.h"
@@ -79,14 +75,12 @@ template <typename T>
 absl::Status GetStatus(const absl::StatusOr<T>& s) {
   return s.status();
 }
-MATCHER_P2(StatusIs, status, message,
-           absl::StrCat(".status() is ", testing::PrintToString(status))) {
-  return GetStatus(arg).code() == status &&
-         testing::ExplainMatchResult(message, GetStatus(arg).message(),
-                                     result_listener);
+MATCHER_P(StatusIs, status,
+          absl::StrCat(".status() is ", testing::PrintToString(status))) {
+  return GetStatus(arg).code() == status;
 }
-#define EXPECT_OK(x) EXPECT_THAT(x, StatusIs(absl::StatusCode::kOk, testing::_))
-#define ASSERT_OK(x) ASSERT_THAT(x, StatusIs(absl::StatusCode::kOk, testing::_))
+#define EXPECT_OK(x) EXPECT_THAT(x, StatusIs(absl::StatusCode::kOk))
+#define ASSERT_OK(x) ASSERT_THAT(x, StatusIs(absl::StatusCode::kOk))
 
 namespace google {
 namespace protobuf {
@@ -473,30 +467,32 @@ TEST_F(FileDescriptorTest, BuildAgainWithSyntax) {
   EXPECT_EQ(proto3_descriptor, pool_.BuildFile(proto_syntax3));
 }
 
-TEST_F(FileDescriptorTest, Edition) {
+TEST_F(FileDescriptorTest, Syntax) {
   FileDescriptorProto proto;
   proto.set_name("foo");
+  // Enable the test when we also populate the syntax for proto2.
+#if 0
   {
     proto.set_syntax("proto2");
     DescriptorPool pool;
     const FileDescriptor* file = pool.BuildFile(proto);
     ASSERT_TRUE(file != nullptr);
-    EXPECT_EQ(FileDescriptorLegacy(file).edition(), Edition::EDITION_PROTO2);
+    EXPECT_EQ(FileDescriptorLegacy::Syntax::SYNTAX_PROTO2, FileDescriptorLegacy(file).syntax());
     FileDescriptorProto other;
     file->CopyTo(&other);
-    EXPECT_EQ("", other.syntax());
-    EXPECT_FALSE(other.has_edition());
+    EXPECT_EQ("proto2", other.syntax());
   }
+#endif
   {
     proto.set_syntax("proto3");
     DescriptorPool pool;
     const FileDescriptor* file = pool.BuildFile(proto);
     ASSERT_TRUE(file != nullptr);
-    EXPECT_EQ(FileDescriptorLegacy(file).edition(), Edition::EDITION_PROTO3);
+    EXPECT_EQ(FileDescriptorLegacy::Syntax::SYNTAX_PROTO3,
+              FileDescriptorLegacy(file).syntax());
     FileDescriptorProto other;
     file->CopyTo(&other);
     EXPECT_EQ("proto3", other.syntax());
-    EXPECT_FALSE(other.has_edition());
   }
   {
     proto.set_syntax("editions");
@@ -504,7 +500,9 @@ TEST_F(FileDescriptorTest, Edition) {
     DescriptorPool pool;
     const FileDescriptor* file = pool.BuildFile(proto);
     ASSERT_TRUE(file != nullptr);
-    EXPECT_EQ(FileDescriptorLegacy(file).edition(), Edition::EDITION_2023);
+    EXPECT_EQ(FileDescriptorLegacy::Syntax::SYNTAX_EDITIONS,
+              FileDescriptorLegacy(file).syntax());
+    EXPECT_EQ(file->edition(), EDITION_2023);
     FileDescriptorProto other;
     file->CopyTo(&other);
     EXPECT_EQ("editions", other.syntax());
@@ -2943,29 +2941,6 @@ TEST_F(MiscTest, DefaultValues) {
   EXPECT_EQ(enum_value_a, message->field(22)->default_value_enum());
 }
 
-TEST_F(MiscTest, InvalidFieldOptions) {
-  FileDescriptorProto file_proto;
-  file_proto.set_name("foo.proto");
-
-  file_proto.set_syntax("editions");
-  file_proto.set_edition(Edition::EDITION_2023);
-
-  DescriptorProto* message_proto = AddMessage(&file_proto, "TestMessage");
-  AddField(message_proto, "foo", 1, FieldDescriptorProto::LABEL_OPTIONAL,
-           FieldDescriptorProto::TYPE_INT32);
-  FieldDescriptorProto* bar_proto =
-      AddField(message_proto, "bar", 2, FieldDescriptorProto::LABEL_OPTIONAL,
-               FieldDescriptorProto::TYPE_INT32);
-
-  FieldOptions* options = bar_proto->mutable_options();
-  options->set_ctype(FieldOptions::CORD);
-
-  // Expects it to fail as int32 fields cannot have ctype.
-  DescriptorPool pool;
-  const FileDescriptor* file = pool.BuildFile(file_proto);
-  EXPECT_EQ(file, nullptr);
-}
-
 TEST_F(MiscTest, FieldOptions) {
   // Try setting field options.
 
@@ -2977,7 +2952,7 @@ TEST_F(MiscTest, FieldOptions) {
            FieldDescriptorProto::TYPE_INT32);
   FieldDescriptorProto* bar_proto =
       AddField(message_proto, "bar", 2, FieldDescriptorProto::LABEL_OPTIONAL,
-               FieldDescriptorProto::TYPE_BYTES);
+               FieldDescriptorProto::TYPE_INT32);
 
   FieldOptions* options = bar_proto->mutable_options();
   options->set_ctype(FieldOptions::CORD);
@@ -4038,7 +4013,7 @@ class ValidationErrorTest : public testing::Test {
   }
   // Parse file_text as a FileDescriptorProto in text format and add it
   // to the DescriptorPool.  Expect no errors.
-  const FileDescriptor* BuildFile(absl::string_view file_text) {
+  const FileDescriptor* BuildFile(const std::string& file_text) {
     FileDescriptorProto file_proto;
     EXPECT_TRUE(TextFormat::ParseFromString(file_text, &file_proto));
     return ABSL_DIE_IF_NULL(pool_.BuildFile(file_proto));
@@ -6676,8 +6651,8 @@ TEST_F(ValidationErrorTest, Proto3EnumValuesConflictWithDifferentCasing) {
       "}",
       "foo.proto: bar: NAME: Enum name bar has the same name as BAR "
       "if you ignore case and strip out the enum name prefix (if any). "
-      "(If you are using allow_alias, please assign the same number "
-      "to each enum value name.)\n");
+      "(If you are using allow_alias, please assign the same numeric "
+      "value to both enums.)\n");
 
   BuildFileWithErrors(
       "syntax: 'proto2'"
@@ -6689,8 +6664,8 @@ TEST_F(ValidationErrorTest, Proto3EnumValuesConflictWithDifferentCasing) {
       "}",
       "foo.proto: bar: NAME: Enum name bar has the same name as BAR "
       "if you ignore case and strip out the enum name prefix (if any). "
-      "(If you are using allow_alias, please assign the same number "
-      "to each enum value name.)\n");
+      "(If you are using allow_alias, please assign the same numeric "
+      "value to both enums.)\n");
 
   // Not an error because both enums are mapped to the same value.
   BuildFile(
@@ -6716,8 +6691,8 @@ TEST_F(ValidationErrorTest, EnumValuesConflictWhenPrefixesStripped) {
       "}",
       "foo.proto: BAZ: NAME: Enum name BAZ has the same name as FOO_ENUM_BAZ "
       "if you ignore case and strip out the enum name prefix (if any). "
-      "(If you are using allow_alias, please assign the same number "
-      "to each enum value name.)\n");
+      "(If you are using allow_alias, please assign the same numeric value "
+      "to both enums.)\n");
 
   BuildFileWithErrors(
       "syntax: 'proto3'"
@@ -6729,8 +6704,8 @@ TEST_F(ValidationErrorTest, EnumValuesConflictWhenPrefixesStripped) {
       "}",
       "foo.proto: BAZ: NAME: Enum name BAZ has the same name as FOOENUM_BAZ "
       "if you ignore case and strip out the enum name prefix (if any). "
-      "(If you are using allow_alias, please assign the same number "
-      "to each enum value name.)\n");
+      "(If you are using allow_alias, please assign the same numeric value "
+      "to both enums.)\n");
 
   BuildFileWithErrors(
       "syntax: 'proto3'"
@@ -6742,8 +6717,8 @@ TEST_F(ValidationErrorTest, EnumValuesConflictWhenPrefixesStripped) {
       "}",
       "foo.proto: BAR__BAZ: NAME: Enum name BAR__BAZ has the same name as "
       "FOO_ENUM_BAR_BAZ if you ignore case and strip out the enum name prefix "
-      "(if any). (If you are using allow_alias, please assign the same number "
-      "to each enum value name.)\n");
+      "(if any). (If you are using allow_alias, please assign the same numeric "
+      "value to both enums.)\n");
 
   BuildFileWithErrors(
       "syntax: 'proto3'"
@@ -6755,8 +6730,8 @@ TEST_F(ValidationErrorTest, EnumValuesConflictWhenPrefixesStripped) {
       "}",
       "foo.proto: BAR_BAZ: NAME: Enum name BAR_BAZ has the same name as "
       "FOO_ENUM__BAR_BAZ if you ignore case and strip out the enum name prefix "
-      "(if any). (If you are using allow_alias, please assign the same number "
-      "to each enum value name.)\n");
+      "(if any). (If you are using allow_alias, please assign the same numeric "
+      "value to both enums.)\n");
 
   BuildFileWithErrors(
       "syntax: 'proto2'"
@@ -6768,8 +6743,8 @@ TEST_F(ValidationErrorTest, EnumValuesConflictWhenPrefixesStripped) {
       "}",
       "foo.proto: BAR_BAZ: NAME: Enum name BAR_BAZ has the same name as "
       "FOO_ENUM__BAR_BAZ if you ignore case and strip out the enum name prefix "
-      "(if any). (If you are using allow_alias, please assign the same number "
-      "to each enum value name.)\n");
+      "(if any). (If you are using allow_alias, please assign the same numeric "
+      "value to both enums.)\n");
 
   // This isn't an error because the underscore will cause the PascalCase to
   // differ by case (BarBaz vs. Barbaz).
@@ -6795,8 +6770,8 @@ TEST_F(ValidationErrorTest, EnumValuesConflictLegacyBehavior) {
       "}",
       "foo.proto: bar: NAME: Enum name bar has the same name as BAR "
       "if you ignore case and strip out the enum name prefix (if any). "
-      "(If you are using allow_alias, please assign the same number "
-      "to each enum value name.)\n");
+      "(If you are using allow_alias, please assign the same numeric "
+      "value to both enums.)\n");
 
   BuildFileWithErrors(
       "syntax: 'proto3'"
@@ -6811,7 +6786,8 @@ TEST_F(ValidationErrorTest, EnumValuesConflictLegacyBehavior) {
       "FOO_ENUM__BAR_BAZ if you ignore case and strip out the enum name "
       "prefix "
       "(if any). (If you are using allow_alias, please assign the same "
-      "number to each enum value name.)\n");
+      "numeric "
+      "value to both enums.)\n");
 
   BuildFileWithWarnings(
       "syntax: 'proto2'"
@@ -6824,8 +6800,8 @@ TEST_F(ValidationErrorTest, EnumValuesConflictLegacyBehavior) {
       "}",
       "foo.proto: bar: NAME: Enum name bar has the same name as BAR "
       "if you ignore case and strip out the enum name prefix (if any). "
-      "(If you are using allow_alias, please assign the same number "
-      "to each enum value name.)\n");
+      "(If you are using allow_alias, please assign the same numeric "
+      "value to both enums.)\n");
 }
 
 TEST_F(ValidationErrorTest, MapEntryConflictsWithOneof) {
@@ -7056,71 +7032,8 @@ TEST_F(ValidationErrorTest, ValidateProto3EnumFromProto2) {
       "    field { name:'bar' number:1 label:LABEL_OPTIONAL type:TYPE_ENUM "
       "            type_name: 'foo.FooEnum' }"
       "}",
-      "bar.proto: Foo.bar: TYPE: Enum type \"foo.FooEnum\" is not an open "
+      "bar.proto: Foo.bar: TYPE: Enum type \"foo.FooEnum\" is not a proto3 "
       "enum, but is used in \"Foo\" which is a proto3 message type.\n");
-}
-
-TEST_F(ValidationErrorTest, ValidateProto3ClosedEnum) {
-  // Define a closed enum in an editions file.
-  BuildFile(R"pb(name: 'foo.proto'
-                 package: 'foo'
-                 syntax: 'editions'
-                 edition: EDITION_2023
-                 enum_type {
-                   name: 'FooEnum'
-                   value { name: 'DEFAULT_OPTION' number: 0 }
-                   options { features { enum_type: CLOSED } }
-                 })pb");
-
-  BuildFileWithErrors(
-      R"pb(name: 'bar.proto'
-           dependency: 'foo.proto'
-           syntax: 'proto3'
-           message_type {
-             name: 'Foo'
-             field {
-               name: 'bar'
-               number: 1
-               label: LABEL_OPTIONAL
-               type: TYPE_ENUM
-               type_name: 'foo.FooEnum'
-             }
-           })pb",
-      "bar.proto: Foo.bar: TYPE: Enum type \"foo.FooEnum\" is not an open "
-      "enum, but is used in \"Foo\" which is a proto3 message type.\n");
-}
-
-TEST_F(ValidationErrorTest, ValidateProto3OpenEnum) {
-  // Define an open enum in an editions file.
-  const FileDescriptor* foo =
-      BuildFile(R"pb(name: 'foo.proto'
-                     package: 'foo'
-                     syntax: 'editions'
-                     edition: EDITION_2023
-                     enum_type {
-                       name: 'FooEnum'
-                       value { name: 'DEFAULT_OPTION' number: 0 }
-                     })pb");
-  const EnumDescriptor* enm = foo->enum_type(0);
-  ASSERT_NE(enm, nullptr);
-
-  const FileDescriptor* bar = BuildFile(
-      R"pb(name: 'bar.proto'
-           dependency: 'foo.proto'
-           syntax: 'proto3'
-           message_type {
-             name: 'Foo'
-             field {
-               name: 'bar'
-               number: 1
-               label: LABEL_OPTIONAL
-               type: TYPE_ENUM
-               type_name: 'foo.FooEnum'
-             }
-           })pb");
-  ASSERT_NE(bar, nullptr);
-
-  EXPECT_EQ(bar->message_type(0)->field(0)->enum_type(), enm);
 }
 
 TEST_F(ValidationErrorTest, ValidateProto3Extension) {
@@ -7304,13 +7217,6 @@ TEST_F(ValidationErrorTest, UnusedImportWithOtherError) {
       "foo.proto: Foo.foo: EXTENDEE: \"Baz\" is not defined.\n");
 }
 
-TEST(EditionsTest, DenseRange) {
-  for (int i = static_cast<int>(PROTOBUF_MINIMUM_EDITION);
-       i <= static_cast<int>(PROTOBUF_MAXIMUM_EDITION); ++i) {
-    EXPECT_TRUE(Edition_IsValid(i));
-  }
-}
-
 using FeaturesBaseTest = ValidationErrorTest;
 
 class FeaturesTest : public FeaturesBaseTest {
@@ -7325,7 +7231,7 @@ class FeaturesTest : public FeaturesBaseTest {
          GetExtensionReflection(pb::TestMessage::Nested::test_nested)},
         EDITION_PROTO2, EDITION_99999_TEST_ONLY);
     ASSERT_OK(default_spec);
-    ASSERT_OK(pool_.SetFeatureSetDefaults(std::move(default_spec).value()));
+    pool_.SetFeatureSetDefaults(std::move(default_spec).value());
   }
 };
 
@@ -7433,11 +7339,8 @@ TEST_F(FeaturesTest, Proto2Features) {
                 [pb.cpp] { legacy_closed_enum: true })pb"));
   EXPECT_TRUE(field->has_presence());
   EXPECT_FALSE(field->requires_utf8_validation());
-  EXPECT_EQ(
-      GetUtf8CheckMode(message->FindFieldByName("str"), /*is_lite=*/false),
-      Utf8CheckMode::kVerify);
-  EXPECT_EQ(GetUtf8CheckMode(message->FindFieldByName("str"), /*is_lite=*/true),
-            Utf8CheckMode::kNone);
+  EXPECT_EQ(GetUtf8CheckMode(field, /*is_lite=*/false), Utf8CheckMode::kVerify);
+  EXPECT_EQ(GetUtf8CheckMode(field, /*is_lite=*/true), Utf8CheckMode::kNone);
   EXPECT_FALSE(field->is_packed());
   EXPECT_FALSE(field->legacy_enum_field_treated_as_closed());
   EXPECT_FALSE(HasPreservingUnknownEnumSemantics(field));
@@ -7502,11 +7405,8 @@ TEST_F(FeaturesTest, Proto3Features) {
                 [pb.cpp] { legacy_closed_enum: false })pb"));
   EXPECT_FALSE(field->has_presence());
   EXPECT_FALSE(field->requires_utf8_validation());
-  EXPECT_EQ(
-      GetUtf8CheckMode(message->FindFieldByName("str"), /*is_lite=*/false),
-      Utf8CheckMode::kStrict);
-  EXPECT_EQ(GetUtf8CheckMode(message->FindFieldByName("str"), /*is_lite=*/true),
-            Utf8CheckMode::kStrict);
+  EXPECT_EQ(GetUtf8CheckMode(field, /*is_lite=*/false), Utf8CheckMode::kStrict);
+  EXPECT_EQ(GetUtf8CheckMode(field, /*is_lite=*/true), Utf8CheckMode::kStrict);
   EXPECT_FALSE(field->is_packed());
   EXPECT_FALSE(field->legacy_enum_field_treated_as_closed());
   EXPECT_FALSE(HasPreservingUnknownEnumSemantics(field));
@@ -9242,9 +9142,9 @@ TEST_F(FeaturesTest, FieldFeatureHelpers) {
   EXPECT_FALSE(default_repeated_field->has_presence());
   EXPECT_FALSE(default_repeated_field->requires_utf8_validation());
   EXPECT_EQ(GetUtf8CheckMode(default_repeated_field, /*is_lite=*/false),
-            Utf8CheckMode::kNone);
+            Utf8CheckMode::kStrict);
   EXPECT_EQ(GetUtf8CheckMode(default_repeated_field, /*is_lite=*/true),
-            Utf8CheckMode::kNone);
+            Utf8CheckMode::kStrict);
 
   EXPECT_TRUE(required_field->has_presence());
   EXPECT_TRUE(required_field->is_required());
@@ -9358,7 +9258,7 @@ TEST_F(FeaturesTest, FeaturesOutsideEditions) {
       "editions.\n");
 }
 
-TEST_F(FeaturesTest, InvalidFileRequiredPresence) {
+TEST_F(FeaturesTest, InvalidRequiredByDefault) {
   BuildDescriptorMessagesInTestPool();
   BuildFileWithErrors(
       R"pb(
@@ -9369,31 +9269,6 @@ TEST_F(FeaturesTest, InvalidFileRequiredPresence) {
       )pb",
       "foo.proto: foo.proto: EDITIONS: Required presence can't be specified "
       "by default.\n");
-}
-
-TEST_F(FeaturesTest, InvalidFileJavaStringCheckUtf8) {
-  BuildDescriptorMessagesInTestPool();
-  BuildFileWithErrors(
-      R"pb(
-        name: "foo.proto"
-        syntax: "editions"
-        edition: EDITION_2023
-        options { java_string_check_utf8: true }
-      )pb",
-      "foo.proto: foo.proto: EDITIONS: File option java_string_check_utf8 is "
-      "not allowed under editions. Use the (pb.java).utf8_validation feature "
-      "to control this behavior.\n");
-}
-
-TEST_F(FeaturesTest, Proto2FileJavaStringCheckUtf8) {
-  BuildDescriptorMessagesInTestPool();
-  const FileDescriptor* file = BuildFile(
-      R"pb(
-        name: "foo.proto"
-        syntax: "proto2"
-        options { java_string_check_utf8: true }
-      )pb");
-  EXPECT_EQ(file->options().java_string_check_utf8(), true);
 }
 TEST_F(FeaturesTest, InvalidFieldPacked) {
   BuildDescriptorMessagesInTestPool();
@@ -10419,100 +10294,6 @@ INSTANTIATE_TEST_SUITE_P(
                  })pb")),
     [](const ::testing::TestParamInfo<FeaturesDebugStringTest::ParamType>&
            info) { return std::string(std::get<0>(info.param)); });
-
-using DescriptorPoolFeaturesTest = FeaturesBaseTest;
-
-TEST_F(DescriptorPoolFeaturesTest, BuildStarted) {
-  BuildDescriptorMessagesInTestPool();
-  FeatureSetDefaults defaults = ParseTextOrDie(R"pb()pb");
-  EXPECT_THAT(pool_.SetFeatureSetDefaults(std::move(defaults)),
-              StatusIs(absl::StatusCode::kFailedPrecondition,
-                       HasSubstr("defaults can't be changed")));
-}
-
-TEST_F(DescriptorPoolFeaturesTest, InvalidRange) {
-  FeatureSetDefaults defaults = ParseTextOrDie(R"pb(
-    minimum_edition: EDITION_2023
-    maximum_edition: EDITION_PROTO2
-  )pb");
-  EXPECT_THAT(pool_.SetFeatureSetDefaults(std::move(defaults)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       AllOf(HasSubstr("Invalid edition range"),
-                             HasSubstr("PROTO2"), HasSubstr("2023"))));
-}
-
-TEST_F(DescriptorPoolFeaturesTest, UnknownDefaults) {
-  FeatureSetDefaults defaults = ParseTextOrDie(R"pb(
-    defaults {
-      edition: EDITION_UNKNOWN
-      features {}
-    }
-    minimum_edition: EDITION_PROTO2
-    maximum_edition: EDITION_2023
-  )pb");
-  EXPECT_THAT(pool_.SetFeatureSetDefaults(std::move(defaults)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       AllOf(HasSubstr("Invalid edition UNKNOWN"))));
-}
-
-TEST_F(DescriptorPoolFeaturesTest, NotStrictlyIncreasing) {
-  FeatureSetDefaults defaults = ParseTextOrDie(R"pb(
-    defaults {
-      edition: EDITION_PROTO3
-      features {}
-    }
-    defaults {
-      edition: EDITION_PROTO2
-      features {}
-    }
-    minimum_edition: EDITION_PROTO2
-    maximum_edition: EDITION_2023
-  )pb");
-  EXPECT_THAT(
-      pool_.SetFeatureSetDefaults(std::move(defaults)),
-      StatusIs(
-          absl::StatusCode::kInvalidArgument,
-          AllOf(
-              HasSubstr("not strictly increasing"),
-              HasSubstr("PROTO3 is greater than or equal to edition PROTO2"))));
-}
-
-TEST_F(DescriptorPoolFeaturesTest, OverrideDefaults) {
-  FeatureSetDefaults defaults = ParseTextOrDie(R"pb(
-    defaults {
-      edition: EDITION_PROTO2
-      features {
-        field_presence: EXPLICIT
-        enum_type: CLOSED
-        repeated_field_encoding: EXPANDED
-        utf8_validation: VERIFY
-        message_encoding: LENGTH_PREFIXED
-        json_format: ALLOW
-      }
-    }
-    minimum_edition: EDITION_PROTO2
-    maximum_edition: EDITION_2023
-  )pb");
-  EXPECT_OK(pool_.SetFeatureSetDefaults(std::move(defaults)));
-
-  FileDescriptorProto file_proto = ParseTextOrDie(R"pb(
-    name: "foo.proto"
-    syntax: "editions"
-    edition: EDITION_PROTO3
-  )pb");
-
-  BuildDescriptorMessagesInTestPool();
-  const FileDescriptor* file = ABSL_DIE_IF_NULL(pool_.BuildFile(file_proto));
-  EXPECT_THAT(GetFeatures(file), EqualsProto(R"pb(
-                field_presence: EXPLICIT
-                enum_type: CLOSED
-                repeated_field_encoding: EXPANDED
-                utf8_validation: VERIFY
-                message_encoding: LENGTH_PREFIXED
-                json_format: ALLOW
-              )pb"));
-}
-
 
 
 

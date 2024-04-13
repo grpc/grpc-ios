@@ -11,7 +11,7 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-#include "absl/container/flat_hash_map.h"
+#include <unordered_map>
 #include "google/protobuf/descriptor.h"
 
 namespace google {
@@ -65,9 +65,7 @@ typedef struct PyDescriptorPool {
   // Cache the options for any kind of descriptor.
   // Descriptor pointers are owned by the DescriptorPool above.
   // Python objects are owned by the map.
-  absl::flat_hash_map<const void*, PyObject*>* descriptor_options;
-  // Similar cache for features.
-  absl::flat_hash_map<const void*, PyObject*>* descriptor_features;
+  std::unordered_map<const void*, PyObject*>* descriptor_options;
 } PyDescriptorPool;
 
 

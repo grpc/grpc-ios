@@ -19,6 +19,8 @@
 #ifndef GRPC_SRC_CORE_EXT_XDS_XDS_CLIENT_STATS_H
 #define GRPC_SRC_CORE_EXT_XDS_XDS_CLIENT_STATS_H
 
+#include <grpc/support/port_platform.h>
+
 #include <atomic>
 #include <cstdint>
 #include <map>
@@ -28,8 +30,6 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-
-#include <grpc/support/port_platform.h>
 
 #include "src/core/ext/xds/xds_bootstrap.h"
 #include "src/core/lib/channel/call_tracer.h"

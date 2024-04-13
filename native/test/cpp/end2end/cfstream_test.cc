@@ -24,8 +24,6 @@
 
 #include <gtest/gtest.h>
 
-#include "absl/log/check.h"
-
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/atm.h>
@@ -190,7 +188,7 @@ class CFStreamTest : public ::testing::TestWithParam<TestScenario> {
     } else if (ret == grpc::CompletionQueue::SHUTDOWN) {
       return false;
     } else {
-      CHECK(ret == grpc::CompletionQueue::TIMEOUT);
+      GPR_ASSERT(ret == grpc::CompletionQueue::TIMEOUT);
       // This can happen if we hit the Apple CFStream bug which results in the
       // read stream freezing. We are ignoring hangs and timeouts, but these
       // tests are still useful as they can catch memory memory corruptions,
@@ -377,7 +375,7 @@ TEST_P(CFStreamTest, NetworkFlapRpcsInFlight) {
 
     while (CQNext(&got_tag, &ok)) {
       ++total_completions;
-      CHECK(ok);
+      GPR_ASSERT(ok);
       AsyncClientCall* call = static_cast<AsyncClientCall*>(got_tag);
       if (!call->status.ok()) {
         gpr_log(GPR_DEBUG, "RPC failed with error: %s",
@@ -424,7 +422,7 @@ TEST_P(CFStreamTest, ConcurrentRpc) {
 
     while (CQNext(&got_tag, &ok)) {
       ++total_completions;
-      CHECK(ok);
+      GPR_ASSERT(ok);
       AsyncClientCall* call = static_cast<AsyncClientCall*>(got_tag);
       if (!call->status.ok()) {
         gpr_log(GPR_DEBUG, "RPC failed with error: %s",

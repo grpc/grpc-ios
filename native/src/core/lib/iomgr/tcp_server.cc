@@ -16,9 +16,9 @@
 //
 //
 
-#include "src/core/lib/iomgr/tcp_server.h"
-
 #include <grpc/support/port_platform.h>
+
+#include "src/core/lib/iomgr/tcp_server.h"
 
 grpc_tcp_server_vtable* grpc_tcp_server_impl;
 

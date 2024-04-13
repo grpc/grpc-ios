@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/resource_quota/memory_quota.h"
 
 #include <inttypes.h>
@@ -30,7 +32,6 @@
 
 #include <grpc/event_engine/internal/memory_allocator_impl.h>
 #include <grpc/slice.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/gpr/useful.h"

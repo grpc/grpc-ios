@@ -22,7 +22,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/log/check.h"
 #include "absl/strings/str_format.h"
 
 #include <grpc/support/log.h>
@@ -66,7 +65,7 @@ TestCaseType WeightedRandomTestSelector::GetNextTest() const {
   }
 
   // It is a bug in the logic if no test is selected at this point
-  CHECK(selected_test != UNKNOWN_TEST);
+  GPR_ASSERT(selected_test != UNKNOWN_TEST);
   return selected_test;
 }
 

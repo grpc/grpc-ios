@@ -23,7 +23,6 @@
 #include <utility>
 
 #include "absl/cleanup/cleanup.h"
-#include "absl/log/check.h"
 #include "absl/random/bit_gen_ref.h"
 
 #include <grpc/grpc.h>
@@ -130,8 +129,8 @@ DEFINE_PROTO_FUZZER(const hpack_parser_fuzzer::Msg& msg) {
         // (This is incredibly generous, but having a bound nevertheless means
         // we don't accidentally flow to infinity, which would be crossing the
         // streams level bad).
-        CHECK(static_cast<int>(parser->buffered_bytes() / 4) <
-              std::max(1024, absolute_max_length));
+        GPR_ASSERT(static_cast<int>(parser->buffered_bytes() / 4) <
+                   std::max(1024, absolute_max_length));
         if (!err.ok()) {
           intptr_t unused;
           if (grpc_error_get_int(err, grpc_core::StatusIntProperty::kStreamId,

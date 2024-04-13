@@ -22,7 +22,6 @@
 
 #include <gtest/gtest.h>
 
-#include "absl/log/check.h"
 #include "absl/memory/memory.h"
 
 #include <grpc/grpc.h>
@@ -57,8 +56,8 @@ static gpr_timespec now_impl(gpr_clock_type clock) {
   if (clock != GPR_CLOCK_REALTIME) {
     return ts;
   }
-  CHECK_GE(ts.tv_nsec, 0);
-  CHECK(ts.tv_nsec < GPR_NS_PER_SEC);
+  GPR_ASSERT(ts.tv_nsec >= 0);
+  GPR_ASSERT(ts.tv_nsec < GPR_NS_PER_SEC);
   gpr_mu_lock(&g_mu);
   ts.tv_sec += g_time_shift_sec;
   ts.tv_nsec += g_time_shift_nsec;
@@ -124,9 +123,9 @@ TEST(TimespecTest, GrpcNegativeMillisToTimespec) {
   gpr_timespec ts =
       grpc_core::Timestamp::FromMillisecondsAfterProcessEpoch(-1500)
           .as_timespec(GPR_CLOCK_MONOTONIC);
-  CHECK(ts.tv_sec = -2);
-  CHECK(ts.tv_nsec = 5e8);
-  CHECK(ts.clock_type == GPR_CLOCK_MONOTONIC);
+  GPR_ASSERT(ts.tv_sec = -2);
+  GPR_ASSERT(ts.tv_nsec = 5e8);
+  GPR_ASSERT(ts.clock_type == GPR_CLOCK_MONOTONIC);
 }
 
 class TimeChangeTest : public ::testing::Test {
@@ -142,11 +141,11 @@ class TimeChangeTest : public ::testing::Test {
         g_root + "/client_crash_test_server",
         "--address=" + server_address_,
     }));
-    CHECK(server_);
+    GPR_ASSERT(server_);
     // connect to server and make sure it's reachable.
     auto channel =
         grpc::CreateChannel(server_address_, InsecureChannelCredentials());
-    CHECK(channel);
+    GPR_ASSERT(channel);
     EXPECT_TRUE(channel->WaitForConnected(
         grpc_timeout_milliseconds_to_deadline(30000)));
   }
@@ -156,7 +155,7 @@ class TimeChangeTest : public ::testing::Test {
   void SetUp() override {
     channel_ =
         grpc::CreateChannel(server_address_, InsecureChannelCredentials());
-    CHECK(channel_);
+    GPR_ASSERT(channel_);
     stub_ = grpc::testing::EchoTestService::NewStub(channel_);
   }
 
@@ -189,7 +188,7 @@ TEST_F(TimeChangeTest, TimeJumpForwardBeforeStreamCreated) {
   context.AddMetadata(kServerResponseStreamsToSend, "1");
 
   auto channel = GetChannel();
-  CHECK(channel);
+  GPR_ASSERT(channel);
   EXPECT_TRUE(
       channel->WaitForConnected(grpc_timeout_milliseconds_to_deadline(5000)));
   auto stub = CreateStub();
@@ -216,7 +215,7 @@ TEST_F(TimeChangeTest, TimeJumpBackBeforeStreamCreated) {
   context.AddMetadata(kServerResponseStreamsToSend, "1");
 
   auto channel = GetChannel();
-  CHECK(channel);
+  GPR_ASSERT(channel);
   EXPECT_TRUE(
       channel->WaitForConnected(grpc_timeout_milliseconds_to_deadline(5000)));
   auto stub = CreateStub();
@@ -244,7 +243,7 @@ TEST_F(TimeChangeTest, TimeJumpForwardAfterStreamCreated) {
   context.AddMetadata(kServerResponseStreamsToSend, "2");
 
   auto channel = GetChannel();
-  CHECK(channel);
+  GPR_ASSERT(channel);
   EXPECT_TRUE(
       channel->WaitForConnected(grpc_timeout_milliseconds_to_deadline(5000)));
   auto stub = CreateStub();
@@ -276,7 +275,7 @@ TEST_F(TimeChangeTest, TimeJumpBackAfterStreamCreated) {
   context.AddMetadata(kServerResponseStreamsToSend, "2");
 
   auto channel = GetChannel();
-  CHECK(channel);
+  GPR_ASSERT(channel);
   EXPECT_TRUE(
       channel->WaitForConnected(grpc_timeout_milliseconds_to_deadline(5000)));
   auto stub = CreateStub();
@@ -308,7 +307,7 @@ TEST_F(TimeChangeTest, TimeJumpForwardAndBackDuringCall) {
   context.AddMetadata(kServerResponseStreamsToSend, "2");
 
   auto channel = GetChannel();
-  CHECK(channel);
+  GPR_ASSERT(channel);
 
   EXPECT_TRUE(
       channel->WaitForConnected(grpc_timeout_milliseconds_to_deadline(5000)));

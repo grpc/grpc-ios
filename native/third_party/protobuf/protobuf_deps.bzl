@@ -43,8 +43,8 @@ def protobuf_deps():
         _github_archive(
             name = "com_google_absl",
             repo = "https://github.com/abseil/abseil-cpp",
-            commit = "4a2c63365eff8823a5221db86ef490e828306f9d",  # Abseil LTS 20240116.0
-            sha256 = "f49929d22751bf70dd61922fb1fd05eb7aec5e7a7f870beece79a6e28f0a06c1",
+            commit = "fb3621f4f897824c0dbe0615fa94543df6192f30",  # Abseil LTS 20230802.1
+            sha256 = "aa768256d0567f626334fcbe722f564c40b281518fc8423e2708a308e5f983ea",
         )
 
     if not native.existing_rule("zlib"):
@@ -68,12 +68,20 @@ def protobuf_deps():
             build_file = Label("//:third_party/jsoncpp.BUILD"),
         )
 
+    if not native.existing_rule("utf8_range"):
+        _github_archive(
+            name = "utf8_range",
+            repo = "https://github.com/protocolbuffers/utf8_range",
+            commit = "d863bc33e15cba6d873c878dcca9e6fe52b2f8cb",
+            sha256 = "568988b5f7261ca181468dba38849fabf59dd9200fb2ed4b2823da187ef84d8c",
+        )
+
     if not native.existing_rule("rules_cc"):
         _github_archive(
             name = "rules_cc",
             repo = "https://github.com/bazelbuild/rules_cc",
-            commit = "c8c38f8c710cbbf834283e4777916b68261b359c",  # 0.0.9
-            sha256 = "5f862a44bbd032e1b48ed53c9c211ba2a1da60e10c5baa01c97369c249299ecb",
+            commit = "818289e5613731ae410efb54218a4077fb9dbb03",
+            sha256 = "0adbd6f567291ad526e82c765e15aed33cea5e256eeba129f1501142c2c56610",
         )
 
     if not native.existing_rule("rules_java"):
@@ -94,11 +102,19 @@ def protobuf_deps():
         )
 
     if not native.existing_rule("rules_python"):
-        http_archive(
+        _github_archive(
             name = "rules_python",
-            sha256 = "9d04041ac92a0985e344235f5d946f71ac543f1b1565f2cdbc9a2aaee8adf55b",
-            strip_prefix = "rules_python-0.26.0",
-            url = "https://github.com/bazelbuild/rules_python/releases/download/0.26.0/rules_python-0.26.0.tar.gz",
+            repo = "https://github.com/bazelbuild/rules_python",
+            commit = "02b521fce3c7b36b05813aa986d72777cc3ee328",  # 0.24.0
+            sha256 = "f9e4f6acf82449324d56669bda4bdb28b48688ad2990d8b39fa5b93ed39c9ad1",
+        )
+
+    if not native.existing_rule("rules_ruby"):
+        _github_archive(
+            name = "rules_ruby",
+            repo = "https://github.com/protocolbuffers/rules_ruby",
+            commit = "b7f3e9756f3c45527be27bc38840d5a1ba690436",
+            sha256 = "347927fd8de6132099fcdc58e8f7eab7bde4eb2fd424546b9cd4f1c6f8f8bad8",
         )
 
     if not native.existing_rule("rules_jvm_external"):
@@ -122,8 +138,8 @@ def protobuf_deps():
     if not native.existing_rule("build_bazel_rules_apple"):
         http_archive(
             name = "build_bazel_rules_apple",
-            sha256 = "34c41bfb59cdaea29ac2df5a2fa79e5add609c71bb303b2ebb10985f93fa20e7",
-            url = "https://github.com/bazelbuild/rules_apple/releases/download/3.1.1/rules_apple.3.1.1.tar.gz",
+            sha256 = "f94e6dddf74739ef5cb30f000e13a2a613f6ebfa5e63588305a71fce8a8a9911",
+            url = "https://github.com/bazelbuild/rules_apple/releases/download/1.1.3/rules_apple.1.1.3.tar.gz",
         )
 
     if not native.existing_rule("io_bazel_rules_kotlin"):

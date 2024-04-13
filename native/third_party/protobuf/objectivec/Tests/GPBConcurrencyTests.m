@@ -49,7 +49,8 @@ static const int kNumMessages = 100;
 
 - (void)joinThreads:(NSArray *)threads {
   for (NSThread *thread in threads) {
-    while (![thread isFinished]);
+    while (![thread isFinished])
+      ;
   }
 }
 

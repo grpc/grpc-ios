@@ -22,7 +22,6 @@
 #include <string>
 #include <utility>
 
-#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -102,8 +101,7 @@ std::string ExtractSliceBufferIntoString(SliceBuffer* buf) {
 absl::Status SendValidatePayload(absl::string_view data,
                                  EventEngine::Endpoint* send_endpoint,
                                  EventEngine::Endpoint* receive_endpoint) {
-  CHECK_NE(receive_endpoint, nullptr);
-  CHECK_NE(send_endpoint, nullptr);
+  GPR_ASSERT(receive_endpoint != nullptr && send_endpoint != nullptr);
   int num_bytes_written = data.size();
   grpc_core::Notification read_signal;
   grpc_core::Notification write_signal;
@@ -122,7 +120,7 @@ absl::Status SendValidatePayload(absl::string_view data,
   std::function<void(absl::Status)> read_cb;
   read_cb = [receive_endpoint, &read_slice_buf, &read_store_buf, &read_cb,
              &read_signal, &args](absl::Status status) {
-    CHECK_OK(status);
+    GPR_ASSERT(status.ok());
     if (read_slice_buf.Length() == static_cast<size_t>(args.read_hint_bytes)) {
       read_slice_buf.MoveFirstNBytesIntoSliceBuffer(read_slice_buf.Length(),
                                                     read_store_buf);
@@ -133,7 +131,7 @@ absl::Status SendValidatePayload(absl::string_view data,
     read_slice_buf.MoveFirstNBytesIntoSliceBuffer(read_slice_buf.Length(),
                                                   read_store_buf);
     if (receive_endpoint->Read(read_cb, &read_slice_buf, &args)) {
-      CHECK_NE(read_slice_buf.Length(), 0u);
+      GPR_ASSERT(read_slice_buf.Length() != 0);
       read_cb(absl::OkStatus());
     }
   };
@@ -144,7 +142,7 @@ absl::Status SendValidatePayload(absl::string_view data,
   // Start asynchronous writing at the send_endpoint.
   if (send_endpoint->Write(
           [&write_signal](absl::Status status) {
-            CHECK_OK(status);
+            GPR_ASSERT(status.ok());
             write_signal.Notify();
           },
           &write_slice_buf, nullptr)) {
@@ -187,8 +185,9 @@ absl::Status ConnectionManager::BindAndStartListener(
 
   ChannelArgsEndpointConfig config;
   auto status = event_engine->CreateListener(
-      std::move(accept_cb), [](absl::Status status) { CHECK_OK(status); },
-      config, std::make_unique<grpc_core::MemoryQuota>("foo"));
+      std::move(accept_cb),
+      [](absl::Status status) { GPR_ASSERT(status.ok()); }, config,
+      std::make_unique<grpc_core::MemoryQuota>("foo"));
   if (!status.ok()) {
     return status.status();
   }
@@ -202,7 +201,7 @@ absl::Status ConnectionManager::BindAndStartListener(
       return bind_status.status();
     }
   }
-  CHECK_OK(listener->Start());
+  GPR_ASSERT(listener->Start().ok());
   // Insert same listener pointer for all bind addresses after the listener
   // has started successfully.
   for (auto& addr : addrs) {
@@ -242,7 +241,7 @@ ConnectionManager::CreateConnection(std::string target_addr,
     // There is a listener for the specified address. Wait until it
     // creates a ServerEndpoint after accepting the connection.
     auto server_endpoint = last_in_progress_connection_.GetServerEndpoint();
-    CHECK(server_endpoint != nullptr);
+    GPR_ASSERT(server_endpoint != nullptr);
     // Set last_in_progress_connection_ to nullptr
     return std::make_tuple(std::move(client_endpoint),
                            std::move(server_endpoint));

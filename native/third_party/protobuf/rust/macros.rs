@@ -19,11 +19,11 @@
 /// ```
 macro_rules! impl_forwarding_settable_value {
     ($proxied:ty, $self:ident => $self_forwarding_expr:expr) => {
-        fn set_on<'b>(
+        fn set_on(
             $self,
             _private: $crate::__internal::Private,
-            mutator: $crate::Mut<'b, $proxied>,
-        ) where $proxied: 'b {
+            mutator: $crate::Mut<'_, $proxied>,
+        ) {
             ($self_forwarding_expr).set_on(Private, mutator)
         }
 

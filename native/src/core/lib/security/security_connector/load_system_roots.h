@@ -19,8 +19,9 @@
 #ifndef GRPC_SRC_CORE_LIB_SECURITY_SECURITY_CONNECTOR_LOAD_SYSTEM_ROOTS_H
 #define GRPC_SRC_CORE_LIB_SECURITY_SECURITY_CONNECTOR_LOAD_SYSTEM_ROOTS_H
 
-#include <grpc/slice.h>
 #include <grpc/support/port_platform.h>
+
+#include <grpc/slice.h>
 
 namespace grpc_core {
 

@@ -87,16 +87,18 @@
 #ifndef GOOGLE_PROTOBUF_MESSAGE_H__
 #define GOOGLE_PROTOBUF_MESSAGE_H__
 
-#include <cstddef>
-#include <cstdint>
+#include <iosfwd>
 #include <string>
 #include <type_traits>
 #include <vector>
 
+#include "google/protobuf/stubs/common.h"
 #include "absl/base/attributes.h"
 #include "absl/base/call_once.h"
-#include "google/protobuf/stubs/common.h"
+#include "absl/base/casts.h"
+#include "absl/functional/function_ref.h"
 #include "absl/log/absl_check.h"
+#include "absl/log/absl_log.h"
 #include "absl/strings/cord.h"
 #include "absl/strings/string_view.h"
 #include "google/protobuf/arena.h"
@@ -133,23 +135,18 @@ class MapValueConstRef;
 class MapValueRef;
 class MapIterator;
 class MapReflectionTester;
-class TextFormat;
 
 namespace internal {
 struct FuzzPeer;
 struct DescriptorTable;
-template <bool is_oneof>
-struct DynamicFieldInfoHelper;
 class MapFieldBase;
 class MessageUtil;
-class ReflectionVisit;
 class SwapFieldHelper;
 class CachedSize;
 struct TailCallTableInfo;
 }  // namespace internal
 class UnknownFieldSet;  // unknown_field_set.h
 namespace io {
-class EpsCopyOutputStream;   // coded_stream.h
 class ZeroCopyInputStream;   // zero_copy_stream.h
 class ZeroCopyOutputStream;  // zero_copy_stream.h
 class CodedInputStream;      // coded_stream.h
@@ -235,7 +232,7 @@ PROTOBUF_EXPORT bool IsDescendant(Message& root, const Message& message);
 // the internal library are allowed to create subclasses.
 class PROTOBUF_EXPORT Message : public MessageLite {
  public:
-  constexpr Message() = default;
+  constexpr Message() {}
   Message(const Message&) = delete;
   Message& operator=(const Message&) = delete;
 
@@ -260,7 +257,7 @@ class PROTOBUF_EXPORT Message : public MessageLite {
   // messages which will be merged.  Repeated fields will be concatenated.
   // The given message must be of the same type as this message (i.e. the
   // exact same class).
-  void MergeFrom(const Message& from);
+  virtual void MergeFrom(const Message& from);
 
   // Verifies that IsInitialized() returns true.  ABSL_CHECK-fails otherwise,
   // with a nice error message.
@@ -274,7 +271,7 @@ class PROTOBUF_EXPORT Message : public MessageLite {
 
   // Like FindInitializationErrors, but joins all the strings, delimited by
   // commas, and returns them.
-  std::string InitializationErrorString() const;
+  std::string InitializationErrorString() const override;
 
   // Clears all unknown fields from this message and all embedded messages.
   // Normally, if unknown tag numbers are encountered when parsing a message,
@@ -289,7 +286,8 @@ class PROTOBUF_EXPORT Message : public MessageLite {
   void DiscardUnknownFields();
 
   // Computes (an estimate of) the total number of bytes currently used for
-  // storing the message in memory.
+  // storing the message in memory.  The default implementation calls the
+  // Reflection object's SpaceUsed() method.
   //
   // SpaceUsed() is noticeably slower than ByteSize(), as it is implemented
   // using reflection (rather than the generated code implementation for
@@ -299,7 +297,7 @@ class PROTOBUF_EXPORT Message : public MessageLite {
   // Note: The precise value of this method should never be depended on, and can
   // change substantially due to internal details.  In debug builds, this will
   // include a random fuzz factor to prevent these dependencies.
-  size_t SpaceUsedLong() const;
+  virtual size_t SpaceUsedLong() const;
 
   [[deprecated("Please use SpaceUsedLong() instead")]] int SpaceUsed() const {
     return internal::ToIntSize(SpaceUsedLong());
@@ -332,6 +330,7 @@ class PROTOBUF_EXPORT Message : public MessageLite {
   // These methods are pure-virtual in MessageLite, but Message provides
   // reflection-based default implementations.
 
+  std::string GetTypeName() const override;
   void Clear() override;
 
   // Returns whether all required fields have been set. Note that required
@@ -370,11 +369,6 @@ class PROTOBUF_EXPORT Message : public MessageLite {
                                   internal::CachedSize* cached_size) const;
   size_t MaybeComputeUnknownFieldsSize(size_t total_size,
                                        internal::CachedSize* cached_size) const;
-
-  // Reflection based version for reflection based types.
-  static void MergeImpl(MessageLite& to, const MessageLite& from);
-
-  static const DescriptorMethods kDescriptorMethods;
 
 };
 
@@ -890,6 +884,39 @@ class PROTOBUF_EXPORT Reflection final {
   // Returns nullptr if no extension is known for this name or number.
   const FieldDescriptor* FindKnownExtensionByNumber(int number) const;
 
+  // Feature Flags -------------------------------------------------------------
+
+  // Does this message support storing arbitrary integer values in enum fields?
+  // If |true|, GetEnumValue/SetEnumValue and associated repeated-field versions
+  // take arbitrary integer values, and the legacy GetEnum() getter will
+  // dynamically create an EnumValueDescriptor for any integer value without
+  // one. If |false|, setting an unknown enum value via the integer-based
+  // setters results in undefined behavior (in practice, ABSL_DCHECK-fails).
+  //
+  // Generic code that uses reflection to handle messages with enum fields
+  // should check this flag before using the integer-based setter, and either
+  // downgrade to a compatible value or use the UnknownFieldSet if not. For
+  // example:
+  //
+  //   int new_value = GetValueFromApplicationLogic();
+  //   if (reflection->SupportsUnknownEnumValues()) {
+  //     reflection->SetEnumValue(message, field, new_value);
+  //   } else {
+  //     if (field_descriptor->enum_type()->
+  //             FindValueByNumber(new_value) != nullptr) {
+  //       reflection->SetEnumValue(message, field, new_value);
+  //     } else if (emit_unknown_enum_values) {
+  //       reflection->MutableUnknownFields(message)->AddVarint(
+  //           field->number(), new_value);
+  //     } else {
+  //       // convert value to a compatible/default value.
+  //       new_value = CompatibleDowngrade(new_value);
+  //       reflection->SetEnumValue(message, field, new_value);
+  //     }
+  //   }
+  ABSL_DEPRECATED("Use EnumDescriptor::is_closed instead.")
+  bool SupportsUnknownEnumValues() const;
+
   // Returns the MessageFactory associated with this message.  This can be
   // useful for determining if a message is a generated message or not, for
   // example:
@@ -921,13 +948,13 @@ class PROTOBUF_EXPORT Reflection final {
   //   of field->message_type() (if message_type != nullptr).
   // We use 2 routine rather than 4 (const vs mutable) x (scalar vs pointer).
   void* MutableRawRepeatedField(Message* message, const FieldDescriptor* field,
-                                FieldDescriptor::CppType cpptype, int ctype,
-                                const Descriptor* desc) const;
+                                FieldDescriptor::CppType, int ctype,
+                                const Descriptor* message_type) const;
 
   const void* GetRawRepeatedField(const Message& message,
                                   const FieldDescriptor* field,
                                   FieldDescriptor::CppType cpptype, int ctype,
-                                  const Descriptor* desc) const;
+                                  const Descriptor* message_type) const;
 
   // The following methods are used to implement (Mutable)RepeatedFieldRef.
   // A Ref object will store a raw pointer to the repeated field data (obtained
@@ -982,7 +1009,6 @@ class PROTOBUF_EXPORT Reflection final {
 
   friend class FastReflectionBase;
   friend class FastReflectionMessageMutator;
-  friend class internal::ReflectionVisit;
   friend bool internal::IsDescendant(Message& root, const Message& message);
 
   const Descriptor* const descriptor_;
@@ -1038,8 +1064,6 @@ class PROTOBUF_EXPORT Reflection final {
   friend class internal::WireFormat;
   friend class internal::ReflectionOps;
   friend class internal::SwapFieldHelper;
-  template <bool is_oneof>
-  friend struct internal::DynamicFieldInfoHelper;
   friend struct internal::FuzzPeer;
   // Needed for implementing text format for map.
   friend class internal::MapFieldPrinterHelper;
@@ -1110,34 +1134,19 @@ class PROTOBUF_EXPORT Reflection final {
   const T& GetRawNonOneof(const Message& message,
                           const FieldDescriptor* field) const;
   template <class T>
-  const T& GetRawSplit(const Message& message,
-                       const FieldDescriptor* field) const;
+  T* MutableRawNonOneof(Message* message, const FieldDescriptor* field) const;
+
   template <typename Type>
   const Type& GetRaw(const Message& message,
                      const FieldDescriptor* field) const;
-
-  void* MutableRawNonOneofImpl(Message* message,
-                               const FieldDescriptor* field) const;
-  void* MutableRawSplitImpl(Message* message,
-                            const FieldDescriptor* field) const;
-  void* MutableRawImpl(Message* message, const FieldDescriptor* field) const;
-
   template <typename Type>
-  Type* MutableRawNonOneof(Message* message,
-                           const FieldDescriptor* field) const {
-    return reinterpret_cast<Type*>(MutableRawNonOneofImpl(message, field));
-  }
-  template <typename Type>
-  Type* MutableRaw(Message* message, const FieldDescriptor* field) const {
-    return reinterpret_cast<Type*>(MutableRawImpl(message, field));
-  }
-
+  inline Type* MutableRaw(Message* message, const FieldDescriptor* field) const;
   template <typename Type>
   const Type& DefaultRaw(const FieldDescriptor* field) const;
 
   const Message* GetDefaultMessageInstance(const FieldDescriptor* field) const;
 
-  const uint32_t* GetHasBits(const Message& message) const;
+  inline const uint32_t* GetHasBits(const Message& message) const;
   inline uint32_t* MutableHasBits(Message* message) const;
   uint32_t GetOneofCase(const Message& message,
                         const OneofDescriptor* oneof_descriptor) const;
@@ -1156,8 +1165,9 @@ class PROTOBUF_EXPORT Reflection final {
 
   inline bool IsInlined(const FieldDescriptor* field) const;
 
-  bool HasBit(const Message& message, const FieldDescriptor* field) const;
-  void SetBit(Message* message, const FieldDescriptor* field) const;
+  inline bool HasBit(const Message& message,
+                     const FieldDescriptor* field) const;
+  inline void SetBit(Message* message, const FieldDescriptor* field) const;
   inline void ClearBit(Message* message, const FieldDescriptor* field) const;
   inline void SwapBit(Message* message1, Message* message2,
                       const FieldDescriptor* field) const;
@@ -1207,7 +1217,8 @@ class PROTOBUF_EXPORT Reflection final {
                             const FieldDescriptor* field) const;
   inline void SetOneofCase(Message* message,
                            const FieldDescriptor* field) const;
-  void ClearOneofField(Message* message, const FieldDescriptor* field) const;
+  inline void ClearOneofField(Message* message,
+                              const FieldDescriptor* field) const;
 
   template <typename Type>
   inline const Type& GetField(const Message& message,
@@ -1273,7 +1284,7 @@ class PROTOBUF_EXPORT Reflection final {
 // around GetPrototype for details
 class PROTOBUF_EXPORT MessageFactory {
  public:
-  inline MessageFactory() = default;
+  inline MessageFactory() {}
   MessageFactory(const MessageFactory&) = delete;
   MessageFactory& operator=(const MessageFactory&) = delete;
   virtual ~MessageFactory();
@@ -1331,10 +1342,6 @@ class PROTOBUF_EXPORT MessageFactory {
   static void InternalRegisterGeneratedMessage(const Descriptor* descriptor,
                                                const Message* prototype);
 
-
- private:
-  friend class DynamicMessageFactory;
-  static const Message* TryGetGeneratedPrototype(const Descriptor* type);
 };
 
 #define DECLARE_GET_REPEATED_FIELD(TYPE)                           \
@@ -1377,7 +1384,6 @@ const T* DynamicCastToGenerated(const Message* from) {
   (void)unused;
 
 #if PROTOBUF_RTTI
-  internal::StrongReference(T::default_instance());
   return dynamic_cast<const T*>(from);
 #else
   bool ok = from != nullptr &&
@@ -1416,7 +1422,11 @@ T& DynamicCastToGenerated(Message& from) {
 // instance T and T is a type derived from base Message class.
 template <typename T>
 const T* DownCastToGenerated(const Message* from) {
-  internal::StrongReference(T::default_instance());
+  // Compile-time assert that T is a generated type that has a
+  // default_instance() accessor, but avoid actually calling it.
+  const T& (*get_default_instance)() = &T::default_instance;
+  (void)get_default_instance;
+
   ABSL_DCHECK(DynamicCastToGenerated<T>(from) == from)
       << "Cannot downcast " << from->GetTypeName() << " to "
       << T::default_instance().GetTypeName();
@@ -1547,69 +1557,30 @@ void** Reflection::MutableSplitField(Message* message) const {
 
 namespace internal {
 
-// In some cases, (Get|Mutable)Raw may be called with a type that is different
-// from the final type; e.g. char. As a defensive coding to this unfortunate
-// practices, we should only assume extra indirection (or a lack thereof) for
-// the well known, complex types.
 template <typename T>
 bool SplitFieldHasExtraIndirectionStatic(const FieldDescriptor* field) {
-  if (std::is_base_of<RepeatedFieldBase, T>() ||
-      std::is_base_of<RepeatedPtrFieldBase, T>()) {
-    ABSL_DCHECK(SplitFieldHasExtraIndirection(field));
-    return true;
-  } else if (std::is_base_of<MessageLite, T>()) {
-    ABSL_DCHECK(!SplitFieldHasExtraIndirection(field));
-    return false;
-  }
-  return SplitFieldHasExtraIndirection(field);
+  const bool ret = std::is_base_of<RepeatedFieldBase, T>() ||
+                   std::is_base_of<RepeatedPtrFieldBase, T>();
+  ABSL_DCHECK_EQ(SplitFieldHasExtraIndirection(field), ret);
+  return ret;
 }
-
-class RawMessageBase : public Message {
- public:
-  using Message::Message;
-  virtual size_t SpaceUsedLong() const = 0;
-};
 
 }  // namespace internal
-
-template <typename Type>
-const Type& Reflection::GetRawSplit(const Message& message,
-                                    const FieldDescriptor* field) const {
-  ABSL_DCHECK(!schema_.InRealOneof(field)) << "Field = " << field->full_name();
-
-  const void* split = GetSplitField(&message);
-  const uint32_t field_offset = schema_.GetFieldOffsetNonOneof(field);
-  if (internal::SplitFieldHasExtraIndirectionStatic<Type>(field)) {
-    return **internal::GetConstPointerAtOffset<Type*>(split, field_offset);
-  }
-  return *internal::GetConstPointerAtOffset<Type>(split, field_offset);
-}
-
-template <class Type>
-const Type& Reflection::GetRawNonOneof(const Message& message,
-                                       const FieldDescriptor* field) const {
-  if (PROTOBUF_PREDICT_FALSE(schema_.IsSplit(field))) {
-    return GetRawSplit<Type>(message, field);
-  }
-  const uint32_t field_offset = schema_.GetFieldOffsetNonOneof(field);
-  return internal::GetConstRefAtOffset<Type>(message, field_offset);
-}
 
 template <typename Type>
 const Type& Reflection::GetRaw(const Message& message,
                                const FieldDescriptor* field) const {
   ABSL_DCHECK(!schema_.InRealOneof(field) || HasOneofField(message, field))
       << "Field = " << field->full_name();
-
-  if (PROTOBUF_PREDICT_TRUE(!schema_.InRealOneof(field))) {
-    return GetRawNonOneof<Type>(message, field);
-  }
-
-  // Oneof fields are not split.
-  ABSL_DCHECK(!schema_.IsSplit(field));
-
   const uint32_t field_offset = schema_.GetFieldOffset(field);
-  return internal::GetConstRefAtOffset<Type>(message, field_offset);
+  if (!schema_.IsSplit(field)) {
+    return internal::GetConstRefAtOffset<Type>(message, field_offset);
+  }
+  const void* split = GetSplitField(&message);
+  if (internal::SplitFieldHasExtraIndirectionStatic<Type>(field)) {
+    return **internal::GetConstPointerAtOffset<Type*>(split, field_offset);
+  }
+  return *internal::GetConstPointerAtOffset<Type>(split, field_offset);
 }
 
 template <typename T>

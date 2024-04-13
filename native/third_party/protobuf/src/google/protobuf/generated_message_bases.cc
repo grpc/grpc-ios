@@ -7,10 +7,8 @@
 
 #include "google/protobuf/generated_message_bases.h"
 
-#include "google/protobuf/generated_message_reflection.h"
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/io/zero_copy_stream_impl.h"
-#include "google/protobuf/message_lite.h"
 #include "google/protobuf/parse_context.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "google/protobuf/wire_format.h"
@@ -77,8 +75,7 @@ failure:
   return target;
 }
 
-void ZeroFieldsBase::MergeImpl(MessageLite& to_param,
-                               const MessageLite& from_param) {
+void ZeroFieldsBase::MergeImpl(Message& to_param, const Message& from_param) {
   auto* to = static_cast<ZeroFieldsBase*>(&to_param);
   const auto* from = static_cast<const ZeroFieldsBase*>(&from_param);
   ABSL_DCHECK_NE(from, to);
@@ -98,15 +95,7 @@ void ZeroFieldsBase::InternalSwap(ZeroFieldsBase* other) {
 }
 
 const Message::ClassData* ZeroFieldsBase::GetClassData() const {
-  ABSL_CONST_INIT static const ClassDataFull data = {
-      {
-          nullptr,  // on_demand_register_arena_dtor
-          PROTOBUF_FIELD_OFFSET(ZeroFieldsBase, _cached_size_),
-          false,
-      },
-      &MergeImpl,
-      &kDescriptorMethods,
-  };
+  static constexpr ClassData data = {&MergeImpl};
   return &data;
 }
 

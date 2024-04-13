@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/cpp/ext/csm/metadata_exchange.h"
 
 #include <stddef.h>
@@ -36,7 +38,6 @@
 #include "upb/base/string_view.h"
 
 #include <grpc/slice.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/call_tracer.h"
 #include "src/core/lib/gprpp/env.h"

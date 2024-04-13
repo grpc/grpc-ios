@@ -16,6 +16,8 @@
 
 #ifndef GRPC_SRC_CORE_EXT_XDS_XDS_RESOURCE_TYPE_H
 #define GRPC_SRC_CORE_EXT_XDS_XDS_RESOURCE_TYPE_H
+#include <grpc/support/port_platform.h>
+
 #include <memory>
 #include <string>
 
@@ -24,8 +26,6 @@
 #include "absl/types/optional.h"
 #include "upb/mem/arena.h"
 #include "upb/reflection/def.h"
-
-#include <grpc/support/port_platform.h>
 
 #include "src/core/ext/xds/xds_bootstrap.h"
 #include "src/core/lib/debug/trace.h"

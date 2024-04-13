@@ -6,7 +6,6 @@
 // https://developers.google.com/open-source/licenses/bsd
 
 #include "absl/strings/string_view.h"
-#include "google/protobuf/compiler/rust/accessors/accessor_case.h"
 #include "google/protobuf/compiler/rust/accessors/accessor_generator.h"
 #include "google/protobuf/compiler/rust/context.h"
 #include "google/protobuf/descriptor.h"
@@ -16,12 +15,11 @@ namespace protobuf {
 namespace compiler {
 namespace rust {
 
-void UnsupportedField::InMsgImpl(Context& ctx, const FieldDescriptor& field,
-                                 AccessorCase accessor_case) const {
-  ctx.Emit({{"reason", reason_}}, R"rs(
-    // Unsupported! :( Reason: $reason$
+void UnsupportedField::InMsgImpl(Context<FieldDescriptor> field) const {
+  field.Emit(R"rs(
+    // Unsupported! :(
     )rs");
-  ctx.printer().PrintRaw("\n");
+  field.printer().PrintRaw("\n");
 }
 
 }  // namespace rust

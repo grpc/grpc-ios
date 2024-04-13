@@ -19,6 +19,8 @@
 #ifndef GRPC_SRC_CORE_LIB_TRANSPORT_TRANSPORT_H
 #define GRPC_SRC_CORE_LIB_TRANSPORT_TRANSPORT_H
 
+#include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -36,7 +38,6 @@
 #include <grpc/slice.h>
 #include <grpc/status.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/time.h>
 
 #include "src/core/lib/channel/context.h"

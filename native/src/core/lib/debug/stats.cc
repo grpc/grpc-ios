@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/debug/stats.h"
 
 #include <stddef.h>
@@ -25,8 +27,6 @@
 
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
-
-#include <grpc/support/port_platform.h>
 
 namespace grpc_core {
 

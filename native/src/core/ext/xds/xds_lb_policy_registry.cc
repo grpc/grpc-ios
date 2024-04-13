@@ -14,6 +14,8 @@
 // limitations under the License.
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/ext/xds/xds_lb_policy_registry.h"
 
 #include <stddef.h>
@@ -33,7 +35,6 @@
 #include "google/protobuf/wrappers.upb.h"
 
 #include <grpc/support/json.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/ext/xds/xds_common_types.h"
 #include "src/core/lib/config/core_configuration.h"

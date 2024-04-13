@@ -21,10 +21,10 @@ namespace compiler {
 namespace rust {
 
 // Generates code for a particular message in `.pb.rs`.
-void GenerateRs(Context& ctx, const Descriptor& msg);
+void GenerateRs(Context<Descriptor> msg);
 
 // Generates code for a particular message in `.pb.thunk.cc`.
-void GenerateThunksCc(Context& ctx, const Descriptor& msg);
+void GenerateThunksCc(Context<Descriptor> msg);
 
 }  // namespace rust
 }  // namespace compiler

@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/cpp/ext/filters/census/grpc_plugin.h"
 
 #include <atomic>
@@ -25,7 +27,6 @@
 #include "opencensus/tags/tag_key.h"
 #include "opencensus/trace/span.h"
 
-#include <grpc/support/port_platform.h>
 #include <grpcpp/opencensus.h>
 #include <grpcpp/server_context.h>
 

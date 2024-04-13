@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.google.protobuf</groupId>
     <artifactId>protobuf-parent</artifactId>
-    <version>4.26.1</version>
+    <version>3.25.1</version>
   </parent>
 
   <artifactId>protobuf-javalite</artifactId>
@@ -161,7 +161,6 @@
                     <include>RawMessageInfo.java</include>
                     <include>Reader.java</include>
                     <include>RopeByteString.java</include>
-                    <include>RuntimeVersion.java</include>
                     <include>Schema.java</include>
                     <include>SchemaFactory.java</include>
                     <include>SchemaUtil.java</include>
@@ -224,9 +223,9 @@
                     <exclude>Proto2ExtensionLookupSchemaTest.java</exclude>
                     <exclude>Proto2SchemaTest.java</exclude>
                     <exclude>Proto2UnknownEnumValueTest.java</exclude>
-                    <exclude>RepeatedFieldBuilderTest.java</exclude>
+                    <exclude>RepeatedFieldBuilderV3Test.java</exclude>
                     <exclude>ServiceTest.java</exclude>
-                    <exclude>SingleFieldBuilderTest.java</exclude>
+                    <exclude>SingleFieldBuilderV3Test.java</exclude>
                     <exclude>TestBadIdentifiers.java</exclude>
                     <exclude>TextFormatParseInfoTreeTest.java</exclude>
                     <exclude>TextFormatParseLocationTest.java</exclude>

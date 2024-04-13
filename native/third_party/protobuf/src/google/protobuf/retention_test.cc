@@ -13,7 +13,6 @@
 
 #include "google/protobuf/descriptor.pb.h"
 #include <gtest/gtest.h>
-#include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "google/protobuf/compiler/parser.h"
 #include "google/protobuf/dynamic_message.h"
@@ -161,12 +160,6 @@ TEST(RetentionTest, Method) {
           .GetExtension(protobuf_unittest::method_option));
 }
 
-class SimpleErrorCollector : public io::ErrorCollector {
- public:
-  SimpleErrorCollector() = default;
-  void RecordError(int line, io::ColumnNumber column,
-                   absl::string_view message) override{};
-};
 
 TEST(RetentionTest, StripSourceRetentionOptionsWithSourceCodeInfo) {
   // The tests above make assertions against the generated code, but this test
@@ -209,7 +202,7 @@ TEST(RetentionTest, StripSourceRetentionOptionsWithSourceCodeInfo) {
                        FileDescriptorSet::descriptor()->file()->name());
   io::ArrayInputStream input_stream(proto_file.data(),
                                     static_cast<int>(proto_file.size()));
-  SimpleErrorCollector error_collector;
+  io::ErrorCollector error_collector;
   io::Tokenizer tokenizer(&input_stream, &error_collector);
   compiler::Parser parser;
   FileDescriptorProto file_descriptor;
@@ -249,7 +242,7 @@ TEST(RetentionTest, RemoveEmptyOptions) {
                        FileDescriptorSet::descriptor()->file()->name());
   io::ArrayInputStream input_stream(proto_file.data(),
                                     static_cast<int>(proto_file.size()));
-  SimpleErrorCollector error_collector;
+  io::ErrorCollector error_collector;
   io::Tokenizer tokenizer(&input_stream, &error_collector);
   compiler::Parser parser;
   FileDescriptorProto file_descriptor;
@@ -289,7 +282,7 @@ TEST(RetentionTest, InvalidDescriptor) {
                        FileDescriptorSet::descriptor()->file()->name());
   io::ArrayInputStream input_stream(proto_file.data(),
                                     static_cast<int>(proto_file.size()));
-  SimpleErrorCollector error_collector;
+  io::ErrorCollector error_collector;
   io::Tokenizer tokenizer(&input_stream, &error_collector);
   compiler::Parser parser;
   FileDescriptorProto file_descriptor_proto;
@@ -338,7 +331,7 @@ TEST(RetentionTest, MissingRequiredField) {
                        FileDescriptorSet::descriptor()->file()->name());
   io::ArrayInputStream input_stream(proto_file.data(),
                                     static_cast<int>(proto_file.size()));
-  SimpleErrorCollector error_collector;
+  io::ErrorCollector error_collector;
   io::Tokenizer tokenizer(&input_stream, &error_collector);
   compiler::Parser parser;
   FileDescriptorProto file_descriptor_proto;
@@ -394,7 +387,7 @@ TEST(RetentionTest, InvalidRecursionDepth) {
                        FileDescriptorSet::descriptor()->file()->name());
   io::ArrayInputStream input_stream(proto_file.data(),
                                     static_cast<int>(proto_file.size()));
-  SimpleErrorCollector error_collector;
+  io::ErrorCollector error_collector;
   io::Tokenizer tokenizer(&input_stream, &error_collector);
   compiler::Parser parser;
   FileDescriptorProto file_descriptor_proto;

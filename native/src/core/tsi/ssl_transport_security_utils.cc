@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/tsi/ssl_transport_security_utils.h"
 
 #include <openssl/crypto.h>
@@ -25,8 +27,6 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-
-#include <grpc/support/port_platform.h>
 
 #include "src/core/tsi/transport_security_interface.h"
 

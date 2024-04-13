@@ -24,9 +24,6 @@ grpc_proto_fuzzer(
     name = "hpack_parser_fuzzer",
     srcs = ["hpack_parser_fuzzer_test.cc"],
     corpus = "hpack_parser_corpus",
-    external_deps = [
-        "absl/log:check",
-    ],
     proto = "hpack_parser_fuzzer.proto",
     proto_deps = ["//test/core/util:fuzz_config_vars_proto"],
     tags = ["no_windows"],
@@ -59,7 +56,6 @@ grpc_proto_fuzzer(
     name = "flow_control_fuzzer",
     srcs = ["flow_control_fuzzer.cc"],
     corpus = "flow_control_fuzzer_corpus",
-    external_deps = ["absl/log:check"],
     language = "C++",
     proto = "flow_control_fuzzer.proto",
     proto_deps = ["//test/core/util:fuzz_config_vars_proto"],
@@ -257,7 +253,6 @@ grpc_cc_test(
     name = "flow_control_test",
     srcs = ["flow_control_test.cc"],
     external_deps = [
-        "absl/log:check",
         "gtest",
     ],
     language = "C++",
@@ -273,10 +268,7 @@ grpc_cc_test(
 grpc_cc_test(
     name = "graceful_shutdown_test",
     srcs = ["graceful_shutdown_test.cc"],
-    external_deps = [
-        "absl/log:check",
-        "gtest",
-    ],
+    external_deps = ["gtest"],
     language = "C++",
     deps = [
         "//:gpr",
@@ -350,10 +342,7 @@ grpc_cc_test(
 grpc_cc_test(
     name = "streams_not_seen_test",
     srcs = ["streams_not_seen_test.cc"],
-    external_deps = [
-        "absl/log:check",
-        "gtest",
-    ],
+    external_deps = ["gtest"],
     language = "C++",
     deps = [
         "//:channel_stack_builder",
@@ -372,7 +361,6 @@ grpc_cc_test(
     name = "settings_timeout_test",
     srcs = ["settings_timeout_test.cc"],
     external_deps = [
-        "absl/log:check",
         "gtest",
     ],
     language = "C++",
@@ -389,10 +377,7 @@ grpc_cc_test(
     name = "too_many_pings_test",
     timeout = "long",  # Required for internal test infrastructure (cl/325757166)
     srcs = ["too_many_pings_test.cc"],
-    external_deps = [
-        "absl/log:check",
-        "gtest",
-    ],
+    external_deps = ["gtest"],
     flaky = True,
     shard_count = 7,
     deps = [
@@ -433,7 +418,6 @@ grpc_cc_test(
     # LARGE_MACHINE, it can reproduce at a high rate.
     exec_properties = LARGE_MACHINE,
     external_deps = [
-        "absl/log:check",
         "gtest",
     ],
     language = "C++",
@@ -453,7 +437,6 @@ grpc_cc_test(
     name = "stream_leak_with_queued_flow_control_update_test",
     srcs = ["stream_leak_with_queued_flow_control_update_test.cc"],
     external_deps = [
-        "absl/log:check",
         "gtest",
     ],
     language = "C++",

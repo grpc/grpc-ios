@@ -16,10 +16,11 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/lib/iomgr/lockfree_event.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/gprpp/crash.h"

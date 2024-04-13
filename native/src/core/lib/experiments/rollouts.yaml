@@ -41,7 +41,7 @@
 # Supported platforms: ios, windows, posix
 
 - name: call_status_override_on_cancellation
-  default: debug
+  default: false
 - name: call_v3
   default: false
 - name: canary_client_privacy
@@ -88,8 +88,6 @@
 - name: peer_state_based_framing
   default: false
 - name: pending_queue_cap
-  default: true
-- name: pick_first_new
   default: true
 - name: promise_based_client_call
   default:

@@ -44,6 +44,8 @@
 // it can have an effect on the call status.
 //
 
+#include <grpc/support/port_platform.h>
+
 #include <stddef.h>
 
 #include <functional>
@@ -54,7 +56,6 @@
 #include <grpc/slice.h>
 #include <grpc/status.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/time.h>
 
 #include "src/core/lib/channel/channel_args.h"

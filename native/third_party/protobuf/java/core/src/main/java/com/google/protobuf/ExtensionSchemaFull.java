@@ -23,7 +23,7 @@ final class ExtensionSchemaFull extends ExtensionSchema<FieldDescriptor> {
 
   private static <T> long getExtensionsFieldOffset() {
     try {
-      Field field = GeneratedMessage.ExtendableMessage.class.getDeclaredField("extensions");
+      Field field = GeneratedMessageV3.ExtendableMessage.class.getDeclaredField("extensions");
       return UnsafeUtil.objectFieldOffset(field);
     } catch (Throwable e) {
       throw new IllegalStateException("Unable to lookup extension field offset");
@@ -32,7 +32,7 @@ final class ExtensionSchemaFull extends ExtensionSchema<FieldDescriptor> {
 
   @Override
   boolean hasExtensions(MessageLite prototype) {
-    return prototype instanceof GeneratedMessage.ExtendableMessage;
+    return prototype instanceof GeneratedMessageV3.ExtendableMessage;
   }
 
   @Override

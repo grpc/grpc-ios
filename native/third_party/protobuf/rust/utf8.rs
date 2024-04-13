@@ -31,7 +31,6 @@ use std::str::from_utf8_unchecked;
 /// # Examples
 ///
 /// ```
-/// use googletest::prelude::*;
 /// use utf8::Utf8Chunks;
 ///
 /// // An invalid UTF-8 string
@@ -41,10 +40,10 @@ use std::str::from_utf8_unchecked;
 /// let chunk = Utf8Chunks::new(bytes).next().unwrap();
 ///
 /// // The first three characters are valid UTF-8
-/// assert_that!("foo", eq(chunk.valid()));
+/// assert_eq!("foo", chunk.valid());
 ///
 /// // The fourth character is broken
-/// assert_that!(b"\xF1\x80", eq(chunk.invalid()));
+/// assert_eq!(b"\xF1\x80", chunk.invalid());
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Utf8Chunk<'a> {
@@ -242,7 +241,7 @@ impl<'a> Iterator for Utf8Chunks<'a> {
         /// # Safety
         /// `index` must be in-bounds for `x`
         unsafe fn split_at_unchecked(x: &[u8], index: usize) -> (&[u8], &[u8]) {
-            // SAFETY: in-bounds as promised by the caller
+            // SAFTEY: in-bounds as promised by the caller
             unsafe { (x.get_unchecked(..index), x.get_unchecked(index..)) }
         }
 

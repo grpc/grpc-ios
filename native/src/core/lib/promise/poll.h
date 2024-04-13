@@ -15,11 +15,12 @@
 #ifndef GRPC_SRC_CORE_LIB_PROMISE_POLL_H
 #define GRPC_SRC_CORE_LIB_PROMISE_POLL_H
 
+#include <grpc/support/port_platform.h>
+
 #include <string>
 #include <utility>
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/gprpp/construct_destruct.h"
 

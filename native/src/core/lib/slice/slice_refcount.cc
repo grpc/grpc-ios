@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "src/core/lib/slice/slice_refcount.h"
-
 #include <grpc/support/port_platform.h>
+
+#include "src/core/lib/slice/slice_refcount.h"
 
 grpc_core::DebugOnlyTraceFlag grpc_slice_refcount_trace(false,
                                                         "slice_refcount");

@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/cpp/ext/gcp/observability_logging_sink.h"
 
 #include <algorithm>
@@ -35,7 +37,6 @@
 
 #include <grpc/impl/channel_arg_names.h>
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpc/support/time.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/security/credentials.h>

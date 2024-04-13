@@ -29,7 +29,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "utf8_validity.h"
 #include "google/protobuf/stubs/status_macros.h"
 
 // Must be included last.
@@ -402,14 +401,12 @@ absl::StatusOr<LocationWith<MaybeOwnedString>> JsonLexer::ParseUtf8() {
           goto normal_character;
         }
 
-        // NOTE: the 1 below clips off the " from the end of the string.
-        MaybeOwnedString result = on_heap.empty()
-                                      ? mark.value.UpToUnread(1)
-                                      : MaybeOwnedString{std::move(on_heap)};
-        if (utf8_range::IsStructurallyValid(result)) {
-          return LocationWith<MaybeOwnedString>{std::move(result), loc};
+        if (!on_heap.empty()) {
+          return LocationWith<MaybeOwnedString>{
+              MaybeOwnedString(std::move(on_heap)), loc};
         }
-        return Invalid("Invalid UTF-8 string");
+        // NOTE: the 1 below clips off the " from the end of the string.
+        return LocationWith<MaybeOwnedString>{mark.value.UpToUnread(1), loc};
       }
       case '\\': {
         if (on_heap.empty()) {
@@ -420,7 +417,7 @@ absl::StatusOr<LocationWith<MaybeOwnedString>> JsonLexer::ParseUtf8() {
           // destroyed only if we need to handle an escape when on_heap is
           // empty. Because this branch unconditionally pushes to on_heap, this
           // condition can never be reached in any iteration that follows it.
-          // Thus, at most one move ever actually occurs.
+          // This, at most one move every actually occurs.
           std::move(mark).value.Discard();
         }
         RETURN_IF_ERROR(stream_.BufferAtLeast(1).status());
@@ -453,15 +450,15 @@ absl::StatusOr<LocationWith<MaybeOwnedString>> JsonLexer::ParseUtf8() {
               "invalid control character 0x%02x in string", uc));
         }
 
-        // Process this UTF-8 code point. We do not need to fully validate it
-        // at this stage; we just need to interpret it enough to know how many
-        // bytes to read. UTF-8 is a varint encoding satisfying one of the
-        // following (big-endian) patterns:
+        // Verify this is valid UTF-8. UTF-8 is a varint encoding satisfying
+        // one of the following (big-endian) patterns:
         //
         // 0b0xxxxxxx
         // 0b110xxxxx'10xxxxxx
         // 0b1110xxxx'10xxxxxx'10xxxxxx
         // 0b11110xxx'10xxxxxx'10xxxxxx'10xxxxxx
+        //
+        // We don't need to decode it; just validate it.
         size_t lookahead = 0;
         switch (absl::countl_one(uc)) {
           case 0:
@@ -482,11 +479,16 @@ absl::StatusOr<LocationWith<MaybeOwnedString>> JsonLexer::ParseUtf8() {
         if (!on_heap.empty()) {
           on_heap.push_back(c);
         }
-        auto lookahead_bytes = stream_.Take(lookahead);
-        RETURN_IF_ERROR(lookahead_bytes.status());
-        if (!on_heap.empty()) {
-          absl::string_view view = lookahead_bytes->AsView();
-          on_heap.append(view.data(), view.size());
+        for (int i = 0; i < lookahead; ++i) {
+          RETURN_IF_ERROR(stream_.BufferAtLeast(1).status());
+          uint8_t uc = static_cast<uint8_t>(stream_.PeekChar());
+          if ((uc >> 6) != 2) {
+            return Invalid("invalid UTF-8 in string");
+          }
+          if (!on_heap.empty()) {
+            on_heap.push_back(stream_.PeekChar());
+          }
+          RETURN_IF_ERROR(Advance(1));
         }
         break;
       }

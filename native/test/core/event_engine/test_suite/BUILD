@@ -26,10 +26,7 @@ grpc_cc_library(
     testonly = True,
     srcs = ["event_engine_test_framework.cc"],
     hdrs = ["event_engine_test_framework.h"],
-    external_deps = [
-        "absl/log:check",
-        "gtest",
-    ],
+    external_deps = ["gtest"],
     deps = [
         "//:grpc",
         "//test/core/event_engine:event_engine_test_utils",

@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -25,8 +27,6 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-
-#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/json/json.h"
 

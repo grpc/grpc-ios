@@ -38,7 +38,7 @@ VariantKey RealKeyToVariantKey<MapKey>::operator()(const MapKey& value) const {
     case FieldDescriptor::CPPTYPE_BOOL:
       return VariantKey(static_cast<uint64_t>(value.GetBoolValue()));
     default:
-      Unreachable();
+      ABSL_ASSUME(false);
       return VariantKey(uint64_t{});
   }
 }
@@ -246,7 +246,7 @@ void MapFieldBase::SyncRepeatedFieldWithMapNoLock() {
         reflection->SetBool(new_entry, key_des, map_key.GetBoolValue());
         break;
       default:
-        Unreachable();
+        PROTOBUF_ASSUME(false);
     }
 
     const MapValueRef& map_val = it.GetValueRef();
@@ -342,7 +342,7 @@ void MapFieldBase::SyncMapWithRepeatedFieldNoLock() {
         map_key.SetBoolValue(reflection->GetBool(elem, key_des));
         break;
       default:
-        Unreachable();
+        PROTOBUF_ASSUME(false);
     }
 
     MapValueRef map_val;

@@ -183,11 +183,6 @@ struct MapTestPeer {
   }
 
   template <typename T>
-  static size_t NumBuckets(T& map) {
-    return map.num_buckets_;
-  }
-
-  template <typename T>
   static size_t BucketNumber(T& map, typename T::key_type key) {
     return map.BucketNumber(key);
   }
@@ -203,10 +198,6 @@ struct MapTestPeer {
       if (TableEntryIsTree(map.table_[i])) return true;
     }
     return false;
-  }
-
-  static int CalculateHiCutoff(int num_buckets) {
-    return Map<int, int>::CalculateHiCutoff(num_buckets);
   }
 };
 
@@ -1285,7 +1276,7 @@ TEST_F(MapImplTest, CopyAssignMapIterator) {
 }
 
 TEST_F(MapImplTest, SpaceUsed) {
-  constexpr size_t kMinCap = 16 / sizeof(void*);
+  constexpr size_t kMinCap = 8;
 
   Map<int32_t, int32_t> m;
   // An newly constructed map should have no space used.
@@ -1295,11 +1286,15 @@ TEST_F(MapImplTest, SpaceUsed) {
     std::pair<int32_t, int32_t> kv;
   };
 
+  size_t capacity = kMinCap;
   for (int i = 0; i < 100; ++i) {
     m[i];
+    static constexpr double kMaxLoadFactor = .75;
+    if (m.size() >= capacity * kMaxLoadFactor) {
+      capacity *= 2;
+    }
     EXPECT_EQ(m.SpaceUsedExcludingSelfLong(),
-              sizeof(void*) * MapTestPeer::NumBuckets(m) +
-                  m.size() * sizeof(IntIntNode));
+              sizeof(void*) * capacity + m.size() * sizeof(IntIntNode));
   }
 
   // Test string, and non-scalar keys.
@@ -1365,9 +1360,10 @@ void TestTransparent(const Key& key, const Key& miss_key) {
   const auto& cm = m;
 
   m.insert({"ABC", 1});
-  m.insert({"DEF", 2});
 
-  const auto abc_it = m.find("ABC");
+  const auto abc_it = m.begin();
+
+  m.insert({"DEF", 2});
 
   using testing::Pair;
   using testing::UnorderedElementsAre;

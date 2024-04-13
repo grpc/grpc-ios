@@ -16,6 +16,8 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/cpp/ext/csm/csm_observability.h"
 
 #include <memory>
@@ -31,7 +33,6 @@
 #include "opentelemetry/sdk/resource/resource_detector.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 #include <grpcpp/ext/csm_observability.h>
 
 #include "src/core/ext/xds/xds_enabled_server.h"

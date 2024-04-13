@@ -14,6 +14,8 @@
 // limitations under the License.
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/core/ext/xds/xds_endpoint.h"
 
 #include <stdlib.h>
@@ -40,7 +42,6 @@
 #include "upb/text/encode.h"
 
 #include <grpc/support/log.h>
-#include <grpc/support/port_platform.h>
 
 #include "src/core/ext/xds/upb_utils.h"
 #include "src/core/ext/xds/xds_health_status.h"

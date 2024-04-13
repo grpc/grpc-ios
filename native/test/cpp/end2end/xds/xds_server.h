@@ -23,7 +23,6 @@
 #include <thread>
 #include <vector>
 
-#include "absl/log/check.h"
 #include "absl/types/optional.h"
 
 #include <grpc/support/log.h>
@@ -368,8 +367,8 @@ class AdsServiceImpl
     if (request.response_nonce().empty()) {
       int client_resource_type_version = 0;
       if (!request.version_info().empty()) {
-        CHECK(absl::SimpleAtoi(request.version_info(),
-                               &client_resource_type_version));
+        GPR_ASSERT(absl::SimpleAtoi(request.version_info(),
+                                    &client_resource_type_version));
       }
       if (check_version_callack_ != nullptr) {
         check_version_callack_(request.type_url(),
@@ -377,7 +376,7 @@ class AdsServiceImpl
       }
     } else {
       int client_nonce;
-      CHECK(absl::SimpleAtoi(request.response_nonce(), &client_nonce));
+      GPR_ASSERT(absl::SimpleAtoi(request.response_nonce(), &client_nonce));
       // Check for ACK or NACK.
       ResponseState response_state;
       if (!request.has_error_detail()) {

@@ -311,13 +311,11 @@ int64_t TimeUtil::DurationToNanoseconds(const Duration& duration) {
 }
 
 int64_t TimeUtil::DurationToMicroseconds(const Duration& duration) {
-  return DurationToSeconds(duration) * kMicrosPerSecond +
-         RoundTowardZero(duration.nanos(), kNanosPerMicrosecond);
+  return RoundTowardZero(DurationToNanoseconds(duration), kNanosPerMicrosecond);
 }
 
 int64_t TimeUtil::DurationToMilliseconds(const Duration& duration) {
-  return DurationToSeconds(duration) * kMillisPerSecond +
-         RoundTowardZero(duration.nanos(), kNanosPerMillisecond);
+  return RoundTowardZero(DurationToNanoseconds(duration), kNanosPerMillisecond);
 }
 
 int64_t TimeUtil::DurationToSeconds(const Duration& duration) {
