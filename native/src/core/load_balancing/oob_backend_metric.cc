@@ -38,9 +38,7 @@
 #include <grpc/support/log.h>
 #include <grpc/support/time.h>
 
-#include "src/core/client_channel/backend_metric.h"
 #include "src/core/client_channel/client_channel_channelz.h"
-#include "src/core/load_balancing/oob_backend_metric_internal.h"
 #include "src/core/client_channel/subchannel.h"
 #include "src/core/client_channel/subchannel_stream_client.h"
 #include "src/core/lib/channel/channel_trace.h"
@@ -57,6 +55,8 @@
 #include "src/core/lib/iomgr/iomgr_fwd.h"
 #include "src/core/lib/iomgr/pollset_set.h"
 #include "src/core/lib/slice/slice.h"
+#include "src/core/load_balancing/backend_metric_parser.h"
+#include "src/core/load_balancing/oob_backend_metric_internal.h"
 
 namespace grpc_core {
 
@@ -66,7 +66,7 @@ TraceFlag grpc_orca_client_trace(false, "orca_client");
 // OrcaProducer::ConnectivityWatcher
 //
 
-class OrcaProducer::ConnectivityWatcher
+class OrcaProducer::ConnectivityWatcher final
     : public Subchannel::ConnectivityStateWatcherInterface {
  public:
   explicit ConnectivityWatcher(WeakRefCountedPtr<OrcaProducer> producer)
@@ -97,7 +97,7 @@ class OrcaProducer::ConnectivityWatcher
 // OrcaProducer::OrcaStreamEventHandler
 //
 
-class OrcaProducer::OrcaStreamEventHandler
+class OrcaProducer::OrcaStreamEventHandler final
     : public SubchannelStreamClient::CallEventHandler {
  public:
   OrcaStreamEventHandler(WeakRefCountedPtr<OrcaProducer> producer,
@@ -168,7 +168,7 @@ class OrcaProducer::OrcaStreamEventHandler
   // notifications, which avoids lock inversion problems due to
   // acquiring producer_->mu_ while holding the lock from inside of
   // SubchannelStreamClient.
-  class BackendMetricAllocator : public BackendMetricAllocatorInterface {
+  class BackendMetricAllocator final : public BackendMetricAllocatorInterface {
    public:
     explicit BackendMetricAllocator(WeakRefCountedPtr<OrcaProducer> producer)
         : producer_(std::move(producer)) {}
@@ -221,7 +221,7 @@ void OrcaProducer::Start(RefCountedPtr<Subchannel> subchannel) {
   subchannel_->WatchConnectivityState(std::move(connectivity_watcher));
 }
 
-void OrcaProducer::Orphan() {
+void OrcaProducer::Orphaned() {
   {
     MutexLock lock(&mu_);
     stream_client_.reset();

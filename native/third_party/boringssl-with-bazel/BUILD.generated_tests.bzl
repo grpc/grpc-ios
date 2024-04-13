@@ -99,10 +99,8 @@ test_support_sources = [
     "src/pki/pem.h",
     "src/pki/revocation_util.h",
     "src/pki/signature_algorithm.h",
-    "src/pki/signature_verify_cache.h",
     "src/pki/simple_path_builder_delegate.h",
     "src/pki/string_util.h",
-    "src/pki/tag.h",
     "src/pki/test_helpers.h",
     "src/pki/testdata/nist-pkits/pkits_testcases-inl.h",
     "src/pki/trust_store.h",
@@ -216,6 +214,7 @@ pki_test_sources = [
     "src/crypto/test/gtest_main.cc",
     "src/pki/cert_issuer_source_static_unittest.cc",
     "src/pki/certificate_policies_unittest.cc",
+    "src/pki/certificate_unittest.cc",
     "src/pki/crl_unittest.cc",
     "src/pki/encode_values_unittest.cc",
     "src/pki/extended_key_usage_unittest.cc",
@@ -1458,6 +1457,8 @@ pki_test_data = [
     "src/pki/testdata/path_builder_unittest/multi-root-D-by-D.pem",
     "src/pki/testdata/path_builder_unittest/multi-root-E-by-E.pem",
     "src/pki/testdata/path_builder_unittest/multi-root-F-by-E.pem",
+    "src/pki/testdata/path_builder_unittest/precertificate/precertificate.pem",
+    "src/pki/testdata/path_builder_unittest/precertificate/root.pem",
     "src/pki/testdata/path_builder_unittest/self_issued_prioritization/generate-certs.py",
     "src/pki/testdata/path_builder_unittest/self_issued_prioritization/keys/Root1.key",
     "src/pki/testdata/path_builder_unittest/self_issued_prioritization/keys/Root2.key",
@@ -2300,6 +2301,8 @@ pki_test_data = [
     "src/pki/testdata/verify_signed_data_unittest/rsa-pss-sha256.pem",
     "src/pki/testdata/verify_signed_data_unittest/rsa-using-ec-key.pem",
     "src/pki/testdata/verify_signed_data_unittest/rsa2048-pkcs1-sha512.pem",
+    "src/pki/testdata/verify_unittest/google-leaf.der",
+    "src/pki/testdata/verify_unittest/self-issued.pem",
 ]
 
 urandom_test_sources = [

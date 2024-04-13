@@ -15,9 +15,11 @@
 #include <stdlib.h>
 
 #include <atomic>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "google/protobuf/testing/file.h"
 #include "google/protobuf/testing/file.h"
@@ -34,6 +36,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_replace.h"
 #include "absl/strings/substitute.h"
+#include "google/protobuf/descriptor.h"
 #include "google/protobuf/io/tokenizer.h"
 #include "google/protobuf/io/zero_copy_stream_impl.h"
 #include "google/protobuf/map_unittest.pb.h"
@@ -41,9 +44,11 @@
 #include "google/protobuf/test_util.h"
 #include "google/protobuf/test_util2.h"
 #include "google/protobuf/unittest.pb.h"
+#include "google/protobuf/unittest.pb.h"
 #include "google/protobuf/unittest_mset.pb.h"
 #include "google/protobuf/unittest_mset_wire_format.pb.h"
 #include "google/protobuf/unittest_proto3.pb.h"
+#include "utf8_validity.h"
 
 
 // Must be included last.
@@ -52,12 +57,28 @@
 namespace google {
 namespace protobuf {
 
+namespace internal {
+class UnsetFieldsMetadataTextFormatTestUtil {
+ public:
+  static const auto& GetRawIds(
+      const TextFormat::Parser::UnsetFieldsMetadata& metadata) {
+    return metadata.ids_;
+  }
+  static auto GetId(const Message& message, absl::string_view field) {
+    return TextFormat::Parser::UnsetFieldsMetadata::GetUnsetFieldId(
+        message, *message.GetDescriptor()->FindFieldByName(field));
+  }
+};
+}  // namespace internal
+
 // Can't use an anonymous namespace here due to brokenness of Tru64 compiler.
 namespace text_format_unittest {
 
 using ::google::protobuf::internal::kDebugStringSilentMarker;
+using ::google::protobuf::internal::UnsetFieldsMetadataTextFormatTestUtil;
 using ::testing::AllOf;
 using ::testing::HasSubstr;
+using ::testing::UnorderedElementsAre;
 
 // A basic string with different escapable characters for testing.
 constexpr absl::string_view kEscapeTestString =
@@ -68,6 +89,8 @@ constexpr absl::string_view kEscapeTestString =
 constexpr absl::string_view kEscapeTestStringEscaped =
     "\"\\\"A string with \\' characters \\n and \\r newlines "
     "and \\t tabs and \\001 slashes \\\\ and  multiple   spaces\"";
+
+constexpr absl::string_view value_replacement = "\\[REDACTED\\]";
 
 class TextFormatTest : public testing::Test {
  public:
@@ -172,35 +195,24 @@ TEST_F(TextFormatTest, ShortFormat) {
 
   std::string value_replacement = "\\[REDACTED\\]";
   EXPECT_THAT(google::protobuf::ShortFormat(proto),
-              testing::MatchesRegex(
-                  "optional_redacted_string: " +
-                  value_replacement +
-                  " "
+              testing::MatchesRegex(absl::Substitute(
+                  "optional_redacted_string: $0 "
                   "optional_unredacted_string: \"bar\" "
-                  "repeated_redacted_string: " +
-                  value_replacement +
-                  " "
-                  "repeated_redacted_string: " +
-                  value_replacement +
-                  " "
+                  "repeated_redacted_string: $0 "
+                  "repeated_redacted_string: $0 "
                   "repeated_unredacted_string: \"3\" "
                   "repeated_unredacted_string: \"4\" "
-                  "optional_redacted_message: " +
-                  value_replacement +
-                  " "
+                  "optional_redacted_message: $0 "
                   "optional_unredacted_message \\{ "
                   "optional_unredacted_nested_string: \"world\" \\} "
-                  "repeated_redacted_message: " +
-                  value_replacement +
-                  " "
+                  "repeated_redacted_message: $0 "
                   "repeated_unredacted_message "
                   "\\{ optional_unredacted_nested_string: \"7\" \\} "
                   "repeated_unredacted_message "
                   "\\{ optional_unredacted_nested_string: \"8\" \\} "
-                  "map_redacted_string: " +
-                  value_replacement +
-                  " "
-                  "map_unredacted_string \\{ key: \"ghi\" value: \"jkl\" \\}"));
+                  "map_redacted_string: $0 "
+                  "map_unredacted_string \\{ key: \"ghi\" value: \"jkl\" \\}",
+                  value_replacement)));
 }
 
 TEST_F(TextFormatTest, Utf8Format) {
@@ -234,39 +246,27 @@ TEST_F(TextFormatTest, Utf8Format) {
   (*proto.mutable_map_redacted_string())["abc"] = "def";
   (*proto.mutable_map_unredacted_string())["ghi"] = "jkl";
 
-  std::string value_replacement = "\\[REDACTED\\]";
   EXPECT_THAT(google::protobuf::Utf8Format(proto),
-              testing::MatchesRegex(
-                  "optional_redacted_string: " +
-                  value_replacement +
-                  "\n"
+              testing::MatchesRegex(absl::Substitute(
+                  "optional_redacted_string: $0\n"
                   "optional_unredacted_string: \"bar\"\n"
-                  "repeated_redacted_string: " +
-                  value_replacement +
-                  "\n"
-                  "repeated_redacted_string: " +
-                  value_replacement +
-                  "\n"
+                  "repeated_redacted_string: $0\n"
+                  "repeated_redacted_string: $0\n"
                   "repeated_unredacted_string: \"3\"\n"
                   "repeated_unredacted_string: \"4\"\n"
-                  "optional_redacted_message: " +
-                  value_replacement +
-                  "\n"
+                  "optional_redacted_message: $0\n"
                   "optional_unredacted_message \\{\n  "
                   "optional_unredacted_nested_string: "
                   "\"\xE8\xB0\xB7\xE6\xAD\x8C\"\n\\}\n"
-                  "repeated_redacted_message: " +
-                  value_replacement +
-                  "\n"
+                  "repeated_redacted_message: $0\n"
                   "repeated_unredacted_message \\{\n  "
                   "optional_unredacted_nested_string: \"7\"\n\\}\n"
                   "repeated_unredacted_message \\{\n  "
                   "optional_unredacted_nested_string: \"8\"\n\\}\n"
-                  "map_redacted_string: " +
-                  value_replacement +
-                  "\n"
+                  "map_redacted_string: $0\n"
                   "map_unredacted_string \\{\n  "
-                  "key: \"ghi\"\n  value: \"jkl\"\n\\}\n"));
+                  "key: \"ghi\"\n  value: \"jkl\"\n\\}\n",
+                  value_replacement)));
 }
 
 TEST_F(TextFormatTest, ShortPrimitiveRepeateds) {
@@ -402,6 +402,17 @@ TEST_F(TextFormatTest, PrintUnknownFields) {
                          "8: 2\n"
                          "8: 3\n"),
             message.DebugString());
+
+  EXPECT_THAT(absl::StrCat(message), testing::MatchesRegex(absl::Substitute(
+                                         "5: UNKNOWN_VARINT $0\n"
+                                         "5: UNKNOWN_FIXED32 $0\n"
+                                         "5: UNKNOWN_FIXED64 $0\n"
+                                         "5: UNKNOWN_STRING $0\n"
+                                         "5: UNKNOWN_GROUP $0\n"
+                                         "8: UNKNOWN_VARINT $0\n"
+                                         "8: UNKNOWN_VARINT $0\n"
+                                         "8: UNKNOWN_VARINT $0\n",
+                                         value_replacement)));
 }
 
 TEST_F(TextFormatTest, PrintUnknownFieldsDeepestStackWorks) {
@@ -1007,86 +1018,185 @@ TEST_F(TextFormatTest, ParseUnknownEnumFieldProto3) {
   EXPECT_EQ(-2147483648, proto.repeated_nested_enum(3));
 }
 
-TEST_F(TextFormatTest, ErrorOnNoOpFieldsProto3) {
+TEST_F(TextFormatTest, PopulatesNoOpFields) {
   proto3_unittest::TestAllTypes proto;
   TextFormat::Parser parser;
-  parser.ErrorOnNoOpFields(true);
+  TextFormat::Parser::UnsetFieldsMetadata no_op_fields;
+  parser.OutputNoOpFields(&no_op_fields);
+  using Peer = UnsetFieldsMetadataTextFormatTestUtil;
 
   {
+    no_op_fields = {};
     const absl::string_view singular_int_parse_string = "optional_int32: 0";
     EXPECT_TRUE(TextFormat::ParseFromString(singular_int_parse_string, &proto));
-    EXPECT_FALSE(parser.ParseFromString(singular_int_parse_string, &proto));
+    EXPECT_TRUE(parser.ParseFromString(singular_int_parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields),
+                UnorderedElementsAre(Peer::GetId(proto, "optional_int32")));
   }
   {
+    no_op_fields = {};
     const absl::string_view singular_bool_parse_string = "optional_bool: false";
     EXPECT_TRUE(
         TextFormat::ParseFromString(singular_bool_parse_string, &proto));
-    EXPECT_FALSE(parser.ParseFromString(singular_bool_parse_string, &proto));
+    EXPECT_TRUE(parser.ParseFromString(singular_bool_parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields),
+                UnorderedElementsAre(Peer::GetId(proto, "optional_bool")));
   }
   {
+    no_op_fields = {};
     const absl::string_view singular_string_parse_string =
         "optional_string: ''";
     EXPECT_TRUE(
         TextFormat::ParseFromString(singular_string_parse_string, &proto));
-    EXPECT_FALSE(parser.ParseFromString(singular_string_parse_string, &proto));
+    EXPECT_TRUE(parser.ParseFromString(singular_string_parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields),
+                UnorderedElementsAre(Peer::GetId(proto, "optional_string")));
   }
   {
+    no_op_fields = {};
     const absl::string_view nested_message_parse_string =
         "optional_nested_message { bb: 0 } ";
     EXPECT_TRUE(
         TextFormat::ParseFromString(nested_message_parse_string, &proto));
-    EXPECT_FALSE(parser.ParseFromString(nested_message_parse_string, &proto));
+    EXPECT_TRUE(parser.ParseFromString(nested_message_parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields),
+                UnorderedElementsAre(
+                    Peer::GetId(proto.optional_nested_message(), "bb")));
   }
   {
+    no_op_fields = {};
+    const absl::string_view nested_message_parse_string =
+        "optional_nested_message { bb: 1 } ";
+    EXPECT_TRUE(
+        TextFormat::ParseFromString(nested_message_parse_string, &proto));
+    EXPECT_TRUE(parser.ParseFromString(nested_message_parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields), UnorderedElementsAre());
+  }
+  {
+    no_op_fields = {};
     const absl::string_view foreign_message_parse_string =
         "optional_foreign_message { c: 0 } ";
     EXPECT_TRUE(
         TextFormat::ParseFromString(foreign_message_parse_string, &proto));
-    EXPECT_FALSE(parser.ParseFromString(foreign_message_parse_string, &proto));
+    EXPECT_TRUE(parser.ParseFromString(foreign_message_parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields),
+                UnorderedElementsAre(
+                    Peer::GetId(proto.optional_foreign_message(), "c")));
   }
   {
+    no_op_fields = {};
     const absl::string_view nested_enum_parse_string =
         "optional_nested_enum: ZERO ";
     EXPECT_TRUE(TextFormat::ParseFromString(nested_enum_parse_string, &proto));
-    EXPECT_FALSE(parser.ParseFromString(nested_enum_parse_string, &proto));
+    EXPECT_TRUE(parser.ParseFromString(nested_enum_parse_string, &proto));
+    EXPECT_THAT(
+        Peer::GetRawIds(no_op_fields),
+        UnorderedElementsAre(Peer::GetId(proto, "optional_nested_enum")));
   }
   {
+    no_op_fields = {};
     const absl::string_view foreign_enum_parse_string =
         "optional_foreign_enum: FOREIGN_ZERO ";
     EXPECT_TRUE(TextFormat::ParseFromString(foreign_enum_parse_string, &proto));
-    EXPECT_FALSE(parser.ParseFromString(foreign_enum_parse_string, &proto));
+    EXPECT_TRUE(parser.ParseFromString(foreign_enum_parse_string, &proto));
+    EXPECT_THAT(
+        Peer::GetRawIds(no_op_fields),
+        UnorderedElementsAre(Peer::GetId(proto, "optional_foreign_enum")));
   }
   {
+    no_op_fields = {};
     const absl::string_view string_piece_parse_string =
         "optional_string_piece: '' ";
     EXPECT_TRUE(TextFormat::ParseFromString(string_piece_parse_string, &proto));
-    EXPECT_FALSE(parser.ParseFromString(string_piece_parse_string, &proto));
+    EXPECT_TRUE(parser.ParseFromString(string_piece_parse_string, &proto));
+    EXPECT_THAT(
+        Peer::GetRawIds(no_op_fields),
+        UnorderedElementsAre(Peer::GetId(proto, "optional_string_piece")));
   }
   {
+    no_op_fields = {};
     const absl::string_view cord_parse_string = "optional_cord: '' ";
     EXPECT_TRUE(TextFormat::ParseFromString(cord_parse_string, &proto));
-    EXPECT_FALSE(parser.ParseFromString(cord_parse_string, &proto));
+    EXPECT_TRUE(parser.ParseFromString(cord_parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields),
+                UnorderedElementsAre(Peer::GetId(proto, "optional_cord")));
   }
   {
+    no_op_fields = {};
     // Sanity check that repeated fields work the same.
     const absl::string_view repeated_int32_parse_string = "repeated_int32: 0 ";
     EXPECT_TRUE(
         TextFormat::ParseFromString(repeated_int32_parse_string, &proto));
     EXPECT_TRUE(parser.ParseFromString(repeated_int32_parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields), UnorderedElementsAre());
   }
   {
+    no_op_fields = {};
     const absl::string_view repeated_bool_parse_string =
         "repeated_bool: false  ";
     EXPECT_TRUE(
         TextFormat::ParseFromString(repeated_bool_parse_string, &proto));
     EXPECT_TRUE(parser.ParseFromString(repeated_bool_parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields), UnorderedElementsAre());
   }
   {
+    no_op_fields = {};
     const absl::string_view repeated_string_parse_string =
         "repeated_string: '' ";
     EXPECT_TRUE(
         TextFormat::ParseFromString(repeated_string_parse_string, &proto));
     EXPECT_TRUE(parser.ParseFromString(repeated_string_parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields), UnorderedElementsAre());
+  }
+}
+
+TEST_F(TextFormatTest, FieldsPopulatedCorrectly) {
+  using Peer = UnsetFieldsMetadataTextFormatTestUtil;
+  proto3_unittest::TestAllTypes proto;
+  TextFormat::Parser parser;
+  TextFormat::Parser::UnsetFieldsMetadata no_op_fields;
+  parser.OutputNoOpFields(&no_op_fields);
+  {
+    no_op_fields = {};
+    const absl::string_view parse_string = R"pb(
+      optional_int32: 0
+      optional_uint32: 10
+      optional_nested_message { bb: 0 }
+    )pb";
+    EXPECT_TRUE(parser.ParseFromString(parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields),
+                UnorderedElementsAre(
+                    Peer::GetId(proto, "optional_int32"),
+                    Peer::GetId(proto.optional_nested_message(), "bb")));
+  }
+  {
+    no_op_fields = {};
+    const absl::string_view parse_string = R"pb(
+      optional_bool: false
+      optional_uint32: 10
+      optional_nested_message { bb: 20 }
+    )pb";
+    EXPECT_TRUE(parser.ParseFromString(parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields),
+                UnorderedElementsAre(Peer::GetId(proto, "optional_bool")));
+  }
+  {
+    // The address returned by the field is a string_view, which is a separate
+    // alocation. Check address directly.
+    no_op_fields = {};
+    const absl::string_view parse_string = "optional_string: \"\"";
+    EXPECT_TRUE(parser.ParseFromString(parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields),
+                UnorderedElementsAre(Peer::GetId(proto, "optional_string")));
+  }
+  {
+    // The address returned by the field is a string_view, which is a separate
+    // alocation. Check address directly.
+    no_op_fields = {};
+    const absl::string_view parse_string = "optional_bytes: \"\"";
+    EXPECT_TRUE(parser.ParseFromString(parse_string, &proto));
+    EXPECT_THAT(Peer::GetRawIds(no_op_fields),
+                UnorderedElementsAre(Peer::GetId(proto, "optional_bytes")));
   }
 }
 

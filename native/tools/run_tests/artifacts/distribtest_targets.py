@@ -443,9 +443,9 @@ def targets():
         CSharpDistribTest("windows", "x86", presubmit=True),
         CSharpDistribTest("windows", "x64", presubmit=True),
         # Python
-        PythonDistribTest("linux", "x64", "buster", presubmit=True),
-        PythonDistribTest("linux", "x86", "buster", presubmit=True),
-        PythonDistribTest("linux", "x64", "fedora36"),
+        PythonDistribTest("linux", "x64", "bullseye", presubmit=True),
+        PythonDistribTest("linux", "x86", "bullseye", presubmit=True),
+        PythonDistribTest("linux", "x64", "fedora38"),
         PythonDistribTest("linux", "x64", "arch"),
         PythonDistribTest("linux", "x64", "alpine"),
         PythonDistribTest("linux", "x64", "ubuntu2204"),
@@ -456,34 +456,34 @@ def targets():
             "linux", "x64", "alpine3.7", source=True, presubmit=True
         ),
         PythonDistribTest(
-            "linux", "x64", "buster", source=True, presubmit=True
+            "linux", "x64", "bullseye", source=True, presubmit=True
         ),
         PythonDistribTest(
-            "linux", "x86", "buster", source=True, presubmit=True
+            "linux", "x86", "bullseye", source=True, presubmit=True
         ),
-        PythonDistribTest("linux", "x64", "fedora36", source=True),
+        PythonDistribTest("linux", "x64", "fedora38", source=True),
         PythonDistribTest("linux", "x64", "arch", source=True),
         PythonDistribTest("linux", "x64", "ubuntu2204", source=True),
         # Ruby
         RubyDistribTest(
             "linux",
             "x64",
-            "debian10",
-            ruby_version="ruby_2_7",
+            "debian11",
+            ruby_version="ruby_3_2",
             source=True,
             presubmit=True,
         ),
         RubyDistribTest(
-            "linux", "x64", "debian10", ruby_version="ruby_3_0", presubmit=True
+            "linux", "x64", "debian11", ruby_version="ruby_3_0", presubmit=True
         ),
         RubyDistribTest(
-            "linux", "x64", "debian10", ruby_version="ruby_3_1", presubmit=True
+            "linux", "x64", "debian11", ruby_version="ruby_3_1", presubmit=True
         ),
         RubyDistribTest(
-            "linux", "x64", "debian10", ruby_version="ruby_3_2", presubmit=True
+            "linux", "x64", "debian11", ruby_version="ruby_3_2", presubmit=True
         ),
         RubyDistribTest(
-            "linux", "x64", "debian10", ruby_version="ruby_3_3", presubmit=True
+            "linux", "x64", "debian11", ruby_version="ruby_3_3", presubmit=True
         ),
         RubyDistribTest("linux", "x64", "centos7"),
         RubyDistribTest("linux", "x64", "ubuntu2004"),

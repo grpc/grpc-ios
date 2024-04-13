@@ -588,6 +588,10 @@ GENERAL_NAMES *v2i_GENERAL_NAMES(const X509V3_EXT_METHOD *method,
 // |X509_NAME| issue is resolved.
 int X509_check_akid(X509 *issuer, const AUTHORITY_KEYID *akid);
 
+int X509_is_valid_trust_id(int trust);
+
+int X509_PURPOSE_get_trust(const X509_PURPOSE *xp);
+
 
 #if defined(__cplusplus)
 }  // extern C

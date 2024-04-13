@@ -111,6 +111,13 @@ void EnumGenerator::Generate(io::Printer* printer) {
 
   // -----------------------------------------------------------------
 
+  printer->Print("static {\n");
+  printer->Indent();
+  PrintGencodeVersionValidator(printer, context_->options().opensource_runtime,
+                               descriptor_->name());
+  printer->Outdent();
+  printer->Print("}\n");
+
   for (int i = 0; i < aliases_.size(); i++) {
     absl::flat_hash_map<absl::string_view, std::string> vars;
     vars["classname"] = descriptor_->name();

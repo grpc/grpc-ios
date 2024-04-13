@@ -135,9 +135,9 @@ class PROTOC_EXPORT CodeGenerator {
 
  protected:
   // Retrieves the resolved source features for a given descriptor.  All the
-  // features that are imported (from the proto file) and linked in (from the
-  // callers binary) will be fully resolved. These should be used to make any
-  // feature-based decisions during code generation.
+  // global features and language features returned by GetFeatureExtensions will
+  // be fully resolved. These should be used to make any feature-based decisions
+  // during code generation.
   template <typename DescriptorT>
   static const FeatureSet& GetResolvedSourceFeatures(const DescriptorT& desc) {
     return ::google::protobuf::internal::InternalFeatureHelper::GetFeatures(desc);
@@ -155,6 +155,11 @@ class PROTOC_EXPORT CodeGenerator {
           FeatureSet, TypeTraitsT, field_type, is_packed>& extension) {
     return ::google::protobuf::internal::InternalFeatureHelper::GetUnresolvedFeatures(
         descriptor, extension);
+  }
+
+  // Retrieves the edition of a built file descriptor.
+  static Edition GetEdition(const FileDescriptor& file) {
+    return ::google::protobuf::internal::InternalFeatureHelper::GetEdition(file);
   }
 };
 

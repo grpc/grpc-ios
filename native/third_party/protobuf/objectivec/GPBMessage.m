@@ -1343,6 +1343,7 @@ static GPBUnknownFieldSet *GetOrMakeUnknownFields(GPBMessage *self) {
   GPBCodedOutputStream *stream = [[GPBCodedOutputStream alloc] initWithData:data];
   @try {
     [self writeToCodedOutputStream:stream];
+    [stream flush];
   } @catch (NSException *exception) {
     // This really shouldn't happen. Normally, this could mean there was a bug in the library and it
     // failed to match between computing the size and writing out the bytes. However, the more
@@ -1369,6 +1370,7 @@ static GPBUnknownFieldSet *GetOrMakeUnknownFields(GPBMessage *self) {
   GPBCodedOutputStream *stream = [[GPBCodedOutputStream alloc] initWithData:data];
   @try {
     [self writeDelimitedToCodedOutputStream:stream];
+    [stream flush];
   } @catch (NSException *exception) {
     // This really shouldn't happen. Normally, this could mean there was a bug in the library and it
     // failed to match between computing the size and writing out the bytes. However, the more
@@ -1380,8 +1382,9 @@ static GPBUnknownFieldSet *GetOrMakeUnknownFields(GPBMessage *self) {
     NSLog(@"%@: Internal exception while building message delimitedData: %@", [self class],
           exception);
 #endif
-    // If it happens, truncate.
-    data.length = 0;
+    // If it happens, return an empty data.
+    [stream release];
+    return [NSData data];
   }
   [stream release];
   return data;
@@ -1391,6 +1394,7 @@ static GPBUnknownFieldSet *GetOrMakeUnknownFields(GPBMessage *self) {
   GPBCodedOutputStream *stream = [[GPBCodedOutputStream alloc] initWithOutputStream:output];
   @try {
     [self writeToCodedOutputStream:stream];
+    [stream flush];
     size_t bytesWritten = [stream bytesWritten];
     if (bytesWritten > kMaximumMessageSize) {
       [NSException raise:GPBMessageExceptionMessageTooLarge
@@ -1434,6 +1438,7 @@ static GPBUnknownFieldSet *GetOrMakeUnknownFields(GPBMessage *self) {
   GPBCodedOutputStream *codedOutput = [[GPBCodedOutputStream alloc] initWithOutputStream:output];
   @try {
     [self writeDelimitedToCodedOutputStream:codedOutput];
+    [codedOutput flush];
   } @finally {
     [codedOutput release];
   }
@@ -2373,7 +2378,7 @@ static void MergeRepeatedPackedFieldFromCodedInputStream(GPBMessage *self,
         break;
       }
     }  // switch
-  }    // while(BytesUntilLimit() > 0)
+  }  // while(BytesUntilLimit() > 0)
   GPBCodedInputStreamPopLimit(state, limit);
 }
 
@@ -2652,7 +2657,7 @@ static void MergeRepeatedNotPackedFieldFromCodedInputStream(
         }
       }
     }  // if (fieldType)..else if...else
-  }    // for(fields)
+  }  // for(fields)
 
   // Unknown fields.
   if (!unknownFields_) {
@@ -2820,8 +2825,8 @@ static void MergeRepeatedNotPackedFieldFromCodedInputStream(
           break;
         }
       }  // switch()
-    }    // if(mapOrArray)...else
-  }      // for(fields)
+    }  // if(mapOrArray)...else
+  }  // for(fields)
 
   // nil and empty are equal
   if (extensionMap_.count != 0 || otherMsg->extensionMap_.count != 0) {

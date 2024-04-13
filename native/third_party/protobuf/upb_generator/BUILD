@@ -16,7 +16,7 @@ load(
 )
 load(
     "//bazel:upb_proto_library.bzl",
-    "upb_proto_library",
+    "upb_c_proto_library",
     "upb_proto_reflection_library",
 )
 load(
@@ -39,7 +39,7 @@ proto_library(
     deps = ["//:compiler_plugin_proto"],
 )
 
-upb_proto_library(
+upb_c_proto_library(
     name = "code_generator_request_upb_proto",
     visibility = ["//upb:friends"],
     deps = [":code_generator_request"],
@@ -79,7 +79,7 @@ bootstrap_upb_proto_library(
     oss_strip_prefix = "third_party/protobuf/github/bootstrap/src",
     proto_lib_deps = ["//:compiler_plugin_proto"],
     visibility = ["//upb:friends"],
-    deps = ["//upb:descriptor_upb_proto"],
+    deps = ["//upb/reflection:descriptor_upb_proto"],
 )
 
 upb_proto_reflection_library(
@@ -97,13 +97,13 @@ bootstrap_cc_library(
         "common.h",
     ],
     bootstrap_deps = [
-        "//upb:reflection",
+        "//upb/reflection:reflection",
     ],
     copts = UPB_DEFAULT_CPPOPTS,
     visibility = ["//protos_generator:__pkg__"],
     deps = [
+        ":mangle",
         "//upb:mini_table",
-        "//upb:mini_table_internal",
         "//upb:port",
         "@com_google_absl//absl/strings",
     ],
@@ -119,8 +119,8 @@ bootstrap_cc_library(
     ],
     bootstrap_deps = [
         ":common",
-        "//upb:reflection",
-        "//upb:descriptor_upb_proto",
+        "//upb/reflection:reflection",
+        "//upb/reflection:descriptor_upb_proto",
     ],
     copts = UPB_DEFAULT_CPPOPTS,
     visibility = ["//visibility:public"],
@@ -128,7 +128,6 @@ bootstrap_cc_library(
         "//upb:base",
         "//upb:mini_descriptor",
         "//upb:mini_table",
-        "//upb:mini_table_internal",
         "//upb:port",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
@@ -154,8 +153,8 @@ bootstrap_cc_library(
     ],
     bootstrap_deps = [
         ":plugin_upb_proto",
-        "//upb:descriptor_upb_proto",
-        "//upb:reflection",
+        "//upb/reflection:descriptor_upb_proto",
+        "//upb/reflection:reflection",
     ],
     copts = UPB_DEFAULT_CPPOPTS,
     visibility = ["//protos_generator:__pkg__"],
@@ -177,7 +176,7 @@ bootstrap_cc_library(
         "names.h",
     ],
     bootstrap_deps = [
-        "//upb:reflection",
+        "//upb/reflection:reflection",
     ],
     copts = UPB_DEFAULT_CPPOPTS,
     visibility = ["//protos_generator:__pkg__"],
@@ -186,6 +185,20 @@ bootstrap_cc_library(
         "//src/google/protobuf/compiler:code_generator",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "mangle",
+    srcs = ["mangle.cc"],
+    hdrs = ["mangle.h"],
+    copts = UPB_DEFAULT_CPPOPTS,
+    visibility = [
+        "//rust:__subpackages__",
+        "//upb:friends",
+    ],
+    deps = [
         "@com_google_absl//absl/strings",
     ],
 )
@@ -230,8 +243,8 @@ cc_library(
         "//upb:mini_table",
         "//upb:port",
         "//upb:reflection",
-        "//upb:reflection_internal",
         "//upb:wire",
+        "//upb/reflection:internal",
     ],
 )
 
@@ -244,17 +257,17 @@ bootstrap_cc_binary(
         ":names",
         ":plugin",
         ":plugin_upb_proto",
-        "//upb:descriptor_upb_proto",
-        "//upb:reflection",
+        "//upb/reflection:descriptor_upb_proto",
+        "//upb/reflection:reflection",
     ],
     copts = UPB_DEFAULT_CPPOPTS,
     visibility = ["//visibility:public"],
     deps = [
         "//upb:base",
         "//upb:mem",
-        "//upb:mini_table_internal",
+        "//upb:mini_table",
         "//upb:port",
-        "//upb:wire_types",
+        "//upb:wire_reader",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/log:absl_check",
@@ -274,31 +287,51 @@ proto_lang_toolchain(
     visibility = ["//visibility:public"],
 )
 
-bootstrap_cc_binary(
-    name = "protoc-gen-upb_minitable",
+bootstrap_cc_library(
+    name = "protoc-gen-upb_minitable_lib",
     srcs = ["protoc-gen-upb_minitable.cc"],
+    hdrs = ["protoc-gen-upb_minitable.h"],
     bootstrap_deps = [
         ":common",
         ":file_layout",
         ":names",
         ":plugin",
         ":plugin_upb_proto",
-        "//upb:descriptor_upb_proto",
-        "//upb:reflection",
+        "//upb/reflection:descriptor_upb_proto",
+        "//upb/reflection:reflection",
     ],
     copts = UPB_DEFAULT_CPPOPTS,
-    visibility = ["//visibility:public"],
+    visibility = ["//upb:friends"],
     deps = [
         "//upb:base",
         "//upb:mem",
-        "//upb:mini_table_internal",
+        "//upb:mini_table",
         "//upb:port",
-        "//upb:wire_types",
+        "//upb:wire_reader",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/log:absl_check",
         "@com_google_absl//absl/log:absl_log",
         "@com_google_absl//absl/strings",
+    ],
+)
+
+bootstrap_cc_binary(
+    name = "protoc-gen-upb_minitable",
+    srcs = ["protoc-gen-upb_minitable-main.cc"],
+    bootstrap_deps = [
+        ":file_layout",
+        ":common",
+        ":plugin",
+        ":protoc-gen-upb_minitable_lib",
+    ],
+    copts = UPB_DEFAULT_CPPOPTS,
+    visibility = ["//visibility:public"],
+    deps = [
+        "//upb:base",
+        "//upb:port",
+        "@com_google_absl//absl/log:absl_check",
+        "@com_google_absl//absl/log:absl_log",
     ],
 )
 

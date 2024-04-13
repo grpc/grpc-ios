@@ -25,13 +25,13 @@
 #include "google/protobuf/compiler/java/doc_comment.h"
 #include "google/protobuf/compiler/java/enum_lite.h"
 #include "google/protobuf/compiler/java/extension_lite.h"
+#include "google/protobuf/compiler/java/generator.h"
 #include "google/protobuf/compiler/java/generator_factory.h"
 #include "google/protobuf/compiler/java/helpers.h"
 #include "google/protobuf/compiler/java/message_builder.h"
 #include "google/protobuf/compiler/java/message_builder_lite.h"
 #include "google/protobuf/compiler/java/name_resolver.h"
 #include "google/protobuf/descriptor.pb.h"
-#include "google/protobuf/descriptor_legacy.h"
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/io/printer.h"
 #include "google/protobuf/wire_format.h"
@@ -69,25 +69,13 @@ ImmutableMessageLiteGenerator::~ImmutableMessageLiteGenerator() {}
 
 void ImmutableMessageLiteGenerator::GenerateStaticVariables(
     io::Printer* printer, int* bytecode_estimate) {
-  // Generate static members for all nested types.
-  for (int i = 0; i < descriptor_->nested_type_count(); i++) {
-    // TODO:  Reuse MessageGenerator objects?
-    ImmutableMessageLiteGenerator(descriptor_->nested_type(i), context_)
-        .GenerateStaticVariables(printer, bytecode_estimate);
-  }
+  // No-op for lite.
 }
 
 int ImmutableMessageLiteGenerator::GenerateStaticVariableInitializers(
     io::Printer* printer) {
-  int bytecode_estimate = 0;
-  // Generate static member initializers for all nested types.
-  for (int i = 0; i < descriptor_->nested_type_count(); i++) {
-    // TODO:  Reuse MessageGenerator objects?
-    bytecode_estimate +=
-        ImmutableMessageLiteGenerator(descriptor_->nested_type(i), context_)
-            .GenerateStaticVariableInitializers(printer);
-  }
-  return bytecode_estimate;
+  // No-op for lite.
+  return 0;
 }
 
 // ===================================================================
@@ -485,16 +473,17 @@ void ImmutableMessageLiteGenerator::GenerateDynamicMethodNewBuildMessageInfo(
   std::vector<uint16_t> chars;
 
   int flags = 0;
-  if (FileDescriptorLegacy(descriptor_->file()).syntax() ==
-      FileDescriptorLegacy::Syntax::SYNTAX_PROTO2) {
-    flags |= 0x1;
-  }
   if (descriptor_->options().message_set_wire_format()) {
     flags |= 0x2;
   }
-  if (FileDescriptorLegacy(descriptor_->file()).syntax() ==
-      FileDescriptorLegacy::Syntax::SYNTAX_EDITIONS) {
-    flags |= 0x4;
+  if (!context_->options().strip_nonfunctional_codegen) {
+    if (JavaGenerator::GetEdition(*descriptor_->file()) ==
+        Edition::EDITION_PROTO2) {
+      flags |= 0x1;
+    } else if (JavaGenerator::GetEdition(*descriptor_->file()) >=
+               Edition::EDITION_2023) {
+      flags |= 0x4;
+    }
   }
 
   WriteIntToUtf16CharSequence(flags, &chars);

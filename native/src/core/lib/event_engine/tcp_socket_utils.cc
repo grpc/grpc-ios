@@ -11,11 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include <grpc/support/port_platform.h>
-
 #include "src/core/lib/event_engine/tcp_socket_utils.h"
 
 #include <grpc/event_engine/event_engine.h>
+#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/address_utils/parse_address.h"
 #include "src/core/lib/iomgr/port.h"
@@ -32,8 +31,15 @@
 #endif  //  GRPC_POSIX_SOCKET_UTILS_COMMON
 
 #ifdef GRPC_HAVE_UNIX_SOCKET
+#ifdef GPR_WINDOWS
+// clang-format off
+#include <ws2def.h>
+#include <afunix.h>
+// clang-format on
+#else
 #include <sys/stat.h>  // IWYU pragma: keep
 #include <sys/un.h>
+#endif  // GPR_WINDOWS
 #endif
 
 #ifdef GRPC_HAVE_VSOCK
@@ -304,7 +310,7 @@ void ResolvedAddressSetPort(EventEngine::ResolvedAddress& resolved_addr,
   }
 }
 
-absl::optional<int> ResolvedAddressIsWildcard(
+absl::optional<int> MaybeGetWildcardPortFromAddress(
     const EventEngine::ResolvedAddress& addr) {
   const EventEngine::ResolvedAddress* resolved_addr = &addr;
   EventEngine::ResolvedAddress addr4_normalized;

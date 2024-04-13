@@ -10,6 +10,7 @@
 #include "google/protobuf/compiler/plugin.h"
 
 #include <iostream>
+#include <utility>
 #include <vector>
 
 #ifdef _WIN32
@@ -18,6 +19,8 @@
 #include <unistd.h>
 #endif
 
+#include "absl/log/absl_check.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "google/protobuf/compiler/code_generator.h"
@@ -94,18 +97,16 @@ bool GenerateCode(const CodeGeneratorRequest& request,
                   CodeGeneratorResponse* response, std::string* error_msg) {
   DescriptorPool pool;
 
-  if (generator.GetSupportedFeatures() &
-      CodeGenerator::FEATURE_SUPPORTS_EDITIONS) {
-    // Initialize feature set default mapping.
-    absl::StatusOr<FeatureSetDefaults> defaults =
-        generator.BuildFeatureSetDefaults();
-    if (!defaults.ok()) {
-      *error_msg = absl::StrCat("error generating feature defaults: ",
-                                defaults.status().message());
-      return false;
-    }
-    pool.SetFeatureSetDefaults(*defaults);
+  // Initialize feature set default mapping.
+  absl::StatusOr<FeatureSetDefaults> defaults =
+      generator.BuildFeatureSetDefaults();
+  if (!defaults.ok()) {
+    *error_msg = absl::StrCat("error generating feature defaults: ",
+                              defaults.status().message());
+    return false;
   }
+  absl::Status status = pool.SetFeatureSetDefaults(std::move(defaults).value());
+  ABSL_CHECK(status.ok()) << status.message();
 
   for (int i = 0; i < request.proto_file_size(); i++) {
     const FileDescriptor* file = pool.BuildFile(request.proto_file(i));
@@ -136,6 +137,10 @@ bool GenerateCode(const CodeGeneratorRequest& request,
                                          &context, &error);
 
   response->set_supported_features(generator.GetSupportedFeatures());
+  response->set_minimum_edition(
+      static_cast<int>(generator.GetMinimumEdition()));
+  response->set_maximum_edition(
+      static_cast<int>(generator.GetMaximumEdition()));
 
   if (!succeeded && error.empty()) {
     error =

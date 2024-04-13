@@ -11,6 +11,10 @@
 
 #include "google/protobuf/compiler/java/doc_comment.h"
 
+#include <stddef.h>
+
+#include <algorithm>
+#include <cctype>
 #include <string>
 #include <vector>
 
@@ -142,14 +146,20 @@ static void WriteDocCommentBodyForLocation(io::Printer* printer,
       printer->Print(" * <pre>\n");
     }
 
-    for (int i = 0; i < lines.size(); i++) {
-      // Most lines should start with a space.  Watch out for lines that start
-      // with a /, since putting that right after the leading asterisk will
-      // close the comment.
-      if (!lines[i].empty() && lines[i][0] == '/') {
-        printer->Print(" * $line$\n", "line", lines[i]);
+    for (size_t i = 0; i < lines.size(); i++) {
+      // Lines should start with a single space and any extraneous leading
+      // spaces should be stripped. For lines starting with a /, the leading
+      // space will prevent putting it right after the leading asterick from
+      // closing the comment.
+      std::string line = lines[i];
+      line.erase(line.begin(),
+                 std::find_if(line.begin(), line.end(), [](unsigned char ch) {
+                   return !std::isspace(ch);
+                 }));
+      if (!line.empty()) {
+        printer->Print(" * $line$\n", "line", line);
       } else {
-        printer->Print(" *$line$\n", "line", lines[i]);
+        printer->Print(" *\n");
       }
     }
 
@@ -191,6 +201,9 @@ static std::string FirstLineOf(const std::string& value) {
 static void WriteDebugString(io::Printer* printer, const FieldDescriptor* field,
                              const Options options, const bool kdoc) {
   std::string field_comment = FirstLineOf(field->DebugString());
+  if (options.strip_nonfunctional_codegen) {
+    field_comment = field->name();
+  }
   if (kdoc) {
     printer->Print(" * `$def$`\n", "def", EscapeKdoc(field_comment));
   } else {
@@ -231,7 +244,8 @@ void WriteFieldDocComment(io::Printer* printer, const FieldDescriptor* field,
 }
 
 void WriteDeprecatedJavadoc(io::Printer* printer, const FieldDescriptor* field,
-                            const FieldAccessorType type) {
+                            const FieldAccessorType type,
+                            const Options options) {
   if (!field->options().deprecated()) {
     return;
   }
@@ -250,8 +264,10 @@ void WriteDeprecatedJavadoc(io::Printer* printer, const FieldDescriptor* field,
 
   printer->Print(" * @deprecated $name$ is deprecated.\n", "name",
                  field->full_name());
-  printer->Print(" *     See $file$;l=$line$\n", "file", field->file()->name(),
-                 "line", startLine);
+  if (!options.strip_nonfunctional_codegen) {
+    printer->Print(" *     See $file$;l=$line$\n", "file",
+                   field->file()->name(), "line", startLine);
+  }
 }
 
 void WriteFieldAccessorDocComment(io::Printer* printer,
@@ -262,7 +278,7 @@ void WriteFieldAccessorDocComment(io::Printer* printer,
   printer->Print("/**\n");
   WriteDocCommentBody(printer, field, kdoc);
   WriteDebugString(printer, field, options, kdoc);
-  if (!kdoc) WriteDeprecatedJavadoc(printer, field, type);
+  if (!kdoc) WriteDeprecatedJavadoc(printer, field, type, options);
   switch (type) {
     case HAZZER:
       printer->Print(" * @return Whether the $name$ field is set.\n", "name",
@@ -322,7 +338,7 @@ void WriteFieldEnumValueAccessorDocComment(io::Printer* printer,
   printer->Print("/**\n");
   WriteDocCommentBody(printer, field, kdoc);
   WriteDebugString(printer, field, options, kdoc);
-  if (!kdoc) WriteDeprecatedJavadoc(printer, field, type);
+  if (!kdoc) WriteDeprecatedJavadoc(printer, field, type, options);
   switch (type) {
     case HAZZER:
       // Should never happen
@@ -393,7 +409,7 @@ void WriteFieldStringBytesAccessorDocComment(io::Printer* printer,
   printer->Print("/**\n");
   WriteDocCommentBody(printer, field, kdoc);
   WriteDebugString(printer, field, options, kdoc);
-  if (!kdoc) WriteDeprecatedJavadoc(printer, field, type);
+  if (!kdoc) WriteDeprecatedJavadoc(printer, field, type, options);
   switch (type) {
     case HAZZER:
       // Should never happen
