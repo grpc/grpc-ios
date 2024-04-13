@@ -29,7 +29,7 @@ Pod::Spec.new do |s|
   s.authors  = { 'The gRPC contributors' => 'grpc-packages@google.com' }
 
   s.source = {
-    :git => 'https://github.com/grpc/grpc.git',
+    :git => 'https://github.com/grpc/grpc-ios.git',
     :tag => "v#{version}",
   }
 
