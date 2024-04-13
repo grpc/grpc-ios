@@ -11,16 +11,18 @@
 
 #include "google/protobuf/compiler/command_line_interface.h"
 
+#include <cstdint>
 #include <cstdlib>
 
 #include "absl/algorithm/container.h"
 #include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
 #include "google/protobuf/compiler/allowlists/allowlists.h"
-#include "google/protobuf/descriptor_legacy.h"
+#include "google/protobuf/compiler/versions.h"
 #include "google/protobuf/descriptor_visitor.h"
 #include "google/protobuf/feature_resolver.h"
 
@@ -294,28 +296,6 @@ bool GetBootstrapParam(const std::string& parameter) {
   return false;
 }
 
-
-bool EnforceEditionsSupport(
-    const std::string& codegen_name, uint64_t supported_features,
-    const std::vector<const FileDescriptor*>& parsed_files) {
-  if ((supported_features & CodeGenerator::FEATURE_SUPPORTS_EDITIONS) == 0) {
-    for (const auto fd : parsed_files) {
-      if (FileDescriptorLegacy(fd).syntax() ==
-          FileDescriptorLegacy::SYNTAX_EDITIONS) {
-        std::cerr
-            << fd->name() << ": is an editions file, but code generator "
-            << codegen_name
-            << " hasn't been updated to support editions yet.  Please ask "
-               "the owner of this code generator to add support or "
-               "switch back to proto2/proto3.\n\nSee "
-               "https://protobuf.dev/editions/overview/ for more information."
-            << std::endl;
-        return false;
-      }
-    }
-  }
-  return true;
-}
 
 }  // namespace
 
@@ -999,7 +979,8 @@ namespace {
 
 bool ContainsProto3Optional(const Descriptor* desc) {
   for (int i = 0; i < desc->field_count(); i++) {
-    if (FieldDescriptorLegacy(desc->field(i)).has_optional_keyword()) {
+    if (desc->field(i)->real_containing_oneof() == nullptr &&
+        desc->field(i)->containing_oneof() != nullptr) {
       return true;
     }
   }
@@ -1011,9 +992,8 @@ bool ContainsProto3Optional(const Descriptor* desc) {
   return false;
 }
 
-bool ContainsProto3Optional(const FileDescriptor* file) {
-  if (FileDescriptorLegacy(file).syntax() ==
-      FileDescriptorLegacy::Syntax::SYNTAX_PROTO3) {
+bool ContainsProto3Optional(Edition edition, const FileDescriptor* file) {
+  if (edition == Edition::EDITION_PROTO3) {
     for (int i = 0; i < file->message_type_count(); i++) {
       if (ContainsProto3Optional(file->message_type(i))) {
         return true;
@@ -1538,24 +1518,26 @@ bool CommandLineInterface::SetupFeatureResolution(DescriptorPool& pool) {
   for (const auto& output : output_directives_) {
     if (output.generator == nullptr) continue;
     if ((output.generator->GetSupportedFeatures() &
-         CodeGenerator::FEATURE_SUPPORTS_EDITIONS) == 0) {
-      continue;
-    }
-    if (output.generator->GetMinimumEdition() != PROTOBUF_MINIMUM_EDITION) {
-      ABSL_LOG(ERROR) << "Built-in generator " << output.name
-                      << " specifies a minimum edition "
-                      << output.generator->GetMinimumEdition()
-                      << " which is not the protoc minimum "
-                      << PROTOBUF_MINIMUM_EDITION << ".";
-      return false;
-    }
-    if (output.generator->GetMaximumEdition() != PROTOBUF_MAXIMUM_EDITION) {
-      ABSL_LOG(ERROR) << "Built-in generator " << output.name
-                      << " specifies a maximum edition "
-                      << output.generator->GetMaximumEdition()
-                      << " which is not the protoc maximum "
-                      << PROTOBUF_MAXIMUM_EDITION << ".";
-      return false;
+         CodeGenerator::FEATURE_SUPPORTS_EDITIONS) != 0) {
+      // Only validate min/max edition on generators that advertise editions
+      // support.  Generators still under development will always use the
+      // correct values.
+      if (output.generator->GetMinimumEdition() != minimum_edition) {
+        ABSL_LOG(ERROR) << "Built-in generator " << output.name
+                        << " specifies a minimum edition "
+                        << output.generator->GetMinimumEdition()
+                        << " which is not the protoc minimum "
+                        << minimum_edition << ".";
+        return false;
+      }
+      if (output.generator->GetMaximumEdition() != maximum_edition) {
+        ABSL_LOG(ERROR) << "Built-in generator " << output.name
+                        << " specifies a maximum edition "
+                        << output.generator->GetMaximumEdition()
+                        << " which is not the protoc maximum "
+                        << maximum_edition << ".";
+        return false;
+      }
     }
     for (const FieldDescriptor* ext :
          output.generator->GetFeatureExtensions()) {
@@ -1575,7 +1557,8 @@ bool CommandLineInterface::SetupFeatureResolution(DescriptorPool& pool) {
     ABSL_LOG(ERROR) << defaults.status();
     return false;
   }
-  pool.SetFeatureSetDefaults(std::move(defaults).value());
+  absl::Status status = pool.SetFeatureSetDefaults(std::move(defaults).value());
+  ABSL_CHECK(status.ok()) << status.message();
   return true;
 }
 
@@ -1615,9 +1598,11 @@ bool CommandLineInterface::ParseInputFiles(
     }
     parsed_files->push_back(parsed_file);
 
-    if (!experimental_editions_ && !IsEarlyEditionsFile(parsed_file->name())) {
-      if (FileDescriptorLegacy(parsed_file).syntax() ==
-          FileDescriptorLegacy::Syntax::SYNTAX_EDITIONS) {
+    if (!experimental_editions_ &&
+        !absl::StartsWith(parsed_file->name(), "google/protobuf/") &&
+        !absl::StartsWith(parsed_file->name(), "upb/")) {
+      if (::google::protobuf::internal::InternalFeatureHelper::GetEdition(*parsed_file) >=
+          Edition::EDITION_2023) {
         std::cerr
             << parsed_file->name()
             << ": This file uses editions, but --experimental_editions has not "
@@ -1781,10 +1766,23 @@ bool CommandLineInterface::MakeInputsBeProtoPathRelative(
 
 
 bool CommandLineInterface::ExpandArgumentFile(
-    const std::string& file, std::vector<std::string>* arguments) {
+    const char* file, std::vector<std::string>* arguments) {
+// On windows to force ifstream to handle proper utr-8, we need to convert to
+// proper supported utf8 wstring. If we dont then the file can't be opened.
+#ifdef _MSC_VER
+  // Convert the file name to wide chars.
+  int size = MultiByteToWideChar(CP_UTF8, 0, file, strlen(file), NULL, 0);
+  std::wstring file_str;
+  file_str.resize(size);
+  MultiByteToWideChar(CP_UTF8, 0, file, strlen(file), &file_str[0],
+                      file_str.size());
+#else
+  std::string file_str(file);
+#endif
+
   // The argument file is searched in the working directory only. We don't
   // use the proto import path here.
-  std::ifstream file_stream(file.c_str());
+  std::ifstream file_stream(file_str.c_str());
   if (!file_stream.is_open()) {
     return false;
   }
@@ -1899,7 +1897,7 @@ CommandLineInterface::ParseArgumentStatus CommandLineInterface::ParseArguments(
         break;  // only for --decode_raw
       }
       // --decode (not raw) is handled the same way as the rest of the modes.
-      PROTOBUF_FALLTHROUGH_INTENDED;
+      ABSL_FALLTHROUGH_INTENDED;
     case MODE_ENCODE:
     case MODE_PRINT:
       missing_proto_definitions =
@@ -2211,7 +2209,9 @@ CommandLineInterface::InterpretArgument(const std::string& name,
     if (!version_info_.empty()) {
       std::cout << version_info_ << std::endl;
     }
-    std::cout << "libprotoc " << internal::ProtocVersionString(PROTOBUF_VERSION)
+    std::cout << "libprotoc "
+              << ::google::protobuf::internal::ProtocVersionString(
+                     PROTOBUF_VERSION)
               << PROTOBUF_VERSION_SUFFIX << std::endl;
     return PARSE_ARGUMENT_DONE_AND_EXIT;  // Exit without running compiler.
 
@@ -2548,7 +2548,8 @@ bool CommandLineInterface::EnforceProto3OptionalSupport(
       supported_features & CodeGenerator::FEATURE_PROTO3_OPTIONAL;
   if (!supports_proto3_optional) {
     for (const auto fd : parsed_files) {
-      if (ContainsProto3Optional(fd)) {
+      if (ContainsProto3Optional(
+              ::google::protobuf::internal::InternalFeatureHelper::GetEdition(*fd), fd)) {
         std::cerr << fd->name()
                   << ": is a proto3 file that contains optional fields, but "
                      "code generator "
@@ -2559,6 +2560,54 @@ bool CommandLineInterface::EnforceProto3OptionalSupport(
                   << std::endl;
         return false;
       }
+    }
+  }
+  return true;
+}
+
+bool CommandLineInterface::EnforceEditionsSupport(
+    const std::string& codegen_name, uint64_t supported_features,
+    Edition minimum_edition, Edition maximum_edition,
+    const std::vector<const FileDescriptor*>& parsed_files) const {
+  if (experimental_editions_) {
+    // The user has explicitly specified the experimental flag.
+    return true;
+  }
+  for (const auto* fd : parsed_files) {
+    Edition edition =
+        ::google::protobuf::internal::InternalFeatureHelper::GetEdition(*fd);
+    if (edition < Edition::EDITION_2023) {
+      // Legacy proto2/proto3 files don't need any checks.
+      continue;
+    }
+
+    if (absl::StartsWith(fd->name(), "google/protobuf/") ||
+        absl::StartsWith(fd->name(), "upb/")) {
+      continue;
+    }
+    if ((supported_features & CodeGenerator::FEATURE_SUPPORTS_EDITIONS) == 0) {
+      std::cerr << absl::Substitute(
+          "$0: is an editions file, but code generator $1 hasn't been "
+          "updated to support editions yet.  Please ask the owner of this code "
+          "generator to add support or switch back to proto2/proto3.\n\nSee "
+          "https://protobuf.dev/editions/overview/ for more information.",
+          fd->name(), codegen_name);
+      return false;
+    }
+    if (edition < minimum_edition) {
+      std::cerr << absl::Substitute(
+          "$0: is a file using edition $2, which isn't supported by code "
+          "generator $1.  Please upgrade your file to at least edition $3.",
+          fd->name(), codegen_name, edition, minimum_edition);
+      return false;
+    }
+    if (edition > maximum_edition) {
+      std::cerr << absl::Substitute(
+          "$0: is a file using edition $2, which isn't supported by code "
+          "generator $1.  Please ask the owner of this code generator to add "
+          "support or switch back to a maximum of edition $3.",
+          fd->name(), codegen_name, edition, maximum_edition);
+      return false;
     }
   }
   return true;
@@ -2606,8 +2655,18 @@ bool CommandLineInterface::GenerateOutput(
 
     if (!EnforceEditionsSupport(
             output_directive.name,
-            output_directive.generator->GetSupportedFeatures(), parsed_files)) {
+            output_directive.generator->GetSupportedFeatures(),
+            output_directive.generator->GetMinimumEdition(),
+            output_directive.generator->GetMaximumEdition(), parsed_files)) {
       return false;
+    }
+
+    // TODO: Remove once Java lite supports editions.
+    if (output_directive.name == "--java_out" && experimental_editions_) {
+      if (!parameters.empty()) {
+        parameters.append(",");
+      }
+      parameters.append("experimental_editions");
     }
 
     if (!output_directive.generator->GenerateAll(parsed_files, parameters,
@@ -2810,11 +2869,15 @@ bool CommandLineInterface::GeneratePluginOutput(
     // Generator returned an error.
     *error = response.error();
     return false;
-  } else if (!EnforceProto3OptionalSupport(
-                 plugin_name, response.supported_features(), parsed_files)) {
+  }
+  if (!EnforceProto3OptionalSupport(plugin_name, response.supported_features(),
+                                    parsed_files)) {
     return false;
-  } else if (!EnforceEditionsSupport(plugin_name, response.supported_features(),
-                                     parsed_files)) {
+  }
+  if (!EnforceEditionsSupport(plugin_name, response.supported_features(),
+                              static_cast<Edition>(response.minimum_edition()),
+                              static_cast<Edition>(response.maximum_edition()),
+                              parsed_files)) {
     return false;
   }
 

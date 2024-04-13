@@ -16,12 +16,12 @@
 //
 //
 
-#include <grpc/support/port_platform.h>
-
 #include "src/core/lib/address_utils/sockaddr_utils.h"
 
 #include <errno.h>
 #include <inttypes.h>
+
+#include <grpc/support/port_platform.h>
 #ifdef GRPC_HAVE_VSOCK
 #include <linux/vm_sockets.h>
 #endif
@@ -44,8 +44,15 @@
 #include "src/core/lib/uri/uri_parser.h"
 
 #ifdef GRPC_HAVE_UNIX_SOCKET
+#ifdef GPR_WINDOWS
+// clang-format off
+#include <ws2def.h>
+#include <afunix.h>
+// clang-format on
+#else
 #include <sys/un.h>
-#endif
+#endif  // GPR_WINDOWS
+#endif  // GRPC_HAVE_UNIX_SOCKET
 
 #ifdef GRPC_HAVE_UNIX_SOCKET
 static absl::StatusOr<std::string> grpc_sockaddr_to_uri_unix_if_possible(

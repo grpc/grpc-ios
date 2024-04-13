@@ -1354,16 +1354,14 @@ TEST_F(CommandLineInterfaceTest, AllowServicesHasService) {
   ExpectGenerated("test_generator", "", "foo.proto", "Foo");
 }
 
-TEST_F(CommandLineInterfaceTest, EditionsAreNotAllowed) {
+TEST_F(CommandLineInterfaceTest, NonExperimentalEditions) {
   CreateTempFile("foo.proto",
                  "edition = \"2023\";\n"
                  "message FooRequest {}\n");
 
   Run("protocol_compiler --proto_path=$tmpdir --test_out=$tmpdir foo.proto");
 
-  ExpectErrorSubstring(
-      "This file uses editions, but --experimental_editions has not been "
-      "enabled.");
+  ExpectErrorSubstring("--experimental_editions has not been enabled");
 }
 
 TEST_F(CommandLineInterfaceTest, EditionsFlagExplicitTrue) {
@@ -1530,6 +1528,74 @@ TEST_F(CommandLineInterfaceTest, Plugin_InvalidFeatureExtensionError) {
   ExpectErrorSubstring(
       "error generating feature defaults: Unknown extension of "
       "google.protobuf.FeatureSet");
+}
+
+TEST_F(CommandLineInterfaceTest, Plugin_DeprecatedEdition) {
+  CreateTempFile("foo.proto", R"schema(
+    edition = "2023";
+    message Foo {
+      int32 i = 1;
+    }
+  )schema");
+
+  SetMockGeneratorTestCase("high_minimum");
+  Run("protocol_compiler "
+      "--proto_path=$tmpdir foo.proto --plug_out=$tmpdir");
+
+  ExpectErrorSubstring(
+      "foo.proto: This file uses editions, but --experimental_editions has not "
+      "been enabled. This syntax is experimental and should be avoided.");
+}
+
+TEST_F(CommandLineInterfaceTest, Plugin_FutureEdition) {
+  CreateTempFile("foo.proto", R"schema(
+    edition = "2023";
+    message Foo {
+      int32 i = 1;
+    }
+  )schema");
+
+  SetMockGeneratorTestCase("low_maximum");
+  Run("protocol_compiler "
+      "--proto_path=$tmpdir foo.proto --plug_out=$tmpdir");
+
+  ExpectErrorSubstring(
+      "foo.proto: This file uses editions, but --experimental_editions has not "
+      "been enabled. This syntax is experimental and should be avoided.");
+}
+
+TEST_F(CommandLineInterfaceTest, Plugin_VersionSkewFuture) {
+  CreateTempFile("foo.proto", R"schema(
+    edition = "99997_TEST_ONLY";
+    message Foo {
+      int32 i = 1;
+    }
+  )schema");
+
+  SetMockGeneratorTestCase("high_maximum");
+  Run("protocol_compiler "
+      "--proto_path=$tmpdir foo.proto --plug_out=$tmpdir");
+
+  ExpectErrorSubstring(
+      "foo.proto:2:5: Edition 99997_TEST_ONLY is later than the maximum "
+      "supported edition 2023");
+}
+
+TEST_F(CommandLineInterfaceTest, Plugin_VersionSkewPast) {
+  CreateTempFile("foo.proto", R"schema(
+    edition = "1_TEST_ONLY";
+    message Foo {
+      int32 i = 1;
+    }
+  )schema");
+
+  SetMockGeneratorTestCase("low_minimum");
+  Run("protocol_compiler "
+      "--proto_path=$tmpdir foo.proto --plug_out=$tmpdir");
+
+  ExpectErrorSubstring(
+      "foo.proto:2:5: Edition 1_TEST_ONLY is earlier than the minimum "
+      "supported edition PROTO2");
 }
 
 TEST_F(CommandLineInterfaceTest, Plugin_MissingFeatureExtensionError) {
@@ -1713,12 +1779,10 @@ TEST_F(CommandLineInterfaceTest, GeneratorNoEditionsSupport) {
                                      "Doesn't support editions",
                                      CodeGenerator::FEATURE_SUPPORTS_EDITIONS);
 
-  Run("protocol_compiler --experimental_editions "
+  Run("protocol_compiler "
       "--proto_path=$tmpdir foo.proto --no_editions_out=$tmpdir");
 
-  ExpectErrorSubstring(
-      "code generator --no_editions_out hasn't been updated to support "
-      "editions");
+  ExpectErrorSubstring("--experimental_editions has not been enabled");
 }
 
 TEST_F(CommandLineInterfaceTest, PluginNoEditionsSupport) {
@@ -1730,11 +1794,10 @@ TEST_F(CommandLineInterfaceTest, PluginNoEditionsSupport) {
   )schema");
 
   SetMockGeneratorTestCase("no_editions");
-  Run("protocol_compiler --experimental_editions "
+  Run("protocol_compiler "
       "--proto_path=$tmpdir foo.proto --plug_out=$tmpdir");
 
-  ExpectErrorSubstring(
-      "code generator prefix-gen-plug hasn't been updated to support editions");
+  ExpectErrorSubstring("--experimental_editions has not been enabled");
 }
 
 TEST_F(CommandLineInterfaceTest, EditionDefaults) {

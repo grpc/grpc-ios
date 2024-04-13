@@ -222,6 +222,11 @@ class PROTOC_EXPORT CommandLineInterface {
       const std::string& codegen_name, uint64_t supported_features,
       const std::vector<const FileDescriptor*>& parsed_files) const;
 
+  bool EnforceEditionsSupport(
+      const std::string& codegen_name, uint64_t supported_features,
+      Edition minimum_edition, Edition maximum_edition,
+      const std::vector<const FileDescriptor*>& parsed_files) const;
+
 
   // Return status for ParseArguments() and InterpretArgument().
   enum ParseArgumentStatus {
@@ -235,7 +240,7 @@ class PROTOC_EXPORT CommandLineInterface {
 
   // Read an argument file and append the file's content to the list of
   // arguments. Return false if the file cannot be read.
-  bool ExpandArgumentFile(const std::string& file,
+  bool ExpandArgumentFile(const char* file,
                           std::vector<std::string>* arguments);
 
   // Parses a command-line argument into a name/value pair.  Returns

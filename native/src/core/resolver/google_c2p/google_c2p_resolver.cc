@@ -59,7 +59,7 @@ namespace {
 
 const char* kC2PAuthority = "traffic-director-c2p.xds.googleapis.com";
 
-class GoogleCloud2ProdResolver : public Resolver {
+class GoogleCloud2ProdResolver final : public Resolver {
  public:
   explicit GoogleCloud2ProdResolver(ResolverArgs args);
 
@@ -173,7 +173,11 @@ void GoogleCloud2ProdResolver::StartLocked() {
           absl::StatusOr<std::string> result) mutable {
         resolver->work_serializer_->Run(
             [resolver, result = std::move(result)]() {
-              resolver->IPv6QueryDone(result.ok());
+              // Check that the payload is non-empty in order to work around
+              // the fact that there are buggy implementations of metadata
+              // servers in the wild, which can in some cases return 200
+              // plus an empty result when they should have returned 404.
+              resolver->IPv6QueryDone(result.ok() && !result->empty());
             },
             DEBUG_LOCATION);
       },
@@ -272,7 +276,7 @@ void GoogleCloud2ProdResolver::StartXdsResolver() {
 // Factory
 //
 
-class GoogleCloud2ProdResolverFactory : public ResolverFactory {
+class GoogleCloud2ProdResolverFactory final : public ResolverFactory {
  public:
   absl::string_view scheme() const override { return "google-c2p"; }
 
@@ -292,7 +296,8 @@ class GoogleCloud2ProdResolverFactory : public ResolverFactory {
 
 // TODO(apolcyn): remove this class after user code has updated to the
 // stable "google-c2p" URI scheme.
-class ExperimentalGoogleCloud2ProdResolverFactory : public ResolverFactory {
+class ExperimentalGoogleCloud2ProdResolverFactory final
+    : public ResolverFactory {
  public:
   absl::string_view scheme() const override {
     return "google-c2p-experimental";

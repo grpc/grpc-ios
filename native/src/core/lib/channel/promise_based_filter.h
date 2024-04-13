@@ -19,8 +19,6 @@
 // promise-style. Most of this will be removed once the promises conversion is
 // completed.
 
-#include <grpc/support/port_platform.h>
-
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -41,14 +39,15 @@
 #include <grpc/event_engine/event_engine.h>
 #include <grpc/grpc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/call_finalization.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/channel_fwd.h"
 #include "src/core/lib/channel/channel_stack.h"
 #include "src/core/lib/channel/context.h"
-#include "src/core/lib/event_engine/default_event_engine.h"  // IWYU pragma: keep
-#include "src/core/lib/gprpp/crash.h"
+#include "src/core/lib/event_engine/default_event_engine.h"
+#include "src/core/lib/event_engine/event_engine_context.h"  // IWYU pragma: keep
 #include "src/core/lib/gprpp/debug_location.h"
 #include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/iomgr/call_combiner.h"
@@ -74,6 +73,12 @@
 
 namespace grpc_core {
 
+// HACK: If a filter has this type as a base class it will be skipped in
+// v3 filter stacks. This is a temporary measure to allow the v3 filter stack
+// to be bought up whilst some tests inadvertently rely on hard to convert
+// filters.
+class HackyHackyHackySkipInV3FilterStacks {};
+
 class ChannelFilter {
  public:
   class Args {
@@ -83,9 +88,19 @@ class ChannelFilter {
                   grpc_channel_element* channel_element)
         : channel_stack_(channel_stack), channel_element_(channel_element) {}
 
+    ABSL_DEPRECATED("Direct access to channel stack is deprecated")
     grpc_channel_stack* channel_stack() const { return channel_stack_; }
-    grpc_channel_element* uninitialized_channel_element() {
-      return channel_element_;
+
+    // Get the instance id of this filter.
+    // This id is unique amongst all filters /of the same type/ and densely
+    // packed (starting at 0) for a given channel stack instantiation.
+    // eg. for a stack with filter types A B C A B D A the instance ids would be
+    // 0 0 0 1 1 0 2.
+    // This is useful for filters that need to store per-instance data in a
+    // parallel data structure.
+    size_t instance_id() const {
+      return grpc_channel_stack_filter_instance_number(channel_stack_,
+                                                       channel_element_);
     }
 
    private:
@@ -1059,8 +1074,10 @@ MakeFilterCall(Derived* derived) {
 //   the filter does not intercept call finalization.
 // - void OnFinalize(const grpc_call_final_info*):
 //   the filter intercepts call finalization.
+class ImplementChannelFilterTag {};
 template <typename Derived>
-class ImplementChannelFilter : public ChannelFilter {
+class ImplementChannelFilter : public ChannelFilter,
+                               public ImplementChannelFilterTag {
  public:
   // Natively construct a v3 call.
   void InitCall(CallSpineInterface* call_spine) {
@@ -1906,9 +1923,11 @@ struct ChannelFilterWithFlagsMethods {
 //       ChannelArgs channel_args, ChannelFilter::Args filter_args);
 // };
 template <typename F, FilterEndpoint kEndpoint, uint8_t kFlags = 0>
-absl::enable_if_t<std::is_base_of<ChannelFilter, F>::value &&
-                      !std::is_base_of<ImplementChannelFilter<F>, F>::value,
-                  grpc_channel_filter>
+absl::enable_if_t<
+    std::is_base_of<ChannelFilter, F>::value &&
+        !std::is_base_of<ImplementChannelFilterTag, F>::value &&
+        !std::is_base_of<HackyHackyHackySkipInV3FilterStacks, F>::value,
+    grpc_channel_filter>
 MakePromiseBasedFilter(const char* name) {
   using CallData = promise_filter_detail::CallData<kEndpoint>;
 
@@ -1947,7 +1966,53 @@ MakePromiseBasedFilter(const char* name) {
 }
 
 template <typename F, FilterEndpoint kEndpoint, uint8_t kFlags = 0>
-absl::enable_if_t<std::is_base_of<ImplementChannelFilter<F>, F>::value,
+absl::enable_if_t<
+    std::is_base_of<HackyHackyHackySkipInV3FilterStacks, F>::value,
+    grpc_channel_filter>
+MakePromiseBasedFilter(const char* name) {
+  using CallData = promise_filter_detail::CallData<kEndpoint>;
+
+  return grpc_channel_filter{
+      // start_transport_stream_op_batch
+      promise_filter_detail::BaseCallDataMethods::StartTransportStreamOpBatch,
+      // make_call_promise
+      promise_filter_detail::ChannelFilterMethods::MakeCallPromise,
+      [](grpc_channel_element* elem, CallSpineInterface*) {
+        GRPC_LOG_EVERY_N_SEC(
+            1, GPR_ERROR,
+            "gRPC V3 call stack in use, with a filter ('%s') that is not V3.",
+            elem->filter->name);
+      },
+      // start_transport_op
+      promise_filter_detail::ChannelFilterMethods::StartTransportOp,
+      // sizeof_call_data
+      sizeof(CallData),
+      // init_call_elem
+      promise_filter_detail::CallDataFilterWithFlagsMethods<
+          CallData, kFlags>::InitCallElem,
+      // set_pollset_or_pollset_set
+      promise_filter_detail::BaseCallDataMethods::SetPollsetOrPollsetSet,
+      // destroy_call_elem
+      promise_filter_detail::CallDataFilterWithFlagsMethods<
+          CallData, kFlags>::DestroyCallElem,
+      // sizeof_channel_data
+      sizeof(F),
+      // init_channel_elem
+      promise_filter_detail::ChannelFilterWithFlagsMethods<
+          F, kFlags>::InitChannelElem,
+      // post_init_channel_elem
+      promise_filter_detail::ChannelFilterMethods::PostInitChannelElem,
+      // destroy_channel_elem
+      promise_filter_detail::ChannelFilterMethods::DestroyChannelElem,
+      // get_channel_info
+      promise_filter_detail::ChannelFilterMethods::GetChannelInfo,
+      // name
+      name,
+  };
+}
+
+template <typename F, FilterEndpoint kEndpoint, uint8_t kFlags = 0>
+absl::enable_if_t<std::is_base_of<ImplementChannelFilterTag, F>::value,
                   grpc_channel_filter>
 MakePromiseBasedFilter(const char* name) {
   using CallData = promise_filter_detail::CallData<kEndpoint>;

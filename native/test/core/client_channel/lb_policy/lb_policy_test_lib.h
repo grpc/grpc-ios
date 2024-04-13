@@ -17,8 +17,6 @@
 #ifndef GRPC_TEST_CORE_CLIENT_CHANNEL_LB_POLICY_LB_POLICY_TEST_LIB_H
 #define GRPC_TEST_CORE_CLIENT_CHANNEL_LB_POLICY_LB_POLICY_TEST_LIB_H
 
-#include <grpc/support/port_platform.h>
-
 #include <inttypes.h>
 #include <stddef.h>
 
@@ -53,6 +51,7 @@
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/port_platform.h>
 
 #include "src/core/client_channel/client_channel_internal.h"
 #include "src/core/client_channel/subchannel_interface_internal.h"
@@ -402,6 +401,8 @@ class LoadBalancingPolicyTest : public ::testing::Test {
       return test_->work_serializer_;
     }
 
+    ConnectivityStateTracker& state_tracker() { return state_tracker_; }
+
    private:
     const std::string address_;
     LoadBalancingPolicyTest* const test_;
@@ -508,7 +509,7 @@ class LoadBalancingPolicyTest : public ::testing::Test {
                 picker_.get());
       }
 
-      void Orphan() override {
+      void Orphaned() override {
         absl::Notification notification;
         ExecCtx exec_ctx;
         test_->work_serializer_->Run(
@@ -587,7 +588,9 @@ class LoadBalancingPolicyTest : public ::testing::Test {
       queue_.push_back(ReresolutionRequested());
     }
 
-    absl::string_view GetAuthority() override { return "server.example.com"; }
+    absl::string_view GetTarget() override { return test_->target_; }
+
+    absl::string_view GetAuthority() override { return test_->authority_; }
 
     RefCountedPtr<grpc_channel_credentials> GetChannelCredentials() override {
       return nullptr;
@@ -600,6 +603,11 @@ class LoadBalancingPolicyTest : public ::testing::Test {
 
     grpc_event_engine::experimental::EventEngine* GetEventEngine() override {
       return test_->fuzzing_ee_.get();
+    }
+
+    GlobalStatsPluginRegistry::StatsPluginGroup& GetStatsPluginGroup()
+        override {
+      return test_->stats_plugin_group_;
     }
 
     void AddTraceEvent(TraceSeverity, absl::string_view) override {}
@@ -698,8 +706,10 @@ class LoadBalancingPolicyTest : public ::testing::Test {
     const absl::optional<BackendMetricData> backend_metric_data_;
   };
 
-  explicit LoadBalancingPolicyTest(absl::string_view lb_policy_name)
-      : lb_policy_name_(lb_policy_name) {}
+  explicit LoadBalancingPolicyTest(absl::string_view lb_policy_name,
+                                   ChannelArgs channel_args = ChannelArgs())
+      : lb_policy_name_(lb_policy_name),
+        channel_args_(std::move(channel_args)) {}
 
   void SetUp() override {
     // Order is important here: Fuzzing EE needs to be created before
@@ -715,7 +725,7 @@ class LoadBalancingPolicyTest : public ::testing::Test {
     auto helper = std::make_unique<FakeHelper>(this);
     helper_ = helper.get();
     LoadBalancingPolicy::Args args = {work_serializer_, std::move(helper),
-                                      ChannelArgs()};
+                                      channel_args_};
     lb_policy_ =
         CoreConfiguration::Get().lb_policy_registry().CreateLoadBalancingPolicy(
             lb_policy_name_, std::move(args));
@@ -1491,6 +1501,10 @@ class LoadBalancingPolicyTest : public ::testing::Test {
   std::map<SubchannelKey, SubchannelState> subchannel_pool_;
   OrphanablePtr<LoadBalancingPolicy> lb_policy_;
   const absl::string_view lb_policy_name_;
+  const ChannelArgs channel_args_;
+  GlobalStatsPluginRegistry::StatsPluginGroup stats_plugin_group_;
+  std::string target_ = "dns:server.example.com";
+  std::string authority_ = "server.example.com";
 };
 
 }  // namespace testing

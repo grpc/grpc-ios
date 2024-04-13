@@ -1,9 +1,9 @@
-load("@rules_pkg//:pkg.bzl", "pkg_zip")
 load(
     "@rules_pkg//:mappings.bzl",
     "pkg_attributes",
     "pkg_files",
 )
+load("@rules_pkg//:pkg.bzl", "pkg_zip")
 load("//:protobuf_release.bzl", "package_naming")
 load(":build_systems.bzl", "gen_file_lists")
 load(":cc_dist_library.bzl", "cc_dist_library")
@@ -16,6 +16,8 @@ pkg_files(
     name = "wkt_protos_files",
     srcs = [
         "//:well_known_type_protos",
+        "//java/core:java_features_proto_srcs",
+        "//src/google/protobuf:cpp_features_proto_srcs",
         "//src/google/protobuf:descriptor_proto_srcs",
     ],
     prefix = "include/google/protobuf",
@@ -163,9 +165,9 @@ cc_dist_library(
     }),
     tags = ["manual"],
     deps = [
+        "//src/google/protobuf",
         "//src/google/protobuf:arena_align",
         "//src/google/protobuf:cmake_wkt_cc_proto",
-        "//src/google/protobuf:protobuf_nowkt",
         "//src/google/protobuf/compiler:importer",
         "//src/google/protobuf/json",
         "//src/google/protobuf/util:delimited_message_util",
@@ -173,7 +175,7 @@ cc_dist_library(
         "//src/google/protobuf/util:field_mask_util",
         "//src/google/protobuf/util:json_util",
         "//src/google/protobuf/util:time_util",
-        "//src/google/protobuf/util:type_resolver_util",
+        "//src/google/protobuf/util:type_resolver",
     ],
 )
 
@@ -220,6 +222,7 @@ cc_dist_library(
         "//src/google/protobuf:lite_test_util",
         "//src/google/protobuf:test_util",
         "//src/google/protobuf:test_util2",
+        "//src/google/protobuf:unredacted_debug_format_for_test",
         "//src/google/protobuf/compiler:annotation_test_util",
         "//src/google/protobuf/compiler/cpp:unittest_lib",
         "//src/google/protobuf/io:test_zero_copy_stream",
@@ -236,10 +239,12 @@ cc_dist_library(
     ],
     tags = ["manual"],
     deps = [
+        "//src/google/protobuf:descriptor_legacy",
         "//src/google/protobuf:internal_visibility_for_testing",
         "//src/google/protobuf:test_textproto",
         "//src/google/protobuf/compiler:command_line_interface_tester",
         "//src/google/protobuf/compiler:mock_code_generator",
         "//src/google/protobuf/testing",
+        "//src/google/protobuf/testing:file",
     ],
 )
