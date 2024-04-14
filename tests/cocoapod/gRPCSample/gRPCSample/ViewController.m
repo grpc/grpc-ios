@@ -18,6 +18,8 @@
 
 #import "ViewController.h"
 
+#include "grpc/grpc.h"
+
 @interface ViewController ()
 
 @end
