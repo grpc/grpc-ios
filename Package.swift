@@ -3,7 +3,7 @@
 import PackageDescription
 import Foundation
 
-var basePath = FileManager.default.fileExists(atPath: "native") ? "native" : "."
+var basePath = "."
 
 let package = Package(
   name: "gRPC",
@@ -39,6 +39,7 @@ let package = Package(
       exclude: [
         "examples/",
         "src/objective-c/",
+        "tests",
       ],
     
       sources: [
@@ -2135,8 +2136,6 @@ let package = Package(
         "third_party/upb/upb/mini_table/message.h",
         "third_party/upb/upb/mini_table/sub.h",
         "third_party/upb/upb/port/atomic.h",
-        "third_party/upb/upb/port/def.inc",
-        "third_party/upb/upb/port/undef.inc",
         "third_party/upb/upb/port/vsnprintf_compat.h",
         "third_party/upb/upb/reflection/common.h",
         "third_party/upb/upb/reflection/def.h",
@@ -2255,6 +2254,8 @@ let package = Package(
         "src/objective-c/examples/",
         "src/objective-c/manual_tests/",
         "src/objective-c/tests/",
+        "src/cpp/README.md",
+        "tests",
       ],
       sources: [
         "src/cpp/",
