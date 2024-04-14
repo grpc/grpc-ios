@@ -3,7 +3,7 @@ platform :ios, '10.0'
 
 install! 'cocoapods', :deterministic_uuids => false
 
-GRPC_PODSPEC_ROOT = '../../../native'
+GRPC_PODSPEC_ROOT = '../../..'
 
 target 'gRPCSample' do
   pod 'gRPC-ProtoRPC',  :path => GRPC_PODSPEC_ROOT
