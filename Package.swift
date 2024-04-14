@@ -7,6 +7,7 @@ var basePath = FileManager.default.fileExists(atPath: "native") ? "native" : "."
 
 let package = Package(
   name: "gRPC",
+  defaultLocalization: "en",
   products: [
     .library(
       name: "gRPC-Core",
