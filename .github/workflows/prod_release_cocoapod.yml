@@ -21,7 +21,7 @@ jobs:
         run: scripts/prepare_env.sh
 
       - name: Pod release
-        run: scripts/release_cocoapod.sh native/gRPC-Core.podspec
+        run: scripts/release_cocoapod.sh gRPC-Core.podspec
 
       - name: Wait for pod avaialble
         run: |
@@ -40,7 +40,7 @@ jobs:
         run: scripts/prepare_env.sh
 
       - name: Pod release
-        run: scripts/release_cocoapod.sh native/gRPC-C++.podspec
+        run: scripts/release_cocoapod.sh gRPC-C++.podspec
 
       - name: Wait for pod avaialble
         run: |
@@ -58,7 +58,7 @@ jobs:
         run: scripts/prepare_env.sh
 
       - name: Pod release
-        run: scripts/release_cocoapod.sh native/gRPC-RxLibrary.podspec
+        run: scripts/release_cocoapod.sh gRPC-RxLibrary.podspec
 
       - name: Wait for pod avaialble
         run: |
@@ -78,7 +78,7 @@ jobs:
         run: scripts/prepare_env.sh
 
       - name: Pod release
-        run: scripts/release_cocoapod.sh native/gRPC.podspec
+        run: scripts/release_cocoapod.sh gRPC.podspec
 
       - name: Wait for pod avaialble
         run: |
@@ -98,7 +98,7 @@ jobs:
         run: scripts/prepare_env.sh
 
       - name: Pod release
-        run: scripts/release_cocoapod.sh native/gRPC-ProtoRPC.podspec
+        run: scripts/release_cocoapod.sh gRPC-ProtoRPC.podspec
 
       - name: Wait for pod avaialble
         run: |

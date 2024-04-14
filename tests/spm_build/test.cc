@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2022 gRPC authors.
+ * Copyright 2021 gRPC authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,13 @@
  *
  */
 
-#import "ViewController.h"
-
-#include "grpc/grpc.h"
-
-@interface ViewController ()
-
-@end
-
-@implementation ViewController
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    // Do any additional setup after loading the view.
-}
-
-
-@end
+#include "grpcpp/channel.h"
+#include "grpcpp/client_context.h"
+#include "grpcpp/completion_queue.h"
+#include "grpcpp/create_channel.h"
+#include "grpcpp/generic/generic_stub.h"
+#include "grpcpp/grpcpp.h"
+#include "grpcpp/support/byte_buffer.h"
+#include "grpcpp/support/status.h"
+#include "grpcpp/support/status_code_enum.h"
+#include "grpcpp/support/string_ref.h"
