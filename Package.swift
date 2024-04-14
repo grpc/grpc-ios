@@ -3,10 +3,11 @@
 import PackageDescription
 import Foundation
 
-var basePath = "native"
+var basePath = "."
 
 let package = Package(
   name: "gRPC",
+  defaultLocalization: "en",
   products: [
     .library(
       name: "gRPC-Core",
@@ -37,15 +38,18 @@ let package = Package(
       path: basePath,
       exclude: [
         "src/objective-c/",
+        "src/cpp/",
+        "third_party/upb/upb/port/def.inc",
+        "third_party/upb/upb/port/undef.inc",
+        "third_party/re2/LICENSE",
+        "third_party/utf8_range/LICENSE",
+        "third_party/xxhash/LICENSE",
+        "tests",
       ],
+    
       sources: [
-        "src/core/",
-        "third_party/re2/re2/",
-        "third_party/re2/util/",
-        "third_party/upb/upb/",
-        "third_party/utf8_range/naive.c",
-        "third_party/utf8_range/range2-neon.c",
-        "third_party/utf8_range/range2-sse.c",
+        "src",
+        "third_party",
       ],
       resources: [
         .copy("src/objective-c/PrivacyInfo.xcprivacy"),
@@ -75,20 +79,7 @@ let package = Package(
       ],
       path: basePath,
       exclude: [
-        "src/cpp/client/cronet_credentials.cc",
-        "src/cpp/common/alts_util.cc",
-        "src/cpp/common/alts_context.cc",
-        "src/cpp/common/insecure_create_auth_context.cc",
-        "src/cpp/server/admin/",
-        "src/cpp/server/channelz/",
-        "src/cpp/server/csds/",
-        "src/cpp/server/load_reporter/",
-        "src/cpp/ext/",
-        "src/cpp/util/error_details.cc",
-        "src/objective-c/examples/",
-        "src/objective-c/manual_tests/",
-        "src/objective-c/tests/",
-        "src/cpp/README.md",
+        "tests",
       ],
       sources: [
         "src/cpp/",
@@ -109,7 +100,7 @@ let package = Package(
       dependencies: [
         "gRPC-cpp",
       ],
-      path: basePath + "/test/spm_build"
+      path: basePath + "/tests/spm_build"
     ),
   ],
   cLanguageStandard: .gnu11,
