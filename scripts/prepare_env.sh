@@ -9,5 +9,4 @@ set -ex
 # GNU command line tools
 brew install coreutils
 
-# Git archiving tool
-brew install git-archive-all
+pip3 install pyyaml
