@@ -9,4 +9,4 @@ set -ex
 # GNU command line tools
 brew install coreutils
 
-pip3 install pyyaml
+brew install pyyaml
