@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   pre-submit-spm-build-package:
-    runs-on: macos-latest
+    runs-on: macos-14
     strategy:
       matrix:
         platform: [iOS, macOS, tvOS]
@@ -28,7 +28,7 @@ jobs:
         run: scripts/build_spm_package.sh generic/platform=${{ matrix.platform }}
 
   pre-submit-spm-build-test:
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - name: repo checkout
         uses: actions/checkout@v3
@@ -42,7 +42,7 @@ jobs:
         run: scripts/build_test_spm_samples.sh
 
   pre-submit-cocoapod-build-test:
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - name: repo checkout
         uses: actions/checkout@v3
