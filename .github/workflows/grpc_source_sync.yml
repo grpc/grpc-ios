@@ -1,4 +1,4 @@
-name: gRPC Native Source Shallow Sync Workflow
+name: gRPC Source Sync
 on:
   schedule:
       - cron: '0 0 * * *' # Once per day at midnight
