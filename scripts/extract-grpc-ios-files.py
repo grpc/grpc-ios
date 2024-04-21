@@ -33,6 +33,7 @@ targets = (
     'upb_textformat_lib',
     'utf8_range_lib',
     're2',
+    'z',
 )
 
 exclude_files = (
@@ -49,6 +50,17 @@ extra_files = (
     'src/objective-c/!ProtoCompiler-gRPCPlugin.podspec',
     'src/objective-c/!ProtoCompiler.podspec',
     'src/objective-c/BoringSSL-GRPC.podspec',
+    # cronet files
+    'include/grpc/grpc_cronet.h',
+    'src/core/ext/transport/cronet/client/secure/cronet_channel_create.cc',
+    'src/core/ext/transport/cronet/client/secure/cronet_channel_create.h',
+    'src/core/ext/transport/cronet/transport/cronet_status.cc',
+    'src/core/ext/transport/cronet/transport/cronet_status.h',
+    'src/core/ext/transport/cronet/transport/cronet_transport.cc',
+    'src/core/ext/transport/cronet/transport/cronet_transport.h',
+    'third_party/objective_c/Cronet/bidirectional_stream_c.h',
+    'include/grpcpp/security/cronet_credentials.h',
+    'src/cpp/client/cronet_credentials.cc',
     # podspec files
     'gRPC-C++.podspec',
     'gRPC-Core.podspec',
@@ -65,6 +77,7 @@ extra_files = (
     'third_party/re2/LICENSE',
     'third_party/utf8_range/LICENSE',
     'third_party/xxhash/LICENSE',
+    'third_party/zlib/LICENSE',
     # docs
     'README.md',
 )
