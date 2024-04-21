@@ -2786,10 +2786,8 @@ Pod::Spec.new do |s|
 
   s.subspec 'Cronet-Interface' do |ss|
     ss.header_mappings_dir = 'include/grpcpp'
-    ss.public_header_files = "include/grpcpp/security/cronet_credentials.h",
-                             "include/grpcpp/security/cronet_credentials_impl.h"
-    ss.source_files = "include/grpcpp/security/cronet_credentials.h",
-                      "include/grpcpp/security/cronet_credentials_impl.h"
+    ss.public_header_files = "include/grpcpp/security/cronet_credentials.h"
+    ss.source_files = "include/grpcpp/security/cronet_credentials.h"
   end
 
   s.subspec 'Cronet-Implementation' do |ss|
