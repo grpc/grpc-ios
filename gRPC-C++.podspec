@@ -2798,7 +2798,8 @@ Pod::Spec.new do |s|
 
     ss.dependency 'gRPC-Core/Cronet-Implementation', version
 
-    ss.source_files = "src/cpp/client/cronet_credentials.cc"
+    ss.source_files = "include/grpcpp/security/cronet_credentials.h",
+                      "src/cpp/client/cronet_credentials.cc"
   end
 
   # patch include of openssl to openssl_grpc
