@@ -10,3 +10,4 @@ set -ex
 brew install coreutils
 
 brew install pyyaml
+pip3 install pyyaml || true
