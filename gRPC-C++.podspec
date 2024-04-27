@@ -22,7 +22,7 @@
 Pod::Spec.new do |s|
   s.name     = 'gRPC-C++'
   # TODO (mxyan): use version that match gRPC version when pod is stabilized
-  version = '1.63.0-pre2'
+  version = '1.63.0'
   s.version  = version
   s.summary  = 'gRPC C++ library'
   s.homepage = 'https://grpc.io'
@@ -225,7 +225,7 @@ Pod::Spec.new do |s|
     ss.dependency "#{s.name}/Privacy", version
     ss.dependency "#{s.name}/Interface", version
     ss.dependency 'gRPC-Core', version
-    abseil_version = '~> 1.20240116.2'
+    abseil_version = '1.20240116.1'
     ss.dependency 'abseil/algorithm/container', abseil_version
     ss.dependency 'abseil/base/base', abseil_version
     ss.dependency 'abseil/base/config', abseil_version
@@ -2786,8 +2786,10 @@ Pod::Spec.new do |s|
 
   s.subspec 'Cronet-Interface' do |ss|
     ss.header_mappings_dir = 'include/grpcpp'
-    ss.public_header_files = "include/grpcpp/security/cronet_credentials.h"
-    ss.source_files = "include/grpcpp/security/cronet_credentials.h"
+    ss.public_header_files = "include/grpcpp/security/cronet_credentials.h",
+                             "include/grpcpp/security/cronet_credentials_impl.h"
+    ss.source_files = "include/grpcpp/security/cronet_credentials.h",
+                      "include/grpcpp/security/cronet_credentials_impl.h"
   end
 
   s.subspec 'Cronet-Implementation' do |ss|
@@ -2798,8 +2800,7 @@ Pod::Spec.new do |s|
 
     ss.dependency 'gRPC-Core/Cronet-Implementation', version
 
-    ss.source_files = "include/grpcpp/security/cronet_credentials.h",
-                      "src/cpp/client/cronet_credentials.cc"
+    ss.source_files = "src/cpp/client/cronet_credentials.cc"
   end
 
   # patch include of openssl to openssl_grpc
