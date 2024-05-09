@@ -155,7 +155,11 @@ class WorkStealingThreadPool final : public ThreadPool {
     class Lifeguard {
      public:
       explicit Lifeguard(WorkStealingThreadPoolImpl* pool);
-      ~Lifeguard();
+      // Start the lifeguard thread.
+      void Start();
+      // Block until the lifeguard thread is shut down.
+      // Afterwards, reset the lifeguard state so it can start again cleanly.
+      void BlockUntilShutdownAndReset();
 
      private:
       // The main body of the lifeguard thread.
@@ -190,8 +194,7 @@ class WorkStealingThreadPool final : public ThreadPool {
     // at a time.
     std::atomic<bool> throttled_{false};
     WorkSignal work_signal_;
-    grpc_core::Mutex lifeguard_ptr_mu_;
-    std::unique_ptr<Lifeguard> lifeguard_ ABSL_GUARDED_BY(lifeguard_ptr_mu_);
+    Lifeguard lifeguard_;
     // Set of threads for verbose failure debugging
     grpc_core::Mutex thd_set_mu_;
     absl::flat_hash_set<gpr_thd_id> thds_ ABSL_GUARDED_BY(thd_set_mu_);
