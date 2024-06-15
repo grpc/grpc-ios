@@ -27,6 +27,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -36,7 +37,6 @@
 #include <grpc/event_engine/slice.h>
 #include <grpc/event_engine/slice_buffer.h>
 #include <grpc/status.h>
-#include <grpc/support/log.h>
 #include <grpc/support/port_platform.h>
 
 #include "src/core/lib/event_engine/posix_engine/event_poller.h"
@@ -211,14 +211,9 @@ bool CmsgIsZeroCopy(const cmsghdr& cmsg) {
 }
 #endif  // GRPC_LINUX_ERRQUEUE
 
-absl::Status PosixOSError(int error_no, const char* call_name) {
-  absl::Status s = absl::UnknownError(grpc_core::StrError(error_no));
-  grpc_core::StatusSetInt(&s, grpc_core::StatusIntProperty::kErrorNo, error_no);
-  grpc_core::StatusSetStr(&s, grpc_core::StatusStrProperty::kOsError,
-                          grpc_core::StrError(error_no));
-  grpc_core::StatusSetStr(&s, grpc_core::StatusStrProperty::kSyscall,
-                          call_name);
-  return s;
+absl::Status PosixOSError(int error_no, absl::string_view call_name) {
+  return absl::UnknownError(absl::StrCat(
+      call_name, ": ", grpc_core::StrError(error_no), " (", error_no, ")"));
 }
 
 }  // namespace
@@ -281,12 +276,7 @@ void PosixEndpointImpl::FinishEstimate() {
   bytes_read_this_round_ = 0;
 }
 
-absl::Status PosixEndpointImpl::TcpAnnotateError(absl::Status src_error) {
-  auto peer_string = ResolvedAddressToNormalizedString(peer_address_);
-
-  grpc_core::StatusSetStr(&src_error,
-                          grpc_core::StatusStrProperty::kTargetAddress,
-                          peer_string.ok() ? *peer_string : "");
+absl::Status PosixEndpointImpl::TcpAnnotateError(absl::Status src_error) const {
   grpc_core::StatusSetInt(&src_error, grpc_core::StatusIntProperty::kFd,
                           handle_->WrappedFd());
   grpc_core::StatusSetInt(&src_error, grpc_core::StatusIntProperty::kRpcStatus,
@@ -512,9 +502,7 @@ void PosixEndpointImpl::UpdateRcvLowat() {
   if (result.ok()) {
     set_rcvlowat_ = *result;
   } else {
-    gpr_log(GPR_ERROR, "%s",
-            absl::StrCat("ERROR in SO_RCVLOWAT: ", result.status().message())
-                .c_str());
+    LOG(ERROR) << "ERROR in SO_RCVLOWAT: " << result.status().message();
   }
 }
 
@@ -718,7 +706,7 @@ bool PosixEndpointImpl::ProcessErrors() {
       return processed_err;
     }
     if (GPR_UNLIKELY((msg.msg_flags & MSG_CTRUNC) != 0)) {
-      gpr_log(GPR_ERROR, "Error message was truncated.");
+      LOG(ERROR) << "Error message was truncated.";
     }
 
     if (msg.msg_controllen == 0) {
@@ -813,7 +801,7 @@ struct cmsghdr* PosixEndpointImpl::ProcessTimestamp(msghdr* msg,
   auto serr = reinterpret_cast<struct sock_extended_err*>(CMSG_DATA(next_cmsg));
   if (serr->ee_errno != ENOMSG ||
       serr->ee_origin != SO_EE_ORIGIN_TIMESTAMPING) {
-    gpr_log(GPR_ERROR, "Unexpected control message");
+    LOG(ERROR) << "Unexpected control message";
     return cmsg;
   }
   traced_buffers_.ProcessTimestamp(serr, opt_stats, tss);
@@ -1289,29 +1277,27 @@ PosixEndpointImpl::PosixEndpointImpl(EventHandle* handle,
   if (zerocopy_enabled) {
     if (GetRLimitMemLockMax() == 0) {
       zerocopy_enabled = false;
-      gpr_log(
-          GPR_ERROR,
-          "Tx zero-copy will not be used by gRPC since RLIMIT_MEMLOCK value is "
-          "not set. Consider raising its value with setrlimit().");
+      LOG(ERROR) << "Tx zero-copy will not be used by gRPC since RLIMIT_MEMLOCK"
+                 << " value is not set. Consider raising its value with "
+                 << "setrlimit().";
     } else if (GetUlimitHardMemLock() == 0) {
       zerocopy_enabled = false;
-      gpr_log(GPR_ERROR,
-              "Tx zero-copy will not be used by gRPC since hard memlock ulimit "
-              "value is not set. Use ulimit -l <value> to set its value.");
+      LOG(ERROR) << "Tx zero-copy will not be used by gRPC since hard memlock "
+                 << "ulimit value is not set. Use ulimit -l <value> to set its "
+                 << "value.";
     } else {
       const int enable = 1;
       if (setsockopt(fd_, SOL_SOCKET, SO_ZEROCOPY, &enable, sizeof(enable)) !=
           0) {
         zerocopy_enabled = false;
-        gpr_log(GPR_ERROR, "Failed to set zerocopy options on the socket.");
+        LOG(ERROR) << "Failed to set zerocopy options on the socket.";
       }
     }
 
     if (zerocopy_enabled) {
-      gpr_log(GPR_INFO,
-              "Tx-zero copy enabled for gRPC sends. RLIMIT_MEMLOCK value = "
-              "%" PRIu64 ",ulimit hard memlock value = %" PRIu64,
-              GetRLimitMemLockMax(), GetUlimitHardMemLock());
+      LOG(INFO) << "Tx-zero copy enabled for gRPC sends. RLIMIT_MEMLOCK value "
+                << "=" << GetRLimitMemLockMax()
+                << ",ulimit hard memlock value = " << GetUlimitHardMemLock();
     }
   }
 #endif  // GRPC_LINUX_ERRQUEUE
@@ -1323,7 +1309,7 @@ PosixEndpointImpl::PosixEndpointImpl(EventHandle* handle,
   if (setsockopt(fd_, SOL_TCP, TCP_INQ, &one, sizeof(one)) == 0) {
     inq_capable_ = true;
   } else {
-    gpr_log(GPR_DEBUG, "cannot set inq fd=%d errno=%d", fd_, errno);
+    VLOG(2) << "cannot set inq fd=" << fd_ << " errno=" << errno;
     inq_capable_ = false;
   }
 #else

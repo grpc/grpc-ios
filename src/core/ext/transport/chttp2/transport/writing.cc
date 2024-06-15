@@ -47,19 +47,14 @@
 #include "src/core/ext/transport/chttp2/transport/frame_window_update.h"
 #include "src/core/ext/transport/chttp2/transport/hpack_encoder.h"
 #include "src/core/ext/transport/chttp2/transport/http2_settings.h"
-#include "src/core/ext/transport/chttp2/transport/http_trace.h"
 #include "src/core/ext/transport/chttp2/transport/internal.h"
 #include "src/core/ext/transport/chttp2/transport/legacy_frame.h"
 #include "src/core/ext/transport/chttp2/transport/max_concurrent_streams_policy.h"
 #include "src/core/ext/transport/chttp2/transport/ping_callbacks.h"
 #include "src/core/ext/transport/chttp2/transport/ping_rate_policy.h"
 #include "src/core/ext/transport/chttp2/transport/write_size_policy.h"
-#include "src/core/lib/channel/call_tracer.h"
-#include "src/core/lib/debug/stats.h"
-#include "src/core/lib/debug/stats_data.h"
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/experiments/experiments.h"
-#include "src/core/lib/gpr/useful.h"
 #include "src/core/lib/gprpp/match.h"
 #include "src/core/lib/gprpp/ref_counted.h"
 #include "src/core/lib/gprpp/ref_counted_ptr.h"
@@ -73,6 +68,10 @@
 #include "src/core/lib/transport/http2_errors.h"
 #include "src/core/lib/transport/metadata_batch.h"
 #include "src/core/lib/transport/transport.h"
+#include "src/core/telemetry/call_tracer.h"
+#include "src/core/telemetry/stats.h"
+#include "src/core/telemetry/stats_data.h"
+#include "src/core/util/useful.h"
 
 // IWYU pragma: no_include "src/core/lib/gprpp/orphanable.h"
 
@@ -133,10 +132,10 @@ static void maybe_initiate_ping(grpc_chttp2_transport* t) {
           t->channelz_socket->RecordKeepaliveSent();
         }
         grpc_core::global_stats().IncrementHttp2PingsSent();
-        if (GRPC_TRACE_FLAG_ENABLED(grpc_http_trace) ||
-            GRPC_TRACE_FLAG_ENABLED(grpc_bdp_estimator_trace) ||
-            GRPC_TRACE_FLAG_ENABLED(grpc_keepalive_trace) ||
-            GRPC_TRACE_FLAG_ENABLED(grpc_ping_trace)) {
+        if (GRPC_TRACE_FLAG_ENABLED(http) ||
+            GRPC_TRACE_FLAG_ENABLED(bdp_estimator) ||
+            GRPC_TRACE_FLAG_ENABLED(http_keepalive) ||
+            GRPC_TRACE_FLAG_ENABLED(http2_ping)) {
           gpr_log(GPR_INFO, "%s[%p]: Ping %" PRIx64 " sent [%s]: %s",
                   t->is_client ? "CLIENT" : "SERVER", t, id,
                   std::string(t->peer_string.as_string_view()).c_str(),
@@ -145,10 +144,10 @@ static void maybe_initiate_ping(grpc_chttp2_transport* t) {
       },
       [t](grpc_core::Chttp2PingRatePolicy::TooManyRecentPings) {
         // need to receive something of substance before sending a ping again
-        if (GRPC_TRACE_FLAG_ENABLED(grpc_http_trace) ||
-            GRPC_TRACE_FLAG_ENABLED(grpc_bdp_estimator_trace) ||
-            GRPC_TRACE_FLAG_ENABLED(grpc_keepalive_trace) ||
-            GRPC_TRACE_FLAG_ENABLED(grpc_ping_trace)) {
+        if (GRPC_TRACE_FLAG_ENABLED(http) ||
+            GRPC_TRACE_FLAG_ENABLED(bdp_estimator) ||
+            GRPC_TRACE_FLAG_ENABLED(http_keepalive) ||
+            GRPC_TRACE_FLAG_ENABLED(http2_ping)) {
           gpr_log(GPR_INFO,
                   "%s[%p]: Ping delayed [%s]: too many recent pings: %s",
                   t->is_client ? "CLIENT" : "SERVER", t,
@@ -158,10 +157,10 @@ static void maybe_initiate_ping(grpc_chttp2_transport* t) {
       },
       [t](grpc_core::Chttp2PingRatePolicy::TooSoon too_soon) {
         // not enough elapsed time between successive pings
-        if (GRPC_TRACE_FLAG_ENABLED(grpc_http_trace) ||
-            GRPC_TRACE_FLAG_ENABLED(grpc_bdp_estimator_trace) ||
-            GRPC_TRACE_FLAG_ENABLED(grpc_keepalive_trace) ||
-            GRPC_TRACE_FLAG_ENABLED(grpc_ping_trace)) {
+        if (GRPC_TRACE_FLAG_ENABLED(http) ||
+            GRPC_TRACE_FLAG_ENABLED(bdp_estimator) ||
+            GRPC_TRACE_FLAG_ENABLED(http_keepalive) ||
+            GRPC_TRACE_FLAG_ENABLED(http2_ping)) {
           gpr_log(
               GPR_INFO,
               "%s[%p]: Ping delayed [%s]: not enough time elapsed since last "
@@ -207,7 +206,7 @@ static bool update_list(grpc_chttp2_transport* t, int64_t send_bytes,
 
 static void report_stall(grpc_chttp2_transport* t, grpc_chttp2_stream* s,
                          const char* staller) {
-  if (GRPC_TRACE_FLAG_ENABLED(grpc_flowctl_trace)) {
+  if (GRPC_TRACE_FLAG_ENABLED(flowctl)) {
     gpr_log(
         GPR_DEBUG,
         "%s:%p stream %d moved to stalled list by %s. This is FULLY expected "
@@ -682,10 +681,10 @@ grpc_chttp2_begin_write_result grpc_chttp2_begin_write(
             grpc_core::GrpcHttp2GetCopyContextFn();
         if (copy_context_fn != nullptr &&
             grpc_core::GrpcHttp2GetWriteTimestampsCallback() != nullptr) {
-          t->cl->emplace_back(copy_context_fn(s->context),
-                              outbuf_relative_start_pos, num_stream_bytes,
-                              s->byte_counter, s->write_counter - 1,
-                              s->tcp_tracer);
+          t->context_list->emplace_back(copy_context_fn(s->arena),
+                                        outbuf_relative_start_pos,
+                                        num_stream_bytes, s->byte_counter,
+                                        s->write_counter - 1, s->tcp_tracer);
         }
       }
       outbuf_relative_start_pos += num_stream_bytes;
@@ -728,7 +727,7 @@ void grpc_chttp2_end_write(grpc_chttp2_transport* t, grpc_error_handle error) {
           grpc_core::ExecCtx exec_ctx;
           grpc_chttp2_ping_timeout(t);
         });
-    if (GRPC_TRACE_FLAG_ENABLED(grpc_ping_trace) && id.has_value()) {
+    if (GRPC_TRACE_FLAG_ENABLED(http2_ping) && id.has_value()) {
       gpr_log(GPR_INFO,
               "%s[%p]: Set ping timeout timer of %s for ping id %" PRIx64,
               t->is_client ? "CLIENT" : "SERVER", t, timeout.ToString().c_str(),
@@ -740,8 +739,8 @@ void grpc_chttp2_end_write(grpc_chttp2_transport* t, grpc_error_handle error) {
         t->keepalive_ping_timeout_handle !=
             grpc_event_engine::experimental::EventEngine::TaskHandle::
                 kInvalid) {
-      if (GRPC_TRACE_FLAG_ENABLED(grpc_ping_trace) ||
-          GRPC_TRACE_FLAG_ENABLED(grpc_keepalive_trace)) {
+      if (GRPC_TRACE_FLAG_ENABLED(http2_ping) ||
+          GRPC_TRACE_FLAG_ENABLED(http_keepalive)) {
         gpr_log(GPR_INFO, "%s[%p]: Set keepalive ping timeout timer of %s",
                 t->is_client ? "CLIENT" : "SERVER", t,
                 t->keepalive_timeout.ToString().c_str());

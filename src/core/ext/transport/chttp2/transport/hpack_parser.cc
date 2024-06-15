@@ -44,9 +44,6 @@
 #include "src/core/ext/transport/chttp2/transport/hpack_constants.h"
 #include "src/core/ext/transport/chttp2/transport/hpack_parse_result.h"
 #include "src/core/ext/transport/chttp2/transport/hpack_parser_table.h"
-#include "src/core/lib/channel/call_tracer.h"
-#include "src/core/lib/debug/stats.h"
-#include "src/core/lib/debug/stats_data.h"
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/gprpp/match.h"
 #include "src/core/lib/slice/slice.h"
@@ -54,12 +51,13 @@
 #include "src/core/lib/surface/validate_metadata.h"
 #include "src/core/lib/transport/metadata_info.h"
 #include "src/core/lib/transport/parsed_metadata.h"
+#include "src/core/telemetry/call_tracer.h"
+#include "src/core/telemetry/stats.h"
+#include "src/core/telemetry/stats_data.h"
 
 // IWYU pragma: no_include <type_traits>
 
 namespace grpc_core {
-
-TraceFlag grpc_trace_chttp2_hpack_parser(false, "chttp2_hpack_parser");
 
 namespace {
 // The alphabet used for base64 encoding binary metadata.
@@ -733,7 +731,7 @@ class HPackParser::Parser {
 
   bool FinishHeaderAndAddToTable(HPackTable::Memento md) {
     // Log if desired
-    if (GRPC_TRACE_FLAG_ENABLED(grpc_trace_chttp2_hpack_parser)) {
+    if (GRPC_TRACE_FLAG_ENABLED(chttp2_hpack_parser)) {
       LogHeader(md);
     }
     // Emit whilst we own the metadata.
@@ -758,7 +756,7 @@ class HPackParser::Parser {
 
   void FinishHeaderOmitFromTable(const HPackTable::Memento& md) {
     // Log if desired
-    if (GRPC_TRACE_FLAG_ENABLED(grpc_trace_chttp2_hpack_parser)) {
+    if (GRPC_TRACE_FLAG_ENABLED(chttp2_hpack_parser)) {
       LogHeader(md);
     }
     EmitHeader(md);

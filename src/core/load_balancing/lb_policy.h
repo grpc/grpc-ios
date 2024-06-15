@@ -38,7 +38,6 @@
 #include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/channel_args.h"
-#include "src/core/lib/channel/metrics.h"
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/gprpp/debug_location.h"
 #include "src/core/lib/gprpp/dual_ref_counted.h"
@@ -52,10 +51,9 @@
 #include "src/core/load_balancing/backend_metric_data.h"
 #include "src/core/load_balancing/subchannel_interface.h"
 #include "src/core/resolver/endpoint_addresses.h"
+#include "src/core/telemetry/metrics.h"
 
 namespace grpc_core {
-
-extern DebugOnlyTraceFlag grpc_trace_lb_policy_refcount;
 
 /// Interface for load balancing policies.
 ///
@@ -456,6 +454,19 @@ class LoadBalancingPolicy : public InternallyRefCounted<LoadBalancingPolicy> {
     absl::Status status_;
   };
 
+  // A picker that returns PickResult::Drop for all picks.
+  class DropPicker final : public SubchannelPicker {
+   public:
+    explicit DropPicker(absl::Status status) : status_(status) {}
+
+    PickResult Pick(PickArgs /*args*/) override {
+      return PickResult::Drop(status_);
+    }
+
+   private:
+    absl::Status status_;
+  };
+
  protected:
   std::shared_ptr<WorkSerializer> work_serializer() const {
     return work_serializer_;
@@ -482,6 +493,11 @@ class LoadBalancingPolicy : public InternallyRefCounted<LoadBalancingPolicy> {
   /// Channel args passed in.
   // TODO(roth): Rework Args so that we don't need to capture channel args here.
   ChannelArgs channel_args_;
+};
+
+template <>
+struct ArenaContextType<LoadBalancingPolicy::SubchannelCallTrackerInterface> {
+  static void Destroy(LoadBalancingPolicy::SubchannelCallTrackerInterface*) {}
 };
 
 }  // namespace grpc_core

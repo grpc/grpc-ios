@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 
 #include <grpc/impl/channel_arg_names.h>
@@ -60,7 +61,6 @@
 #include "src/core/lib/address_utils/parse_address.h"
 #include "src/core/lib/address_utils/sockaddr_utils.h"
 #include "src/core/lib/channel/channel_args.h"
-#include "src/core/lib/gpr/string.h"
 #include "src/core/lib/gprpp/debug_location.h"
 #include "src/core/lib/gprpp/host_port.h"
 #include "src/core/lib/gprpp/time.h"
@@ -71,14 +71,10 @@
 #include "src/core/lib/iomgr/timer.h"
 #include "src/core/resolver/dns/c_ares/grpc_ares_ev_driver.h"
 #include "src/core/resolver/dns/c_ares/grpc_ares_wrapper.h"
+#include "src/core/util/string.h"
 
 using grpc_core::EndpointAddresses;
 using grpc_core::EndpointAddressesList;
-
-grpc_core::TraceFlag grpc_trace_cares_address_sorting(false,
-                                                      "cares_address_sorting");
-
-grpc_core::TraceFlag grpc_trace_cares_resolver(false, "cares_resolver");
 
 typedef struct fd_node {
   // default constructor exists only for linked list manipulation
@@ -571,7 +567,7 @@ static void log_address_sorting_list(const grpc_ares_request* r,
 
 void grpc_cares_wrapper_address_sorting_sort(const grpc_ares_request* r,
                                              EndpointAddressesList* addresses) {
-  if (GRPC_TRACE_FLAG_ENABLED(grpc_trace_cares_address_sorting)) {
+  if (GRPC_TRACE_FLAG_ENABLED(cares_address_sorting)) {
     log_address_sorting_list(r, *addresses, "input");
   }
   address_sorting_sortable* sortables = static_cast<address_sorting_sortable*>(
@@ -591,7 +587,7 @@ void grpc_cares_wrapper_address_sorting_sort(const grpc_ares_request* r,
   }
   gpr_free(sortables);
   *addresses = std::move(sorted);
-  if (GRPC_TRACE_FLAG_ENABLED(grpc_trace_cares_address_sorting)) {
+  if (GRPC_TRACE_FLAG_ENABLED(cares_address_sorting)) {
     log_address_sorting_list(r, *addresses, "output");
   }
 }
@@ -883,14 +879,11 @@ grpc_error_handle grpc_dns_lookup_ares_continued(
   grpc_core::SplitHostPort(name, host, port);
   if (host->empty()) {
     error =
-        grpc_error_set_str(GRPC_ERROR_CREATE("unparseable host:port"),
-                           grpc_core::StatusStrProperty::kTargetAddress, name);
+        GRPC_ERROR_CREATE(absl::StrCat("unparseable host:port \"", name, "\""));
     return error;
   } else if (check_port && port->empty()) {
     if (default_port == nullptr || strlen(default_port) == 0) {
-      error = grpc_error_set_str(GRPC_ERROR_CREATE("no port in name"),
-                                 grpc_core::StatusStrProperty::kTargetAddress,
-                                 name);
+      error = GRPC_ERROR_CREATE(absl::StrCat("no port in name \"", name, "\""));
       return error;
     }
     *port = default_port;
@@ -952,7 +945,7 @@ static bool resolve_as_ip_literal_locked(
 static bool target_matches_localhost_inner(const char* name, std::string* host,
                                            std::string* port) {
   if (!grpc_core::SplitHostPort(name, host, port)) {
-    gpr_log(GPR_ERROR, "Unable to split host and port for name: %s", name);
+    LOG(ERROR) << "Unable to split host and port for name: " << name;
     return false;
   }
   return gpr_stricmp(host->c_str(), "localhost") == 0;
