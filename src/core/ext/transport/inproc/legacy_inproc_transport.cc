@@ -28,6 +28,7 @@
 #include <utility>
 
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -68,11 +69,11 @@
 #include "src/core/lib/transport/transport.h"
 #include "src/core/server/server.h"
 
-#define INPROC_LOG(...)                               \
-  do {                                                \
-    if (GRPC_TRACE_FLAG_ENABLED(grpc_inproc_trace)) { \
-      gpr_log(__VA_ARGS__);                           \
-    }                                                 \
+#define INPROC_LOG(...)                    \
+  do {                                     \
+    if (GRPC_TRACE_FLAG_ENABLED(inproc)) { \
+      gpr_log(__VA_ARGS__);                \
+    }                                      \
   } while (0)
 
 namespace {
@@ -134,7 +135,6 @@ struct inproc_transport final : public grpc_core::FilterStackTransport {
   void SetPollsetSet(grpc_stream* stream,
                      grpc_pollset_set* pollset_set) override;
   void PerformOp(grpc_transport_op* op) override;
-  grpc_endpoint* GetEndpoint() override;
 
   size_t SizeOfStream() const override;
   bool HackyDisableStreamOpBatchCoalescingInConnectedChannel() const override {
@@ -319,7 +319,7 @@ void log_metadata(const grpc_metadata_batch* md_batch, bool is_client,
   std::string prefix = absl::StrCat(
       "INPROC:", is_initial ? "HDR:" : "TRL:", is_client ? "CLI:" : "SVR:");
   md_batch->Log([&prefix](absl::string_view key, absl::string_view value) {
-    gpr_log(GPR_INFO, "%s", absl::StrCat(prefix, key, ": ", value).c_str());
+    LOG(INFO) << absl::StrCat(prefix, key, ": ", value);
   });
 }
 
@@ -352,7 +352,7 @@ class CopySink {
 
 void fill_in_metadata(inproc_stream* s, const grpc_metadata_batch* metadata,
                       grpc_metadata_batch* out_md, bool* markfilled) {
-  if (GRPC_TRACE_FLAG_ENABLED(grpc_inproc_trace)) {
+  if (GRPC_TRACE_FLAG_ENABLED(inproc)) {
     log_metadata(metadata, s->t->is_client,
                  metadata->get_pointer(grpc_core::WaitForReady()) != nullptr);
   }
@@ -949,7 +949,7 @@ void inproc_transport::PerformStreamOp(grpc_stream* gs,
   gpr_mu* mu = &s->t->mu->mu;  // save aside in case s gets closed
   gpr_mu_lock(mu);
 
-  if (GRPC_TRACE_FLAG_ENABLED(grpc_inproc_trace)) {
+  if (GRPC_TRACE_FLAG_ENABLED(inproc)) {
     if (op->send_initial_metadata) {
       log_metadata(op->payload->send_initial_metadata.send_initial_metadata,
                    s->t->is_client, true);
@@ -1213,8 +1213,6 @@ void inproc_transport::SetPollsetSet(grpc_stream* /*gs*/,
   // Nothing to do here
 }
 
-grpc_endpoint* inproc_transport::GetEndpoint() { return nullptr; }
-
 //******************************************************************************
 // Main inproc transport functions
 //
@@ -1268,8 +1266,8 @@ grpc_channel* grpc_legacy_inproc_channel_create(grpc_server* server,
         "inproc", client_args, GRPC_CLIENT_DIRECT_CHANNEL, client_transport);
     if (!new_channel.ok()) {
       CHECK(!channel);
-      gpr_log(GPR_ERROR, "Failed to create client channel: %s",
-              grpc_core::StatusToString(error).c_str());
+      LOG(ERROR) << "Failed to create client channel: "
+                 << grpc_core::StatusToString(error);
       intptr_t integer;
       grpc_status_code status = GRPC_STATUS_INTERNAL;
       if (grpc_error_get_int(error, grpc_core::StatusIntProperty::kRpcStatus,
@@ -1286,8 +1284,8 @@ grpc_channel* grpc_legacy_inproc_channel_create(grpc_server* server,
     }
   } else {
     CHECK(!channel);
-    gpr_log(GPR_ERROR, "Failed to create server channel: %s",
-            grpc_core::StatusToString(error).c_str());
+    LOG(ERROR) << "Failed to create server channel: "
+               << grpc_core::StatusToString(error);
     intptr_t integer;
     grpc_status_code status = GRPC_STATUS_INTERNAL;
     if (grpc_error_get_int(error, grpc_core::StatusIntProperty::kRpcStatus,

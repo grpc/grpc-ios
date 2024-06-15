@@ -23,13 +23,13 @@
 #include <vector>
 
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/types/optional.h"
 
 #include <grpc/impl/connectivity_state.h>
 #include <grpc/support/json.h>
-#include <grpc/support/log.h>
 #include <grpc/support/port_platform.h>
 
 #include "src/core/lib/channel/channel_args.h"
@@ -38,12 +38,12 @@
 #include "src/core/lib/gprpp/orphanable.h"
 #include "src/core/lib/gprpp/ref_counted_ptr.h"
 #include "src/core/lib/iomgr/pollset_set.h"
-#include "src/core/lib/json/json.h"
 #include "src/core/load_balancing/delegating_helper.h"
 #include "src/core/load_balancing/lb_policy.h"
 #include "src/core/load_balancing/lb_policy_registry.h"
 #include "src/core/load_balancing/pick_first/pick_first.h"
 #include "src/core/resolver/endpoint_addresses.h"
+#include "src/core/util/json/json.h"
 
 namespace grpc_core {
 
@@ -103,9 +103,9 @@ absl::Status EndpointList::Endpoint::Init(
       CoreConfiguration::Get().lb_policy_registry().CreateLoadBalancingPolicy(
           "pick_first", std::move(lb_policy_args));
   if (GPR_UNLIKELY(endpoint_list_->tracer_ != nullptr)) {
-    gpr_log(GPR_INFO, "[%s %p] endpoint %p: created child policy %p",
-            endpoint_list_->tracer_, endpoint_list_->policy_.get(), this,
-            child_policy_.get());
+    LOG(INFO) << "[" << endpoint_list_->tracer_ << " "
+              << endpoint_list_->policy_.get() << "] endpoint " << this
+              << ": created child policy " << child_policy_.get();
   }
   // Add our interested_parties pollset_set to that of the newly created
   // child policy. This will make the child policy progress upon activity on

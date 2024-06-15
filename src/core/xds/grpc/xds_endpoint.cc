@@ -47,10 +47,10 @@
 #include "src/core/lib/address_utils/sockaddr_utils.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/debug/trace.h"
-#include "src/core/lib/gpr/string.h"
 #include "src/core/lib/gprpp/env.h"
 #include "src/core/lib/gprpp/validation_errors.h"
 #include "src/core/lib/iomgr/resolved_address.h"
+#include "src/core/util/string.h"
 #include "src/core/xds/grpc/upb_utils.h"
 #include "src/core/xds/grpc/xds_health_status.h"
 #include "src/core/xds/xds_client/xds_resource_type.h"
@@ -156,8 +156,7 @@ namespace {
 void MaybeLogClusterLoadAssignment(
     const XdsResourceType::DecodeContext& context,
     const envoy_config_endpoint_v3_ClusterLoadAssignment* cla) {
-  if (GRPC_TRACE_FLAG_ENABLED(*context.tracer) &&
-      gpr_should_log(GPR_LOG_SEVERITY_DEBUG)) {
+  if (GRPC_TRACE_FLAG_ENABLED_OBJ(*context.tracer) && ABSL_VLOG_IS_ON(2)) {
     const upb_MessageDef* msg_type =
         envoy_config_endpoint_v3_ClusterLoadAssignment_getmsgdef(
             context.symtab);
@@ -497,14 +496,14 @@ XdsResourceType::DecodeResult XdsEndpointResourceType::Decode(
       envoy_config_endpoint_v3_ClusterLoadAssignment_cluster_name(resource));
   auto eds_resource = EdsResourceParse(context, resource);
   if (!eds_resource.ok()) {
-    if (GRPC_TRACE_FLAG_ENABLED(*context.tracer)) {
+    if (GRPC_TRACE_FLAG_ENABLED_OBJ(*context.tracer)) {
       gpr_log(GPR_ERROR, "[xds_client %p] invalid ClusterLoadAssignment %s: %s",
               context.client, result.name->c_str(),
               eds_resource.status().ToString().c_str());
     }
     result.resource = eds_resource.status();
   } else {
-    if (GRPC_TRACE_FLAG_ENABLED(*context.tracer)) {
+    if (GRPC_TRACE_FLAG_ENABLED_OBJ(*context.tracer)) {
       gpr_log(GPR_INFO, "[xds_client %p] parsed ClusterLoadAssignment %s: %s",
               context.client, result.name->c_str(),
               (*eds_resource)->ToString().c_str());
