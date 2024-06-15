@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
@@ -35,7 +36,6 @@
 #include <grpc/grpc_crl_provider.h>
 #include <grpc/impl/channel_arg_names.h>
 #include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
 #include <grpc/support/port_platform.h>
 #include <grpc/support/string_util.h>
 #include <grpc/support/sync.h>
@@ -43,7 +43,6 @@
 #include "src/core/ext/transport/chttp2/alpn/alpn.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/config/config_vars.h"
-#include "src/core/lib/gpr/useful.h"
 #include "src/core/lib/gprpp/host_port.h"
 #include "src/core/lib/gprpp/load_file.h"
 #include "src/core/lib/gprpp/ref_counted_ptr.h"
@@ -51,6 +50,7 @@
 #include "src/core/lib/security/security_connector/load_system_roots.h"
 #include "src/core/tsi/ssl_transport_security.h"
 #include "src/core/tsi/transport_security.h"
+#include "src/core/util/useful.h"
 
 // -- Constants. --
 
@@ -123,7 +123,7 @@ tsi_tls_version grpc_get_tsi_tls_version(grpc_tls_version tls_version) {
     case grpc_tls_version::TLS1_3:
       return tsi_tls_version::TSI_TLS1_3;
     default:
-      gpr_log(GPR_INFO, "Falling back to TLS 1.2.");
+      LOG(INFO) << "Falling back to TLS 1.2.";
       return tsi_tls_version::TSI_TLS1_2;
   }
 }
@@ -180,7 +180,7 @@ absl::Status SslCheckCallHost(absl::string_view host,
     status = GRPC_SECURITY_OK;
   }
   if (status != GRPC_SECURITY_OK) {
-    gpr_log(GPR_ERROR, "call host does not match SSL server name");
+    LOG(ERROR) << "call host does not match SSL server name";
     grpc_shallow_peer_destruct(&peer);
     return absl::UnauthenticatedError(
         "call host does not match SSL server name");
@@ -232,16 +232,16 @@ static bool IsSpiffeId(absl::string_view uri) {
     return false;
   };
   if (uri.size() > 2048) {
-    gpr_log(GPR_INFO, "Invalid SPIFFE ID: ID longer than 2048 bytes.");
+    LOG(INFO) << "Invalid SPIFFE ID: ID longer than 2048 bytes.";
     return false;
   }
   std::vector<absl::string_view> splits = absl::StrSplit(uri, '/');
   if (splits.size() < 4 || splits[3].empty()) {
-    gpr_log(GPR_INFO, "Invalid SPIFFE ID: workload id is empty.");
+    LOG(INFO) << "Invalid SPIFFE ID: workload id is empty.";
     return false;
   }
   if (splits[2].size() > 255) {
-    gpr_log(GPR_INFO, "Invalid SPIFFE ID: domain longer than 255 characters.");
+    LOG(INFO) << "Invalid SPIFFE ID: domain longer than 255 characters.";
     return false;
   }
   return true;
@@ -332,7 +332,7 @@ grpc_core::RefCountedPtr<grpc_auth_context> grpc_ssl_peer_to_auth_context(
                                      GRPC_PEER_SPIFFE_ID_PROPERTY_NAME,
                                      spiffe_data, spiffe_length);
     } else {
-      gpr_log(GPR_INFO, "Invalid SPIFFE ID: multiple URI SANs.");
+      LOG(INFO) << "Invalid SPIFFE ID: multiple URI SANs.";
     }
   }
   return ctx;
@@ -419,13 +419,12 @@ grpc_security_status grpc_ssl_tsi_client_handshaker_factory_init(
   const char* root_certs;
   const tsi_ssl_root_certs_store* root_store;
   if (pem_root_certs == nullptr && !skip_server_certificate_verification) {
-    gpr_log(GPR_INFO,
-            "No root certificates specified; use ones stored in system default "
-            "locations instead");
+    LOG(INFO) << "No root certificates specified; use ones stored in system "
+                 "default locations instead";
     // Use default root certificates.
     root_certs = grpc_core::DefaultSslRootStore::GetPemRootCerts();
     if (root_certs == nullptr) {
-      gpr_log(GPR_ERROR, "Could not get default pem root certs.");
+      LOG(ERROR) << "Could not get default pem root certs.";
       return GRPC_SECURITY_ERROR;
     }
     root_store = grpc_core::DefaultSslRootStore::GetRootStore();
@@ -458,8 +457,8 @@ grpc_security_status grpc_ssl_tsi_client_handshaker_factory_init(
                                                             handshaker_factory);
   gpr_free(options.alpn_protocols);
   if (result != TSI_OK) {
-    gpr_log(GPR_ERROR, "Handshaker factory creation failed with %s.",
-            tsi_result_to_string(result));
+    LOG(ERROR) << "Handshaker factory creation failed with "
+               << tsi_result_to_string(result);
     return GRPC_SECURITY_ERROR;
   }
   return GRPC_SECURITY_OK;
@@ -497,8 +496,8 @@ grpc_security_status grpc_ssl_tsi_server_handshaker_factory_init(
                                                             handshaker_factory);
   gpr_free(alpn_protocol_strings);
   if (result != TSI_OK) {
-    gpr_log(GPR_ERROR, "Handshaker factory creation failed with %s.",
-            tsi_result_to_string(result));
+    LOG(ERROR) << "Handshaker factory creation failed with "
+               << tsi_result_to_string(result);
     return GRPC_SECURITY_ERROR;
   }
   return GRPC_SECURITY_OK;
@@ -575,9 +574,8 @@ grpc_slice DefaultSslRootStore::ComputePemRootCerts() {
     auto slice =
         LoadFile(default_root_certs_path, /*add_null_terminator=*/true);
     if (!slice.ok()) {
-      gpr_log(GPR_ERROR, "error loading file %s: %s",
-              default_root_certs_path.c_str(),
-              slice.status().ToString().c_str());
+      LOG(ERROR) << "error loading file " << default_root_certs_path << ": "
+                 << slice.status();
     } else {
       result = std::move(*slice);
     }
@@ -603,8 +601,8 @@ grpc_slice DefaultSslRootStore::ComputePemRootCerts() {
   if (result.empty() && ovrd_res != GRPC_SSL_ROOTS_OVERRIDE_FAIL_PERMANENTLY) {
     auto slice = LoadFile(installed_roots_path, /*add_null_terminator=*/true);
     if (!slice.ok()) {
-      gpr_log(GPR_ERROR, "error loading file %s: %s", installed_roots_path,
-              slice.status().ToString().c_str());
+      LOG(ERROR) << "error loading file " << installed_roots_path << ": "
+                 << slice.status();
     } else {
       result = std::move(*slice);
     }

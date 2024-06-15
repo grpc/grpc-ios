@@ -21,9 +21,9 @@
 #include <memory>
 
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 
 #include <grpc/grpc_crl_provider.h>
-#include <grpc/support/log.h>
 #include <grpc/support/port_platform.h>
 
 #include "src/core/lib/debug/trace.h"
@@ -128,10 +128,10 @@ void grpc_tls_credentials_options_set_tls_session_key_log_file_path(
   // Tls session key logging is assumed to be enabled if the specified log
   // file is non-empty.
   if (path != nullptr) {
-    gpr_log(GPR_INFO,
-            "Enabling TLS session key logging with keys stored at: %s", path);
+    LOG(INFO) << "Enabling TLS session key logging with keys stored at: "
+              << path;
   } else {
-    gpr_log(GPR_INFO, "Disabling TLS session key logging");
+    LOG(INFO) << "Disabling TLS session key logging";
   }
   options->set_tls_session_key_log_file_path(path != nullptr ? path : "");
 }

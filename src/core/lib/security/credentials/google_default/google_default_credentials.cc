@@ -24,8 +24,10 @@
 #include <string>
 
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 
@@ -35,7 +37,6 @@
 #include <grpc/impl/channel_arg_names.h>
 #include <grpc/slice.h>
 #include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
 #include <grpc/support/port_platform.h>
 #include <grpc/support/sync.h>
 
@@ -48,16 +49,12 @@
 #include "src/core/lib/gprpp/status_helper.h"
 #include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/gprpp/time.h"
-#include "src/core/lib/http/httpcli.h"
-#include "src/core/lib/http/parser.h"
 #include "src/core/lib/iomgr/closure.h"
 #include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/iomgr/iomgr_fwd.h"
 #include "src/core/lib/iomgr/polling_entity.h"
 #include "src/core/lib/iomgr/pollset.h"
-#include "src/core/lib/json/json.h"
-#include "src/core/lib/json/json_reader.h"
 #include "src/core/lib/security/credentials/alts/check_gcp_environment.h"
 #include "src/core/lib/security/credentials/credentials.h"
 #include "src/core/lib/security/credentials/external/external_account_credentials.h"
@@ -71,6 +68,10 @@
 #include "src/core/lib/uri/uri_parser.h"
 #include "src/core/load_balancing/grpclb/grpclb.h"
 #include "src/core/load_balancing/xds/xds_channel_args.h"
+#include "src/core/util/http_client/httpcli.h"
+#include "src/core/util/http_client/parser.h"
+#include "src/core/util/json/json.h"
+#include "src/core/util/json/json_reader.h"
 
 using grpc_core::Json;
 
@@ -137,7 +138,7 @@ grpc_google_default_channel_credentials::create_security_connector(
                         is_xds_non_cfe_cluster;
   // Return failure if ALTS is selected but not running on GCE.
   if (use_alts && alts_creds_ == nullptr) {
-    gpr_log(GPR_ERROR, "ALTS is selected, but not running on GCE.");
+    LOG(ERROR) << "ALTS is selected, but not running on GCE.";
     return nullptr;
   }
   grpc_core::RefCountedPtr<grpc_channel_security_connector> sc =
@@ -282,9 +283,8 @@ static grpc_error_handle create_default_creds_from_path(
     json = std::move(*json_or);
   }
   if (json.type() != Json::Type::kObject) {
-    error = grpc_error_set_str(GRPC_ERROR_CREATE("Failed to parse JSON"),
-                               grpc_core::StatusStrProperty::kRawBytes,
-                               creds_data->as_string_view());
+    error = GRPC_ERROR_CREATE(absl::StrCat("Failed to parse JSON \"",
+                                           creds_data->as_string_view(), "\""));
     goto end;
   }
 
@@ -410,8 +410,8 @@ grpc_channel_credentials* grpc_google_default_credentials_create(
         creds.get(), call_creds.get(), nullptr);
     CHECK_NE(result, nullptr);
   } else {
-    gpr_log(GPR_ERROR, "Could not create google default credentials: %s",
-            grpc_core::StatusToString(error).c_str());
+    LOG(ERROR) << "Could not create google default credentials: "
+               << grpc_core::StatusToString(error);
   }
   return result;
 }
