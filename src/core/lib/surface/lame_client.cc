@@ -42,7 +42,6 @@
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/promise/pipe.h"
 #include "src/core/lib/promise/promise.h"
-#include "src/core/lib/surface/api_trace.h"
 #include "src/core/lib/surface/channel.h"
 #include "src/core/lib/surface/channel_stack_type.h"
 #include "src/core/lib/transport/connectivity_state.h"
@@ -57,7 +56,7 @@ namespace grpc_core {
 
 const grpc_channel_filter LameClientFilter::kFilter =
     MakePromiseBasedFilter<LameClientFilter, FilterEndpoint::kClient,
-                           kFilterIsLast>("lame-client");
+                           kFilterIsLast>();
 
 absl::StatusOr<std::unique_ptr<LameClientFilter>> LameClientFilter::Create(
     const ChannelArgs& args, ChannelFilter::Args) {
