@@ -9,5 +9,6 @@ set -ex
 # GNU command line tools
 brew install coreutils
 
-brew install pyyaml
-pip3 install pyyaml || true
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install pyyaml
