@@ -1,0 +1,42 @@
+# This is a basic workflow that is manually triggered
+
+name: Manual push a pod
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag'
+        default: ''
+        required: true
+        type: string
+      pod:
+        description: 'Pod name without .podspec'
+        default: 'gRPC'
+        required: true
+        type: string
+env:
+  COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+  TAG: ${{ inputs.tag }}
+
+jobs:
+  release-cocoapod:
+    runs-on: macos-12
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v3
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: Pod release
+        run: scripts/release_cocoapod.sh ${{ inputs.pod }}.podspec
+
+      - name: Wait for pod avaialble
+        run: |
+          version=${TAG#v}
+          timeout 1h scripts/wait_for_pod_release.sh ${{ inputs.pod }} $version
