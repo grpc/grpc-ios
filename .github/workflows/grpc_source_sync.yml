@@ -15,7 +15,9 @@ jobs:
         run: scripts/prepare_env.sh
 
       - name: Shallow source source
-        run: scripts/sync_grpc_src_shallow.sh
+        run: |
+          source .venv/bin/activate
+          scripts/sync_grpc_src_shallow.sh
 
       - name: Collect revision hash
         run: |
