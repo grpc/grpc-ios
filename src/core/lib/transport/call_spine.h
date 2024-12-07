@@ -105,6 +105,8 @@ class CallSpine final : public Party {
   }
 
   void PushServerTrailingMetadata(ServerMetadataHandle md) {
+    GRPC_TRACE_LOG(call_state, INFO)
+        << "[call_state] PushServerTrailingMetadata: " << md->DebugString();
     call_filters().PushServerTrailingMetadata(std::move(md));
   }
 
@@ -205,6 +207,8 @@ class CallSpine final : public Party {
 
 class CallInitiator {
  public:
+  using NextMessage = ServerToClientNextMessage;
+
   CallInitiator() = default;
   explicit CallInitiator(RefCountedPtr<CallSpine> spine)
       : spine_(std::move(spine)) {}
@@ -275,6 +279,8 @@ class CallInitiator {
 
 class CallHandler {
  public:
+  using NextMessage = ClientToServerNextMessage;
+
   explicit CallHandler(RefCountedPtr<CallSpine> spine)
       : spine_(std::move(spine)) {}
 
