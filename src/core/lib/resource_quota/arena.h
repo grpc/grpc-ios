@@ -93,7 +93,7 @@ class ArenaContextTraits : public BaseArenaContextTraits {
 };
 
 template <typename T>
-GPR_ATTRIBUTE_ALWAYS_INLINE_FUNCTION void DestroyArenaContext(void* p) {
+GPR_ATTRIBUTE_ALWAYS_INLINE_FUNCTION inline void DestroyArenaContext(void* p) {
   ArenaContextType<T>::Destroy(static_cast<T*>(p));
 }
 
@@ -188,6 +188,14 @@ class Arena final : public RefCounted<Arena, NonPolymorphicRefCount,
     auto* p = New<ManagedNewImpl<T>>(std::forward<Args>(args)...);
     p->Link(&managed_new_head_);
     return &p->t;
+  }
+
+  template <typename T, typename... Args>
+  absl::enable_if_t<std::is_same<typename T::RefCountedUnrefBehaviorType,
+                                 UnrefCallDtor>::value,
+                    RefCountedPtr<T>>
+  MakeRefCounted(Args&&... args) {
+    return RefCountedPtr<T>(New<T>(std::forward<Args>(args)...));
   }
 
   class PooledDeleter {

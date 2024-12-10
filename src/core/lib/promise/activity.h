@@ -121,9 +121,14 @@ class Waker {
     return wakeable_and_arg_.ActivityDebugTag();
   }
 
-  std::string DebugString() {
+  std::string DebugString() const {
     return absl::StrFormat("Waker{%p, %d}", wakeable_and_arg_.wakeable,
                            wakeable_and_arg_.wakeup_mask);
+  }
+
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const Waker& waker) {
+    sink.Append(waker.DebugString());
   }
 
   // This is for tests to assert that a waker is occupied or not.
@@ -167,6 +172,11 @@ class IntraActivityWaiter {
 
   std::string DebugString() const;
 
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const IntraActivityWaiter& waker) {
+    sink.Append(waker.DebugString());
+  }
+
  private:
   WakeupMask wakeups_ = 0;
 };
@@ -203,7 +213,7 @@ class Activity : public Orphanable {
   // - assert that there is a current activity (and catch bugs if there's not)
   // - indicate to thread safety analysis that the current activity is indeed
   //   locked
-  // - back up that assertation with a runtime check in debug builds (it's
+  // - back up that assertion with a runtime check in debug builds (it's
   //   prohibitively expensive in non-debug builds)
   static Activity* current() { return g_current_activity_; }
 

@@ -56,6 +56,13 @@ struct StatusCastImpl<absl::Status, Success> {
 };
 
 template <>
+struct StatusCastImpl<absl::Status, Success&> {
+  GPR_ATTRIBUTE_ALWAYS_INLINE_FUNCTION static absl::Status Cast(Success) {
+    return absl::OkStatus();
+  }
+};
+
+template <>
 struct StatusCastImpl<absl::Status, const Success&> {
   GPR_ATTRIBUTE_ALWAYS_INLINE_FUNCTION static absl::Status Cast(Success) {
     return absl::OkStatus();
@@ -174,6 +181,16 @@ struct StatusCastImpl<absl::Status, const StatusFlag&> {
 template <>
 struct StatusCastImpl<StatusFlag, Success> {
   static StatusFlag Cast(Success) { return StatusFlag(true); }
+};
+
+template <>
+struct StatusCastImpl<StatusFlag, Failure> {
+  static StatusFlag Cast(Failure) { return StatusFlag(false); }
+};
+
+template <>
+struct FailureStatusCastImpl<StatusFlag, Failure> {
+  static StatusFlag Cast(Failure) { return StatusFlag(false); }
 };
 
 template <typename T>
