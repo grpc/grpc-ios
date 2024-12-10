@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <new>
@@ -54,12 +55,14 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "absl/types/variant.h"
+#include "src/core/config/config_vars.h"
 #include "src/core/ext/transport/chttp2/transport/call_tracer_wrapper.h"
 #include "src/core/ext/transport/chttp2/transport/context_list_entry.h"
 #include "src/core/ext/transport/chttp2/transport/flow_control.h"
 #include "src/core/ext/transport/chttp2/transport/frame_data.h"
 #include "src/core/ext/transport/chttp2/transport/frame_goaway.h"
 #include "src/core/ext/transport/chttp2/transport/frame_rst_stream.h"
+#include "src/core/ext/transport/chttp2/transport/frame_security.h"
 #include "src/core/ext/transport/chttp2/transport/hpack_encoder.h"
 #include "src/core/ext/transport/chttp2/transport/http2_settings.h"
 #include "src/core/ext/transport/chttp2/transport/internal.h"
@@ -71,7 +74,6 @@
 #include "src/core/ext/transport/chttp2/transport/varint.h"
 #include "src/core/ext/transport/chttp2/transport/write_size_policy.h"
 #include "src/core/lib/channel/channel_args.h"
-#include "src/core/lib/config/config_vars.h"
 #include "src/core/lib/event_engine/extensions/tcp_trace.h"
 #include "src/core/lib/event_engine/query_extensions.h"
 #include "src/core/lib/experiments/experiments.h"
@@ -98,6 +100,7 @@
 #include "src/core/lib/transport/metadata_info.h"
 #include "src/core/lib/transport/status_conversion.h"
 #include "src/core/lib/transport/transport.h"
+#include "src/core/lib/transport/transport_framing_endpoint_extension.h"
 #include "src/core/telemetry/call_tracer.h"
 #include "src/core/telemetry/stats.h"
 #include "src/core/telemetry/stats_data.h"
@@ -467,7 +470,7 @@ static void read_channel_args(grpc_chttp2_transport* t,
           .value_or(std::max(t->keepalive_timeout * 2,
                              grpc_core::Duration::Minutes(1)));
 
-  // Only send the prefered rx frame size http2 setting if we are instructed
+  // Only send the preferred rx frame size http2 setting if we are instructed
   // to auto size the buffers allocated at tcp level and we also can adjust
   // sending frame size.
   t->enable_preferred_rx_crypto_frame_advertisement =
@@ -548,6 +551,9 @@ static void read_channel_args(grpc_chttp2_transport* t,
     t->settings.mutable_local().SetPreferredReceiveCryptoMessageSize(INT_MAX);
   }
 
+  t->settings.mutable_local().SetAllowSecurityFrame(
+      channel_args.GetBool(GRPC_ARG_SECURITY_FRAME_ALLOWED).value_or(false));
+
   t->ping_on_rst_stream_percent = grpc_core::Clamp(
       channel_args.GetInt(GRPC_ARG_HTTP2_PING_ON_RST_STREAM_PERCENT)
           .value_or(1),
@@ -556,6 +562,10 @@ static void read_channel_args(grpc_chttp2_transport* t,
   t->max_concurrent_streams_overload_protection =
       channel_args.GetBool(GRPC_ARG_MAX_CONCURRENT_STREAMS_OVERLOAD_PROTECTION)
           .value_or(true);
+
+  t->max_concurrent_streams_reject_on_client =
+      channel_args.GetBool(GRPC_ARG_MAX_CONCURRENT_STREAMS_REJECT_ON_CLIENT)
+          .value_or(false);
 }
 
 static void init_keepalive_pings_if_enabled_locked(
@@ -575,6 +585,35 @@ static void init_keepalive_pings_if_enabled_locked(
     // inflight keepalive timers
     t->keepalive_state = GRPC_CHTTP2_KEEPALIVE_STATE_DISABLED;
   }
+}
+
+// TODO(alishananda): add unit testing as part of chttp2 promise conversion work
+void grpc_chttp2_transport::WriteSecurityFrame(grpc_core::SliceBuffer* data) {
+  combiner->Run(grpc_core::NewClosure(
+                    [transport = Ref(), data](grpc_error_handle) mutable {
+                      transport->WriteSecurityFrameLocked(data);
+                    }),
+                absl::OkStatus());
+}
+
+void grpc_chttp2_transport::WriteSecurityFrameLocked(
+    grpc_core::SliceBuffer* data) {
+  if (data == nullptr) {
+    return;
+  }
+  if (!settings.peer().allow_security_frame()) {
+    close_transport_locked(
+        this,
+        grpc_error_set_int(
+            GRPC_ERROR_CREATE("Unexpected SECURITY frame scheduled for write"),
+            grpc_core::StatusIntProperty::kRpcStatus,
+            GRPC_STATUS_FAILED_PRECONDITION));
+  }
+  grpc_core::SliceBuffer security_frame;
+  grpc_chttp2_security_frame_create(data->c_slice_buffer(), data->Length(),
+                                    security_frame.c_slice_buffer());
+  grpc_slice_buffer_move_into(security_frame.c_slice_buffer(), &qbuf);
+  grpc_chttp2_initiate_write(this, GRPC_CHTTP2_INITIATE_WRITE_SEND_MESSAGE);
 }
 
 using grpc_event_engine::experimental::QueryExtension;
@@ -616,6 +655,17 @@ grpc_chttp2_transport::grpc_chttp2_transport(
             ep.get()));
     if (epte != nullptr) {
       epte->InitializeAndReturnTcpTracer();
+    }
+  }
+
+  if (channel_args.GetBool(GRPC_ARG_SECURITY_FRAME_ALLOWED).value_or(false)) {
+    transport_framing_endpoint_extension = QueryExtension<
+        grpc_core::TransportFramingEndpointExtension>(
+        grpc_event_engine::experimental::grpc_get_wrapped_event_engine_endpoint(
+            ep.get()));
+    if (transport_framing_endpoint_extension != nullptr) {
+      transport_framing_endpoint_extension->SetSendFrameCallback(
+          [this](grpc_core::SliceBuffer* data) { WriteSecurityFrame(data); });
     }
   }
 
@@ -1041,8 +1091,8 @@ static void write_action(grpc_chttp2_transport* t) {
     // to nullptr.
     cl = nullptr;
   }
-  // Choose max_frame_size as the prefered rx crypto frame size indicated by the
-  // peer.
+  // Choose max_frame_size as the preferred rx crypto frame size indicated by
+  // the peer.
   int max_frame_size =
       t->settings.peer().preferred_receive_crypto_message_size();
   // Note: max frame size is 0 if the remote peer does not support adjusting the
@@ -1381,8 +1431,24 @@ static void send_initial_metadata_locked(
     if (t->is_client) {
       if (t->closed_with_error.ok()) {
         CHECK_EQ(s->id, 0u);
-        grpc_chttp2_list_add_waiting_for_concurrency(t, s);
-        maybe_start_some_streams(t);
+        if (t->max_concurrent_streams_reject_on_client &&
+            t->stream_map.size() >=
+                t->settings.peer().max_concurrent_streams()) {
+          s->trailing_metadata_buffer.Set(
+              grpc_core::GrpcStreamNetworkState(),
+              grpc_core::GrpcStreamNetworkState::kNotSentOnWire);
+          grpc_chttp2_cancel_stream(
+              t, s,
+              grpc_error_set_int(
+                  GRPC_ERROR_CREATE_REFERENCING("Too many streams",
+                                                &t->closed_with_error, 1),
+                  grpc_core::StatusIntProperty::kRpcStatus,
+                  GRPC_STATUS_RESOURCE_EXHAUSTED),
+              false);
+        } else {
+          grpc_chttp2_list_add_waiting_for_concurrency(t, s);
+          maybe_start_some_streams(t);
+        }
       } else {
         s->trailing_metadata_buffer.Set(
             grpc_core::GrpcStreamNetworkState(),
@@ -1425,7 +1491,7 @@ static void send_message_locked(
       op->payload->send_message.send_message->Length());
   on_complete->next_data.scratch |= t->closure_barrier_may_cover_write;
   s->send_message_finished = add_closure_barrier(op->on_complete);
-  const uint32_t flags = op_payload->send_message.flags;
+  uint32_t flags = 0;
   if (s->write_closed) {
     op->payload->send_message.stream_write_closed = true;
     // We should NOT return an error here, so as to avoid a cancel OP being
@@ -1435,6 +1501,19 @@ static void send_message_locked(
                                       absl::OkStatus(),
                                       "fetching_send_message_finished");
   } else {
+    // Buffer hint is used to buffer the message in the transport until the
+    // write buffer size (specified through GRPC_ARG_HTTP2_WRITE_BUFFER_SIZE) is
+    // reached. This is to batch writes sent down to tcp. However, if the memory
+    // pressure is high, disable the buffer hint to flush data down to tcp as
+    // soon as possible to avoid OOM.
+    if (grpc_core::IsDisableBufferHintOnHighMemoryPressureEnabled() &&
+        t->memory_owner.GetPressureInfo().pressure_control_value >= 0.8) {
+      // Disable write buffer hint if memory pressure is high. The value of 0.8
+      // is chosen to match the threshold used by the tcp endpoint (in
+      // allocating memory for socket reads).
+      op_payload->send_message.flags &= ~GRPC_WRITE_BUFFER_HINT;
+    }
+    flags = op_payload->send_message.flags;
     uint8_t* frame_hdr = grpc_slice_buffer_tiny_add(&s->flow_controlled_buffer,
                                                     GRPC_HEADER_SIZE_IN_BYTES);
     frame_hdr[0] = (flags & GRPC_WRITE_INTERNAL_COMPRESS) != 0;

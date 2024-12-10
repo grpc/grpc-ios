@@ -46,11 +46,11 @@
 #include "absl/types/span.h"
 #include "absl/types/variant.h"
 #include "src/core/client_channel/client_channel_internal.h"
+#include "src/core/config/core_configuration.h"
 #include "src/core/ext/filters/stateful_session/stateful_session_filter.h"
 #include "src/core/lib/address_utils/parse_address.h"
 #include "src/core/lib/address_utils/sockaddr_utils.h"
 #include "src/core/lib/channel/channel_args.h"
-#include "src/core/lib/config/core_configuration.h"
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/experiments/experiments.h"
 #include "src/core/lib/iomgr/closure.h"
@@ -372,7 +372,7 @@ class XdsOverrideHostLb final : public LoadBalancingPolicy {
       grpc_closure closure_;
     };
 
-    absl::optional<LoadBalancingPolicy::PickResult> PickOverridenHost(
+    absl::optional<LoadBalancingPolicy::PickResult> PickOverriddenHost(
         XdsOverrideHostAttribute* override_host_attr) const;
 
     RefCountedPtr<XdsOverrideHostLb> policy_;
@@ -468,7 +468,7 @@ XdsOverrideHostLb::Picker::Picker(
 }
 
 absl::optional<LoadBalancingPolicy::PickResult>
-XdsOverrideHostLb::Picker::PickOverridenHost(
+XdsOverrideHostLb::Picker::PickOverriddenHost(
     XdsOverrideHostAttribute* override_host_attr) const {
   CHECK_NE(override_host_attr, nullptr);
   auto cookie_address_list = override_host_attr->cookie_address_list();
@@ -557,7 +557,7 @@ LoadBalancingPolicy::PickResult XdsOverrideHostLb::Picker::Pick(PickArgs args) {
   auto* override_host_attr =
       call_state->GetCallAttribute<XdsOverrideHostAttribute>();
   if (override_host_attr != nullptr) {
-    auto overridden_host_pick = PickOverridenHost(override_host_attr);
+    auto overridden_host_pick = PickOverriddenHost(override_host_attr);
     if (overridden_host_pick.has_value()) {
       return std::move(*overridden_host_pick);
     }
