@@ -10,7 +10,7 @@ env:
   TAG: ${{ github.event.release.tag_name }}
 jobs:
   release-cocoapod-gRPC-Core:
-    runs-on: macos-14
+    runs-on: macos-12
     steps:
       - name: Repo checkout
         uses: actions/checkout@v3
@@ -28,7 +28,7 @@ jobs:
           version=${TAG#v}
           timeout 1h scripts/wait_for_pod_release.sh gRPC-Core $version
   release-cocoapod-gRPC-Cpp:
-    runs-on: macos-14
+    runs-on: macos-12
     needs: [release-cocoapod-gRPC-Core]
     steps:
       - name: Repo checkout
@@ -47,7 +47,7 @@ jobs:
           version=${TAG#v}
           timeout 1h scripts/wait_for_pod_release.sh gRPC-C++ $version
   release-cocoapod-gRPC-RxLibrary:
-    runs-on: macos-14
+    runs-on: macos-12
     steps:
       - name: Repo checkout
         uses: actions/checkout@v3
@@ -66,7 +66,7 @@ jobs:
           timeout 1h scripts/wait_for_pod_release.sh gRPC-RxLibrary $version
 
   release-cocoapod-gRPC:
-    runs-on: macos-14
+    runs-on: macos-12
     needs: [release-cocoapod-gRPC-RxLibrary, release-cocoapod-gRPC-Core]
     steps:
       - name: Repo checkout
@@ -86,7 +86,7 @@ jobs:
           timeout 1h scripts/wait_for_pod_release.sh gRPC $version
 
   release-cocoapod-gRPC-ProtoRPC:
-    runs-on: macos-14
+    runs-on: macos-12
     needs: [release-cocoapod-gRPC-RxLibrary, release-cocoapod-gRPC]
     steps:
       - name: Repo checkout
