@@ -51,13 +51,14 @@
 #include "src/core/client_channel/dynamic_filters.h"
 #include "src/core/client_channel/global_subchannel_pool.h"
 #include "src/core/client_channel/local_subchannel_pool.h"
+#include "src/core/client_channel/retry_interceptor.h"
 #include "src/core/client_channel/subchannel.h"
 #include "src/core/client_channel/subchannel_interface_internal.h"
+#include "src/core/config/core_configuration.h"
 #include "src/core/ext/filters/channel_idle/legacy_channel_idle_filter.h"
 #include "src/core/lib/address_utils/sockaddr_utils.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/status_util.h"
-#include "src/core/lib/config/core_configuration.h"
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/event_engine/channel_args_endpoint_config.h"
 #include "src/core/lib/iomgr/resolved_address.h"
@@ -212,7 +213,7 @@ class ClientChannel::SubchannelWrapper
 //
 // This class handles things like hopping into the WorkSerializer
 // before passing notifications to the LB policy and propagating
-// keepalive information betwen subchannels.
+// keepalive information between subchannels.
 class ClientChannel::SubchannelWrapper::WatcherWrapper
     : public Subchannel::ConnectivityStateWatcherInterface {
  public:
@@ -260,7 +261,7 @@ class ClientChannel::SubchannelWrapper::WatcherWrapper
         << subchannel_wrapper_.get() << " subchannel "
         << subchannel_wrapper_->subchannel_.get()
         << " watcher=" << watcher_.get()
-        << "state=" << ConnectivityStateName(state) << " status=" << status;
+        << " state=" << ConnectivityStateName(state) << " status=" << status;
     absl::optional<absl::Cord> keepalive_throttling =
         status.GetPayload(kKeepaliveThrottlingKey);
     if (keepalive_throttling.has_value()) {
@@ -1291,13 +1292,11 @@ void ClientChannel::UpdateServiceConfigInDataPlaneLocked(
       GRPC_CLIENT_CHANNEL, builder);
   // Add filters returned by the config selector (e.g., xDS HTTP filters).
   config_selector->AddFilters(builder);
-  // TODO(roth, ctiller): When we implement the retry interceptor, that
-  // needs to be added *after* the filters added by the config selector.
   const bool enable_retries =
       !channel_args_.WantMinimalStack() &&
       channel_args_.GetBool(GRPC_ARG_ENABLE_RETRIES).value_or(true);
   if (enable_retries) {
-    Crash("call v3 stack does not yet support retries");
+    builder.Add<RetryInterceptor>();
   }
   // Create call destination.
   auto top_of_stack_call_destination = builder.Build(call_destination_);
