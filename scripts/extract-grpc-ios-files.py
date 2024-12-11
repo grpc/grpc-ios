@@ -22,6 +22,7 @@ import shutil
 from generate_projects import preprocess_build_files
 
 targets = (
+    'address_sorting',
     'grpc++',
     'grpc',
     'grpc_authorization_provider',
