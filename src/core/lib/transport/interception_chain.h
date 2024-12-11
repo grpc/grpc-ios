@@ -90,6 +90,8 @@ class HijackedCall final {
 
 class Interceptor : public UnstartedCallDestination {
  public:
+  using UnstartedCallDestination::UnstartedCallDestination;
+
   void StartCall(UnstartedCallHandler unstarted_call_handler) final {
     unstarted_call_handler.AddCallStack(filter_stack_);
     InterceptCall(std::move(unstarted_call_handler));
@@ -106,13 +108,20 @@ class Interceptor : public UnstartedCallDestination {
     return Map(call_handler.PullClientInitialMetadata(),
                [call_handler, destination = wrapped_destination_](
                    ValueOrFailure<ClientMetadataHandle> metadata) mutable
-               -> ValueOrFailure<HijackedCall> {
+                   -> ValueOrFailure<HijackedCall> {
                  if (!metadata.ok()) return Failure{};
                  return HijackedCall(std::move(metadata.value()),
                                      std::move(destination),
                                      std::move(call_handler));
                });
   }
+
+  // Hijack a call with custom initial metadata.
+  // TODO(ctiller): Evaluate whether this or hijack or some other in-between
+  // API is what we need here (I think we need 2 or 3 more fully worked through
+  // samples) and then reduce this surface to one API.
+  CallInitiator MakeChildCall(ClientMetadataHandle metadata,
+                              RefCountedPtr<Arena> arena);
 
   // Consume this call - it will not be passed on to any further filters.
   CallHandler Consume(UnstartedCallHandler unstarted_call_handler) {
