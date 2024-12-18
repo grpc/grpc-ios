@@ -44,7 +44,7 @@ please refer to these documents
 
 Per-language quickstart guides and tutorials can be found in the
 [documentation section on the grpc.io website](https://grpc.io/docs/). Code
-examples are available in the [examples](examples) directory.
+examples are not available in the [examples](examples) directory.
 
 Precompiled bleeding-edge package builds of gRPC `master` branch's `HEAD` are
 uploaded daily to [packages.grpc.io](https://packages.grpc.io).
