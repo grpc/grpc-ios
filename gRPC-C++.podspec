@@ -22,7 +22,7 @@
 Pod::Spec.new do |s|
   s.name     = 'gRPC-C++'
   # TODO (mxyan): use version that match gRPC version when pod is stabilized
-  version = '1.70.0-dev'
+  version = '1.71.0-pre2'
   s.version  = version
   s.summary  = 'gRPC C++ library'
   s.homepage = 'https://grpc.io'
@@ -181,6 +181,8 @@ Pod::Spec.new do |s|
                       'include/grpcpp/impl/status.h',
                       'include/grpcpp/impl/sync.h',
                       'include/grpcpp/passive_listener.h',
+                      'include/grpcpp/ports_def.inc',
+                      'include/grpcpp/ports_undef.inc',
                       'include/grpcpp/resource_quota.h',
                       'include/grpcpp/security/audit_logging.h',
                       'include/grpcpp/security/auth_context.h',
@@ -267,7 +269,6 @@ Pod::Spec.new do |s|
     ss.dependency 'abseil/time/time', abseil_version
     ss.dependency 'abseil/types/optional', abseil_version
     ss.dependency 'abseil/types/span', abseil_version
-    ss.dependency 'abseil/types/variant', abseil_version
     ss.dependency 'abseil/utility/utility', abseil_version
 
     ss.source_files = 'src/core/call/request_buffer.h',
@@ -538,6 +539,8 @@ Pod::Spec.new do |s|
                       'src/core/ext/upb-gen/envoy/type/http/v3/cookie.upb_minitable.h',
                       'src/core/ext/upb-gen/envoy/type/http/v3/path_transformation.upb.h',
                       'src/core/ext/upb-gen/envoy/type/http/v3/path_transformation.upb_minitable.h',
+                      'src/core/ext/upb-gen/envoy/type/matcher/v3/address.upb.h',
+                      'src/core/ext/upb-gen/envoy/type/matcher/v3/address.upb_minitable.h',
                       'src/core/ext/upb-gen/envoy/type/matcher/v3/filter_state.upb.h',
                       'src/core/ext/upb-gen/envoy/type/matcher/v3/filter_state.upb_minitable.h',
                       'src/core/ext/upb-gen/envoy/type/matcher/v3/http_inputs.upb.h',
@@ -773,6 +776,7 @@ Pod::Spec.new do |s|
                       'src/core/ext/upbdefs-gen/envoy/service/status/v3/csds.upbdefs.h',
                       'src/core/ext/upbdefs-gen/envoy/type/http/v3/cookie.upbdefs.h',
                       'src/core/ext/upbdefs-gen/envoy/type/http/v3/path_transformation.upbdefs.h',
+                      'src/core/ext/upbdefs-gen/envoy/type/matcher/v3/address.upbdefs.h',
                       'src/core/ext/upbdefs-gen/envoy/type/matcher/v3/filter_state.upbdefs.h',
                       'src/core/ext/upbdefs-gen/envoy/type/matcher/v3/http_inputs.upbdefs.h',
                       'src/core/ext/upbdefs-gen/envoy/type/matcher/v3/metadata.upbdefs.h',
@@ -1309,6 +1313,7 @@ Pod::Spec.new do |s|
                       'src/core/util/useful.h',
                       'src/core/util/uuid_v4.h',
                       'src/core/util/validation_errors.h',
+                      'src/core/util/wait_for_single_owner.h',
                       'src/core/util/work_serializer.h',
                       'src/core/util/xxhash_inline.h',
                       'src/core/xds/grpc/certificate_provider_store.h',
@@ -1341,6 +1346,7 @@ Pod::Spec.new do |s|
                       'src/core/xds/grpc/xds_route_config_parser.h',
                       'src/core/xds/grpc/xds_routing.h',
                       'src/core/xds/grpc/xds_server_grpc.h',
+                      'src/core/xds/grpc/xds_server_grpc_interface.h',
                       'src/core/xds/grpc/xds_transport_grpc.h',
                       'src/core/xds/xds_client/lrs_client.h',
                       'src/core/xds/xds_client/xds_api.h',
@@ -1834,6 +1840,8 @@ Pod::Spec.new do |s|
                               'src/core/ext/upb-gen/envoy/type/http/v3/cookie.upb_minitable.h',
                               'src/core/ext/upb-gen/envoy/type/http/v3/path_transformation.upb.h',
                               'src/core/ext/upb-gen/envoy/type/http/v3/path_transformation.upb_minitable.h',
+                              'src/core/ext/upb-gen/envoy/type/matcher/v3/address.upb.h',
+                              'src/core/ext/upb-gen/envoy/type/matcher/v3/address.upb_minitable.h',
                               'src/core/ext/upb-gen/envoy/type/matcher/v3/filter_state.upb.h',
                               'src/core/ext/upb-gen/envoy/type/matcher/v3/filter_state.upb_minitable.h',
                               'src/core/ext/upb-gen/envoy/type/matcher/v3/http_inputs.upb.h',
@@ -2069,6 +2077,7 @@ Pod::Spec.new do |s|
                               'src/core/ext/upbdefs-gen/envoy/service/status/v3/csds.upbdefs.h',
                               'src/core/ext/upbdefs-gen/envoy/type/http/v3/cookie.upbdefs.h',
                               'src/core/ext/upbdefs-gen/envoy/type/http/v3/path_transformation.upbdefs.h',
+                              'src/core/ext/upbdefs-gen/envoy/type/matcher/v3/address.upbdefs.h',
                               'src/core/ext/upbdefs-gen/envoy/type/matcher/v3/filter_state.upbdefs.h',
                               'src/core/ext/upbdefs-gen/envoy/type/matcher/v3/http_inputs.upbdefs.h',
                               'src/core/ext/upbdefs-gen/envoy/type/matcher/v3/metadata.upbdefs.h',
@@ -2605,6 +2614,7 @@ Pod::Spec.new do |s|
                               'src/core/util/useful.h',
                               'src/core/util/uuid_v4.h',
                               'src/core/util/validation_errors.h',
+                              'src/core/util/wait_for_single_owner.h',
                               'src/core/util/work_serializer.h',
                               'src/core/util/xxhash_inline.h',
                               'src/core/xds/grpc/certificate_provider_store.h',
@@ -2637,6 +2647,7 @@ Pod::Spec.new do |s|
                               'src/core/xds/grpc/xds_route_config_parser.h',
                               'src/core/xds/grpc/xds_routing.h',
                               'src/core/xds/grpc/xds_server_grpc.h',
+                              'src/core/xds/grpc/xds_server_grpc_interface.h',
                               'src/core/xds/grpc/xds_transport_grpc.h',
                               'src/core/xds/xds_client/lrs_client.h',
                               'src/core/xds/xds_client/xds_api.h',

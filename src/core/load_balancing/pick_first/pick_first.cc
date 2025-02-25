@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <type_traits>
@@ -38,7 +39,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "src/core/config/core_configuration.h"
 #include "src/core/lib/address_utils/sockaddr_utils.h"
 #include "src/core/lib/channel/channel_args.h"
@@ -195,7 +195,7 @@ class PickFirst final : public LoadBalancingPolicy {
 
         // TODO(roth): Once we remove pollset_set, we should no longer
         // need to hold a ref to PickFirst.  Instead, we can make this a
-        // raw pointer and put it in an absl::variant with subchannel_data_.
+        // raw pointer and put it in an std::variant with subchannel_data_.
         RefCountedPtr<PickFirst> pick_first_;
 
         RefCountedPtr<SubchannelInterface> subchannel_;
@@ -206,7 +206,7 @@ class PickFirst final : public LoadBalancingPolicy {
       SubchannelData(SubchannelList* subchannel_list, size_t index,
                      RefCountedPtr<SubchannelInterface> subchannel);
 
-      absl::optional<grpc_connectivity_state> connectivity_state() const {
+      std::optional<grpc_connectivity_state> connectivity_state() const {
         return connectivity_state_;
       }
       const absl::Status& connectivity_status() const {
@@ -224,6 +224,7 @@ class PickFirst final : public LoadBalancingPolicy {
       void RequestConnectionWithTimer();
 
       bool seen_transient_failure() const { return seen_transient_failure_; }
+      void set_seen_transient_failure() { seen_transient_failure_ = true; }
 
      private:
       // This method will be invoked once soon after instantiation to report
@@ -239,7 +240,7 @@ class PickFirst final : public LoadBalancingPolicy {
       // Subchannel state.
       OrphanablePtr<SubchannelState> subchannel_state_;
       // Data updated by the watcher.
-      absl::optional<grpc_connectivity_state> connectivity_state_;
+      std::optional<grpc_connectivity_state> connectivity_state_;
       absl::Status connectivity_status_;
       bool seen_transient_failure_ = false;
     };
@@ -312,7 +313,7 @@ class PickFirst final : public LoadBalancingPolicy {
     // initial pass is over, this will be equal to size().
     size_t attempting_index_ = 0;
     // Happy Eyeballs timer handle.
-    absl::optional<grpc_event_engine::experimental::EventEngine::TaskHandle>
+    std::optional<grpc_event_engine::experimental::EventEngine::TaskHandle>
         timer_handle_;
 
     // After the initial Happy Eyeballs pass, the number of failures
@@ -822,13 +823,11 @@ void PickFirst::SubchannelList::SubchannelData::OnConnectivityStateChange(
   // not call us in the first place.
   CHECK_NE(new_state, GRPC_CHANNEL_READY);
   // Update state.
-  absl::optional<grpc_connectivity_state> old_state = connectivity_state_;
+  std::optional<grpc_connectivity_state> old_state = connectivity_state_;
   connectivity_state_ = new_state;
   connectivity_status_ = std::move(status);
   // Make sure we note when a subchannel has seen TRANSIENT_FAILURE.
-  bool prev_seen_transient_failure = seen_transient_failure_;
   if (new_state == GRPC_CHANNEL_TRANSIENT_FAILURE) {
-    seen_transient_failure_ = true;
     subchannel_list_->last_failure_ = connectivity_status_;
   }
   // If this is the initial connectivity state update for this subchannel,
@@ -873,6 +872,8 @@ void PickFirst::SubchannelList::SubchannelData::OnConnectivityStateChange(
   // Otherwise, process connectivity state change.
   switch (*connectivity_state_) {
     case GRPC_CHANNEL_TRANSIENT_FAILURE: {
+      bool prev_seen_transient_failure =
+          std::exchange(seen_transient_failure_, true);
       // If this is the first failure we've seen on this subchannel,
       // then we're still in the Happy Eyeballs pass.
       if (!prev_seen_transient_failure && seen_transient_failure_) {
@@ -957,7 +958,6 @@ void PickFirst::SubchannelList::SubchannelData::RequestConnectionWithTimer() {
             p->connection_attempt_delay_,
             [subchannel_list =
                  subchannel_list_->Ref(DEBUG_LOCATION, "timer")]() mutable {
-              ApplicationCallbackExecCtx application_exec_ctx;
               ExecCtx exec_ctx;
               auto* sl = subchannel_list.get();
               sl->policy_->work_serializer()->Run(
@@ -973,8 +973,7 @@ void PickFirst::SubchannelList::SubchannelData::RequestConnectionWithTimer() {
                     if (subchannel_list->policy_->selected_ != nullptr) return;
                     ++subchannel_list->attempting_index_;
                     subchannel_list->StartConnectingNextSubchannel();
-                  },
-                  DEBUG_LOCATION);
+                  });
             });
   }
 }
@@ -1068,6 +1067,7 @@ void PickFirst::SubchannelList::StartConnectingNextSubchannel() {
       sc->RequestConnectionWithTimer();
       return;
     }
+    sc->set_seen_transient_failure();
   }
   // If we didn't find a subchannel to request a connection on, check to
   // see if the Happy Eyeballs pass is complete.
@@ -1128,7 +1128,7 @@ class OldPickFirst final : public LoadBalancingPolicy {
                      RefCountedPtr<SubchannelInterface> subchannel);
 
       SubchannelInterface* subchannel() const { return subchannel_.get(); }
-      absl::optional<grpc_connectivity_state> connectivity_state() const {
+      std::optional<grpc_connectivity_state> connectivity_state() const {
         return connectivity_state_;
       }
       const absl::Status& connectivity_status() const {
@@ -1151,6 +1151,7 @@ class OldPickFirst final : public LoadBalancingPolicy {
       void ShutdownLocked();
 
       bool seen_transient_failure() const { return seen_transient_failure_; }
+      void set_seen_transient_failure() { seen_transient_failure_ = true; }
 
      private:
       // Watcher for subchannel connectivity state.
@@ -1198,7 +1199,7 @@ class OldPickFirst final : public LoadBalancingPolicy {
       SubchannelInterface::ConnectivityStateWatcherInterface* pending_watcher_ =
           nullptr;
       // Data updated by the watcher.
-      absl::optional<grpc_connectivity_state> connectivity_state_;
+      std::optional<grpc_connectivity_state> connectivity_state_;
       absl::Status connectivity_status_;
       bool seen_transient_failure_ = false;
     };
@@ -1271,7 +1272,7 @@ class OldPickFirst final : public LoadBalancingPolicy {
     // initial pass is over, this will be equal to size().
     size_t attempting_index_ = 0;
     // Happy Eyeballs timer handle.
-    absl::optional<grpc_event_engine::experimental::EventEngine::TaskHandle>
+    std::optional<grpc_event_engine::experimental::EventEngine::TaskHandle>
         timer_handle_;
 
     // After the initial Happy Eyeballs pass, the number of failures
@@ -1647,7 +1648,7 @@ void OldPickFirst::SubchannelList::SubchannelData::OnConnectivityStateChange(
   CHECK(subchannel_list_ == p->subchannel_list_.get() ||
         subchannel_list_ == p->latest_pending_subchannel_list_.get());
   CHECK(new_state != GRPC_CHANNEL_SHUTDOWN);
-  absl::optional<grpc_connectivity_state> old_state = connectivity_state_;
+  std::optional<grpc_connectivity_state> old_state = connectivity_state_;
   connectivity_state_ = new_state;
   connectivity_status_ = std::move(status);
   // Handle updates for the currently selected subchannel.
@@ -1721,10 +1722,8 @@ void OldPickFirst::SubchannelList::SubchannelData::OnConnectivityStateChange(
     ProcessUnselectedReadyLocked();
     return;
   }
-  // Make sure we note when a subchannel has seen TRANSIENT_FAILURE.
-  bool prev_seen_transient_failure = seen_transient_failure_;
+  // Record status for TRANSIENT_FAILURE state.
   if (new_state == GRPC_CHANNEL_TRANSIENT_FAILURE) {
-    seen_transient_failure_ = true;
     subchannel_list_->last_failure_ = connectivity_status_;
   }
   // If this is the initial connectivity state update for this subchannel,
@@ -1753,6 +1752,8 @@ void OldPickFirst::SubchannelList::SubchannelData::OnConnectivityStateChange(
   // Otherwise, process connectivity state change.
   switch (*connectivity_state_) {
     case GRPC_CHANNEL_TRANSIENT_FAILURE: {
+      bool prev_seen_transient_failure =
+          std::exchange(seen_transient_failure_, true);
       // If this is the first failure we've seen on this subchannel,
       // then we're still in the Happy Eyeballs pass.
       if (!prev_seen_transient_failure && seen_transient_failure_) {
@@ -1838,7 +1839,6 @@ void OldPickFirst::SubchannelList::SubchannelData::
             p->connection_attempt_delay_,
             [subchannel_list =
                  subchannel_list_->Ref(DEBUG_LOCATION, "timer")]() mutable {
-              ApplicationCallbackExecCtx application_exec_ctx;
               ExecCtx exec_ctx;
               auto* sl = subchannel_list.get();
               sl->policy_->work_serializer()->Run(
@@ -1854,8 +1854,7 @@ void OldPickFirst::SubchannelList::SubchannelData::
                     if (subchannel_list->policy_->selected_ != nullptr) return;
                     ++subchannel_list->attempting_index_;
                     subchannel_list->StartConnectingNextSubchannel();
-                  },
-                  DEBUG_LOCATION);
+                  });
             });
   }
 }
@@ -2006,6 +2005,7 @@ void OldPickFirst::SubchannelList::StartConnectingNextSubchannel() {
       sc->RequestConnectionWithTimer();
       return;
     }
+    sc->set_seen_transient_failure();
   }
   // If we didn't find a subchannel to request a connection on, check to
   // see if the Happy Eyeballs pass is complete.
