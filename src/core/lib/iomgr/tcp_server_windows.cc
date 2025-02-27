@@ -292,9 +292,8 @@ static grpc_error_handle prepare_socket(SOCKET sock,
 
 failure:
   CHECK(!error.ok());
-  error = grpc_error_set_int(GRPC_ERROR_CREATE_REFERENCING(
-                                 "Failed to prepare server socket", &error, 1),
-                             grpc_core::StatusIntProperty::kFd, (intptr_t)sock);
+  error = GRPC_ERROR_CREATE_REFERENCING("Failed to prepare server socket",
+                                        &error, 1);
   if (sock != INVALID_SOCKET) closesocket(sock);
   return error;
 }
@@ -650,7 +649,6 @@ static grpc_error_handle event_engine_create(grpc_closure* shutdown_complete,
   auto accept_cb = [s, on_accept_cb, on_accept_cb_arg](
                        std::unique_ptr<EventEngine::Endpoint> endpoint,
                        MemoryAllocator memory_allocator) {
-    grpc_core::ApplicationCallbackExecCtx app_ctx;
     grpc_core::ExecCtx exec_ctx;
     grpc_tcp_server_acceptor* acceptor =
         static_cast<grpc_tcp_server_acceptor*>(gpr_malloc(sizeof(*acceptor)));

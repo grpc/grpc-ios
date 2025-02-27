@@ -33,6 +33,8 @@
 #include "absl/time/time.h"
 #include "src/core/client_channel/backup_poller.h"
 #include "src/core/config/core_configuration.h"
+#include "src/core/credentials/transport/security_connector.h"
+#include "src/core/filter/auth/auth_filters.h"
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/event_engine/posix_engine/timer_manager.h"
 #include "src/core/lib/experiments/config.h"
@@ -41,9 +43,6 @@
 #include "src/core/lib/iomgr/iomgr.h"
 #include "src/core/lib/iomgr/timer_manager.h"
 #include "src/core/lib/security/authorization/grpc_server_authz_filter.h"
-#include "src/core/lib/security/credentials/credentials.h"
-#include "src/core/lib/security/security_connector/security_connector.h"
-#include "src/core/lib/security/transport/auth_filters.h"
 #include "src/core/lib/surface/channel_stack_type.h"
 #include "src/core/lib/surface/init_internally.h"
 #include "src/core/util/fork.h"
@@ -72,12 +71,21 @@ static bool g_shutting_down ABSL_GUARDED_BY(g_init_mu) = false;
 
 namespace grpc_core {
 void RegisterSecurityFilters(CoreConfiguration::Builder* builder) {
-  builder->channel_init()
-      ->RegisterV2Filter<ClientAuthFilter>(GRPC_CLIENT_SUBCHANNEL)
-      .IfHasChannelArg(GRPC_ARG_SECURITY_CONNECTOR);
-  builder->channel_init()
-      ->RegisterV2Filter<ClientAuthFilter>(GRPC_CLIENT_DIRECT_CHANNEL)
-      .IfHasChannelArg(GRPC_ARG_SECURITY_CONNECTOR);
+  if (IsCallv3ClientAuthFilterEnabled()) {
+    builder->channel_init()
+        ->RegisterFilter<ClientAuthFilter>(GRPC_CLIENT_SUBCHANNEL)
+        .IfHasChannelArg(GRPC_ARG_SECURITY_CONNECTOR);
+    builder->channel_init()
+        ->RegisterFilter<ClientAuthFilter>(GRPC_CLIENT_DIRECT_CHANNEL)
+        .IfHasChannelArg(GRPC_ARG_SECURITY_CONNECTOR);
+  } else {
+    builder->channel_init()
+        ->RegisterV2Filter<LegacyClientAuthFilter>(GRPC_CLIENT_SUBCHANNEL)
+        .IfHasChannelArg(GRPC_ARG_SECURITY_CONNECTOR);
+    builder->channel_init()
+        ->RegisterV2Filter<LegacyClientAuthFilter>(GRPC_CLIENT_DIRECT_CHANNEL)
+        .IfHasChannelArg(GRPC_ARG_SECURITY_CONNECTOR);
+  }
   builder->channel_init()
       ->RegisterFilter<ServerAuthFilter>(GRPC_SERVER_CHANNEL)
       .IfHasChannelArg(GRPC_SERVER_CREDENTIALS_ARG);
@@ -168,14 +176,9 @@ void grpc_shutdown(void) {
   grpc_core::MutexLock lock(g_init_mu);
 
   if (--g_initializations == 0) {
-    grpc_core::ApplicationCallbackExecCtx* acec =
-        grpc_core::ApplicationCallbackExecCtx::Get();
     if (!grpc_iomgr_is_any_background_poller_thread() &&
         !grpc_event_engine::experimental::TimerManager::
             IsTimerManagerThread() &&
-        (acec == nullptr ||
-         (acec->Flags() & GRPC_APP_CALLBACK_EXEC_CTX_FLAG_IS_INTERNAL_THREAD) ==
-             0) &&
         grpc_core::ExecCtx::Get() == nullptr) {
       // just run clean-up when this is called on non-executor thread.
       VLOG(2) << "grpc_shutdown starts clean-up now";
@@ -229,7 +232,8 @@ bool grpc_wait_for_shutdown_with_timeout(absl::Duration timeout) {
   grpc_core::MutexLock lock(g_init_mu);
   while (g_initializations != 0) {
     if (g_shutting_down_cv->WaitWithDeadline(g_init_mu, deadline)) {
-      LOG(ERROR) << "grpc_wait_for_shutdown_with_timeout() timed out.";
+      GRPC_TRACE_LOG(api, ERROR)
+          << "grpc_wait_for_shutdown_with_timeout() timed out.";
       return false;
     }
   }

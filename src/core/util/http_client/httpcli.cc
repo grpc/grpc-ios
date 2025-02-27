@@ -32,6 +32,8 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
 #include "src/core/config/core_configuration.h"
+#include "src/core/credentials/transport/security_connector.h"
+#include "src/core/credentials/transport/transport_credentials.h"
 #include "src/core/handshaker/handshaker.h"
 #include "src/core/handshaker/handshaker_registry.h"
 #include "src/core/handshaker/tcp_connect/tcp_connect_handshaker.h"
@@ -44,8 +46,6 @@
 #include "src/core/lib/iomgr/pollset_set.h"
 #include "src/core/lib/iomgr/resolve_address.h"
 #include "src/core/lib/resource_quota/api.h"
-#include "src/core/lib/security/credentials/credentials.h"
-#include "src/core/lib/security/security_connector/security_connector.h"
 #include "src/core/lib/slice/slice.h"
 #include "src/core/lib/transport/error_utils.h"
 #include "src/core/util/http_client/format_request.h"
@@ -71,7 +71,7 @@ OrphanablePtr<HttpRequest> HttpRequest::Get(
     grpc_polling_entity* pollent, const grpc_http_request* request,
     Timestamp deadline, grpc_closure* on_done, grpc_http_response* response,
     RefCountedPtr<grpc_channel_credentials> channel_creds) {
-  absl::optional<std::function<bool()>> test_only_generate_response;
+  std::optional<std::function<bool()>> test_only_generate_response;
   if (g_get_override != nullptr) {
     test_only_generate_response = [request, uri, deadline, on_done,
                                    response]() {
@@ -97,7 +97,7 @@ OrphanablePtr<HttpRequest> HttpRequest::Post(
     grpc_polling_entity* pollent, const grpc_http_request* request,
     Timestamp deadline, grpc_closure* on_done, grpc_http_response* response,
     RefCountedPtr<grpc_channel_credentials> channel_creds) {
-  absl::optional<std::function<bool()>> test_only_generate_response;
+  std::optional<std::function<bool()>> test_only_generate_response;
   if (g_post_override != nullptr) {
     test_only_generate_response = [request, uri, deadline, on_done,
                                    response]() {
@@ -122,7 +122,7 @@ OrphanablePtr<HttpRequest> HttpRequest::Put(
     grpc_polling_entity* pollent, const grpc_http_request* request,
     Timestamp deadline, grpc_closure* on_done, grpc_http_response* response,
     RefCountedPtr<grpc_channel_credentials> channel_creds) {
-  absl::optional<std::function<bool()>> test_only_generate_response;
+  std::optional<std::function<bool()>> test_only_generate_response;
   if (g_put_override != nullptr) {
     test_only_generate_response = [request, uri, deadline, on_done,
                                    response]() {
@@ -159,7 +159,7 @@ HttpRequest::HttpRequest(
     URI uri, const grpc_slice& request_text, grpc_http_response* response,
     Timestamp deadline, const grpc_channel_args* channel_args,
     grpc_closure* on_done, grpc_polling_entity* pollent, const char* name,
-    absl::optional<std::function<bool()>> test_only_generate_response,
+    std::optional<std::function<bool()>> test_only_generate_response,
     RefCountedPtr<grpc_channel_credentials> channel_creds)
     : uri_(std::move(uri)),
       request_text_(request_text),
@@ -226,7 +226,6 @@ void HttpRequest::Start() {
         ->LookupHostname(
             [this](absl::StatusOr<std::vector<EventEngine::ResolvedAddress>>
                        addresses_or) {
-              ApplicationCallbackExecCtx callback_exec_ctx;
               ExecCtx exec_ctx;
               OnResolved(addresses_or);
             },
