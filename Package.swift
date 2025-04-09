@@ -46,9 +46,6 @@ let package = Package(
         "third_party/xxhash/LICENSE",
         "third_party/zlib/LICENSE",
         "tests",
-        "include/grpc/grpc_cronet.h",
-        "src/core/ext/transport/cronet/",
-        "third_party/objective_c/Cronet/bidirectional_stream_c.h",
       ],
     
       sources: [
@@ -85,8 +82,6 @@ let package = Package(
       path: basePath,
       exclude: [
         "tests",
-        "include/grpcpp/security/cronet_credentials.h",
-        "src/cpp/client/cronet_credentials.cc",
       ],
       sources: [
         "src/cpp/",
