@@ -45,6 +45,10 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
+#include "src/core/call/call_spine.h"
+#include "src/core/call/client_call.h"
+#include "src/core/call/metadata_batch.h"
+#include "src/core/call/status_util.h"
 #include "src/core/client_channel/client_channel_internal.h"
 #include "src/core/client_channel/client_channel_service_config.h"
 #include "src/core/client_channel/config_selector.h"
@@ -59,7 +63,6 @@
 #include "src/core/ext/filters/channel_idle/legacy_channel_idle_filter.h"
 #include "src/core/lib/address_utils/sockaddr_utils.h"
 #include "src/core/lib/channel/channel_args.h"
-#include "src/core/lib/channel/status_util.h"
 #include "src/core/lib/debug/trace.h"
 #include "src/core/lib/event_engine/channel_args_endpoint_config.h"
 #include "src/core/lib/iomgr/resolved_address.h"
@@ -75,11 +78,8 @@
 #include "src/core/lib/slice/slice_internal.h"
 #include "src/core/lib/surface/call.h"
 #include "src/core/lib/surface/channel.h"
-#include "src/core/lib/surface/client_call.h"
 #include "src/core/lib/surface/completion_queue.h"
-#include "src/core/lib/transport/call_spine.h"
 #include "src/core/lib/transport/connectivity_state.h"
-#include "src/core/lib/transport/metadata_batch.h"
 #include "src/core/load_balancing/child_policy_handler.h"
 #include "src/core/load_balancing/lb_policy.h"
 #include "src/core/load_balancing/lb_policy_registry.h"
@@ -495,7 +495,7 @@ class ClientChannel::ClientChannelControlHelper
   }
 
   GlobalStatsPluginRegistry::StatsPluginGroup& GetStatsPluginGroup() override {
-    return client_channel_->stats_plugin_group_;
+    return *client_channel_->stats_plugin_group_;
   }
 
   void AddTraceEvent(TraceSeverity severity, absl::string_view message) override
@@ -587,6 +587,7 @@ absl::StatusOr<RefCountedPtr<Channel>> ClientChannel::Create(
 }
 
 namespace {
+
 std::string GetDefaultAuthorityFromChannelArgs(const ChannelArgs& channel_args,
                                                absl::string_view target) {
   std::optional<std::string> default_authority =
@@ -598,6 +599,18 @@ std::string GetDefaultAuthorityFromChannelArgs(const ChannelArgs& channel_args,
     return std::move(*default_authority);
   }
 }
+
+std::shared_ptr<GlobalStatsPluginRegistry::StatsPluginGroup>
+GetStatsPluginGroupFromChannelArgs(const ChannelArgs& channel_args,
+                                   absl::string_view target,
+                                   absl::string_view default_authority) {
+  grpc_event_engine::experimental::ChannelArgsEndpointConfig endpoint_config(
+      channel_args);
+  experimental::StatsPluginChannelScope scope(target, default_authority,
+                                              endpoint_config);
+  return GlobalStatsPluginRegistry::GetStatsPluginsForChannel(scope);
+}
+
 }  // namespace
 
 ClientChannel::ClientChannel(
@@ -606,15 +619,17 @@ ClientChannel::ClientChannel(
     ClientChannelFactory* client_channel_factory,
     CallDestinationFactory* call_destination_factory)
     : Channel(std::move(target), channel_args),
-      channel_args_(std::move(channel_args)),
+      default_authority_(
+          GetDefaultAuthorityFromChannelArgs(channel_args, this->target())),
+      stats_plugin_group_(GetStatsPluginGroupFromChannelArgs(
+          channel_args, this->target(), default_authority_)),
+      channel_args_(channel_args.SetObject(stats_plugin_group_)),
       event_engine_(channel_args_.GetObjectRef<EventEngine>()),
       uri_to_resolve_(std::move(uri_to_resolve)),
       service_config_parser_index_(
           internal::ClientChannelServiceConfigParser::ParserIndex()),
       default_service_config_(std::move(default_service_config)),
       client_channel_factory_(client_channel_factory),
-      default_authority_(
-          GetDefaultAuthorityFromChannelArgs(channel_args_, this->target())),
       channelz_node_(channel_args_.GetObject<channelz::ChannelNode>()),
       idle_timeout_(GetClientIdleTimeout(channel_args_)),
       resolver_data_for_calls_(ResolverDataForCalls{}),
@@ -634,13 +649,6 @@ ClientChannel::ClientChannel(
   } else {
     keepalive_time_ = -1;  // unset
   }
-  // Get stats plugins for channel.
-  grpc_event_engine::experimental::ChannelArgsEndpointConfig endpoint_config(
-      channel_args_);
-  experimental::StatsPluginChannelScope scope(
-      this->target(), default_authority_, endpoint_config);
-  stats_plugin_group_ =
-      GlobalStatsPluginRegistry::GetStatsPluginsForChannel(scope);
 }
 
 ClientChannel::~ClientChannel() {
