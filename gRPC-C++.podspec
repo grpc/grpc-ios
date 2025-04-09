@@ -22,7 +22,7 @@
 Pod::Spec.new do |s|
   s.name     = 'gRPC-C++'
   # TODO (mxyan): use version that match gRPC version when pod is stabilized
-  version = '1.72.0-dev'
+  version = '1.72.0-pre1'
   s.version  = version
   s.summary  = 'gRPC C++ library'
   s.homepage = 'https://grpc.io'
@@ -34,8 +34,8 @@ Pod::Spec.new do |s|
     :tag => "v#{version}",
   }
 
-  s.ios.deployment_target = '11.0'
-  s.osx.deployment_target = '10.14'
+  s.ios.deployment_target = '15.0'
+  s.osx.deployment_target = '11.0'
   s.tvos.deployment_target = '13.0'
   s.watchos.deployment_target = '6.0'
   s.visionos.deployment_target = '1.0'
@@ -271,8 +271,26 @@ Pod::Spec.new do |s|
     ss.dependency 'abseil/types/span', abseil_version
     ss.dependency 'abseil/utility/utility', abseil_version
 
-    ss.source_files = 'src/core/call/request_buffer.h',
+    ss.source_files = 'src/core/call/call_arena_allocator.h',
+                      'src/core/call/call_destination.h',
+                      'src/core/call/call_filters.h',
+                      'src/core/call/call_finalization.h',
+                      'src/core/call/call_spine.h',
+                      'src/core/call/call_state.h',
+                      'src/core/call/client_call.h',
+                      'src/core/call/custom_metadata.h',
+                      'src/core/call/interception_chain.h',
+                      'src/core/call/message.h',
+                      'src/core/call/metadata.h',
+                      'src/core/call/metadata_batch.h',
+                      'src/core/call/metadata_compression_traits.h',
+                      'src/core/call/metadata_info.h',
+                      'src/core/call/parsed_metadata.h',
+                      'src/core/call/request_buffer.h',
                       'src/core/call/security_context.h',
+                      'src/core/call/server_call.h',
+                      'src/core/call/simple_slice_based_metadata.h',
+                      'src/core/call/status_util.h',
                       'src/core/channelz/channel_trace.h',
                       'src/core/channelz/channelz.h',
                       'src/core/channelz/channelz_registry.h',
@@ -393,6 +411,7 @@ Pod::Spec.new do |s|
                       'src/core/ext/transport/chttp2/transport/hpack_parser.h',
                       'src/core/ext/transport/chttp2/transport/hpack_parser_table.h',
                       'src/core/ext/transport/chttp2/transport/http2_settings.h',
+                      'src/core/ext/transport/chttp2/transport/http2_status.h',
                       'src/core/ext/transport/chttp2/transport/huffsyms.h',
                       'src/core/ext/transport/chttp2/transport/internal.h',
                       'src/core/ext/transport/chttp2/transport/legacy_frame.h',
@@ -909,7 +928,6 @@ Pod::Spec.new do |s|
                       'src/core/handshaker/tcp_connect/tcp_connect_handshaker.h',
                       'src/core/lib/address_utils/parse_address.h',
                       'src/core/lib/address_utils/sockaddr_utils.h',
-                      'src/core/lib/channel/call_finalization.h',
                       'src/core/lib/channel/channel_args.h',
                       'src/core/lib/channel/channel_args_preconditioning.h',
                       'src/core/lib/channel/channel_fwd.h',
@@ -918,7 +936,6 @@ Pod::Spec.new do |s|
                       'src/core/lib/channel/channel_stack_builder_impl.h',
                       'src/core/lib/channel/connected_channel.h',
                       'src/core/lib/channel/promise_based_filter.h',
-                      'src/core/lib/channel/status_util.h',
                       'src/core/lib/compression/compression_internal.h',
                       'src/core/lib/compression/message_compress.h',
                       'src/core/lib/debug/trace.h',
@@ -936,7 +953,9 @@ Pod::Spec.new do |s|
                       'src/core/lib/event_engine/event_engine_context.h',
                       'src/core/lib/event_engine/extensions/can_track_errors.h',
                       'src/core/lib/event_engine/extensions/chaotic_good_extension.h',
+                      'src/core/lib/event_engine/extensions/iomgr_compatible.h',
                       'src/core/lib/event_engine/extensions/supports_fd.h',
+                      'src/core/lib/event_engine/extensions/supports_win_sockets.h',
                       'src/core/lib/event_engine/extensions/tcp_trace.h',
                       'src/core/lib/event_engine/forkable.h',
                       'src/core/lib/event_engine/grpc_polled_fd.h',
@@ -1112,7 +1131,6 @@ Pod::Spec.new do |s|
                       'src/core/lib/surface/channel_create.h',
                       'src/core/lib/surface/channel_init.h',
                       'src/core/lib/surface/channel_stack_type.h',
-                      'src/core/lib/surface/client_call.h',
                       'src/core/lib/surface/completion_queue.h',
                       'src/core/lib/surface/completion_queue_factory.h',
                       'src/core/lib/surface/connection_context.h',
@@ -1122,27 +1140,11 @@ Pod::Spec.new do |s|
                       'src/core/lib/surface/init_internally.h',
                       'src/core/lib/surface/lame_client.h',
                       'src/core/lib/surface/legacy_channel.h',
-                      'src/core/lib/surface/server_call.h',
                       'src/core/lib/surface/validate_metadata.h',
                       'src/core/lib/transport/bdp_estimator.h',
-                      'src/core/lib/transport/call_arena_allocator.h',
-                      'src/core/lib/transport/call_destination.h',
-                      'src/core/lib/transport/call_filters.h',
                       'src/core/lib/transport/call_final_info.h',
-                      'src/core/lib/transport/call_spine.h',
-                      'src/core/lib/transport/call_state.h',
                       'src/core/lib/transport/connectivity_state.h',
-                      'src/core/lib/transport/custom_metadata.h',
                       'src/core/lib/transport/error_utils.h',
-                      'src/core/lib/transport/http2_errors.h',
-                      'src/core/lib/transport/interception_chain.h',
-                      'src/core/lib/transport/message.h',
-                      'src/core/lib/transport/metadata.h',
-                      'src/core/lib/transport/metadata_batch.h',
-                      'src/core/lib/transport/metadata_compression_traits.h',
-                      'src/core/lib/transport/metadata_info.h',
-                      'src/core/lib/transport/parsed_metadata.h',
-                      'src/core/lib/transport/simple_slice_based_metadata.h',
                       'src/core/lib/transport/status_conversion.h',
                       'src/core/lib/transport/timeout_encoding.h',
                       'src/core/lib/transport/transport.h',
@@ -1243,6 +1245,7 @@ Pod::Spec.new do |s|
                       'src/core/util/avl.h',
                       'src/core/util/backoff.h',
                       'src/core/util/bitset.h',
+                      'src/core/util/check_class_size.h',
                       'src/core/util/chunked_vector.h',
                       'src/core/util/construct_destruct.h',
                       'src/core/util/cpp_impl_of.h',
@@ -1473,8 +1476,8 @@ Pod::Spec.new do |s|
                       'third_party/upb/upb/message/copy.h',
                       'third_party/upb/upb/message/internal/accessors.h',
                       'third_party/upb/upb/message/internal/array.h',
-                      'third_party/upb/upb/message/internal/compare_unknown.h',
                       'third_party/upb/upb/message/internal/extension.h',
+                      'third_party/upb/upb/message/internal/iterator.h',
                       'third_party/upb/upb/message/internal/map.h',
                       'third_party/upb/upb/message/internal/map_entry.h',
                       'third_party/upb/upb/message/internal/map_sorter.h',
@@ -1562,6 +1565,8 @@ Pod::Spec.new do |s|
                       'third_party/upb/upb/wire/reader.h',
                       'third_party/upb/upb/wire/types.h',
                       'third_party/utf8_range/utf8_range.h',
+                      'third_party/utf8_range/utf8_range_neon.inc',
+                      'third_party/utf8_range/utf8_range_sse.inc',
                       'third_party/xxhash/xxhash.h',
                       'third_party/zlib/crc32.h',
                       'third_party/zlib/deflate.h',
@@ -1575,8 +1580,26 @@ Pod::Spec.new do |s|
                       'third_party/zlib/zlib.h',
                       'third_party/zlib/zutil.h'
 
-    ss.private_header_files = 'src/core/call/request_buffer.h',
+    ss.private_header_files = 'src/core/call/call_arena_allocator.h',
+                              'src/core/call/call_destination.h',
+                              'src/core/call/call_filters.h',
+                              'src/core/call/call_finalization.h',
+                              'src/core/call/call_spine.h',
+                              'src/core/call/call_state.h',
+                              'src/core/call/client_call.h',
+                              'src/core/call/custom_metadata.h',
+                              'src/core/call/interception_chain.h',
+                              'src/core/call/message.h',
+                              'src/core/call/metadata.h',
+                              'src/core/call/metadata_batch.h',
+                              'src/core/call/metadata_compression_traits.h',
+                              'src/core/call/metadata_info.h',
+                              'src/core/call/parsed_metadata.h',
+                              'src/core/call/request_buffer.h',
                               'src/core/call/security_context.h',
+                              'src/core/call/server_call.h',
+                              'src/core/call/simple_slice_based_metadata.h',
+                              'src/core/call/status_util.h',
                               'src/core/channelz/channel_trace.h',
                               'src/core/channelz/channelz.h',
                               'src/core/channelz/channelz_registry.h',
@@ -1697,6 +1720,7 @@ Pod::Spec.new do |s|
                               'src/core/ext/transport/chttp2/transport/hpack_parser.h',
                               'src/core/ext/transport/chttp2/transport/hpack_parser_table.h',
                               'src/core/ext/transport/chttp2/transport/http2_settings.h',
+                              'src/core/ext/transport/chttp2/transport/http2_status.h',
                               'src/core/ext/transport/chttp2/transport/huffsyms.h',
                               'src/core/ext/transport/chttp2/transport/internal.h',
                               'src/core/ext/transport/chttp2/transport/legacy_frame.h',
@@ -2213,7 +2237,6 @@ Pod::Spec.new do |s|
                               'src/core/handshaker/tcp_connect/tcp_connect_handshaker.h',
                               'src/core/lib/address_utils/parse_address.h',
                               'src/core/lib/address_utils/sockaddr_utils.h',
-                              'src/core/lib/channel/call_finalization.h',
                               'src/core/lib/channel/channel_args.h',
                               'src/core/lib/channel/channel_args_preconditioning.h',
                               'src/core/lib/channel/channel_fwd.h',
@@ -2222,7 +2245,6 @@ Pod::Spec.new do |s|
                               'src/core/lib/channel/channel_stack_builder_impl.h',
                               'src/core/lib/channel/connected_channel.h',
                               'src/core/lib/channel/promise_based_filter.h',
-                              'src/core/lib/channel/status_util.h',
                               'src/core/lib/compression/compression_internal.h',
                               'src/core/lib/compression/message_compress.h',
                               'src/core/lib/debug/trace.h',
@@ -2240,7 +2262,9 @@ Pod::Spec.new do |s|
                               'src/core/lib/event_engine/event_engine_context.h',
                               'src/core/lib/event_engine/extensions/can_track_errors.h',
                               'src/core/lib/event_engine/extensions/chaotic_good_extension.h',
+                              'src/core/lib/event_engine/extensions/iomgr_compatible.h',
                               'src/core/lib/event_engine/extensions/supports_fd.h',
+                              'src/core/lib/event_engine/extensions/supports_win_sockets.h',
                               'src/core/lib/event_engine/extensions/tcp_trace.h',
                               'src/core/lib/event_engine/forkable.h',
                               'src/core/lib/event_engine/grpc_polled_fd.h',
@@ -2416,7 +2440,6 @@ Pod::Spec.new do |s|
                               'src/core/lib/surface/channel_create.h',
                               'src/core/lib/surface/channel_init.h',
                               'src/core/lib/surface/channel_stack_type.h',
-                              'src/core/lib/surface/client_call.h',
                               'src/core/lib/surface/completion_queue.h',
                               'src/core/lib/surface/completion_queue_factory.h',
                               'src/core/lib/surface/connection_context.h',
@@ -2426,27 +2449,11 @@ Pod::Spec.new do |s|
                               'src/core/lib/surface/init_internally.h',
                               'src/core/lib/surface/lame_client.h',
                               'src/core/lib/surface/legacy_channel.h',
-                              'src/core/lib/surface/server_call.h',
                               'src/core/lib/surface/validate_metadata.h',
                               'src/core/lib/transport/bdp_estimator.h',
-                              'src/core/lib/transport/call_arena_allocator.h',
-                              'src/core/lib/transport/call_destination.h',
-                              'src/core/lib/transport/call_filters.h',
                               'src/core/lib/transport/call_final_info.h',
-                              'src/core/lib/transport/call_spine.h',
-                              'src/core/lib/transport/call_state.h',
                               'src/core/lib/transport/connectivity_state.h',
-                              'src/core/lib/transport/custom_metadata.h',
                               'src/core/lib/transport/error_utils.h',
-                              'src/core/lib/transport/http2_errors.h',
-                              'src/core/lib/transport/interception_chain.h',
-                              'src/core/lib/transport/message.h',
-                              'src/core/lib/transport/metadata.h',
-                              'src/core/lib/transport/metadata_batch.h',
-                              'src/core/lib/transport/metadata_compression_traits.h',
-                              'src/core/lib/transport/metadata_info.h',
-                              'src/core/lib/transport/parsed_metadata.h',
-                              'src/core/lib/transport/simple_slice_based_metadata.h',
                               'src/core/lib/transport/status_conversion.h',
                               'src/core/lib/transport/timeout_encoding.h',
                               'src/core/lib/transport/transport.h',
@@ -2547,6 +2554,7 @@ Pod::Spec.new do |s|
                               'src/core/util/avl.h',
                               'src/core/util/backoff.h',
                               'src/core/util/bitset.h',
+                              'src/core/util/check_class_size.h',
                               'src/core/util/chunked_vector.h',
                               'src/core/util/construct_destruct.h',
                               'src/core/util/cpp_impl_of.h',
@@ -2727,8 +2735,8 @@ Pod::Spec.new do |s|
                               'third_party/upb/upb/message/copy.h',
                               'third_party/upb/upb/message/internal/accessors.h',
                               'third_party/upb/upb/message/internal/array.h',
-                              'third_party/upb/upb/message/internal/compare_unknown.h',
                               'third_party/upb/upb/message/internal/extension.h',
+                              'third_party/upb/upb/message/internal/iterator.h',
                               'third_party/upb/upb/message/internal/map.h',
                               'third_party/upb/upb/message/internal/map_entry.h',
                               'third_party/upb/upb/message/internal/map_sorter.h',
@@ -2816,6 +2824,8 @@ Pod::Spec.new do |s|
                               'third_party/upb/upb/wire/reader.h',
                               'third_party/upb/upb/wire/types.h',
                               'third_party/utf8_range/utf8_range.h',
+                              'third_party/utf8_range/utf8_range_neon.inc',
+                              'third_party/utf8_range/utf8_range_sse.inc',
                               'third_party/xxhash/xxhash.h',
                               'third_party/zlib/crc32.h',
                               'third_party/zlib/deflate.h',
@@ -2838,25 +2848,6 @@ Pod::Spec.new do |s|
                       'include/grpcpp/impl/codegen/proto_buffer_reader.h',
                       'include/grpcpp/impl/codegen/proto_buffer_writer.h',
                       'include/grpcpp/impl/codegen/proto_utils.h'
-  end
-
-  s.subspec 'Cronet-Interface' do |ss|
-    ss.header_mappings_dir = 'include/grpcpp'
-    ss.public_header_files = "include/grpcpp/security/cronet_credentials.h",
-                             "include/grpcpp/security/cronet_credentials_impl.h"
-    ss.source_files = "include/grpcpp/security/cronet_credentials.h",
-                      "include/grpcpp/security/cronet_credentials_impl.h"
-  end
-
-  s.subspec 'Cronet-Implementation' do |ss|
-    ss.header_mappings_dir = '.'
-    ss.dependency "#{s.name}/Cronet-Interface", version
-    ss.dependency "#{s.name}/Implementation", version
-    ss.dependency "#{s.name}/Privacy", version
-
-    ss.dependency 'gRPC-Core/Cronet-Implementation', version
-
-    ss.source_files = "src/cpp/client/cronet_credentials.cc"
   end
 
   # patch include of openssl to openssl_grpc
