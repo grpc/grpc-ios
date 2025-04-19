@@ -43,6 +43,7 @@
 #include "absl/random/random.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "src/core/call/metadata_batch.h"
 #include "src/core/channelz/channelz.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/channel_fwd.h"
@@ -59,7 +60,6 @@
 #include "src/core/lib/slice/slice.h"
 #include "src/core/lib/surface/channel.h"
 #include "src/core/lib/surface/completion_queue.h"
-#include "src/core/lib/transport/metadata_batch.h"
 #include "src/core/lib/transport/transport.h"
 #include "src/core/server/server_interface.h"
 #include "src/core/telemetry/call_tracer.h"
@@ -697,7 +697,6 @@ class Server : public ServerInterface,
           channel_args_.GetInt(GRPC_ARG_SERVER_MAX_PENDING_REQUESTS_HARD_LIMIT)
               .value_or(3000)))};
   const Duration max_time_in_pending_queue_;
-  absl::BitGen bitgen_ ABSL_GUARDED_BY(mu_call_);
 
   std::list<ChannelData*> channels_;
   absl::flat_hash_set<OrphanablePtr<ServerTransport>> connections_
