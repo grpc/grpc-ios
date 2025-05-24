@@ -41,6 +41,8 @@ let package = Package(
         "src/cpp/",
         "third_party/upb/upb/port/def.inc",
         "third_party/upb/upb/port/undef.inc",
+        "third_party/utf8_range/utf8_range_sse.inc",
+        "third_party/utf8_range/utf8_range_neon.inc",
         "third_party/re2/LICENSE",
         "third_party/utf8_range/LICENSE",
         "third_party/xxhash/LICENSE",
@@ -82,6 +84,8 @@ let package = Package(
       path: basePath,
       exclude: [
         "tests",
+        "include/grpcpp/ports_undef.inc",
+        "include/grpcpp/ports_def.inc",
       ],
       sources: [
         "src/cpp/",
