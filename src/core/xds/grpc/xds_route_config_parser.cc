@@ -88,15 +88,6 @@ bool XdsRlsEnabled() {
   return parse_succeeded && parsed_value;
 }
 
-// TODO(roth): Remove this once the feature passes interop tests.
-bool XdsAuthorityRewriteEnabled() {
-  auto value = GetEnv("GRPC_EXPERIMENTAL_XDS_AUTHORITY_REWRITE");
-  if (!value.has_value()) return false;
-  bool parsed_value;
-  bool parse_succeeded = gpr_parse_bool_value(value->c_str(), &parsed_value);
-  return parse_succeeded && parsed_value;
-}
-
 //
 // XdsRouteConfigResourceParse()
 //
@@ -246,7 +237,8 @@ std::optional<StringMatcher> RoutePathMatchParse(
   return std::move(*string_matcher);
 }
 
-void RouteHeaderMatchersParse(const envoy_config_route_v3_RouteMatch* match,
+void RouteHeaderMatchersParse(const XdsResourceType::DecodeContext& context,
+                              const envoy_config_route_v3_RouteMatch* match,
                               XdsRouteConfigResource::Route* route,
                               ValidationErrors* errors) {
   size_t size;
@@ -259,6 +251,18 @@ void RouteHeaderMatchersParse(const envoy_config_route_v3_RouteMatch* match,
     CHECK_NE(header, nullptr);
     const std::string name =
         UpbStringToStdString(envoy_config_route_v3_HeaderMatcher_name(header));
+    const bool invert_match =
+        envoy_config_route_v3_HeaderMatcher_invert_match(header);
+    if (envoy_config_route_v3_HeaderMatcher_has_string_match(header)) {
+      ValidationErrors::ScopedField field(errors, ".string_match");
+      auto string_matcher = StringMatcherParse(
+          context, envoy_config_route_v3_HeaderMatcher_string_match(header),
+          errors);
+      route->matchers.header_matchers.emplace_back(
+          HeaderMatcher::CreateFromStringMatcher(
+              name, std::move(string_matcher), invert_match));
+      continue;
+    }
     HeaderMatcher::Type type;
     std::string match_string;
     int64_t range_start = 0;
@@ -299,46 +303,10 @@ void RouteHeaderMatchersParse(const envoy_config_route_v3_RouteMatch* match,
     } else if (envoy_config_route_v3_HeaderMatcher_has_present_match(header)) {
       type = HeaderMatcher::Type::kPresent;
       present_match = envoy_config_route_v3_HeaderMatcher_present_match(header);
-    } else if (envoy_config_route_v3_HeaderMatcher_has_string_match(header)) {
-      ValidationErrors::ScopedField field(errors, ".string_match");
-      const auto* matcher =
-          envoy_config_route_v3_HeaderMatcher_string_match(header);
-      CHECK_NE(matcher, nullptr);
-      if (envoy_type_matcher_v3_StringMatcher_has_exact(matcher)) {
-        type = HeaderMatcher::Type::kExact;
-        match_string = UpbStringToStdString(
-            envoy_type_matcher_v3_StringMatcher_exact(matcher));
-      } else if (envoy_type_matcher_v3_StringMatcher_has_prefix(matcher)) {
-        type = HeaderMatcher::Type::kPrefix;
-        match_string = UpbStringToStdString(
-            envoy_type_matcher_v3_StringMatcher_prefix(matcher));
-      } else if (envoy_type_matcher_v3_StringMatcher_has_suffix(matcher)) {
-        type = HeaderMatcher::Type::kSuffix;
-        match_string = UpbStringToStdString(
-            envoy_type_matcher_v3_StringMatcher_suffix(matcher));
-      } else if (envoy_type_matcher_v3_StringMatcher_has_contains(matcher)) {
-        type = HeaderMatcher::Type::kContains;
-        match_string = UpbStringToStdString(
-            envoy_type_matcher_v3_StringMatcher_contains(matcher));
-      } else if (envoy_type_matcher_v3_StringMatcher_has_safe_regex(matcher)) {
-        type = HeaderMatcher::Type::kSafeRegex;
-        const auto* regex_matcher =
-            envoy_type_matcher_v3_StringMatcher_safe_regex(matcher);
-        CHECK_NE(regex_matcher, nullptr);
-        match_string = UpbStringToStdString(
-            envoy_type_matcher_v3_RegexMatcher_regex(regex_matcher));
-      } else {
-        errors->AddError("invalid string matcher");
-        continue;
-      }
-      case_sensitive =
-          !envoy_type_matcher_v3_StringMatcher_ignore_case(matcher);
     } else {
       errors->AddError("invalid header matcher");
       continue;
     }
-    bool invert_match =
-        envoy_config_route_v3_HeaderMatcher_invert_match(header);
     absl::StatusOr<HeaderMatcher> header_matcher =
         HeaderMatcher::Create(name, type, match_string, range_start, range_end,
                               present_match, invert_match, case_sensitive);
@@ -623,8 +591,7 @@ std::optional<XdsRouteConfigResource::Route::RouteAction> RouteActionParse(
     route_action.retry_policy = RetryPolicyParse(retry_policy, errors);
   }
   // Host rewrite field.
-  if (XdsAuthorityRewriteEnabled() &&
-      DownCast<const GrpcXdsServer&>(context.server).TrustedXdsServer()) {
+  if (DownCast<const GrpcXdsServer&>(context.server).TrustedXdsServer()) {
     route_action.auto_host_rewrite =
         ParseBoolValue(envoy_config_route_v3_RouteAction_auto_host_rewrite(
             route_action_proto));
@@ -756,7 +723,7 @@ std::optional<XdsRouteConfigResource::Route> ParseRoute(
     auto path_matcher = RoutePathMatchParse(match, errors);
     if (!path_matcher.has_value()) return std::nullopt;
     route.matchers.path_matcher = std::move(*path_matcher);
-    RouteHeaderMatchersParse(match, &route, errors);
+    RouteHeaderMatchersParse(context, match, &route, errors);
     RouteRuntimeFractionParse(match, &route, errors);
   }
   // Parse route action.
