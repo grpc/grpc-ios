@@ -99,6 +99,7 @@ let package = Package(
         .headerSearchPath("include/"),
         .headerSearchPath("third_party/upb/"),
         .headerSearchPath("src/core/ext/upb-gen"),
+        .headerSearchPath("src/core/ext/upbdefs-gen/"),
       ]
     ),
     .testTarget(
