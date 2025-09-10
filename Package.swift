@@ -24,7 +24,7 @@ let package = Package(
   ],
 
   dependencies: [
-    .package(url: "https://github.com/firebase/abseil-cpp-SwiftPM.git", "0.20250127.0"..<"0.20250128.0"),
+    .package(url: "https://github.com/firebase/abseil-cpp-SwiftPM.git", "0.20250512.1"..<"0.20250513.0"),
     .package(url: "https://github.com/firebase/boringssl-SwiftPM.git", "0.32.0"..<"0.33.0"),
   ],
 
@@ -99,6 +99,7 @@ let package = Package(
         .headerSearchPath("include/"),
         .headerSearchPath("third_party/upb/"),
         .headerSearchPath("src/core/ext/upb-gen"),
+        .headerSearchPath("src/core/ext/upbdefs-gen/"),
       ]
     ),
     .testTarget(
