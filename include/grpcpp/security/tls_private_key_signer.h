@@ -1,6 +1,6 @@
 //
 //
-// Copyright 2015 gRPC authors.
+// Copyright 2025 gRPC authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,24 +16,19 @@
 //
 //
 
-#ifndef GRPCPP_IMPL_CALL_HOOK_H
-#define GRPCPP_IMPL_CALL_HOOK_H
+#ifndef GRPCPP_SECURITY_TLS_PRIVATE_KEY_SIGNER_H
+#define GRPCPP_SECURITY_TLS_PRIVATE_KEY_SIGNER_H
+
+#include <grpc/private_key_signer.h>
+#include <grpcpp/impl/sync.h>
+#include <grpcpp/support/string_ref.h>
 
 namespace grpc {
+namespace experimental {
 
-namespace internal {
-class CallOpSetInterface;
-class Call;
+using grpc_core::PrivateKeySigner;  // NOLINT(misc-unused-using-decls)
 
-/// This is an interface that Channel and Server implement to allow them to hook
-/// performing ops.
-class CallHook {
- public:
-  virtual ~CallHook() {}
-  virtual void PerformOpsOnCall(CallOpSetInterface* ops, Call* call) = 0;
-};
-}  // namespace internal
-
+}  // namespace experimental
 }  // namespace grpc
 
-#endif  // GRPCPP_IMPL_CALL_HOOK_H
+#endif  // GRPCPP_SECURITY_TLS_PRIVATE_KEY_SIGNER_H
