@@ -21,7 +21,7 @@
 
 Pod::Spec.new do |s|
   s.name     = 'gRPC-Core'
-  version = '1.76.0'
+  version = '1.78.0'
   s.version  = version
   s.summary  = 'Core cross-platform gRPC library, written in C'
   s.homepage = 'https://grpc.io'
@@ -253,6 +253,7 @@ Pod::Spec.new do |s|
                       'src/core/call/call_spine.h',
                       'src/core/call/call_state.cc',
                       'src/core/call/call_state.h',
+                      'src/core/call/channelz_context.h',
                       'src/core/call/client_call.cc',
                       'src/core/call/client_call.h',
                       'src/core/call/custom_metadata.h',
@@ -298,6 +299,8 @@ Pod::Spec.new do |s|
                       'src/core/channelz/ztrace_collector.h',
                       'src/core/client_channel/backup_poller.cc',
                       'src/core/client_channel/backup_poller.h',
+                      'src/core/client_channel/buffered_call.cc',
+                      'src/core/client_channel/buffered_call.h',
                       'src/core/client_channel/client_channel.cc',
                       'src/core/client_channel/client_channel.h',
                       'src/core/client_channel/client_channel_args.h',
@@ -528,6 +531,8 @@ Pod::Spec.new do |s|
                       'src/core/ext/transport/chttp2/transport/frame_settings.h',
                       'src/core/ext/transport/chttp2/transport/frame_window_update.cc',
                       'src/core/ext/transport/chttp2/transport/frame_window_update.h',
+                      'src/core/ext/transport/chttp2/transport/goaway.cc',
+                      'src/core/ext/transport/chttp2/transport/goaway.h',
                       'src/core/ext/transport/chttp2/transport/header_assembler.h',
                       'src/core/ext/transport/chttp2/transport/hpack_constants.h',
                       'src/core/ext/transport/chttp2/transport/hpack_encoder.cc',
@@ -555,6 +560,7 @@ Pod::Spec.new do |s|
                       'src/core/ext/transport/chttp2/transport/http2_ztrace_collector.h',
                       'src/core/ext/transport/chttp2/transport/huffsyms.cc',
                       'src/core/ext/transport/chttp2/transport/huffsyms.h',
+                      'src/core/ext/transport/chttp2/transport/incoming_metadata_tracker.h',
                       'src/core/ext/transport/chttp2/transport/internal.h',
                       'src/core/ext/transport/chttp2/transport/internal_channel_arg_names.h',
                       'src/core/ext/transport/chttp2/transport/keepalive.cc',
@@ -570,6 +576,8 @@ Pod::Spec.new do |s|
                       'src/core/ext/transport/chttp2/transport/ping_promise.h',
                       'src/core/ext/transport/chttp2/transport/ping_rate_policy.cc',
                       'src/core/ext/transport/chttp2/transport/ping_rate_policy.h',
+                      'src/core/ext/transport/chttp2/transport/security_frame.cc',
+                      'src/core/ext/transport/chttp2/transport/security_frame.h',
                       'src/core/ext/transport/chttp2/transport/stream.h',
                       'src/core/ext/transport/chttp2/transport/stream_data_queue.h',
                       'src/core/ext/transport/chttp2/transport/stream_lists.cc',
@@ -1793,6 +1801,8 @@ Pod::Spec.new do |s|
                       'src/core/lib/resource_quota/periodic_update.h',
                       'src/core/lib/resource_quota/resource_quota.cc',
                       'src/core/lib/resource_quota/resource_quota.h',
+                      'src/core/lib/resource_quota/stream_quota.cc',
+                      'src/core/lib/resource_quota/stream_quota.h',
                       'src/core/lib/resource_quota/telemetry.h',
                       'src/core/lib/resource_quota/thread_quota.cc',
                       'src/core/lib/resource_quota/thread_quota.h',
@@ -2576,6 +2586,7 @@ Pod::Spec.new do |s|
                               'src/core/call/call_finalization.h',
                               'src/core/call/call_spine.h',
                               'src/core/call/call_state.h',
+                              'src/core/call/channelz_context.h',
                               'src/core/call/client_call.h',
                               'src/core/call/custom_metadata.h',
                               'src/core/call/filter_fusion.h',
@@ -2601,6 +2612,7 @@ Pod::Spec.new do |s|
                               'src/core/channelz/v2tov1/property_list.h',
                               'src/core/channelz/ztrace_collector.h',
                               'src/core/client_channel/backup_poller.h',
+                              'src/core/client_channel/buffered_call.h',
                               'src/core/client_channel/client_channel.h',
                               'src/core/client_channel/client_channel_args.h',
                               'src/core/client_channel/client_channel_factory.h',
@@ -2714,6 +2726,7 @@ Pod::Spec.new do |s|
                               'src/core/ext/transport/chttp2/transport/frame_security.h',
                               'src/core/ext/transport/chttp2/transport/frame_settings.h',
                               'src/core/ext/transport/chttp2/transport/frame_window_update.h',
+                              'src/core/ext/transport/chttp2/transport/goaway.h',
                               'src/core/ext/transport/chttp2/transport/header_assembler.h',
                               'src/core/ext/transport/chttp2/transport/hpack_constants.h',
                               'src/core/ext/transport/chttp2/transport/hpack_encoder.h',
@@ -2730,6 +2743,7 @@ Pod::Spec.new do |s|
                               'src/core/ext/transport/chttp2/transport/http2_transport.h',
                               'src/core/ext/transport/chttp2/transport/http2_ztrace_collector.h',
                               'src/core/ext/transport/chttp2/transport/huffsyms.h',
+                              'src/core/ext/transport/chttp2/transport/incoming_metadata_tracker.h',
                               'src/core/ext/transport/chttp2/transport/internal.h',
                               'src/core/ext/transport/chttp2/transport/internal_channel_arg_names.h',
                               'src/core/ext/transport/chttp2/transport/keepalive.h',
@@ -2739,6 +2753,7 @@ Pod::Spec.new do |s|
                               'src/core/ext/transport/chttp2/transport/ping_callbacks.h',
                               'src/core/ext/transport/chttp2/transport/ping_promise.h',
                               'src/core/ext/transport/chttp2/transport/ping_rate_policy.h',
+                              'src/core/ext/transport/chttp2/transport/security_frame.h',
                               'src/core/ext/transport/chttp2/transport/stream.h',
                               'src/core/ext/transport/chttp2/transport/stream_data_queue.h',
                               'src/core/ext/transport/chttp2/transport/stream_lists.h',
@@ -3458,6 +3473,7 @@ Pod::Spec.new do |s|
                               'src/core/lib/resource_quota/memory_quota.h',
                               'src/core/lib/resource_quota/periodic_update.h',
                               'src/core/lib/resource_quota/resource_quota.h',
+                              'src/core/lib/resource_quota/stream_quota.h',
                               'src/core/lib/resource_quota/telemetry.h',
                               'src/core/lib/resource_quota/thread_quota.h',
                               'src/core/lib/resource_tracker/resource_tracker.h',
