@@ -46,8 +46,7 @@ Pod::Spec.new do |s|
     'OTHER_CPLUSPLUSFLAGS' => ['$(inherited)', '-std=c++17'],
     'CLANG_CXX_LIBRARY' => 'libc++'
   }
-  
-    s.user_target_xcconfig = {
+  s.user_target_xcconfig = {
     'OTHER_CPLUSPLUSFLAGS' => ['$(inherited)', '-std=c++17'],
     'CLANG_CXX_LIBRARY' => 'libc++'
   }
