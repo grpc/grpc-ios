@@ -43,6 +43,16 @@ Pod::Spec.new do |s|
     'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES' => 'YES',
     'CLANG_WARN_STRICT_PROTOTYPES' => 'NO',
     'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17',
+    'OTHER_CPLUSPLUSFLAGS' => ['$(inherited)', '-std=c++17'],
+    'CLANG_CXX_LIBRARY' => 'libc++'
+  }
+  s.user_target_xcconfig = {
+    'OTHER_CPLUSPLUSFLAGS' => ['$(inherited)', '-std=c++17'],
+    'CLANG_CXX_LIBRARY' => 'libc++'
+  }
+  
+  s.xcconfig = {
+    'OTHER_CPLUSPLUSFLAGS' => '$(inherited) -std=c++17'
   }
 
   s.ios.deployment_target = '15.0'
@@ -58,7 +68,7 @@ Pod::Spec.new do |s|
       s.module_name => 'src/objective-c/PrivacyInfo.xcprivacy'
     }
   end
-
+  
   s.subspec 'Interface-Legacy' do |ss|
     ss.header_mappings_dir = 'src/objective-c/GRPCClient'
 
