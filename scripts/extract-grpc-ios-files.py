@@ -65,6 +65,7 @@ extra_files = (
     'gRPC.podspec',
     # module map
     'include/grpc/module.modulemap',
+    'third_party/upb/upb/reflection/descriptor_bootstrap.h',
     # root certs
     'etc/',
     # license files
