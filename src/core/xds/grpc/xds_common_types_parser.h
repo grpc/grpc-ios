@@ -17,6 +17,7 @@
 #ifndef GRPC_SRC_CORE_XDS_GRPC_XDS_COMMON_TYPES_PARSER_H
 #define GRPC_SRC_CORE_XDS_GRPC_XDS_COMMON_TYPES_PARSER_H
 
+#include <cstdint>
 #include <optional>
 
 #include "envoy/config/common/mutation_rules/v3/mutation_rules.upb.h"
@@ -34,6 +35,7 @@
 #include "src/core/util/time.h"
 #include "src/core/util/validation_errors.h"
 #include "src/core/xds/grpc/xds_common_types.h"
+#include "src/core/xds/grpc/xds_server_grpc.h"
 #include "src/core/xds/xds_client/xds_resource_type.h"
 #include "xds/type/matcher/v3/string.upb.h"
 
@@ -90,7 +92,7 @@ std::optional<XdsExtension> ExtractXdsExtension(
     const XdsResourceType::DecodeContext& context,
     const google_protobuf_Any* any, ValidationErrors* errors);
 
-XdsGrpcService ParseXdsGrpcService(
+GrpcXdsServerTarget ParseXdsGrpcService(
     const XdsResourceType::DecodeContext& context,
     const envoy_config_core_v3_GrpcService* grpc_service,
     ValidationErrors* errors);
@@ -98,6 +100,21 @@ XdsGrpcService ParseXdsGrpcService(
 HeaderMutationRules ParseHeaderMutationRules(
     const envoy_config_common_mutation_rules_v3_HeaderMutationRules*
         header_mutation_rules,
+    ValidationErrors* errors);
+
+XdsHeaderValueOption ParseXdsHeaderValueOption(
+    const envoy_config_core_v3_HeaderValueOption* header_value_option_config,
+    ValidationErrors* errors);
+
+// TODO(roth): We would ideally like to use a Slice for the header value, but
+// Slice isn't copyable, which makes it problematic to store here. The down-side
+// of this approach is that we need to make a copy when we apply the header
+// value to each RPC rather than just taking a new ref to the slice. Consider
+// solving this problem by adding a new RefCountedSlice class to represent an
+// immutable, ref-counted slice that can be turned into a Slice and thus added
+// to RPC metadata without a copy.
+std::pair<std::string, std::string> ParseXdsHeader(
+    const envoy_config_core_v3_HeaderValue* header_value,
     ValidationErrors* errors);
 
 }  // namespace grpc_core

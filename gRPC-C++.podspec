@@ -22,7 +22,7 @@
 Pod::Spec.new do |s|
   s.name     = 'gRPC-C++'
   # TODO (mxyan): use version that match gRPC version when pod is stabilized
-  version = '1.82.0'
+  version = '1.83.0-pre1'
   s.version  = version
   s.summary  = 'gRPC C++ library'
   s.homepage = 'https://grpc.io'
@@ -343,6 +343,7 @@ Pod::Spec.new do |s|
                       'src/core/client_channel/virtual_channel.h',
                       'src/core/config/config_vars.h',
                       'src/core/config/core_configuration.h',
+                      'src/core/config/experiment_env_var.h',
                       'src/core/config/load_config.h',
                       'src/core/credentials/call/call_credentials.h',
                       'src/core/credentials/call/call_creds_registry.h',
@@ -385,6 +386,7 @@ Pod::Spec.new do |s|
                       'src/core/credentials/transport/tls/certificate_provider_registry.h',
                       'src/core/credentials/transport/tls/grpc_tls_certificate_distributor.h',
                       'src/core/credentials/transport/tls/grpc_tls_certificate_provider.h',
+                      'src/core/credentials/transport/tls/grpc_tls_certificate_selector.h',
                       'src/core/credentials/transport/tls/grpc_tls_certificate_verifier.h',
                       'src/core/credentials/transport/tls/grpc_tls_credentials_options.h',
                       'src/core/credentials/transport/tls/grpc_tls_crl_provider.h',
@@ -1284,7 +1286,9 @@ Pod::Spec.new do |s|
                       'src/core/load_balancing/xds/cds.h',
                       'src/core/load_balancing/xds/xds_channel_args.h',
                       'src/core/load_balancing/xds/xds_override_host.h',
+                      'src/core/mitigation_engine/mitigation.h',
                       'src/core/mitigation_engine/mitigation_engine.h',
+                      'src/core/mitigation_engine/mitigation_provider.h',
                       'src/core/net/socket_mutator.h',
                       'src/core/resolver/dns/c_ares/dns_resolver_ares.h',
                       'src/core/resolver/dns/c_ares/grpc_ares_ev_driver.h',
@@ -1354,6 +1358,7 @@ Pod::Spec.new do |s|
                       'src/core/tsi/ssl/key_logging/ssl_key_logging.h',
                       'src/core/tsi/ssl/session_cache/ssl_session.h',
                       'src/core/tsi/ssl/session_cache/ssl_session_cache.h',
+                      'src/core/tsi/ssl_telemetry_utils.h',
                       'src/core/tsi/ssl_transport_security.h',
                       'src/core/tsi/ssl_transport_security_utils.h',
                       'src/core/tsi/ssl_types.h',
@@ -1781,6 +1786,7 @@ Pod::Spec.new do |s|
                               'src/core/client_channel/virtual_channel.h',
                               'src/core/config/config_vars.h',
                               'src/core/config/core_configuration.h',
+                              'src/core/config/experiment_env_var.h',
                               'src/core/config/load_config.h',
                               'src/core/credentials/call/call_credentials.h',
                               'src/core/credentials/call/call_creds_registry.h',
@@ -1823,6 +1829,7 @@ Pod::Spec.new do |s|
                               'src/core/credentials/transport/tls/certificate_provider_registry.h',
                               'src/core/credentials/transport/tls/grpc_tls_certificate_distributor.h',
                               'src/core/credentials/transport/tls/grpc_tls_certificate_provider.h',
+                              'src/core/credentials/transport/tls/grpc_tls_certificate_selector.h',
                               'src/core/credentials/transport/tls/grpc_tls_certificate_verifier.h',
                               'src/core/credentials/transport/tls/grpc_tls_credentials_options.h',
                               'src/core/credentials/transport/tls/grpc_tls_crl_provider.h',
@@ -2722,7 +2729,9 @@ Pod::Spec.new do |s|
                               'src/core/load_balancing/xds/cds.h',
                               'src/core/load_balancing/xds/xds_channel_args.h',
                               'src/core/load_balancing/xds/xds_override_host.h',
+                              'src/core/mitigation_engine/mitigation.h',
                               'src/core/mitigation_engine/mitigation_engine.h',
+                              'src/core/mitigation_engine/mitigation_provider.h',
                               'src/core/net/socket_mutator.h',
                               'src/core/resolver/dns/c_ares/dns_resolver_ares.h',
                               'src/core/resolver/dns/c_ares/grpc_ares_ev_driver.h',
@@ -2792,6 +2801,7 @@ Pod::Spec.new do |s|
                               'src/core/tsi/ssl/key_logging/ssl_key_logging.h',
                               'src/core/tsi/ssl/session_cache/ssl_session.h',
                               'src/core/tsi/ssl/session_cache/ssl_session_cache.h',
+                              'src/core/tsi/ssl_telemetry_utils.h',
                               'src/core/tsi/ssl_transport_security.h',
                               'src/core/tsi/ssl_transport_security_utils.h',
                               'src/core/tsi/ssl_types.h',
