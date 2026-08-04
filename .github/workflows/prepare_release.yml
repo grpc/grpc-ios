@@ -18,7 +18,8 @@ on:
         description: 'Sync Tag (e.g., v1.84.0-pre1)'
         required: true
         type: string
-
+permissions:
+  contents: write
 jobs:
   prepare-release:
     runs-on: macos-14
@@ -79,8 +80,14 @@ jobs:
           # Save branch name to environment for later steps
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
 
+      - name: Prepare Environment
+        run: |
+          chmod +x ./scripts/prepare_env.sh
+          ./scripts/prepare_env.sh
+
       - name: Sync gRPC Code
         run: |
+          source .venv/bin/activate
           chmod +x ./scripts/sync_grpc_src_shallow.sh
           ./scripts/sync_grpc_src_shallow.sh ${{ github.event.inputs.sync_tag }}
 
