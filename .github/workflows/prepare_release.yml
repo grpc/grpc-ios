@@ -20,6 +20,7 @@ on:
         type: string
 permissions:
   contents: write
+  pull-requests: write
 jobs:
   prepare-release:
     runs-on: macos-14
@@ -39,10 +40,11 @@ jobs:
       - name: Verify Previous Release is Merged (Major Only)
         if: ${{ github.event.inputs.release_type == 'major' }}
         run: |
+          VERSION="${{ github.event.inputs.version }}"
           echo "Finding the latest release branch on remote..."
           
-          # List all remote release branches, sort them by version, and grab the highest one
-          LATEST_BRANCH=$(git branch -r --list "origin/grpc_release_*.x" | sort -V | tail -n 1 | sed 's/origin\///' | tr -d '[:space:]')
+          # List all remote release branches, sort them by version, and grab the highest one (excluding current version if it already exists)
+          LATEST_BRANCH=$(git branch -r --list "origin/grpc_release_*.x" | sed 's/origin\///' | tr -d '[:space:]' | grep -v "^grpc_release_${VERSION}\.x$" | sort -V | tail -n 1)
           
           if [ -z "$LATEST_BRANCH" ]; then
             echo "⚠️ No previous release branches found on remote. Skipping merge check."
@@ -65,20 +67,42 @@ jobs:
         id: branch_prep
         run: |
           VERSION="${{ github.event.inputs.version }}"
-          BRANCH_NAME="grpc_release_${VERSION}.x"
+          SYNC_TAG="${{ github.event.inputs.sync_tag }}"
+          TARGET_BRANCH="grpc_release_${VERSION}.x"
+          SYNC_BRANCH="grpc_release_${SYNC_TAG}"
           
           if [ "${{ github.event.inputs.release_type }}" == "major" ]; then
-            echo "Preparing Major Release for $BRANCH_NAME..."
-            git checkout main
-            git checkout -b $BRANCH_NAME
+            echo "Preparing Major Release for $TARGET_BRANCH..."
+            git checkout -B main origin/main
+            git checkout -B "$TARGET_BRANCH" main
+            
+            # Push empty release branch if not already present on remote
+            if git show-ref --verify --quiet "refs/remotes/origin/$TARGET_BRANCH"; then
+              echo "⚠️ Target release branch $TARGET_BRANCH already exists on remote."
+            else
+              echo "Pushing empty branch $TARGET_BRANCH to origin..."
+              git push origin "$TARGET_BRANCH"
+            fi
+            
+            # Create sync branch from the empty branch
+            echo "Creating sync branch $SYNC_BRANCH from $TARGET_BRANCH..."
+            git checkout --no-track -B "$SYNC_BRANCH" "$TARGET_BRANCH"
           else
-            echo "Preparing Minor Release for $BRANCH_NAME..."
-            # For minor releases, checkout the existing branch from remote
-            git checkout -b $BRANCH_NAME origin/$BRANCH_NAME
+            echo "Preparing Minor Release for $TARGET_BRANCH..."
+            if ! git show-ref --verify --quiet "refs/remotes/origin/$TARGET_BRANCH"; then
+              echo "❌ ERROR: Target branch $TARGET_BRANCH does not exist on remote!"
+              echo "Please verify the base version or create the release branch first."
+              exit 1
+            fi
+            
+            # Create sync branch from the existing release branch
+            echo "Creating sync branch $SYNC_BRANCH from origin/$TARGET_BRANCH..."
+            git checkout --no-track -B "$SYNC_BRANCH" "origin/$TARGET_BRANCH"
           fi
           
-          # Save branch name to environment for later steps
-          echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
+          # Save branch names to environment for later steps
+          echo "target_branch=$TARGET_BRANCH" >> $GITHUB_ENV
+          echo "sync_branch=$SYNC_BRANCH" >> $GITHUB_ENV
 
       - name: Prepare Environment
         run: |
@@ -94,13 +118,34 @@ jobs:
       - name: Commit Changes
         run: |
           git add .
-          git commit -m "Sync c-core ${{ github.event.inputs.sync_tag }}"
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Sync c-core ${{ github.event.inputs.sync_tag }}"
+          fi
 
-      - name: Push Branch and Tag
+      - name: Push Branch
         run: |
-          # 1. Push ONLY the new branch (main remains untouched)
-          git push origin ${{ env.branch_name }}
-          
-          # 2. Add the tag and push it
-          git tag ${{ github.event.inputs.sync_tag }}
-          git push origin ${{ github.event.inputs.sync_tag }}
+          echo "Pushing branch ${{ env.sync_branch }} to origin..."
+          git push -u origin ${{ env.sync_branch }} --force
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING_PR=$(gh pr list --repo "${{ github.repository }}" --head "${{ env.sync_branch }}" --base "${{ env.target_branch }}" --state open --json url --jq '.[0].url // empty')
+          if [ -n "$EXISTING_PR" ]; then
+            echo "Pull request already exists: $EXISTING_PR"
+            echo "### Pull Request" >> $GITHUB_STEP_SUMMARY
+            echo "A pull request already exists: $EXISTING_PR" >> $GITHUB_STEP_SUMMARY
+          else
+            PR_URL=$(gh pr create \
+              --repo "${{ github.repository }}" \
+              --base "${{ env.target_branch }}" \
+              --head "${{ env.sync_branch }}" \
+              --title "Sync c-core ${{ github.event.inputs.sync_tag }}" \
+              --body "Automated PR to sync gRPC c-core sources for \`${{ github.event.inputs.sync_tag }}\` into \`${{ env.target_branch }}\`.")
+            echo "Created pull request: $PR_URL"
+            echo "### Pull Request Created" >> $GITHUB_STEP_SUMMARY
+            echo "Successfully created pull request: $PR_URL" >> $GITHUB_STEP_SUMMARY
+          fi
