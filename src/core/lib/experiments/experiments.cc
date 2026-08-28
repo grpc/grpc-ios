@@ -109,6 +109,9 @@ const char* const description_h2_max_deallocating_streams_headroom =
     "Separate allocated max concurrent streams.";
 const char* const additional_constraints_h2_max_deallocating_streams_headroom =
     "{}";
+const char* const description_header_data_frame =
+    "Managing header and data memory better";
+const char* const additional_constraints_header_data_frame = "{}";
 const char* const description_inproc_cancel_stream =
     "If set, cancel inproc stream inside the transport mutex.";
 const char* const additional_constraints_inproc_cancel_stream = "{}";
@@ -349,6 +352,8 @@ const ExperimentMetadata g_experiment_metadata[] = {
      description_h2_max_deallocating_streams_headroom,
      additional_constraints_h2_max_deallocating_streams_headroom, nullptr, 0,
      false, true},
+    {"header_data_frame", description_header_data_frame,
+     additional_constraints_header_data_frame, nullptr, 0, true, true},
     {"inproc_cancel_stream", description_inproc_cancel_stream,
      additional_constraints_inproc_cancel_stream, nullptr, 0, true, true},
     {"keep_alive_ping_timer_batch", description_keep_alive_ping_timer_batch,
@@ -365,7 +370,7 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"memory_optimization_02", description_memory_optimization_02,
      additional_constraints_memory_optimization_02, nullptr, 0, false, false},
     {"message_size_refactoring", description_message_size_refactoring,
-     additional_constraints_message_size_refactoring, nullptr, 0, false, true},
+     additional_constraints_message_size_refactoring, nullptr, 0, true, true},
     {"metadata_outstanding_token_refactor",
      description_metadata_outstanding_token_refactor,
      additional_constraints_metadata_outstanding_token_refactor, nullptr, 0,
@@ -393,7 +398,7 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"ph2_client_server", description_ph2_client_server,
      additional_constraints_ph2_client_server, nullptr, 0, false, true},
     {"ph2_perf_01", description_ph2_perf_01, additional_constraints_ph2_perf_01,
-     nullptr, 0, false, true},
+     nullptr, 0, true, true},
     {"ph2_server", description_ph2_server, additional_constraints_ph2_server,
      nullptr, 0, false, true},
     {"pick_first_ignore_empty_updates",
@@ -577,6 +582,9 @@ const char* const description_h2_max_deallocating_streams_headroom =
     "Separate allocated max concurrent streams.";
 const char* const additional_constraints_h2_max_deallocating_streams_headroom =
     "{}";
+const char* const description_header_data_frame =
+    "Managing header and data memory better";
+const char* const additional_constraints_header_data_frame = "{}";
 const char* const description_inproc_cancel_stream =
     "If set, cancel inproc stream inside the transport mutex.";
 const char* const additional_constraints_inproc_cancel_stream = "{}";
@@ -817,6 +825,8 @@ const ExperimentMetadata g_experiment_metadata[] = {
      description_h2_max_deallocating_streams_headroom,
      additional_constraints_h2_max_deallocating_streams_headroom, nullptr, 0,
      false, true},
+    {"header_data_frame", description_header_data_frame,
+     additional_constraints_header_data_frame, nullptr, 0, true, true},
     {"inproc_cancel_stream", description_inproc_cancel_stream,
      additional_constraints_inproc_cancel_stream, nullptr, 0, true, true},
     {"keep_alive_ping_timer_batch", description_keep_alive_ping_timer_batch,
@@ -833,7 +843,7 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"memory_optimization_02", description_memory_optimization_02,
      additional_constraints_memory_optimization_02, nullptr, 0, false, false},
     {"message_size_refactoring", description_message_size_refactoring,
-     additional_constraints_message_size_refactoring, nullptr, 0, false, true},
+     additional_constraints_message_size_refactoring, nullptr, 0, true, true},
     {"metadata_outstanding_token_refactor",
      description_metadata_outstanding_token_refactor,
      additional_constraints_metadata_outstanding_token_refactor, nullptr, 0,
@@ -861,7 +871,7 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"ph2_client_server", description_ph2_client_server,
      additional_constraints_ph2_client_server, nullptr, 0, false, true},
     {"ph2_perf_01", description_ph2_perf_01, additional_constraints_ph2_perf_01,
-     nullptr, 0, false, true},
+     nullptr, 0, true, true},
     {"ph2_server", description_ph2_server, additional_constraints_ph2_server,
      nullptr, 0, false, true},
     {"pick_first_ignore_empty_updates",
@@ -1045,6 +1055,9 @@ const char* const description_h2_max_deallocating_streams_headroom =
     "Separate allocated max concurrent streams.";
 const char* const additional_constraints_h2_max_deallocating_streams_headroom =
     "{}";
+const char* const description_header_data_frame =
+    "Managing header and data memory better";
+const char* const additional_constraints_header_data_frame = "{}";
 const char* const description_inproc_cancel_stream =
     "If set, cancel inproc stream inside the transport mutex.";
 const char* const additional_constraints_inproc_cancel_stream = "{}";
@@ -1285,6 +1298,8 @@ const ExperimentMetadata g_experiment_metadata[] = {
      description_h2_max_deallocating_streams_headroom,
      additional_constraints_h2_max_deallocating_streams_headroom, nullptr, 0,
      false, true},
+    {"header_data_frame", description_header_data_frame,
+     additional_constraints_header_data_frame, nullptr, 0, true, true},
     {"inproc_cancel_stream", description_inproc_cancel_stream,
      additional_constraints_inproc_cancel_stream, nullptr, 0, true, true},
     {"keep_alive_ping_timer_batch", description_keep_alive_ping_timer_batch,
@@ -1301,7 +1316,7 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"memory_optimization_02", description_memory_optimization_02,
      additional_constraints_memory_optimization_02, nullptr, 0, false, false},
     {"message_size_refactoring", description_message_size_refactoring,
-     additional_constraints_message_size_refactoring, nullptr, 0, false, true},
+     additional_constraints_message_size_refactoring, nullptr, 0, true, true},
     {"metadata_outstanding_token_refactor",
      description_metadata_outstanding_token_refactor,
      additional_constraints_metadata_outstanding_token_refactor, nullptr, 0,
@@ -1329,7 +1344,7 @@ const ExperimentMetadata g_experiment_metadata[] = {
     {"ph2_client_server", description_ph2_client_server,
      additional_constraints_ph2_client_server, nullptr, 0, false, true},
     {"ph2_perf_01", description_ph2_perf_01, additional_constraints_ph2_perf_01,
-     nullptr, 0, false, true},
+     nullptr, 0, true, true},
     {"ph2_server", description_ph2_server, additional_constraints_ph2_server,
      nullptr, 0, false, true},
     {"pick_first_ignore_empty_updates",
