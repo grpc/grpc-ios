@@ -1,0 +1,91 @@
+name: Draft Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - "grpc_release_**"
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  draft-release:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref != 'main' && startsWith(github.event.pull_request.base.ref, 'grpc_release_')
+    runs-on: macos-14
+    
+    steps:
+      - name: Determine Tag and Target Branch
+        id: vars
+        run: |
+          TAG="${{ github.event.pull_request.head.ref }}"
+          TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+          
+          if [ "$TARGET_BRANCH" = "main" ]; then
+            echo "❌ Error: Release workflow cannot run against 'main' branch."
+            exit 1
+          fi
+          
+          echo "tag=$TAG" >> $GITHUB_ENV
+          echo "target_branch=$TARGET_BRANCH" >> $GITHUB_ENV
+          echo "Target Branch: $TARGET_BRANCH"
+          echo "Release Tag: $TAG"
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.event.pull_request.base.ref }}
+          fetch-depth: 0
+
+      - name: Set up Git configuration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and Push Tag
+        run: |
+          TAG="${{ env.tag }}"
+          
+          # Check if tag already exists on remote
+          if git ls-remote --tags origin "refs/tags/$TAG" | grep -q "$TAG"; then
+            echo "⚠️ Tag '$TAG' already exists on remote."
+          else
+            echo "Creating tag '$TAG'..."
+            git tag "$TAG"
+            echo "Pushing tag '$TAG' to origin..."
+            git push origin "$TAG"
+            echo "✅ Tag '$TAG' created and pushed successfully."
+          fi
+
+      - name: Create Draft Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ env.tag }}"
+          TARGET_BRANCH="${{ env.target_branch }}"
+          
+          EXTRA_FLAGS=""
+          if [[ "$TAG" =~ -(pre|alpha|beta|rc) ]]; then
+            echo "Tag '$TAG' detected as pre-release."
+            EXTRA_FLAGS="--prerelease"
+          fi
+          
+          # Check if release already exists
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "⚠️ Release for '$TAG' already exists."
+            echo "### Draft Release" >> $GITHUB_STEP_SUMMARY
+            echo "Release for \`$TAG\` already exists." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Creating draft release for '$TAG' targeting '$TARGET_BRANCH'..."
+            RELEASE_URL=$(gh release create "$TAG" \
+              --repo "${{ github.repository }}" \
+              --target "$TARGET_BRANCH" \
+              --title "$TAG" \
+              --draft \
+              $EXTRA_FLAGS \
+              --generate-notes)
+            echo "✅ Created draft release: $RELEASE_URL"
+            echo "### Draft Release Created" >> $GITHUB_STEP_SUMMARY
+            echo "Successfully created draft release for [\`$TAG\`]($RELEASE_URL) targeting \`$TARGET_BRANCH\`." >> $GITHUB_STEP_SUMMARY
+          fi

@@ -69,7 +69,7 @@ jobs:
           VERSION="${{ github.event.inputs.version }}"
           SYNC_TAG="${{ github.event.inputs.sync_tag }}"
           TARGET_BRANCH="grpc_release_${VERSION}.x"
-          SYNC_BRANCH="grpc_release_${SYNC_TAG}"
+          SYNC_BRANCH="${SYNC_TAG}"
           
           if [ "${{ github.event.inputs.release_type }}" == "major" ]; then
             echo "Preparing Major Release for $TARGET_BRANCH..."
