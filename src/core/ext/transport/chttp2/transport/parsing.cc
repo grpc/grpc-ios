@@ -430,6 +430,14 @@ static grpc_error_handle init_frame_parser(grpc_chttp2_transport* t,
         t->incoming_frame_type));
   }
   t->is_first_frame = false;
+
+  if (grpc_core::IsPh2Perf01Enabled() &&
+      t->incoming_frame_size > t->settings.acked().max_frame_size()) {
+    return GRPC_ERROR_CREATE(absl::StrFormat(
+        "Frame size %d is larger than max frame size %d",
+        t->incoming_frame_size, t->settings.acked().max_frame_size()));
+  }
+
   if (t->expect_continuation_stream_id != 0) {
     if (t->incoming_frame_type != GRPC_CHTTP2_FRAME_CONTINUATION) {
       return GRPC_ERROR_CREATE(
@@ -984,8 +992,9 @@ static grpc_error_handle init_settings_frame_parser(grpc_chttp2_transport* t) {
 }
 
 static grpc_error_handle init_security_frame_parser(grpc_chttp2_transport* t) {
-  grpc_error_handle err =
-      grpc_chttp2_security_frame_parser_begin_frame(&t->security_frame_parser);
+  grpc_error_handle err = grpc_chttp2_security_frame_parser_begin_frame(
+      &t->security_frame_parser, t->incoming_frame_size,
+      t->max_security_frame_size);
   if (!err.ok()) return err;
   t->parser = grpc_chttp2_transport::Parser{
       "security_frame", grpc_chttp2_security_frame_parser_parse,

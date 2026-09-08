@@ -95,6 +95,9 @@
 //   bits being used for flags defined above)
 #define CLOSURE_BARRIER_FIRST_REF_BIT (1 << 16)
 
+constexpr uint32_t kMaxSecurityFrameSize = 16u * 1024u;
+constexpr int kMinMaxSecurityFrameSize = 0;
+
 // streams are kept in various linked lists depending on what things need to
 // happen to them... this enum labels each list
 typedef enum {
@@ -462,6 +465,7 @@ struct grpc_chttp2_transport final : public grpc_core::FilterStackTransport,
   /// parser for goaway frames
   grpc_chttp2_goaway_parser goaway_parser;
   // parser for secure frames
+  uint32_t max_security_frame_size;
   grpc_chttp2_security_frame_parser security_frame_parser;
 
   grpc_core::chttp2::TransportFlowControl flow_control;
@@ -625,6 +629,8 @@ struct grpc_chttp2_transport final : public grpc_core::FilterStackTransport,
 
   GPR_NO_UNIQUE_ADDRESS grpc_core::latent_see::Flow write_flow;
 
+  std::optional<uint32_t> max_recv_message_length;
+
   // Current mitigation engine, retrieved once per connection.
   grpc_core::RefCountedPtr<grpc_core::MitigationEngine> mitigation_engine;
 };
@@ -714,6 +720,7 @@ struct grpc_chttp2_stream {
   grpc_metadata_batch trailing_metadata_buffer;
 
   grpc_slice_buffer frame_storage;  // protected by t combiner
+  size_t num_frames = 0;            // protected by t combiner
 
   grpc_core::Timestamp deadline = grpc_core::Timestamp::InfFuture();
 
@@ -773,6 +780,9 @@ struct grpc_chttp2_stream {
   // The last time a stream window update was received.
   grpc_core::Timestamp last_window_update_time =
       grpc_core::Timestamp::InfPast();
+
+  bool message_size_limit_exceeded = false;
+  std::optional<uint32_t> max_recv_message_length;
 };
 
 /// Transport writing call flow:

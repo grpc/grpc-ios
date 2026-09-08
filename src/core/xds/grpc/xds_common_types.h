@@ -23,11 +23,11 @@
 #include <variant>
 #include <vector>
 
+#include "src/core/call/metadata_batch.h"
 #include "src/core/util/json/json.h"
 #include "src/core/util/matchers.h"
-#include "src/core/util/time.h"
 #include "src/core/util/validation_errors.h"
-#include "src/core/xds/grpc/xds_server_grpc.h"
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 
 namespace grpc_core {
@@ -89,22 +89,6 @@ struct XdsExtension {
   std::vector<ValidationErrors::ScopedField> validation_fields;
 };
 
-struct XdsGrpcService {
-  std::unique_ptr<GrpcXdsServerTarget> server_target;
-  Duration timeout;
-  std::vector<std::pair<std::string, std::string>> initial_metadata;
-
-  bool operator==(const XdsGrpcService& other) const {
-    if (timeout != other.timeout) return false;
-    if (initial_metadata != other.initial_metadata) return false;
-    if (server_target == nullptr) return other.server_target == nullptr;
-    if (other.server_target == nullptr) return false;
-    return server_target->Equals(*other.server_target);
-  }
-
-  std::string ToString() const;
-};
-
 struct HeaderMutationRules {
   bool disallow_all = false;
   bool disallow_is_error = false;
@@ -128,6 +112,37 @@ struct HeaderMutationRules {
            is_re_equal(allow_expression.get(), other.allow_expression.get());
   }
 };
+
+struct XdsHeaderValueOption {
+  enum class AppendAction {
+    // If the header already exists in the metadata batch, comma-concatenate the
+    // new value.
+    // Otherwise, append a new metadata entry.
+    kAppendIfExistsOrAdd = 0,
+    // Add the header only if it is not currently present in the metadata batch.
+    kAddIfAbsent = 1,
+    // Discard any existing entries in the metadata batch and append the new
+    // value.
+    kOverwriteIfExistsOrAdd = 2,
+    // If the header already exists, discard existing entries and replace with
+    // the new value.
+    // If absent, do nothing.
+    kOverwriteIfExists = 3
+  };
+
+  // The targeted metadata key and value to apply during mutation.
+  std::pair<std::string, std::string> header;
+  // Rule specifying how to merge or overwrite existing metadata batch entries.
+  AppendAction append_action;
+};
+
+absl::Status ApplyXdsHeaderMutationsRemoval(absl::string_view remove_header,
+                                            const HeaderMutationRules* rules,
+                                            grpc_metadata_batch& md);
+
+absl::Status ApplyXdsHeaderMutationsAddition(
+    const XdsHeaderValueOption& set_header, const HeaderMutationRules* rules,
+    grpc_metadata_batch& md);
 
 }  // namespace grpc_core
 
