@@ -26,6 +26,7 @@
 #include <string>
 #include <utility>
 
+#include "envoy/config/common/mutation_rules/v3/mutation_rules.upb.h"
 #include "envoy/config/core/v3/address.upb.h"
 #include "envoy/config/core/v3/base.upb.h"
 #include "envoy/extensions/transport_sockets/tls/v3/common.upb.h"
@@ -39,11 +40,11 @@
 #include "src/core/lib/address_utils/parse_address.h"
 #include "src/core/lib/surface/validate_metadata.h"
 #include "src/core/util/down_cast.h"
-#include "src/core/util/env.h"
 #include "src/core/util/json/json_reader.h"
 #include "src/core/util/upb_utils.h"
 #include "src/core/util/validation_errors.h"
 #include "src/core/xds/grpc/xds_bootstrap_grpc.h"
+#include "src/core/xds/grpc/xds_common_types.h"
 #include "src/core/xds/xds_client/xds_client.h"
 #include "upb/base/status.hpp"
 #include "upb/json/encode.h"
@@ -618,7 +619,7 @@ std::optional<XdsExtension> ExtractXdsExtension(
 }
 
 //
-// ParseXdsGrpcService()
+// ParseXdsHeader()
 //
 
 namespace {
@@ -645,7 +646,9 @@ std::optional<std::string> GetHeaderValue(upb_StringView upb_value,
   return std::string(value);
 }
 
-std::pair<std::string, std::string> ParseHeader(
+}  // namespace
+
+std::pair<std::string, std::string> ParseXdsHeader(
     const envoy_config_core_v3_HeaderValue* header_value,
     ValidationErrors* errors) {
   // key
@@ -682,35 +685,42 @@ std::pair<std::string, std::string> ParseHeader(
   return {std::string(key), value.has_value() ? std::move(*value) : ""};
 }
 
-}  // namespace
+//
+// ParseXdsGrpcService()
+//
 
-XdsGrpcService ParseXdsGrpcService(
+GrpcXdsServerTarget ParseXdsGrpcService(
     const XdsResourceType::DecodeContext& context,
     const envoy_config_core_v3_GrpcService* grpc_service,
     ValidationErrors* errors) {
   if (grpc_service == nullptr) {
     errors->AddError("field not set");
-    return {};
+    return GrpcXdsServerTarget(/*server_uri=*/"",
+                               /*channel_creds_config=*/nullptr,
+                               /*call_creds_configs=*/{});
   }
-  XdsGrpcService xds_grpc_service;
   // timeout
-  if (auto* timeout = envoy_config_core_v3_GrpcService_timeout(grpc_service);
-      timeout != nullptr) {
+  Duration timeout = Duration::Zero();
+  if (auto* timeout_proto =
+          envoy_config_core_v3_GrpcService_timeout(grpc_service);
+      timeout_proto != nullptr) {
     ValidationErrors::ScopedField field(errors, ".timeout");
-    xds_grpc_service.timeout = ParseDuration(timeout, errors);
-    if (xds_grpc_service.timeout <= Duration::Zero()) {
+    timeout = ParseDuration(timeout_proto, errors);
+    if (timeout <= Duration::Zero()) {
       errors->AddError("duration must be positive");
     }
   }
   // initial_metadata
+  std::vector<std::pair<std::string, std::string>> initial_metadata;
   size_t initial_metadata_size;
-  auto* initial_metadata = envoy_config_core_v3_GrpcService_initial_metadata(
-      grpc_service, &initial_metadata_size);
+  auto* initial_metadata_proto =
+      envoy_config_core_v3_GrpcService_initial_metadata(grpc_service,
+                                                        &initial_metadata_size);
   for (size_t i = 0; i < initial_metadata_size; ++i) {
     ValidationErrors::ScopedField field(
         errors, absl::StrCat(".initial_metadata[", i, "]"));
-    xds_grpc_service.initial_metadata.push_back(
-        ParseHeader(initial_metadata[i], errors));
+    initial_metadata.push_back(
+        ParseXdsHeader(initial_metadata_proto[i], errors));
   }
   // google_grpc
   ValidationErrors::ScopedField field(errors, ".google_grpc");
@@ -718,103 +728,103 @@ XdsGrpcService ParseXdsGrpcService(
       envoy_config_core_v3_GrpcService_google_grpc(grpc_service);
   if (google_grpc == nullptr) {
     errors->AddError("field not set");
-  } else {
-    // target_uri
-    std::string target_uri = UpbStringToStdString(
-        envoy_config_core_v3_GrpcService_GoogleGrpc_target_uri(google_grpc));
-    if (!CoreConfiguration::Get().resolver_registry().IsValidTarget(
-            target_uri)) {
-      ValidationErrors::ScopedField field(errors, ".target_uri");
-      errors->AddError("invalid target URI");
-    }
-    // credentials
-    RefCountedPtr<const ChannelCredsConfig> channel_creds_config;
-    std::vector<RefCountedPtr<const CallCredsConfig>> call_creds_configs;
-    if (DownCast<const GrpcXdsServer&>(context.server).TrustedXdsServer()) {
-      // Trusted xDS server.  Use credentials from the GoogleGrpc proto.
-      // First, look at channel creds.
-      {
-        ValidationErrors::ScopedField field(errors,
-                                            ".channel_credentials_plugin");
-        size_t size;
-        const auto* const* channel_creds_plugin =
-            envoy_config_core_v3_GrpcService_GoogleGrpc_channel_credentials_plugin(
-                google_grpc, &size);
-        if (size == 0) {
-          errors->AddError("field not set");
-        } else {
-          const auto& registry =
-              CoreConfiguration::Get().channel_creds_registry();
-          const auto& certificate_providers =
-              DownCast<const GrpcXdsBootstrap&>(context.client->bootstrap())
-                  .certificate_providers();
-          for (size_t i = 0; i < size; ++i) {
-            ValidationErrors::ScopedField field(errors,
-                                                absl::StrCat("[", i, "]"));
-            absl::string_view type = UpbStringToAbsl(
-                google_protobuf_Any_type_url(channel_creds_plugin[i]));
-            if (!StripTypePrefix(type, errors)) continue;
-            if (!registry.IsProtoSupported(type)) continue;
-            ValidationErrors::ScopedField field2(errors, ".value");
-            absl::string_view serialized_config = UpbStringToAbsl(
-                google_protobuf_Any_value(channel_creds_plugin[i]));
-            channel_creds_config = registry.ParseProto(
-                type, serialized_config, certificate_providers, errors);
-            break;
-          }
-          if (channel_creds_config == nullptr) {
-            errors->AddError("no supported channel credentials type found");
-          }
-        }
-      }
-      // Now look at call creds.
-      {
-        ValidationErrors::ScopedField field(errors, ".call_credentials_plugin");
-        size_t size;
-        const auto* const* call_creds_plugin =
-            envoy_config_core_v3_GrpcService_GoogleGrpc_call_credentials_plugin(
-                google_grpc, &size);
-        const auto& registry = CoreConfiguration::Get().call_creds_registry();
+    return GrpcXdsServerTarget(/*server_uri=*/"",
+                               /*channel_creds_config=*/nullptr,
+                               /*call_creds_configs=*/{});
+  }
+  // target_uri
+  std::string target_uri = UpbStringToStdString(
+      envoy_config_core_v3_GrpcService_GoogleGrpc_target_uri(google_grpc));
+  if (!CoreConfiguration::Get().resolver_registry().IsValidTarget(target_uri)) {
+    ValidationErrors::ScopedField field(errors, ".target_uri");
+    errors->AddError("invalid target URI");
+  }
+  // credentials
+  RefCountedPtr<const ChannelCredsConfig> channel_creds_config;
+  std::vector<RefCountedPtr<const CallCredsConfig>> call_creds_configs;
+  if (DownCast<const GrpcXdsServer&>(context.server).TrustedXdsServer()) {
+    // Trusted xDS server.  Use credentials from the GoogleGrpc proto.
+    // First, look at channel creds.
+    {
+      ValidationErrors::ScopedField field(errors,
+                                          ".channel_credentials_plugin");
+      size_t size;
+      const auto* const* channel_creds_plugin =
+          envoy_config_core_v3_GrpcService_GoogleGrpc_channel_credentials_plugin(
+              google_grpc, &size);
+      if (size == 0) {
+        errors->AddError("field not set");
+      } else {
+        const auto& registry =
+            CoreConfiguration::Get().channel_creds_registry();
+        const auto& certificate_providers =
+            DownCast<const GrpcXdsBootstrap&>(context.client->bootstrap())
+                .certificate_providers();
         for (size_t i = 0; i < size; ++i) {
           ValidationErrors::ScopedField field(errors,
                                               absl::StrCat("[", i, "]"));
           absl::string_view type = UpbStringToAbsl(
-              google_protobuf_Any_type_url(call_creds_plugin[i]));
+              google_protobuf_Any_type_url(channel_creds_plugin[i]));
           if (!StripTypePrefix(type, errors)) continue;
           if (!registry.IsProtoSupported(type)) continue;
           ValidationErrors::ScopedField field2(errors, ".value");
-          absl::string_view serialized_config =
-              UpbStringToAbsl(google_protobuf_Any_value(call_creds_plugin[i]));
-          call_creds_configs.push_back(
-              registry.ParseProto(type, serialized_config, errors));
+          absl::string_view serialized_config = UpbStringToAbsl(
+              google_protobuf_Any_value(channel_creds_plugin[i]));
+          channel_creds_config = registry.ParseProto(
+              type, serialized_config, certificate_providers, errors);
+          break;
+        }
+        if (channel_creds_config == nullptr) {
+          errors->AddError("no supported channel credentials type found");
         }
       }
-    } else {
-      // Not a trusted xDS server.  Do lookup in bootstrap.
-      const auto& bootstrap =
-          DownCast<const GrpcXdsBootstrap&>(context.client->bootstrap());
-      auto& allowed_grpc_services = bootstrap.allowed_grpc_services();
-      auto it = allowed_grpc_services.find(target_uri);
-      if (it == allowed_grpc_services.end()) {
-        ValidationErrors::ScopedField field(errors, ".target_uri");
-        errors->AddError(
-            "service not present in \"allowed_grpc_services\" "
-            "in bootstrap config");
-      } else {
-        channel_creds_config = it->second.channel_creds_config;
-        call_creds_configs = it->second.call_creds_configs;
+    }
+    // Now look at call creds.
+    {
+      ValidationErrors::ScopedField field(errors, ".call_credentials_plugin");
+      size_t size;
+      const auto* const* call_creds_plugin =
+          envoy_config_core_v3_GrpcService_GoogleGrpc_call_credentials_plugin(
+              google_grpc, &size);
+      const auto& registry = CoreConfiguration::Get().call_creds_registry();
+      for (size_t i = 0; i < size; ++i) {
+        ValidationErrors::ScopedField field(errors, absl::StrCat("[", i, "]"));
+        absl::string_view type =
+            UpbStringToAbsl(google_protobuf_Any_type_url(call_creds_plugin[i]));
+        if (!StripTypePrefix(type, errors)) continue;
+        if (!registry.IsProtoSupported(type)) continue;
+        ValidationErrors::ScopedField field2(errors, ".value");
+        absl::string_view serialized_config =
+            UpbStringToAbsl(google_protobuf_Any_value(call_creds_plugin[i]));
+        call_creds_configs.push_back(
+            registry.ParseProto(type, serialized_config, errors));
       }
     }
-    xds_grpc_service.server_target = std::make_unique<GrpcXdsServerTarget>(
-        target_uri, std::move(channel_creds_config),
-        std::move(call_creds_configs));
+  } else {
+    // Not a trusted xDS server.  Do lookup in bootstrap.
+    const auto& bootstrap =
+        DownCast<const GrpcXdsBootstrap&>(context.client->bootstrap());
+    auto& allowed_grpc_services = bootstrap.allowed_grpc_services();
+    auto it = allowed_grpc_services.find(target_uri);
+    if (it == allowed_grpc_services.end()) {
+      ValidationErrors::ScopedField field(errors, ".target_uri");
+      errors->AddError(
+          "service not present in \"allowed_grpc_services\" "
+          "in bootstrap config");
+    } else {
+      channel_creds_config = it->second.channel_creds_config;
+      call_creds_configs = it->second.call_creds_configs;
+    }
   }
-  return xds_grpc_service;
+  return GrpcXdsServerTarget(target_uri, std::move(channel_creds_config),
+                             std::move(call_creds_configs),
+                             std::move(initial_metadata), timeout);
 }
 
 //
 // ParseHeaderMutationRules()
 //
+
 namespace {
 
 std::unique_ptr<RE2> ParseRegexMatcher(
@@ -842,13 +852,15 @@ HeaderMutationRules ParseHeaderMutationRules(
     return {};
   }
   HeaderMutationRules header_mutation_rules_config;
-  header_mutation_rules_config.disallow_all =
+  header_mutation_rules_config.disallow_all = ParseBoolValue(
       envoy_config_common_mutation_rules_v3_HeaderMutationRules_disallow_all(
-          header_mutation_rules);
-  header_mutation_rules_config.disallow_is_error =
+          header_mutation_rules));
+  const google_protobuf_BoolValue* disallow_is_error_proto =
       envoy_config_common_mutation_rules_v3_HeaderMutationRules_disallow_is_error(
           header_mutation_rules);
-  const auto* disallow_expression_proto =
+  header_mutation_rules_config.disallow_is_error =
+      ParseBoolValue(disallow_is_error_proto);
+  const envoy_type_matcher_v3_RegexMatcher* disallow_expression_proto =
       envoy_config_common_mutation_rules_v3_HeaderMutationRules_disallow_expression(
           header_mutation_rules);
   if (disallow_expression_proto != nullptr) {
@@ -857,7 +869,7 @@ HeaderMutationRules ParseHeaderMutationRules(
     header_mutation_rules_config.disallow_expression =
         ParseRegexMatcher(disallow_expression_proto, errors);
   }
-  const auto* allow_expression_proto =
+  const envoy_type_matcher_v3_RegexMatcher* allow_expression_proto =
       envoy_config_common_mutation_rules_v3_HeaderMutationRules_allow_expression(
           header_mutation_rules);
   if (allow_expression_proto != nullptr) {
@@ -867,6 +879,62 @@ HeaderMutationRules ParseHeaderMutationRules(
         ParseRegexMatcher(allow_expression_proto, errors);
   }
   return header_mutation_rules_config;
+}
+
+//
+// ParseXdsHeaderValueOption()
+//
+
+namespace {
+
+XdsHeaderValueOption::AppendAction ParseXdsHeaderValueOptionAppendAction(
+    int32_t header_value_option_append_action, ValidationErrors* errors) {
+  switch (header_value_option_append_action) {
+    case envoy_config_core_v3_HeaderValueOption_APPEND_IF_EXISTS_OR_ADD:
+      return XdsHeaderValueOption::AppendAction::kAppendIfExistsOrAdd;
+    case envoy_config_core_v3_HeaderValueOption_ADD_IF_ABSENT:
+      return XdsHeaderValueOption::AppendAction::kAddIfAbsent;
+    case envoy_config_core_v3_HeaderValueOption_OVERWRITE_IF_EXISTS_OR_ADD:
+      return XdsHeaderValueOption::AppendAction::kOverwriteIfExistsOrAdd;
+    case envoy_config_core_v3_HeaderValueOption_OVERWRITE_IF_EXISTS:
+      return XdsHeaderValueOption::AppendAction::kOverwriteIfExists;
+    default:
+      errors->AddError("unsupported append action");
+      return XdsHeaderValueOption::AppendAction::kAppendIfExistsOrAdd;
+  }
+}
+
+}  // namespace
+
+XdsHeaderValueOption ParseXdsHeaderValueOption(
+    const envoy_config_core_v3_HeaderValueOption* header_value_option_config,
+    ValidationErrors* errors) {
+  if (header_value_option_config == nullptr) {
+    errors->AddError("field is not present");
+    return {};
+  }
+  XdsHeaderValueOption header_value_option;
+  // parse header
+  {
+    ValidationErrors::ScopedField field(errors, ".header");
+    if (const auto* header = envoy_config_core_v3_HeaderValueOption_header(
+            header_value_option_config);
+        header != nullptr) {
+      header_value_option.header = ParseXdsHeader(header, errors);
+    } else {
+      errors->AddError("field not set");
+    }
+  }
+  // parse header_append_action
+  {
+    ValidationErrors::ScopedField field(errors, ".append_action");
+    int32_t header_append_action =
+        envoy_config_core_v3_HeaderValueOption_append_action(
+            header_value_option_config);
+    header_value_option.append_action =
+        ParseXdsHeaderValueOptionAppendAction(header_append_action, errors);
+  }
+  return header_value_option;
 }
 
 }  // namespace grpc_core
