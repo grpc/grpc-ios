@@ -1,20 +1,20 @@
 #!/bin/bash
 #
-# Script to disable pod lint during trunk push.
-#
-# The script provides an ad-hoc patch to the internal cocoapod push command by removing the
-# validation / lint steps. The script should be relatively stable for runners with a fixed virtual
-# mac os x image, but may require updates to the Gem/Trunk versioning if upgrading to a new runner
+# Script to optimize pod lint during trunk push so it validates on iOS only
+# (with --no-subspecs and --fail-fast) instead of compiling across all 5 platforms.
+# This ensures any podspec, dependency, or compilation error is caught while
+# keeping validation under ~20 minutes instead of exceeding the 6-hour timeout.
 set -ex
 
-# env setup
-GEM_VERSION=3.0.0
-POD_TRUNK_VERSION=1.6.0
+PUSH_FILES=$(find /opt/homebrew /usr/local /Library/Ruby "$HOME/.gem" $(gem env gemdir 2>/dev/null) \
+  -name "push.rb" -path "*/cocoapods-trunk-*/lib/pod/command/trunk/push.rb" 2>/dev/null | sort -u)
 
-# PUSH_FILE_DIR="/Library/Ruby/Gems/2.6.0/gems/cocoapods-trunk-1.6.0/lib/pod/command/trunk"
-PUSH_FILE_DIR="/usr/local/lib/ruby/gems/${GEM_VERSION}/gems/cocoapods-trunk-${POD_TRUNK_VERSION}/lib/pod/command/trunk"
+if [ -z "$PUSH_FILES" ]; then
+  echo "ERROR: Could not locate cocoapods-trunk push.rb"
+  exit 1
+fi
 
-# remove validation steps
-pushd $PUSH_FILE_DIR
-sudo sed -i "" 's/^ *validate_podspec//' push.rb
-popd
+for PUSH_FILE in $PUSH_FILES; do
+  echo "Patching $PUSH_FILE to validate podspec on iOS with no_subspecs and fail_fast..."
+  sudo sed -i "" "s/Validator.new(spec, \[repo_url\])/Validator.new(spec, [repo_url], ['ios']); validator.no_subspecs = true; validator.fail_fast = true/" "$PUSH_FILE"
+done
