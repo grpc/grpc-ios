@@ -13,6 +13,9 @@ if [ -z "$TARGET_PODSPEC" ]; then
     exit 1
 fi
 
+# Configure pod trunk push lint to validate on iOS only (--no-subspecs --fail-fast)
+"$(dirname "$0")/skip_pod_push_lint.sh"
+
 echo "Publishing podspec $TARGET_PODSPEC"
 
 pushd ${TARGET_DIR}
