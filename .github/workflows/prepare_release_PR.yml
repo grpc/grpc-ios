@@ -1,0 +1,151 @@
+name: Prepare Release PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release Type'
+        required: true
+        type: choice
+        options:
+          - major
+          - minor
+      version:
+        description: 'Base Version (e.g., 1.84 or 2.0)'
+        required: true
+        type: string
+      sync_tag:
+        description: 'Sync Tag (e.g., v1.84.0-pre1)'
+        required: true
+        type: string
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  prepare-release:
+    runs-on: macos-14
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required to fetch all history for the merge check
+
+      - name: Set up Git configuration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch --all
+
+      - name: Verify Previous Release is Merged (Major Only)
+        if: ${{ github.event.inputs.release_type == 'major' }}
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          echo "Finding the latest release branch on remote..."
+          
+          # List all remote release branches, sort them by version, and grab the highest one (excluding current version if it already exists)
+          LATEST_BRANCH=$(git branch -r --list "origin/grpc_release_*.x" | sed 's/origin\///' | tr -d '[:space:]' | grep -v "^grpc_release_${VERSION}\.x$" | sort -V | tail -n 1)
+          
+          if [ -z "$LATEST_BRANCH" ]; then
+            echo "⚠️ No previous release branches found on remote. Skipping merge check."
+            exit 0
+          fi
+          
+          echo "Latest release branch found: $LATEST_BRANCH"
+          echo "Checking if $LATEST_BRANCH is merged into main..."
+          
+          # Check if the latest release branch is an ancestor of main
+          if ! git merge-base --is-ancestor origin/$LATEST_BRANCH origin/main; then
+            echo "❌ ERROR: $LATEST_BRANCH has NOT been merged into main!"
+            echo "Please merge the previous release branch into main before cutting a new major release."
+            exit 1
+          else
+            echo "✅ $LATEST_BRANCH is successfully merged into main."
+          fi
+
+      - name: Prepare Branch
+        id: branch_prep
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          SYNC_TAG="${{ github.event.inputs.sync_tag }}"
+          TARGET_BRANCH="grpc_release_${VERSION}.x"
+          SYNC_BRANCH="${SYNC_TAG}"
+          
+          if [ "${{ github.event.inputs.release_type }}" == "major" ]; then
+            echo "Preparing Major Release for $TARGET_BRANCH..."
+            git checkout -B main origin/main
+            git checkout -B "$TARGET_BRANCH" main
+            
+            # Push empty release branch if not already present on remote
+            if git show-ref --verify --quiet "refs/remotes/origin/$TARGET_BRANCH"; then
+              echo "⚠️ Target release branch $TARGET_BRANCH already exists on remote."
+            else
+              echo "Pushing empty branch $TARGET_BRANCH to origin..."
+              git push origin "$TARGET_BRANCH"
+            fi
+            
+            # Create sync branch from the empty branch
+            echo "Creating sync branch $SYNC_BRANCH from $TARGET_BRANCH..."
+            git checkout --no-track -B "$SYNC_BRANCH" "$TARGET_BRANCH"
+          else
+            echo "Preparing Minor Release for $TARGET_BRANCH..."
+            if ! git show-ref --verify --quiet "refs/remotes/origin/$TARGET_BRANCH"; then
+              echo "❌ ERROR: Target branch $TARGET_BRANCH does not exist on remote!"
+              echo "Please verify the base version or create the release branch first."
+              exit 1
+            fi
+            
+            # Create sync branch from the existing release branch
+            echo "Creating sync branch $SYNC_BRANCH from origin/$TARGET_BRANCH..."
+            git checkout --no-track -B "$SYNC_BRANCH" "origin/$TARGET_BRANCH"
+          fi
+          
+          # Save branch names to environment for later steps
+          echo "target_branch=$TARGET_BRANCH" >> $GITHUB_ENV
+          echo "sync_branch=$SYNC_BRANCH" >> $GITHUB_ENV
+
+      - name: Prepare Environment
+        run: |
+          chmod +x ./scripts/prepare_env.sh
+          ./scripts/prepare_env.sh
+
+      - name: Sync gRPC Code
+        run: |
+          source .venv/bin/activate
+          chmod +x ./scripts/sync_grpc_src_shallow.sh
+          ./scripts/sync_grpc_src_shallow.sh ${{ github.event.inputs.sync_tag }}
+
+      - name: Commit Changes
+        run: |
+          git add .
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Sync c-core ${{ github.event.inputs.sync_tag }}"
+          fi
+
+      - name: Push Branch
+        run: |
+          echo "Pushing branch ${{ env.sync_branch }} to origin..."
+          git push -u origin ${{ env.sync_branch }} --force
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING_PR=$(gh pr list --repo "${{ github.repository }}" --head "${{ env.sync_branch }}" --base "${{ env.target_branch }}" --state open --json url --jq '.[0].url // empty')
+          if [ -n "$EXISTING_PR" ]; then
+            echo "Pull request already exists: $EXISTING_PR"
+            echo "### Pull Request" >> $GITHUB_STEP_SUMMARY
+            echo "A pull request already exists: $EXISTING_PR" >> $GITHUB_STEP_SUMMARY
+          else
+            PR_URL=$(gh pr create \
+              --repo "${{ github.repository }}" \
+              --base "${{ env.target_branch }}" \
+              --head "${{ env.sync_branch }}" \
+              --title "Sync c-core ${{ github.event.inputs.sync_tag }}" \
+              --body "Automated PR to sync gRPC c-core sources for \`${{ github.event.inputs.sync_tag }}\` into \`${{ env.target_branch }}\`.")
+            echo "Created pull request: $PR_URL"
+            echo "### Pull Request Created" >> $GITHUB_STEP_SUMMARY
+            echo "Successfully created pull request: $PR_URL" >> $GITHUB_STEP_SUMMARY
+          fi
