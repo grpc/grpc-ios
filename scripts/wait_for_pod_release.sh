@@ -17,6 +17,7 @@ do
     echo "Version found!"
     break
    fi
+   sleep 30
 done
 
 
