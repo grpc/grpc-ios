@@ -34,3 +34,9 @@ bazel_format_virtual_environment/
 .build/
 Package.resolved
 .swiftpm/
+
+# Static XCFramework build & release artifacts
+.build_xcf/
+dist/
+*-XCFramework.podspec
+

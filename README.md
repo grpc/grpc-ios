@@ -46,6 +46,32 @@ Per-language quickstart guides and tutorials can be found in the
 [documentation section on the grpc.io website](https://grpc.io/docs/). Code
 examples are available in the [examples](examples) directory.
 
+## Using gRPC on iOS with CocoaPods (Source & Static XCFramework)
+
+By default, the standard gRPC CocoaPods compile from source:
+
+```ruby
+pod 'gRPC-ProtoRPC', '~> 1.84.0'
+pod 'gRPC', '~> 1.84.0'
+```
+
+To use **prebuilt static XCFrameworks** (`iOS` device `arm64` + simulator `arm64`/`x86_64`, including prebuilt `BoringSSL-GRPC` and `abseil`), update your `Podfile` using either the `*-XCFramework` binary pods or the release `.binary.podspec` URLs:
+
+```ruby
+# Option 1: Use the *-XCFramework pods published to CocoaPods Trunk
+pod 'gRPC-ProtoRPC-XCFramework', '~> 1.84.0'
+pod 'gRPC-XCFramework', '~> 1.84.0'
+# Or for C++:
+pod 'gRPC-C++-XCFramework', '~> 1.84.0'
+
+# Option 2: Override existing pod names with the prebuilt binary podspecs from GitHub Releases
+release_url = 'https://github.com/grpc/grpc-ios/releases/download/v1.84.0'
+pod 'gRPC-Core', :podspec => "#{release_url}/gRPC-Core.binary.podspec"
+pod 'gRPC-RxLibrary', :podspec => "#{release_url}/gRPC-RxLibrary.binary.podspec"
+pod 'gRPC', :podspec => "#{release_url}/gRPC.binary.podspec"
+pod 'gRPC-ProtoRPC', :podspec => "#{release_url}/gRPC-ProtoRPC.binary.podspec"
+```
+
 Precompiled bleeding-edge package builds of gRPC `master` branch's `HEAD` are
 uploaded daily to [packages.grpc.io](https://packages.grpc.io).
 
