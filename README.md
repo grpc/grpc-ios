@@ -66,10 +66,10 @@ pod 'gRPC-C++-XCFramework', '~> 1.84.0'
 
 # Option 2: Override existing pod names with the prebuilt binary podspecs from GitHub Releases
 release_url = 'https://github.com/grpc/grpc-ios/releases/download/v1.84.0'
-pod 'gRPC-Core', :podspec => "#{release_url}/gRPC-Core.binary.podspec"
-pod 'gRPC-RxLibrary', :podspec => "#{release_url}/gRPC-RxLibrary.binary.podspec"
-pod 'gRPC', :podspec => "#{release_url}/gRPC.binary.podspec"
-pod 'gRPC-ProtoRPC', :podspec => "#{release_url}/gRPC-ProtoRPC.binary.podspec"
+pod 'gRPC-Core', :podspec => "#{release_url}/gRPC-Core.podspec"
+pod 'gRPC-RxLibrary', :podspec => "#{release_url}/gRPC-RxLibrary.podspec"
+pod 'gRPC', :podspec => "#{release_url}/gRPC.podspec"
+pod 'gRPC-ProtoRPC', :podspec => "#{release_url}/gRPC-ProtoRPC.podspec"
 ```
 
 Precompiled bleeding-edge package builds of gRPC `master` branch's `HEAD` are

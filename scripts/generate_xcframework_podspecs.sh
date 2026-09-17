@@ -389,14 +389,14 @@ write_rx_podspec       "gRPC-RxLibrary-XCFramework" "${REPO_ROOT}/gRPC-RxLibrary
 write_grpc_podspec     "gRPC-XCFramework"           "gRPC-Core-XCFramework" "gRPC-RxLibrary-XCFramework" "${REPO_ROOT}/gRPC-XCFramework.podspec"
 write_protorpc_podspec "gRPC-ProtoRPC-XCFramework"  "gRPC-XCFramework" "gRPC-RxLibrary-XCFramework" "${REPO_ROOT}/gRPC-ProtoRPC-XCFramework.podspec"
 
-# 2. Write drop-in *.binary.podspec files to dist/ (uploaded to GitHub Release for :podspec overrides)
-write_core_podspec     "gRPC-Core"      "${DIST_DIR}/gRPC-Core.binary.podspec"
-write_cpp_podspec      "gRPC-C++"       "gRPC-Core" "${DIST_DIR}/gRPC-C++.binary.podspec"
-write_rx_podspec       "gRPC-RxLibrary" "${DIST_DIR}/gRPC-RxLibrary.binary.podspec"
-write_grpc_podspec     "gRPC"           "gRPC-Core" "gRPC-RxLibrary" "${DIST_DIR}/gRPC.binary.podspec"
-write_protorpc_podspec "gRPC-ProtoRPC"  "gRPC" "gRPC-RxLibrary" "${DIST_DIR}/gRPC-ProtoRPC.binary.podspec"
+# 2. Write drop-in binary *.podspec files to dist/ (uploaded to GitHub Release for :podspec overrides)
+write_core_podspec     "gRPC-Core"      "${DIST_DIR}/gRPC-Core.podspec"
+write_cpp_podspec      "gRPC-C++"       "gRPC-Core" "${DIST_DIR}/gRPC-C++.podspec"
+write_rx_podspec       "gRPC-RxLibrary" "${DIST_DIR}/gRPC-RxLibrary.podspec"
+write_grpc_podspec     "gRPC"           "gRPC-Core" "gRPC-RxLibrary" "${DIST_DIR}/gRPC.podspec"
+write_protorpc_podspec "gRPC-ProtoRPC"  "gRPC" "gRPC-RxLibrary" "${DIST_DIR}/gRPC-ProtoRPC.podspec"
 
 echo "Generated Trunk XCFramework podspecs in ${REPO_ROOT}:"
 ls -1 "${REPO_ROOT}"/*-XCFramework.podspec
 echo "Generated drop-in binary podspecs in ${DIST_DIR}:"
-ls -1 "${DIST_DIR}"/*.binary.podspec
+ls -1 "${DIST_DIR}"/*.podspec

@@ -30,7 +30,22 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-OUTPUT_DIR="${1:-${REPO_ROOT}/dist}"
+OUTPUT_DIR="${REPO_ROOT}/dist"
+ONLY_POD=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --pod)
+      ONLY_POD="$2"
+      shift 2
+      ;;
+    *)
+      OUTPUT_DIR="$1"
+      shift
+      ;;
+  esac
+done
+
 WORK_DIR="${REPO_ROOT}/.build_xcf"
 
 VERSION=$(grep -E "^\s*version\s*=" "${REPO_ROOT}/gRPC-Core.podspec" | head -n 1 | awk -F"['\"]" '{print $2}')
@@ -91,18 +106,34 @@ proj.save
 ' "${WORK_DIR}/BuilderApp.xcodeproj"
 
 # 2. Create Podfile configured for static frameworks (use_frameworks! :linkage => :static)
+if [ "${ONLY_POD}" = "gRPC-RxLibrary" ]; then
+  PODFILE_PODS="  pod 'gRPC-RxLibrary', :path => '${REPO_ROOT}'"
+  TARGETS=(-target "gRPC-RxLibrary")
+else
+  PODFILE_PODS="  pod 'BoringSSL-GRPC', :podspec => '${REPO_ROOT}/src/objective-c/BoringSSL-GRPC.podspec'
+  pod 'gRPC-Core', :path => '${REPO_ROOT}'
+  pod 'gRPC-C++', :path => '${REPO_ROOT}', :subspecs => ['Interface', 'Implementation', 'Protobuf', 'Privacy']
+  pod 'gRPC-RxLibrary', :path => '${REPO_ROOT}'
+  pod 'gRPC', :path => '${REPO_ROOT}', :subspecs => ['Interface', 'Interface-Legacy', 'GRPCCore', 'CFStream', 'InternalTesting', 'Privacy']
+  pod 'gRPC-ProtoRPC', :path => '${REPO_ROOT}', :subspecs => ['Main', 'Legacy', 'Legacy-Header', 'CFStream']"
+  TARGETS=(
+    -target "BoringSSL-GRPC"
+    -target "abseil"
+    -target "gRPC-RxLibrary"
+    -target "gRPC-Core"
+    -target "gRPC-C++"
+    -target "gRPC"
+    -target "gRPC-ProtoRPC"
+  )
+fi
+
 cat > "${WORK_DIR}/Podfile" << EOF
 source 'https://cdn.cocoapods.org/'
 platform :ios, '15.0'
 use_frameworks! :linkage => :static
 
 target 'BuilderApp' do
-  pod 'BoringSSL-GRPC', :podspec => '${REPO_ROOT}/src/objective-c/BoringSSL-GRPC.podspec'
-  pod 'gRPC-Core', :path => '${REPO_ROOT}'
-  pod 'gRPC-C++', :path => '${REPO_ROOT}', :subspecs => ['Interface', 'Implementation', 'Protobuf', 'Privacy']
-  pod 'gRPC-RxLibrary', :path => '${REPO_ROOT}'
-  pod 'gRPC', :path => '${REPO_ROOT}', :subspecs => ['Interface', 'Interface-Legacy', 'GRPCCore', 'CFStream', 'InternalTesting', 'Privacy']
-  pod 'gRPC-ProtoRPC', :path => '${REPO_ROOT}', :subspecs => ['Main', 'Legacy', 'Legacy-Header', 'CFStream']
+${PODFILE_PODS}
 end
 
 post_install do |installer|
@@ -122,20 +153,10 @@ EOF
 
 echo "Running pod install in ${WORK_DIR}..."
 pushd "${WORK_DIR}" > /dev/null
-pod install --verbose
+LANG=en_US.UTF-8 pod install --verbose
 popd > /dev/null
 
 # 3. Build all static framework targets for iphoneos (arm64) and iphonesimulator (arm64, x86_64)
-TARGETS=(
-  -target "BoringSSL-GRPC"
-  -target "abseil"
-  -target "gRPC-RxLibrary"
-  -target "gRPC-Core"
-  -target "gRPC-C++"
-  -target "gRPC"
-  -target "gRPC-ProtoRPC"
-)
-
 echo "Building static frameworks for iphoneos (arm64)..."
 xcodebuild build \
   -project "${WORK_DIR}/Pods/Pods.xcodeproj" \
@@ -216,16 +237,6 @@ prepare_framework_slice() {
 IOS_OUT="${WORK_DIR}/build/iphoneos/Release-iphoneos"
 SIM_OUT="${WORK_DIR}/build/iphonesimulator/Release-iphonesimulator"
 
-for SLICE_DIR in "${IOS_OUT}" "${SIM_OUT}"; do
-  prepare_framework_slice "${SLICE_DIR}" "BoringSSL-GRPC" "openssl_grpc"
-  prepare_framework_slice "${SLICE_DIR}" "abseil" "absl"
-  prepare_framework_slice "${SLICE_DIR}" "gRPC-Core" "grpc"
-  prepare_framework_slice "${SLICE_DIR}" "gRPC-C++" "grpcpp"
-  prepare_framework_slice "${SLICE_DIR}" "gRPC-RxLibrary" "RxLibrary"
-  prepare_framework_slice "${SLICE_DIR}" "gRPC" "GRPCClient"
-  prepare_framework_slice "${SLICE_DIR}" "gRPC-ProtoRPC" "ProtoRPC"
-done
-
 # 5. Create XCFrameworks
 XCF_STAGE="${WORK_DIR}/xcframeworks"
 mkdir -p "${XCF_STAGE}"
@@ -266,33 +277,55 @@ package_pod_zip() {
 
 echo "Creating XCFrameworks and packaging release archives..."
 
-# 1. gRPC-Core (bundles grpc.xcframework + openssl_grpc.xcframework + absl.xcframework)
-create_xcf "gRPC-Core" "grpc" "${XCF_STAGE}/gRPC-Core"
-create_xcf "BoringSSL-GRPC" "openssl_grpc" "${XCF_STAGE}/gRPC-Core"
-create_xcf "abseil" "absl" "${XCF_STAGE}/gRPC-Core"
-package_pod_zip "gRPC-Core"
+if [ -z "${ONLY_POD}" ] || [ "${ONLY_POD}" = "gRPC-Core" ]; then
+  for SLICE_DIR in "${IOS_OUT}" "${SIM_OUT}"; do
+    prepare_framework_slice "${SLICE_DIR}" "BoringSSL-GRPC" "openssl_grpc"
+    prepare_framework_slice "${SLICE_DIR}" "abseil" "absl"
+    prepare_framework_slice "${SLICE_DIR}" "gRPC-Core" "grpc"
+  done
+  create_xcf "gRPC-Core" "grpc" "${XCF_STAGE}/gRPC-Core"
+  create_xcf "BoringSSL-GRPC" "openssl_grpc" "${XCF_STAGE}/gRPC-Core"
+  create_xcf "abseil" "absl" "${XCF_STAGE}/gRPC-Core"
+  package_pod_zip "gRPC-Core"
+fi
 
-# 2. gRPC-C++ (bundles grpcpp.xcframework)
-create_xcf "gRPC-C++" "grpcpp" "${XCF_STAGE}/gRPC-C++"
-package_pod_zip "gRPC-C++"
+if [ -z "${ONLY_POD}" ] || [ "${ONLY_POD}" = "gRPC-C++" ]; then
+  for SLICE_DIR in "${IOS_OUT}" "${SIM_OUT}"; do
+    prepare_framework_slice "${SLICE_DIR}" "gRPC-C++" "grpcpp"
+  done
+  create_xcf "gRPC-C++" "grpcpp" "${XCF_STAGE}/gRPC-C++"
+  package_pod_zip "gRPC-C++"
+fi
 
-# 3. gRPC-RxLibrary (bundles RxLibrary.xcframework)
-create_xcf "gRPC-RxLibrary" "RxLibrary" "${XCF_STAGE}/gRPC-RxLibrary"
-package_pod_zip "gRPC-RxLibrary"
+if [ -z "${ONLY_POD}" ] || [ "${ONLY_POD}" = "gRPC-RxLibrary" ]; then
+  for SLICE_DIR in "${IOS_OUT}" "${SIM_OUT}"; do
+    prepare_framework_slice "${SLICE_DIR}" "gRPC-RxLibrary" "RxLibrary"
+  done
+  create_xcf "gRPC-RxLibrary" "RxLibrary" "${XCF_STAGE}/gRPC-RxLibrary"
+  package_pod_zip "gRPC-RxLibrary"
+fi
 
-# 4. gRPC (bundles GRPCClient.xcframework)
-create_xcf "gRPC" "GRPCClient" "${XCF_STAGE}/gRPC"
-package_pod_zip "gRPC"
+if [ -z "${ONLY_POD}" ] || [ "${ONLY_POD}" = "gRPC" ]; then
+  for SLICE_DIR in "${IOS_OUT}" "${SIM_OUT}"; do
+    prepare_framework_slice "${SLICE_DIR}" "gRPC" "GRPCClient"
+  done
+  create_xcf "gRPC" "GRPCClient" "${XCF_STAGE}/gRPC"
+  package_pod_zip "gRPC"
+fi
 
-# 5. gRPC-ProtoRPC (bundles ProtoRPC.xcframework)
-create_xcf "gRPC-ProtoRPC" "ProtoRPC" "${XCF_STAGE}/gRPC-ProtoRPC"
-package_pod_zip "gRPC-ProtoRPC"
+if [ -z "${ONLY_POD}" ] || [ "${ONLY_POD}" = "gRPC-ProtoRPC" ]; then
+  for SLICE_DIR in "${IOS_OUT}" "${SIM_OUT}"; do
+    prepare_framework_slice "${SLICE_DIR}" "gRPC-ProtoRPC" "ProtoRPC"
+  done
+  create_xcf "gRPC-ProtoRPC" "ProtoRPC" "${XCF_STAGE}/gRPC-ProtoRPC"
+  package_pod_zip "gRPC-ProtoRPC"
+fi
 
 # Clean up any changes made to repo working tree by CocoaPods prepare_command
 git -C "${REPO_ROOT}" checkout -- src/core 2>/dev/null || true
 
 echo "================================================================"
-echo "Successfully built all 5 static XCFramework zip archives in:"
+echo "Successfully built static XCFramework zip archive(s) in:"
 echo "  ${OUTPUT_DIR}"
 ls -lh "${OUTPUT_DIR}"/*-xcframework.zip
 echo "================================================================"
