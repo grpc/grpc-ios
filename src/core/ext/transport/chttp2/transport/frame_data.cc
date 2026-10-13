@@ -133,10 +133,9 @@ grpc_core::Poll<grpc_error_handle> grpc_deframe_unprocessed_incoming_frames(
                           *(s->max_recv_message_length)));
       error = grpc_error_set_int(error, grpc_core::StatusIntProperty::kStreamId,
                                  static_cast<intptr_t>(s->id));
-      // Attach the explicit gRPC status code to fail the RPC correctly.
-      error =
-          grpc_error_set_int(error, grpc_core::StatusIntProperty::kRpcStatus,
-                             GRPC_STATUS_RESOURCE_EXHAUSTED);
+      // Attach the explicit gRPC status code to fail the RPC correctly
+      error = grpc_core::ReplaceStatusCode(
+          error, absl::StatusCode::kResourceExhausted);
       s->message_size_limit_exceeded = true;
       return error;
     }
