@@ -28,6 +28,7 @@ targets = (
     'grpc_authorization_provider',
     'gpr',
     'upb_base_lib',
+    'upb_descriptor_lib',
     'upb_hash_lib',
     'upb_lex_lib',
     'upb_mem_lib',
