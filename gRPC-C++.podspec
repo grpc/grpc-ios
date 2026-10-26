@@ -22,7 +22,7 @@
 Pod::Spec.new do |s|
   s.name     = 'gRPC-C++'
   # TODO (mxyan): use version that match gRPC version when pod is stabilized
-  version = '1.85.0-pre1'
+  version = '1.85.0'
   s.version  = version
   s.summary  = 'gRPC C++ library'
   s.homepage = 'https://grpc.io'
@@ -3160,7 +3160,7 @@ Pod::Spec.new do |s|
     # excludes windows-only files.
     #
     # See also https://github.com/abseil/abseil-cpp/pull/2138
-    for abseil_dir in ../abseil ../../Release/abseil "$HOME/Library/Caches/CocoaPods/Pods/Release/abseil" ${TMPDIR%/}/CocoaPods-Lint-*/Pods/abseil /tmp/CocoaPods-Lint-*/Pods/abseil $(find . -type d -path "*/Pods/abseil" 2>/dev/null); do
+    for abseil_dir in ../abseil $(find . -type d -path "*/Pods/abseil" 2>/dev/null); do
       if [ -d "$abseil_dir" ]; then
         find "$abseil_dir" -name "time_zone_name_win.cc" -exec rm -f {} +
       fi
