@@ -1,0 +1,167 @@
+name: XCFramework prod release
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build and publish (e.g., v1.84.0)'
+        required: true
+        type: string
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.tag || github.event.release.tag_name }}
+  cancel-in-progress: false
+permissions:
+  contents: write
+env:
+  COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+  TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+jobs:
+  build-and-upload-xcframeworks:
+    runs-on: macos-14
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: Build static XCFrameworks for all pods
+        run: |
+          chmod +x scripts/build_xcframeworks.sh scripts/generate_xcframework_podspecs.sh
+          scripts/build_xcframeworks.sh dist
+          scripts/generate_xcframework_podspecs.sh --repo "${{ github.repository }}"
+
+      - name: Upload XCFramework archives & binary podspecs to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "$TAG" \
+            dist/*-xcframework.zip \
+            dist/*.podspec \
+            --clobber
+
+      - name: Upload XCFramework artifacts to workflow run
+        uses: actions/upload-artifact@v4
+        with:
+          name: grpc-ios-static-xcframeworks-${{ env.TAG }}
+          path: |
+            dist/*-xcframework.zip
+            dist/*.podspec
+
+  release-cocoapod-gRPC-Core-XCFramework:
+    runs-on: macos-14
+    needs: [build-and-upload-xcframeworks]
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: Generate & release gRPC-Core-XCFramework podspec
+        run: |
+          chmod +x scripts/generate_xcframework_podspecs.sh
+          scripts/generate_xcframework_podspecs.sh --repo "${{ github.repository }}"
+          scripts/release_cocoapod.sh gRPC-Core-XCFramework.podspec
+
+      - name: Wait for pod available
+        run: |
+          version=${TAG#v}
+          timeout 1h scripts/wait_for_pod_release.sh gRPC-Core-XCFramework $version
+
+  release-cocoapod-gRPC-Cpp-XCFramework:
+    runs-on: macos-14
+    needs: [release-cocoapod-gRPC-Core-XCFramework]
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: Generate & release gRPC-C++-XCFramework podspec
+        run: |
+          chmod +x scripts/generate_xcframework_podspecs.sh
+          scripts/generate_xcframework_podspecs.sh --repo "${{ github.repository }}"
+          scripts/release_cocoapod.sh gRPC-C++-XCFramework.podspec
+
+      - name: Wait for pod available
+        run: |
+          version=${TAG#v}
+          timeout 1h scripts/wait_for_pod_release.sh gRPC-C++-XCFramework $version
+
+  release-cocoapod-gRPC-RxLibrary-XCFramework:
+    runs-on: macos-14
+    needs: [build-and-upload-xcframeworks]
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: Generate & release gRPC-RxLibrary-XCFramework podspec
+        run: |
+          chmod +x scripts/generate_xcframework_podspecs.sh
+          scripts/generate_xcframework_podspecs.sh --repo "${{ github.repository }}"
+          scripts/release_cocoapod.sh gRPC-RxLibrary-XCFramework.podspec
+
+      - name: Wait for pod available
+        run: |
+          version=${TAG#v}
+          timeout 1h scripts/wait_for_pod_release.sh gRPC-RxLibrary-XCFramework $version
+
+  release-cocoapod-gRPC-XCFramework:
+    runs-on: macos-14
+    needs: [release-cocoapod-gRPC-RxLibrary-XCFramework, release-cocoapod-gRPC-Core-XCFramework]
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: Generate & release gRPC-XCFramework podspec
+        run: |
+          chmod +x scripts/generate_xcframework_podspecs.sh
+          scripts/generate_xcframework_podspecs.sh --repo "${{ github.repository }}"
+          scripts/release_cocoapod.sh gRPC-XCFramework.podspec
+
+      - name: Wait for pod available
+        run: |
+          version=${TAG#v}
+          timeout 1h scripts/wait_for_pod_release.sh gRPC-XCFramework $version
+
+  release-cocoapod-gRPC-ProtoRPC-XCFramework:
+    runs-on: macos-14
+    needs: [release-cocoapod-gRPC-RxLibrary-XCFramework, release-cocoapod-gRPC-XCFramework]
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - name: Prepare environment
+        run: scripts/prepare_env.sh
+
+      - name: Generate & release gRPC-ProtoRPC-XCFramework podspec
+        run: |
+          chmod +x scripts/generate_xcframework_podspecs.sh
+          scripts/generate_xcframework_podspecs.sh --repo "${{ github.repository }}"
+          scripts/release_cocoapod.sh gRPC-ProtoRPC-XCFramework.podspec
+
+      - name: Wait for pod available
+        run: |
+          version=${TAG#v}
+          timeout 1h scripts/wait_for_pod_release.sh gRPC-ProtoRPC-XCFramework $version
