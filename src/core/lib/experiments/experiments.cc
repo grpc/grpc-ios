@@ -110,6 +110,10 @@ const char* const description_local_connector_secure =
     "Local security connector uses TSI_SECURITY_NONE for LOCAL_TCP "
     "connections.";
 const char* const additional_constraints_local_connector_secure = "{}";
+const char* const description_map_host_header_to_authority =
+    "Map the HTTP host header directly to HttpAuthorityMetadata and reject "
+    "duplicate host/authority headers.";
+const char* const additional_constraints_map_host_header_to_authority = "{}";
 const char* const description_memory_optimization_01 = "Memory Optimization";
 const char* const additional_constraints_memory_optimization_01 = "{}";
 const char* const description_memory_optimization_02 = "Memory Optimization 02";
@@ -204,6 +208,9 @@ const char* const additional_constraints_retry_in_callv3 = "{}";
 const char* const description_return_preexisting_errors =
     "Return errors that exist before the start of the call in RunHandler.";
 const char* const additional_constraints_return_preexisting_errors = "{}";
+const char* const description_ring_hash_update_cleanup =
+    "Clean up update logic in ring_hash LB policy.";
+const char* const additional_constraints_ring_hash_update_cleanup = "{}";
 const char* const description_schedule_cancellation_over_write =
     "Allow cancellation op to be scheduled over a write";
 const char* const additional_constraints_schedule_cancellation_over_write =
@@ -337,6 +344,9 @@ const ExperimentMetadata g_experiment_metadata[] = {
      true},
     {"local_connector_secure", description_local_connector_secure,
      additional_constraints_local_connector_secure, nullptr, 0, false, true},
+    {"map_host_header_to_authority", description_map_host_header_to_authority,
+     additional_constraints_map_host_header_to_authority, nullptr, 0, true,
+     true},
     {"memory_optimization_01", description_memory_optimization_01,
      additional_constraints_memory_optimization_01, nullptr, 0, false, false},
     {"memory_optimization_02", description_memory_optimization_02,
@@ -409,6 +419,8 @@ const ExperimentMetadata g_experiment_metadata[] = {
      additional_constraints_retry_in_callv3, nullptr, 0, false, true},
     {"return_preexisting_errors", description_return_preexisting_errors,
      additional_constraints_return_preexisting_errors, nullptr, 0, true, true},
+    {"ring_hash_update_cleanup", description_ring_hash_update_cleanup,
+     additional_constraints_ring_hash_update_cleanup, nullptr, 0, false, true},
     {"schedule_cancellation_over_write",
      description_schedule_cancellation_over_write,
      additional_constraints_schedule_cancellation_over_write, nullptr, 0, false,
@@ -554,6 +566,10 @@ const char* const description_local_connector_secure =
     "Local security connector uses TSI_SECURITY_NONE for LOCAL_TCP "
     "connections.";
 const char* const additional_constraints_local_connector_secure = "{}";
+const char* const description_map_host_header_to_authority =
+    "Map the HTTP host header directly to HttpAuthorityMetadata and reject "
+    "duplicate host/authority headers.";
+const char* const additional_constraints_map_host_header_to_authority = "{}";
 const char* const description_memory_optimization_01 = "Memory Optimization";
 const char* const additional_constraints_memory_optimization_01 = "{}";
 const char* const description_memory_optimization_02 = "Memory Optimization 02";
@@ -648,6 +664,9 @@ const char* const additional_constraints_retry_in_callv3 = "{}";
 const char* const description_return_preexisting_errors =
     "Return errors that exist before the start of the call in RunHandler.";
 const char* const additional_constraints_return_preexisting_errors = "{}";
+const char* const description_ring_hash_update_cleanup =
+    "Clean up update logic in ring_hash LB policy.";
+const char* const additional_constraints_ring_hash_update_cleanup = "{}";
 const char* const description_schedule_cancellation_over_write =
     "Allow cancellation op to be scheduled over a write";
 const char* const additional_constraints_schedule_cancellation_over_write =
@@ -781,6 +800,9 @@ const ExperimentMetadata g_experiment_metadata[] = {
      true},
     {"local_connector_secure", description_local_connector_secure,
      additional_constraints_local_connector_secure, nullptr, 0, false, true},
+    {"map_host_header_to_authority", description_map_host_header_to_authority,
+     additional_constraints_map_host_header_to_authority, nullptr, 0, true,
+     true},
     {"memory_optimization_01", description_memory_optimization_01,
      additional_constraints_memory_optimization_01, nullptr, 0, false, false},
     {"memory_optimization_02", description_memory_optimization_02,
@@ -853,6 +875,8 @@ const ExperimentMetadata g_experiment_metadata[] = {
      additional_constraints_retry_in_callv3, nullptr, 0, false, true},
     {"return_preexisting_errors", description_return_preexisting_errors,
      additional_constraints_return_preexisting_errors, nullptr, 0, true, true},
+    {"ring_hash_update_cleanup", description_ring_hash_update_cleanup,
+     additional_constraints_ring_hash_update_cleanup, nullptr, 0, false, true},
     {"schedule_cancellation_over_write",
      description_schedule_cancellation_over_write,
      additional_constraints_schedule_cancellation_over_write, nullptr, 0, false,
@@ -998,6 +1022,10 @@ const char* const description_local_connector_secure =
     "Local security connector uses TSI_SECURITY_NONE for LOCAL_TCP "
     "connections.";
 const char* const additional_constraints_local_connector_secure = "{}";
+const char* const description_map_host_header_to_authority =
+    "Map the HTTP host header directly to HttpAuthorityMetadata and reject "
+    "duplicate host/authority headers.";
+const char* const additional_constraints_map_host_header_to_authority = "{}";
 const char* const description_memory_optimization_01 = "Memory Optimization";
 const char* const additional_constraints_memory_optimization_01 = "{}";
 const char* const description_memory_optimization_02 = "Memory Optimization 02";
@@ -1092,6 +1120,9 @@ const char* const additional_constraints_retry_in_callv3 = "{}";
 const char* const description_return_preexisting_errors =
     "Return errors that exist before the start of the call in RunHandler.";
 const char* const additional_constraints_return_preexisting_errors = "{}";
+const char* const description_ring_hash_update_cleanup =
+    "Clean up update logic in ring_hash LB policy.";
+const char* const additional_constraints_ring_hash_update_cleanup = "{}";
 const char* const description_schedule_cancellation_over_write =
     "Allow cancellation op to be scheduled over a write";
 const char* const additional_constraints_schedule_cancellation_over_write =
@@ -1225,6 +1256,9 @@ const ExperimentMetadata g_experiment_metadata[] = {
      true},
     {"local_connector_secure", description_local_connector_secure,
      additional_constraints_local_connector_secure, nullptr, 0, false, true},
+    {"map_host_header_to_authority", description_map_host_header_to_authority,
+     additional_constraints_map_host_header_to_authority, nullptr, 0, true,
+     true},
     {"memory_optimization_01", description_memory_optimization_01,
      additional_constraints_memory_optimization_01, nullptr, 0, false, false},
     {"memory_optimization_02", description_memory_optimization_02,
@@ -1297,6 +1331,8 @@ const ExperimentMetadata g_experiment_metadata[] = {
      additional_constraints_retry_in_callv3, nullptr, 0, false, true},
     {"return_preexisting_errors", description_return_preexisting_errors,
      additional_constraints_return_preexisting_errors, nullptr, 0, true, true},
+    {"ring_hash_update_cleanup", description_ring_hash_update_cleanup,
+     additional_constraints_ring_hash_update_cleanup, nullptr, 0, false, true},
     {"schedule_cancellation_over_write",
      description_schedule_cancellation_over_write,
      additional_constraints_schedule_cancellation_over_write, nullptr, 0, false,
