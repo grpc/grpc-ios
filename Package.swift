@@ -62,6 +62,8 @@ let package = Package(
         .headerSearchPath("./"),
         .headerSearchPath("include/"),
         .headerSearchPath("third_party/re2/"),
+        // The bundled zlib, which gRPC-Core compiles.
+        .headerSearchPath("third_party/zlib"),
         .headerSearchPath("third_party/upb/"),
         .headerSearchPath("third_party/utf8_range/"),
         .headerSearchPath("third_party/xxhash/"),
@@ -69,10 +71,14 @@ let package = Package(
         .headerSearchPath("src/core/ext/upb-gen/"),
         .headerSearchPath("src/core/ext/upbdefs-gen/"),
         .define("GRPC_ARES", to: "0"),
+        // Prefixes the bundled zlib's symbols with "z_", so they don't clash
+        // with another copy of zlib in the same binary. Z_PREFIX leaves out
+        // z_errmsg, which has the prefix already.
+        .define("Z_PREFIX"),
+        .define("z_errmsg", to: "grpc_z_errmsg"),
       ],
       linkerSettings: [
         .linkedFramework("CoreFoundation"),
-        .linkedLibrary("z"),
       ]
     ),
     .target(
