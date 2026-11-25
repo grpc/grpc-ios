@@ -887,6 +887,11 @@ class Server::AllocatingRequestMatcherBatch
 
   ArenaPromise<absl::StatusOr<MatchResult>> MatchRequest(
       size_t /*start_request_queue_index*/) override {
+    const bool still_running = server()->ShutdownRefOnRequest();
+    absl::Cleanup cleanup_ref = [this] { server()->ShutdownUnrefOnRequest(); };
+    if (!still_running) {
+      return Immediate(absl::UnavailableError("Server shutdown"));
+    }
     BatchCallAllocation call_info = allocator_();
     GRPC_CHECK(server()->ValidateServerRequest(
                    cq(), static_cast<void*>(call_info.tag), nullptr, nullptr) ==
@@ -934,6 +939,11 @@ class Server::AllocatingRequestMatcherRegistered
 
   ArenaPromise<absl::StatusOr<MatchResult>> MatchRequest(
       size_t /*start_request_queue_index*/) override {
+    const bool still_running = server()->ShutdownRefOnRequest();
+    absl::Cleanup cleanup_ref = [this] { server()->ShutdownUnrefOnRequest(); };
+    if (!still_running) {
+      return Immediate(absl::UnavailableError("Server shutdown"));
+    }
     RegisteredCallAllocation call_info = allocator_();
     GRPC_CHECK(server()->ValidateServerRequest(
                    cq(), call_info.tag, call_info.optional_payload,
@@ -1519,6 +1529,35 @@ void DonePublishedShutdown(void* /*done_arg*/, grpc_cq_completion* storage) {
   delete storage;
 }
 
+// CallV3 counterpart of ChannelBroadcaster::BroadcastShutdown: performs a
+// shutdown grpc_transport_op on every transport in `connections`. The caller
+// must hold Server::mu_global_, which guards `connections`.
+//
+// - send_goaway: if true, requests a graceful GOAWAY with HTTP/2 NO_ERROR,
+//   asking the peer to stop sending new streams while in-flight ones drain.
+//   If false, no graceful GOAWAY is requested.
+// - force_disconnect: if non-ok, closes the transport immediately and fails
+//   all in-flight calls with this status. The transport sends an immediate
+//   GOAWAY as part of the close.
+//
+//   Note that force_disconnect takes precedence over send_goaway.
+void BroadcastShutdownToConnectionsLocked(
+    const absl::flat_hash_set<OrphanablePtr<ServerTransport>>& connections,
+    const bool send_goaway, grpc_error_handle force_disconnect) {
+  for (const OrphanablePtr<ServerTransport>& transport : connections) {
+    grpc_transport_op* const op =
+        grpc_make_transport_op(/*on_complete=*/nullptr);
+    op->goaway_error =
+        send_goaway
+            ? grpc_error_set_int(GRPC_ERROR_CREATE("Server shutdown"),
+                                 StatusIntProperty::kHttp2Error,
+                                 static_cast<int>(Http2ErrorCode::kNoError))
+            : absl::OkStatus();
+    op->disconnect_with_error = force_disconnect;
+    transport->PerformOp(op);
+  }
+}
+
 }  // namespace
 
 // - Kills all pending requests-for-incoming-RPC-calls (i.e., the requests made
@@ -1537,7 +1576,6 @@ void DonePublishedShutdown(void* /*done_arg*/, grpc_cq_completion* storage) {
 //    -- Once there are no more calls in progress, the channel is closed.
 void Server::ShutdownAndNotify(grpc_completion_queue* cq, void* tag) {
   ChannelBroadcaster broadcaster;
-  absl::flat_hash_set<OrphanablePtr<ServerTransport>> removing_connections;
   {
     // Wait for startup to be finished.  Locks mu_global.
     MutexLock lock(mu_global_);
@@ -1557,7 +1595,6 @@ void Server::ShutdownAndNotify(grpc_completion_queue* cq, void* tag) {
     }
     last_shutdown_message_time_ = gpr_now(GPR_CLOCK_REALTIME);
     broadcaster.FillChannelsLocked(GetChannelsLocked());
-    removing_connections.swap(connections_);
     // Collect all unregistered then registered calls.
     {
       MutexLock lock(mu_call_);
@@ -1567,6 +1604,15 @@ void Server::ShutdownAndNotify(grpc_completion_queue* cq, void* tag) {
   }
   StopListening();
   broadcaster.BroadcastShutdown(/*send_goaway=*/true, absl::OkStatus());
+  if (IsCallv3ServerShutdownBroadcastEnabled()) {
+    MutexLock lock(mu_global_);
+    // This only initiates a graceful shutdown on each transport. A connection
+    // is removed from connections_ later, in TransportConnectivityWatcher, once
+    // its transport reports that its shutdown is
+    // complete (GRPC_CHANNEL_SHUTDOWN).
+    BroadcastShutdownToConnectionsLocked(connections_, /*send_goaway=*/true,
+                                         absl::OkStatus());
+  }
 }
 
 void Server::StopListening() {
@@ -1586,6 +1632,12 @@ void Server::CancelAllCalls() {
   {
     MutexLock lock(mu_global_);
     broadcaster.FillChannelsLocked(GetChannelsLocked());
+    if (IsCallv3ServerShutdownBroadcastEnabled()) {
+      // Starts an immediate shutdown on each transport.
+      BroadcastShutdownToConnectionsLocked(
+          connections_, /*send_goaway=*/false,
+          GRPC_ERROR_CREATE("Cancelling all calls"));
+    }
   }
   broadcaster.BroadcastShutdown(
       /*send_goaway=*/false, GRPC_ERROR_CREATE("Cancelling all calls"));
@@ -1596,6 +1648,10 @@ void Server::SendGoaways() {
   {
     MutexLock lock(mu_global_);
     broadcaster.FillChannelsLocked(GetChannelsLocked());
+    if (IsCallv3ServerShutdownBroadcastEnabled()) {
+      BroadcastShutdownToConnectionsLocked(connections_, /*send_goaway=*/true,
+                                           absl::OkStatus());
+    }
   }
   broadcaster.BroadcastShutdown(/*send_goaway=*/true, absl::OkStatus());
 }
@@ -1898,7 +1954,7 @@ Server::CallData::CallData(grpc_call_element* elem,
   GRPC_CLOSURE_INIT(&recv_trailing_metadata_ready_, RecvTrailingMetadataReady,
                     elem, grpc_schedule_on_exec_ctx);
 
-  // TODO(snohria) : [PH2][P1] : Add the same for Call-V3 as well.
+  // TODO(snohria) : [PH2][P1][Server] : Add the same for Call-V3 as well.
   server_->stream_quota_->IncrementOutstandingRequests();
 }
 
@@ -1908,7 +1964,7 @@ Server::CallData::~CallData() {
   grpc_byte_buffer_destroy(payload_);
 
   if (server_ != nullptr) {
-    // TODO(snohria) : [PH2][P1] : Add the same for Call-V3 as well.
+    // TODO(snohria) : [PH2][P1][Server] : Add the same for Call-V3 as well.
     server_->stream_quota_->DecrementOutstandingRequests();
   }
 }
