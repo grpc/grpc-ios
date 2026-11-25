@@ -36,9 +36,11 @@ let package = Package(
         .product(name:"openssl_grpc", package: "boringssl-SwiftPM"),
       ],
       path: basePath,
+      // Directories without a trailing "/": SwiftPM on Windows ignores
+      // paths that end in one.
       exclude: [
-        "src/objective-c/",
-        "src/cpp/",
+        "src/objective-c",
+        "src/cpp",
         "third_party/upb/upb/port/def.inc",
         "third_party/upb/upb/port/undef.inc",
         "third_party/utf8_range/utf8_range_sse.inc",
@@ -62,6 +64,8 @@ let package = Package(
         .headerSearchPath("./"),
         .headerSearchPath("include/"),
         .headerSearchPath("third_party/re2/"),
+        // Windows has no system zlib; gRPC-Core compiles the bundled one.
+        .headerSearchPath("third_party/zlib", .when(platforms: [.windows])),
         .headerSearchPath("third_party/upb/"),
         .headerSearchPath("third_party/utf8_range/"),
         .headerSearchPath("third_party/xxhash/"),
@@ -69,10 +73,12 @@ let package = Package(
         .headerSearchPath("src/core/ext/upb-gen/"),
         .headerSearchPath("src/core/ext/upbdefs-gen/"),
         .define("GRPC_ARES", to: "0"),
+        // As gRPC's CMake build: windows.h's min and max macros break re2.
+        .define("NOMINMAX", .when(platforms: [.windows])),
       ],
       linkerSettings: [
         .linkedFramework("CoreFoundation"),
-        .linkedLibrary("z"),
+        .linkedLibrary("z", .when(platforms: [.macOS, .iOS, .tvOS, .watchOS, .visionOS, .macCatalyst, .linux, .android])),
       ]
     ),
     .target(
@@ -88,7 +94,7 @@ let package = Package(
         "include/grpcpp/ports_def.inc",
       ],
       sources: [
-        "src/cpp/",
+        "src/cpp",
       ],
       resources: [
         .copy("src/objective-c/PrivacyInfo.xcprivacy"),
@@ -100,6 +106,7 @@ let package = Package(
         .headerSearchPath("third_party/upb/"),
         .headerSearchPath("src/core/ext/upb-gen"),
         .headerSearchPath("src/core/ext/upbdefs-gen/"),
+        .define("NOMINMAX", .when(platforms: [.windows])),
       ]
     ),
     .testTarget(
